@@ -1,5 +1,6 @@
 package com.example.testapp.presentation.screen
 
+import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.testapp.domain.model.Question
@@ -8,6 +9,7 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
@@ -25,21 +27,23 @@ class HomeViewModel @Inject constructor(
         viewModelScope.launch {
             getQuestionsUseCase().collect { list ->
                 _questions.value = list
-                // 提取所有不重复的 fileName，过滤 null
                 _fileNames.value = list.mapNotNull { it.fileName }.distinct()
+                Log.d("HomeVM", "[collect] fileNames: $_fileNames, questions.size: ${list.size}")
             }
         }
     }
 
-    fun deleteFileAndData(fileName: String) {
+    fun deleteFileAndData(fileName: String, onDeleted: (() -> Unit)? = null) {
         viewModelScope.launch {
-            // 1. 删除所有属于该文件的题目（假设 Question 有 fileName 字段）
+            Log.d("HomeVM", "[deleteFileAndData] before: fileNames=$_fileNames, selectedFile=$fileName")
             getQuestionsUseCase.deleteQuestionsByFileName(fileName)
-            // 2. 重新加载题库列表
-            getQuestionsUseCase().collect { list ->
-                _questions.value = list
-                _fileNames.value = list.mapNotNull { it.fileName }.distinct()
-            }
+            // 等待数据库变更后再 collect 一次，确保刷新
+            val list = getQuestionsUseCase().first()
+            _questions.value = list
+            val names = list.mapNotNull { it.fileName }.distinct()
+            _fileNames.value = names
+            Log.d("HomeVM", "[deleteFileAndData] after: fileNames=$_fileNames, questions.size=${list.size}")
+            onDeleted?.invoke()
         }
     }
 }

@@ -1,5 +1,7 @@
 package com.example.testapp.presentation.screen
 
+import android.util.Log
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -104,6 +106,7 @@ fun HomeScreen(
             }
         }
     ) { innerPadding ->
+        Log.d("HomeScreen", "[Compose] fileNames=$fileNames, selectedFileName=${selectedFileName.value}, questions.size=${questions.size}")
         Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -128,9 +131,12 @@ fun HomeScreen(
                             val name = fileNames[idx]
                             val dismissState = rememberDismissState()
                             if (dismissState.currentValue == DismissValue.DismissedToEnd) {
-                                viewModel.deleteFileAndData(name)
-                                if (selectedFileName.value == name) {
-                                    selectedFileName.value = fileNames.firstOrNull { it != name } ?: ""
+                                Log.d("HomeScreen", "[Delete] 删除文件: $name, 当前fileNames=$fileNames, 当前选中=${selectedFileName.value}")
+                                viewModel.deleteFileAndData(name) {
+                                    // 删除后回调，自动切换选中项
+                                    val newList = fileNames.filter { it != name }
+                                    selectedFileName.value = newList.firstOrNull() ?: ""
+                                    Log.d("HomeScreen", "[Delete] 更新选中: ${selectedFileName.value}")
                                 }
                             }
                             SwipeToDismiss(
@@ -143,11 +149,21 @@ fun HomeScreen(
                                     Box(
                                         modifier = Modifier
                                             .fillMaxSize()
-                                            .background(Color.Red)
+                                            .background(
+                                                if (dismissState.targetValue != DismissValue.DismissedToEnd)
+                                                    if (dismissState.dismissDirection != null)
+                                                        MaterialTheme.colorScheme.error
+                                                    else
+                                                        Color.Transparent
+                                                else
+                                                    Color.Transparent
+                                            )
                                             .padding(horizontal = 20.dp),
                                         contentAlignment = Alignment.CenterEnd
                                     ) {
-                                        Icon(Icons.Filled.Delete, contentDescription = "删除", tint = Color.White)
+                                        if (dismissState.targetValue != DismissValue.DismissedToEnd && dismissState.dismissDirection != null) {
+                                            Icon(Icons.Filled.Delete, contentDescription = "删除", tint = Color.White)
+                                        }
                                     }
                                 },
                                 dismissContent = {
@@ -155,7 +171,13 @@ fun HomeScreen(
                                         modifier = Modifier
                                             .fillMaxWidth()
                                             .padding(horizontal = 12.dp, vertical = 8.dp)
-                                            .background(if (selectedFileName.value == name) Color(0xFFBBDEFB) else Color.Transparent)
+                                            .background(
+                                                if (selectedFileName.value == name) {
+                                                    Color(0xFFBBDEFB)
+                                                } else {
+                                                    MaterialTheme.colorScheme.surface
+                                                }
+                                            )
                                             .clickable { selectedFileName.value = name },
                                         verticalAlignment = Alignment.CenterVertically
                                     ) {
@@ -182,8 +204,15 @@ fun HomeScreen(
             }
             Spacer(modifier = Modifier.height(32.dp))
             Button(
-                onClick = { onStartQuiz(selectedFileName.value) },
-                enabled = selectedFileName.value.isNotEmpty(),
+                onClick = {
+                    Log.d("HomeScreen", "[StartQuiz] 点击，当前选中=${selectedFileName.value}，fileNames=$fileNames")
+                    if (selectedFileName.value.isNotEmpty() && fileNames.contains(selectedFileName.value)) {
+                        onStartQuiz(selectedFileName.value)
+                    } else {
+                        Log.w("HomeScreen", "[StartQuiz] 选中题库已被删除或无效")
+                    }
+                },
+                enabled = selectedFileName.value.isNotEmpty() && fileNames.contains(selectedFileName.value),
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(56.dp)
