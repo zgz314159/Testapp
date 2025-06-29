@@ -15,6 +15,7 @@ import kotlinx.serialization.json.Json
 import org.apache.poi.ss.usermodel.WorkbookFactory
 import org.apache.poi.xssf.usermodel.XSSFWorkbook
 import org.apache.poi.ss.usermodel.Row
+import org.apache.poi.ss.usermodel.DataFormatter
 import java.io.File
 
 class QuestionRepositoryImpl @Inject constructor(
@@ -119,6 +120,7 @@ class QuestionRepositoryImpl @Inject constructor(
             val questions: List<Question> = try {
                 parseExcelQuestions(file, originFileName)
             } catch (e: Exception) {
+                android.util.Log.e("ImportDebug", "解析Excel失败，尝试解析TXT", e)
                 try {
                     parseTxtQuestions(file, originFileName)
                 } catch (e2: Exception) {
@@ -170,35 +172,40 @@ class QuestionRepositoryImpl @Inject constructor(
     // Excel 文件解析，适配新版 Question 字段
     private fun parseExcelQuestions(file: File, originFileName: String): List<Question> {
         val questions = mutableListOf<Question>()
-        val workbook = WorkbookFactory.create(file)
-        val sheet = workbook.getSheetAt(0)
-        android.util.Log.d("ImportDebug", "Excel文件${file.name} 行数: ${sheet.physicalNumberOfRows}")
-        for (row in sheet.drop(1)) {
-            val content = row.getCell(0)?.stringCellValue ?: ""
-            val type = row.getCell(1)?.stringCellValue ?: ""
-            val options = (2..8).mapNotNull { row.getCell(it)?.stringCellValue }.filter { it.isNotBlank() }
-            val explanation = row.getCell(9)?.stringCellValue ?: ""
-            val answer = row.getCell(10)?.stringCellValue ?: ""
-            if (content.isNotBlank() && options.isNotEmpty() && answer.isNotBlank()) {
-                android.util.Log.d("ImportDebug", "Excel题目解析成功: $content, 选项数: ${options.size}, 答案: $answer")
-                questions.add(
-                    Question(
-                        id = 0,
-                        content = content,
-                        type = type,
-                        options = options,
-                        answer = answer,
-                        explanation = explanation,
-                        isFavorite = false,
-                        isWrong = false,
-                        fileName = originFileName
+        val dataFormatter = DataFormatter()
+        WorkbookFactory.create(file).use { workbook ->
+            val sheet = workbook.getSheetAt(0)
+            android.util.Log.d("ImportDebug", "Excel文件${file.name} 行数: ${sheet.physicalNumberOfRows}")
+            for (row in sheet.drop(1)) {
+                val content = row.getCell(0)?.let { dataFormatter.formatCellValue(it) } ?: ""
+                val type = row.getCell(1)?.let { dataFormatter.formatCellValue(it) } ?: ""
+                val options = (2..8).mapNotNull { row.getCell(it)?.let { cell -> dataFormatter.formatCellValue(cell) } }
+                    .filter { it.isNotBlank() }
+                val explanation = row.getCell(9)?.let { dataFormatter.formatCellValue(it) } ?: ""
+                val answer = row.getCell(10)?.let { dataFormatter.formatCellValue(it) } ?: ""
+                if (content.isNotBlank() && options.isNotEmpty() && answer.isNotBlank()) {
+                    android.util.Log.d("ImportDebug", "Excel题目解析成功: $content, 选项数: ${options.size}, 答案: $answer")
+                    questions.add(
+                        Question(
+                            id = 0,
+                            content = content,
+                            type = type,
+                            options = options,
+                            answer = answer,
+                            explanation = explanation,
+                            isFavorite = false,
+                            isWrong = false,
+                            fileName = originFileName
+                        )
                     )
-                )
-            } else {
-                android.util.Log.w("ImportDebug", "Excel题目格式错误: content='$content', options='${options}', answer='$answer'")
+                } else {
+                    android.util.Log.w(
+                        "ImportDebug",
+                        "Excel题目格式错误: content='$content', options='${options}', answer='$answer'"
+                    )
+                }
             }
         }
-        workbook.close()
         return questions
     }
 
