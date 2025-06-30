@@ -6,6 +6,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.List
 import androidx.compose.material.icons.filled.Delete
@@ -127,10 +128,9 @@ fun HomeScreen(
                             .fillMaxSize()
                             .padding(vertical = 8.dp)
                     ) {
-                        items(fileNames.size) { idx ->
-                            val name = fileNames[idx]
+                        items(fileNames, key = { it }) { name ->
                             val dismissState = rememberDismissState()
-                            if (dismissState.currentValue == DismissValue.DismissedToEnd) {
+                            if (dismissState.currentValue == DismissValue.DismissedToStart) {
                                 Log.d("HomeScreen", "[Delete] 删除文件: $name, 当前fileNames=$fileNames, 当前选中=${selectedFileName.value}")
                                 viewModel.deleteFileAndData(name) {
                                     // 删除后回调，自动切换选中项
@@ -146,27 +146,27 @@ fun HomeScreen(
                                     FractionalThreshold(0.2f)
                                 },
                                 background = {
+                                    Log.d("HomeScreen", "[SwipeToDismiss-background] name=$name, dismissDirection=${dismissState.dismissDirection}, targetValue=${dismissState.targetValue}, currentValue=${dismissState.currentValue}")
+                                    val showRed = dismissState.dismissDirection != null && dismissState.targetValue != DismissValue.Default
                                     Box(
                                         modifier = Modifier
                                             .fillMaxSize()
                                             .background(
-                                                if (dismissState.targetValue != DismissValue.DismissedToEnd)
-                                                    if (dismissState.dismissDirection != null)
-                                                        MaterialTheme.colorScheme.error
-                                                    else
-                                                        Color.Transparent
-                                                else
-                                                    Color.Transparent
+                                                if (showRed) MaterialTheme.colorScheme.error else Color.Transparent
                                             )
                                             .padding(horizontal = 20.dp),
                                         contentAlignment = Alignment.CenterEnd
                                     ) {
-                                        if (dismissState.targetValue != DismissValue.DismissedToEnd && dismissState.dismissDirection != null) {
+                                        if (showRed) {
+                                            Log.d("HomeScreen", "[SwipeToDismiss-background] 显示红色和删除图标 name=$name")
                                             Icon(Icons.Filled.Delete, contentDescription = "删除", tint = Color.White)
+                                        } else {
+                                            Log.d("HomeScreen", "[SwipeToDismiss-background] 显示透明 name=$name")
                                         }
                                     }
                                 },
                                 dismissContent = {
+                                    Log.d("HomeScreen", "[SwipeToDismiss-dismissContent] name=$name, selectedFileName=${selectedFileName.value}")
                                     Row(
                                         modifier = Modifier
                                             .fillMaxWidth()
@@ -178,7 +178,10 @@ fun HomeScreen(
                                                     MaterialTheme.colorScheme.surface
                                                 }
                                             )
-                                            .clickable { selectedFileName.value = name },
+                                            .clickable {
+                                                Log.d("HomeScreen", "[SwipeToDismiss-dismissContent] 点击 name=$name")
+                                                selectedFileName.value = name
+                                            },
                                         verticalAlignment = Alignment.CenterVertically
                                     ) {
                                         Text(
