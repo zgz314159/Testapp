@@ -20,7 +20,11 @@ fun HistoryScreen(viewModel: HistoryViewModel = hiltViewModel()) {
         Text("历史记录", modifier = Modifier.align(Alignment.CenterHorizontally), fontSize = LocalFontSize.current, fontFamily = LocalFontFamily.current)
         Spacer(modifier = Modifier.height(16.dp))
         if (historyList.value.isEmpty()) {
-            Text("暂无历史记录")
+            Text(
+                "暂无历史记录",
+                fontSize = LocalFontSize.current,
+                fontFamily = LocalFontFamily.current
+            )
         } else {
             historyList.value.forEachIndexed { idx, record ->
                 Text("${idx + 1}. ${record.score}/${record.total}  时间：${record.time.format(formatter)}", fontSize = LocalFontSize.current, fontFamily = LocalFontFamily.current)

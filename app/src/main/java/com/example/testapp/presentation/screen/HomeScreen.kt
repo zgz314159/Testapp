@@ -67,7 +67,13 @@ fun HomeScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("题库主页") },
+                title = {
+                    Text(
+                        "题库主页",
+                        fontSize = LocalFontSize.current,
+                        fontFamily = LocalFontFamily.current
+                    )
+                },
                 actions = {
                     IconButton(onClick = onSettings) {
                         Icon(Icons.Filled.Settings, contentDescription = "设置字体")
@@ -84,8 +90,15 @@ fun HomeScreen(
                         onWrongBook()
                     },
                     icon = { Icon(Icons.Filled.Warning, contentDescription = "错题库") },
-                    label = { Text("错题库") }
+                    label = {
+                        Text(
+                            "错题库",
+                            fontSize = LocalFontSize.current,
+                            fontFamily = LocalFontFamily.current
+                        )
+                    }
                 )
+
                 NavigationBarItem(
                     selected = bottomNavIndex == 1,
                     onClick = {
@@ -93,8 +106,15 @@ fun HomeScreen(
                         onFavoriteBook()
                     },
                     icon = { Icon(Icons.Filled.Favorite, contentDescription = "收藏库") },
-                    label = { Text("收藏库") }
+                    label = {
+                        Text(
+                            "收藏库",
+                            fontSize = LocalFontSize.current,
+                            fontFamily = LocalFontFamily.current
+                        )
+                    }
                 )
+
                 NavigationBarItem(
                     selected = bottomNavIndex == 2,
                     onClick = {
@@ -146,6 +166,7 @@ fun HomeScreen(
                                     FractionalThreshold(0.2f)
                                 },
                                 background = {
+
                                     Log.d("HomeScreen", "[SwipeToDismiss-background] name=$name, dismissDirection=${dismissState.dismissDirection}, targetValue=${dismissState.targetValue}, currentValue=${dismissState.currentValue}")
                                     val showRed = dismissState.dismissDirection != null && dismissState.targetValue != DismissValue.Default
                                     Box(
@@ -158,7 +179,6 @@ fun HomeScreen(
                                         contentAlignment = Alignment.CenterEnd
                                     ) {
                                         if (showRed) {
-                                            Log.d("HomeScreen", "[SwipeToDismiss-background] 显示红色和删除图标 name=$name")
                                             Icon(Icons.Filled.Delete, contentDescription = "删除", tint = Color.White)
                                         } else {
                                             Log.d("HomeScreen", "[SwipeToDismiss-background] 显示透明 name=$name")
@@ -166,7 +186,6 @@ fun HomeScreen(
                                     }
                                 },
                                 dismissContent = {
-                                    Log.d("HomeScreen", "[SwipeToDismiss-dismissContent] name=$name, selectedFileName=${selectedFileName.value}")
                                     Row(
                                         modifier = Modifier
                                             .fillMaxWidth()
@@ -179,7 +198,6 @@ fun HomeScreen(
                                                 }
                                             )
                                             .clickable {
-                                                Log.d("HomeScreen", "[SwipeToDismiss-dismissContent] 点击 name=$name")
                                                 selectedFileName.value = name
                                             },
                                         verticalAlignment = Alignment.CenterVertically
@@ -201,18 +219,23 @@ fun HomeScreen(
                 Spacer(modifier = Modifier.weight(1f))
             }
             if (questions.isEmpty()) {
-                Text(text = "加载中...")
+                Text(
+                    text = "加载中...",
+                    fontSize = LocalFontSize.current,
+                    fontFamily = LocalFontFamily.current
+                )
             } else {
-                Text(text = "题目数量：${questions.size}")
+                Text(
+                    text = "题目数量：${questions.size}",
+                    fontSize = LocalFontSize.current,
+                    fontFamily = LocalFontFamily.current
+                )
             }
             Spacer(modifier = Modifier.height(32.dp))
             Button(
                 onClick = {
-                    Log.d("HomeScreen", "[StartQuiz] 点击，当前选中=${selectedFileName.value}，fileNames=$fileNames")
                     if (selectedFileName.value.isNotEmpty() && fileNames.contains(selectedFileName.value)) {
                         onStartQuiz(selectedFileName.value)
-                    } else {
-                        Log.w("HomeScreen", "[StartQuiz] 选中题库已被删除或无效")
                     }
                 },
                 enabled = selectedFileName.value.isNotEmpty() && fileNames.contains(selectedFileName.value),
@@ -220,8 +243,13 @@ fun HomeScreen(
                     .fillMaxWidth()
                     .height(56.dp)
             ) {
-                Text("开始考试")
+                Text(
+                    "开始考试",
+                    fontSize = LocalFontSize.current,
+                    fontFamily = LocalFontFamily.current
+                )
             }
         }
     }
+
 }

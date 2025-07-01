@@ -9,6 +9,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
+import com.example.testapp.presentation.component.LocalFontFamily
+import com.example.testapp.presentation.component.LocalFontSize
 
 @Composable
 fun FavoriteScreen(
@@ -17,10 +19,20 @@ fun FavoriteScreen(
 ) {
     val favorites = viewModel.favoriteQuestions.collectAsState()
     Column(modifier = Modifier.fillMaxSize().padding(16.dp)) {
-        Text("收藏夹", style = MaterialTheme.typography.titleLarge)
+        Text(
+            "收藏夹",
+            style = MaterialTheme.typography.titleLarge.copy(
+                fontSize = LocalFontSize.current,
+                fontFamily = LocalFontFamily.current
+            )
+        )
         Spacer(modifier = Modifier.height(16.dp))
         if (favorites.value.isEmpty()) {
-            Text("暂无收藏题目")
+            Text(
+                "暂无收藏题目",
+                fontSize = LocalFontSize.current,
+                fontFamily = LocalFontFamily.current
+            )
         } else {
             favorites.value.forEachIndexed { idx, q ->
                 Card(
@@ -31,13 +43,27 @@ fun FavoriteScreen(
                         verticalAlignment = Alignment.CenterVertically,
                         modifier = Modifier.fillMaxWidth().padding(8.dp)
                     ) {
-                        Text("${idx + 1}. ${q.content}", modifier = Modifier.weight(1f))
+                        Text(
+                            "${idx + 1}. ${q.content}",
+                            modifier = Modifier.weight(1f),
+                            fontSize = LocalFontSize.current,
+                            fontFamily = LocalFontFamily.current
+                        )
                         Button(onClick = { navController?.navigate("question_fav") }) {
-                            Text("开始练习")
+                            Text(
+                                "开始练习",
+                                fontSize = LocalFontSize.current,
+                                fontFamily = LocalFontFamily.current
+                            )
                         }
                         Spacer(modifier = Modifier.width(8.dp))
                         Button(onClick = { viewModel.removeFavorite(q.id) }, colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)) {
-                            Text("移除", color = MaterialTheme.colorScheme.onError)
+                            Text(
+                                "移除",
+                                color = MaterialTheme.colorScheme.onError,
+                                fontSize = LocalFontSize.current,
+                                fontFamily = LocalFontFamily.current
+                            )
                         }
                     }
                 }
@@ -46,7 +72,11 @@ fun FavoriteScreen(
         if (favorites.value.isNotEmpty()) {
             Spacer(modifier = Modifier.height(24.dp))
             Button(onClick = { navController?.navigate("question_fav") }) {
-                Text("练习全部收藏题")
+                Text(
+                    "练习全部收藏题",
+                    fontSize = LocalFontSize.current,
+                    fontFamily = LocalFontFamily.current
+                )
             }
         }
     }

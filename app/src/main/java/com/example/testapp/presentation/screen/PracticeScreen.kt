@@ -1,6 +1,5 @@
 package com.example.testapp.presentation.screen
 
-
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
@@ -41,7 +40,11 @@ fun PracticeScreen(
 
     if (question == null || !progressLoaded) {
         Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-            Text("暂无题目或正在加载进度…")
+            Text(
+                "暂无题目或正在加载进度…",
+                fontSize = LocalFontSize.current,
+                fontFamily = LocalFontFamily.current
+            )
         }
         return
     }
@@ -55,7 +58,12 @@ fun PracticeScreen(
             )
             Spacer(modifier = Modifier.weight(1f))
             Button(onClick = { viewModel.clearProgress() }, colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)) {
-                Text("清除进度", color = MaterialTheme.colorScheme.onError)
+                Text(
+                    "清除进度",
+                    color = MaterialTheme.colorScheme.onError,
+                    fontSize = LocalFontSize.current,
+                    fontFamily = LocalFontFamily.current
+                )
             }
         }
         LinearProgressIndicator(
@@ -103,7 +111,11 @@ fun PracticeScreen(
                     viewModel.updateShowResult(currentIndex, showResult)
                     viewModel.prevQuestion()
                 }) {
-                    Text("上一题")
+                    Text(
+                        "上一题",
+                        fontSize = LocalFontSize.current,
+                        fontFamily = LocalFontFamily.current
+                    )
                 }
                 Spacer(modifier = Modifier.width(16.dp))
             }
@@ -112,13 +124,21 @@ fun PracticeScreen(
                     viewModel.updateShowResult(currentIndex, showResult)
                     viewModel.nextQuestion()
                 }) {
-                    Text("下一题")
+                    Text(
+                        "下一题",
+                        fontSize = LocalFontSize.current,
+                        fontFamily = LocalFontFamily.current
+                    )
                 }
             } else {
                 Button(onClick = {
                     onQuizEnd(score, questions.size)
                 }) {
-                    Text("交卷")
+                    Text(
+                        "交卷",
+                        fontSize = LocalFontSize.current,
+                        fontFamily = LocalFontFamily.current
+                    )
                 }
             }
         }
@@ -131,21 +151,33 @@ fun PracticeScreen(
                 if (correct) score++
                 onSubmit(correct)
             },
-            enabled = selectedOption != -1 && !showResult
+            enabled = selectedOption != -1 && !showResult,
         ) {
-            Text("提交答案")
+            Text(
+                "提交答案",
+                fontSize = LocalFontSize.current,
+                fontFamily = LocalFontFamily.current
+            )
         }
         if (showResult) {
             val correctIndex = answerLetterToIndex(question.answer)
             val correct = selectedOption == correctIndex
             Text(
                 if (correct) "回答正确！" else "回答错误，正确答案：${if (correctIndex != null && correctIndex in question.options.indices) question.options[correctIndex] else question.answer}",
-                color = if (correct) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error
+                color = if (correct) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error,
+                fontSize = LocalFontSize.current,
+                fontFamily = LocalFontFamily.current
             )
             // 新增：显示 fileName 字段
             if (question.fileName != null) {
                 Spacer(modifier = Modifier.height(8.dp))
-                Text("题目来源文件：${question.fileName}", style = MaterialTheme.typography.bodySmall)
+                Text(
+                    "题目来源文件：${question.fileName}",
+                    style = MaterialTheme.typography.bodySmall.copy(
+                        fontSize = LocalFontSize.current,
+                        fontFamily = LocalFontFamily.current
+                    )
+                )
             }
             Spacer(modifier = Modifier.height(16.dp))
         }

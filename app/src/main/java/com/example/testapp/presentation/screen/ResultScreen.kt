@@ -20,15 +20,27 @@ fun ResultScreen(score: Int, total: Int, onBackHome: () -> Unit, onViewWrongBook
             Text(text = "你的得分：$score / $total", fontSize = LocalFontSize.current, fontFamily = LocalFontFamily.current)
             Spacer(modifier = Modifier.height(24.dp))
             Button(onClick = onBackHome) {
-                Text("返回首页")
+                Text(
+                    "返回首页",
+                    fontSize = LocalFontSize.current,
+                    fontFamily = LocalFontFamily.current
+                )
             }
             Spacer(modifier = Modifier.height(8.dp))
             Button(onClick = onViewWrongBook) {
-                Text("查看错题本")
+                Text(
+                    "查看错题本",
+                    fontSize = LocalFontSize.current,
+                    fontFamily = LocalFontFamily.current
+                )
             }
             Spacer(modifier = Modifier.height(8.dp))
             Button(onClick = onViewHistory) {
-                Text("查看历史记录")
+                Text(
+                    "查看历史记录",
+                    fontSize = LocalFontSize.current,
+                    fontFamily = LocalFontFamily.current
+                )
             }
         }
     }

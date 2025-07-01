@@ -21,7 +21,11 @@ fun WrongBookScreen(viewModel: WrongBookViewModel = hiltViewModel(), navControll
         Text("错题本", modifier = Modifier.align(Alignment.CenterHorizontally), fontSize = LocalFontSize.current, fontFamily = LocalFontFamily.current)
         Spacer(modifier = Modifier.height(16.dp))
         if (wrongList.value.isEmpty()) {
-            Text("暂无错题")
+            Text(
+                "暂无错题",
+                fontSize = LocalFontSize.current,
+                fontFamily = LocalFontFamily.current
+            )
         } else {
             wrongList.value.forEachIndexed { idx, wrong ->
                 Text("${idx + 1}. ${wrong.question.content} (你的答案：${wrong.question.options[wrong.selected]})", fontSize = LocalFontSize.current, fontFamily = LocalFontFamily.current)
@@ -30,7 +34,11 @@ fun WrongBookScreen(viewModel: WrongBookViewModel = hiltViewModel(), navControll
             Button(onClick = {
                 navController?.navigate("wrongbook_practice")
             }, modifier = Modifier.align(Alignment.CenterHorizontally)) {
-                Text("重练错题")
+                Text(
+                    "重练错题",
+                    fontSize = LocalFontSize.current,
+                    fontFamily = LocalFontFamily.current
+                )
             }
         }
     }

@@ -81,12 +81,24 @@ fun QuestionScreen(
                                 val newList = optionsState.value.toMutableList()
                                 newList.add("")
                                 optionsState.value = newList
-                            }) { Text("添加选项") }
+                            }) {
+                                Text(
+                                    "添加选项",
+                                    fontSize = LocalFontSize.current,
+                                    fontFamily = LocalFontFamily.current
+                                )
+                            }
                             Spacer(modifier = Modifier.width(8.dp))
                             if (optionsState.value.size > 1) {
                                 Button(onClick = {
                                     optionsState.value = optionsState.value.dropLast(1).toMutableList()
-                                }) { Text("删除选项") }
+                                }) {
+                                    Text(
+                                        "删除选项",
+                                        fontSize = LocalFontSize.current,
+                                        fontFamily = LocalFontFamily.current
+                                    )
+                                }
                             }
                         }
                         Spacer(modifier = Modifier.height(4.dp))
@@ -106,9 +118,9 @@ fun QuestionScreen(
                         Spacer(modifier = Modifier.height(4.dp))
                         Button(onClick = {
                             val changed = contentState.value != q.content ||
-                                optionsState.value.toList() != (q.options ?: emptyList<String>()) ||
-                                answerState.value != (q.answer ?: "") ||
-                                explanationState.value != (q.explanation ?: "")
+                                    optionsState.value.toList() != (q.options ?: emptyList<String>()) ||
+                                    answerState.value != (q.answer ?: "") ||
+                                    explanationState.value != (q.explanation ?: "")
                             if (changed) {
                                 viewModel.updateQuestionAllFields(
                                     idx,
@@ -119,7 +131,11 @@ fun QuestionScreen(
                                 )
                             }
                         }) {
-                            Text("保存修改")
+                            Text(
+                                "保存修改",
+                                fontSize = LocalFontSize.current,
+                                fontFamily = LocalFontFamily.current
+                            )
                         }
                         Spacer(modifier = Modifier.height(4.dp))
                     }
@@ -129,7 +145,6 @@ fun QuestionScreen(
             Text("题目：${currentIndex + 1}", fontSize = LocalFontSize.current, fontFamily = LocalFontFamily.current)
             if (questions.isNotEmpty()) {
                 Text(questions[currentIndex].content, fontSize = LocalFontSize.current, fontFamily = LocalFontFamily.current)
-                // ...显示选项、答题按钮等...
             } else {
                 Text("暂无题目", fontSize = LocalFontSize.current)
             }
