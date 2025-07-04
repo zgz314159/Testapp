@@ -175,16 +175,12 @@ class PracticeViewModel @Inject constructor(
 
     fun loadWrongQuestions(fileName: String) {
         viewModelScope.launch {
-            // 获取所有错题，过滤出指定文件下的
+            // 获取指定文件下的错题并加载进度
             getWrongBookUseCase().collect { wrongList ->
                 val filtered = wrongList.filter { it.question.fileName == fileName }
                 _questions.value = filtered.map { it.question }
                 // 重置进度相关状态
-                _currentIndex.value = 0
-                _answeredList.value = emptyList()
-                _selectedOptions.value = emptyList()
-                _showResultList.value = emptyList()
-                _progressLoaded.value = true
+                loadProgress()
             }
         }
     }

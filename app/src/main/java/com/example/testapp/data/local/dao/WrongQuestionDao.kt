@@ -9,7 +9,7 @@ interface WrongQuestionDao {
     @Query("SELECT * FROM wrong_questions")
     fun getAll(): Flow<List<WrongQuestionEntity>>
 
-    @Insert
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun add(wrong: WrongQuestionEntity)
 
     @Query("DELETE FROM wrong_questions")

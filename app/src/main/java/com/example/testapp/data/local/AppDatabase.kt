@@ -18,7 +18,7 @@ import com.example.testapp.data.local.entity.converter.IntListConverter
 
 @Database(
     entities = [QuestionEntity::class, WrongQuestionEntity::class, HistoryRecordEntity::class, FavoriteQuestionEntity::class, PracticeProgressEntity::class],
-    version = 3, // 升级版本号，修复 Room schema 校验崩溃
+    version = 4, // 升级版本号，修复 Room schema 校验崩溃
     exportSchema = false
 )
 @TypeConverters(IntListConverter::class, BooleanListConverter::class)
