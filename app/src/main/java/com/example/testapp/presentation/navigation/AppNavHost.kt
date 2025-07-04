@@ -22,24 +22,35 @@ fun AppNavHost(navController: NavHostController = rememberNavController(), setti
     NavHost(navController = navController, startDestination = "home") {
         composable("home") {
             HomeScreen(
-                onStartQuiz = { quizId -> navController.navigate("question/$quizId") },
+                onStartQuiz = { quizId ->
+                    val encoded = java.net.URLEncoder.encode(quizId, "UTF-8")
+                    navController.navigate("question/$encoded")
+                },
                 onSettings = { navController.navigate("settings") },
-                onViewQuestionDetail = { quizId -> navController.navigate("question_detail/$quizId") },
+                onViewQuestionDetail = { quizId ->
+                    val encoded = java.net.URLEncoder.encode(quizId, "UTF-8")
+                    navController.navigate("question_detail/$encoded")
+                },
                 onWrongBook = { fileName ->
                     if (fileName.isBlank()) {
                         navController.navigate("wrongbook")
                     } else {
-                        navController.navigate("wrongbook/$fileName")
+                        val encoded = java.net.URLEncoder.encode(fileName, "UTF-8")
+                        navController.navigate("wrongbook/$encoded")
                     }
                 },
-                onFavoriteBook = { fileName -> navController.navigate("favorite/$fileName") }
+                onFavoriteBook = { fileName ->
+                    val encoded = java.net.URLEncoder.encode(fileName, "UTF-8")
+                    navController.navigate("favorite/$encoded")
+                }
             )
         }
         composable(
             "question/{quizId}",
             arguments = listOf(navArgument("quizId") { type = NavType.StringType })
         ) { backStackEntry ->
-            val quizId = backStackEntry.arguments?.getString("quizId") ?: "default"
+            val encoded = backStackEntry.arguments?.getString("quizId") ?: "default"
+            val quizId = java.net.URLDecoder.decode(encoded, "UTF-8")
             PracticeScreen(quizId = quizId,
                 onQuizEnd = { score, total ->
                     navController.navigate("result/$score/$total") {
@@ -52,7 +63,8 @@ fun AppNavHost(navController: NavHostController = rememberNavController(), setti
             "question_detail/{quizId}",
             arguments = listOf(navArgument("quizId") { type = NavType.StringType })
         ) { backStackEntry ->
-            val quizId = backStackEntry.arguments?.getString("quizId") ?: "default"
+            val encodedDetail = backStackEntry.arguments?.getString("quizId") ?: "default"
+            val quizId = java.net.URLDecoder.decode(encodedDetail, "UTF-8")
             QuestionScreen(quizId = quizId)
         }
         composable("result/{score}/{total}") { backStackEntry ->
@@ -64,10 +76,17 @@ fun AppNavHost(navController: NavHostController = rememberNavController(), setti
                 onViewHistory = { navController.navigate("history") }
             )
         }
-        composable("wrongbook") { WrongBookScreen() }
+        composable("wrongbook") { WrongBookScreen(navController = navController) }
         composable("wrongbook/{fileName}") { backStackEntry ->
-            val fileName = backStackEntry.arguments?.getString("fileName") ?: ""
-            WrongBookScreen(fileName = fileName)
+            val encoded = backStackEntry.arguments?.getString("fileName") ?: ""
+            val fileName = java.net.URLDecoder.decode(encoded, "UTF-8")
+            WrongBookScreen(fileName = fileName, navController = navController)
+        }
+        composable("practice_wrongbook/{fileName}") { backStackEntry ->
+            val encoded = backStackEntry.arguments?.getString("fileName") ?: ""
+            val name = java.net.URLDecoder.decode(encoded, "UTF-8")
+            PracticeScreen(isWrongBookMode = true, wrongBookFileName = name)
+
         }
         composable("practice_wrongbook/{fileName}") { backStackEntry ->
             val name = backStackEntry.arguments?.getString("fileName") ?: ""
@@ -77,7 +96,8 @@ fun AppNavHost(navController: NavHostController = rememberNavController(), setti
         composable("history") { HistoryScreen() }
         composable("settings") { SettingsScreen(viewModel = settingsViewModel) }
         composable("favorite/{fileName}") { backStackEntry ->
-            val fileName = backStackEntry.arguments?.getString("fileName") ?: ""
+            val encodedFav = backStackEntry.arguments?.getString("fileName") ?: ""
+            val fileName = java.net.URLDecoder.decode(encodedFav, "UTF-8")
             FavoriteScreen(fileName = fileName, navController = navController)
         }
         composable("question_fav") {
