@@ -162,16 +162,7 @@ class PracticeViewModel @Inject constructor(
         }
     }
 
-    /**
-     * Loads wrong questions from a specific file.
-     *
-     * This function fetches all wrong questions and filters them based on the provided [fileName].
-     * It then updates the [_questions] state with the filtered questions and resets
-     * progress-related states such as current index, answered list, selected options,
-     * and show result list. Finally, it sets [_progressLoaded] to true.
-     *
-     * @param fileName The name of the file from which to load wrong questions.
-     */
+
     fun loadWrongQuestions(fileName: String) {
         viewModelScope.launch {
             // 获取所有错题，过滤出指定文件下的
