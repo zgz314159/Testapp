@@ -1,6 +1,5 @@
 package com.example.testapp.presentation.screen
 
-
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.testapp.domain.model.PracticeProgress
@@ -10,6 +9,8 @@ import com.example.testapp.domain.usecase.GetPracticeProgressFlowUseCase
 import com.example.testapp.domain.usecase.GetQuestionsUseCase
 import com.example.testapp.domain.usecase.SavePracticeProgressUseCase
 import com.example.testapp.domain.usecase.SaveQuestionsUseCase
+import com.example.testapp.domain.usecase.GetWrongBookUseCase
+
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
@@ -21,7 +22,8 @@ class PracticeViewModel @Inject constructor(
     private val getPracticeProgressFlowUseCase: GetPracticeProgressFlowUseCase,
     private val savePracticeProgressUseCase: SavePracticeProgressUseCase,
     private val clearPracticeProgressUseCase: ClearPracticeProgressUseCase,
-    private val saveQuestionsUseCase: SaveQuestionsUseCase // 新增注入
+    private val saveQuestionsUseCase: SaveQuestionsUseCase, // 新增注入
+    private val getWrongBookUseCase: GetWrongBookUseCase
 ) : ViewModel() {
     private val _questions = MutableStateFlow<List<Question>>(emptyList())
     val questions: StateFlow<List<Question>> = _questions.asStateFlow()
@@ -63,7 +65,10 @@ class PracticeViewModel @Inject constructor(
                     _answeredList.value = progress.answeredList
                     _selectedOptions.value = progress.selectedOptions
                     _showResultList.value = progress.showResultList
-                    android.util.Log.d("PracticeDebug", "恢复进度: currentIndex=${progress.currentIndex}, answeredList=${progress.answeredList}, selectedOptions=${progress.selectedOptions}, showResultList=${progress.showResultList}")
+                    android.util.Log.d(
+                        "PracticeDebug",
+                        "恢复进度: currentIndex=${progress.currentIndex}, answeredList=${progress.answeredList}, selectedOptions=${progress.selectedOptions}, showResultList=${progress.showResultList}"
+                    )
                 }
                 _progressLoaded.value = true
             }
@@ -162,13 +167,10 @@ class PracticeViewModel @Inject constructor(
         }
     }
 
-
     fun loadWrongQuestions(fileName: String) {
         viewModelScope.launch {
             // 获取所有错题，过滤出指定文件下的
-            com.example.testapp.domain.usecase.GetWrongBookUseCase(
-                com.example.testapp.data.repository.WrongBookRepositoryProvider.repository
-            ).invoke().collect { wrongList ->
+            getWrongBookUseCase().collect { wrongList ->
                 val filtered = wrongList.filter { it.question.fileName == fileName }
                 _questions.value = filtered.map { it.question }
                 // 重置进度相关状态

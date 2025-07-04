@@ -9,6 +9,7 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
@@ -19,12 +20,15 @@ class WrongBookViewModel @Inject constructor(
 ) : ViewModel() {
     private val _wrongQuestions = MutableStateFlow<List<WrongQuestion>>(emptyList())
     val wrongQuestions: StateFlow<List<WrongQuestion>> = _wrongQuestions.asStateFlow()
+    private val _fileNames = MutableStateFlow<List<String>>(emptyList())
+    val fileNames: StateFlow<List<String>> = _fileNames.asStateFlow()
 
     init {
         viewModelScope.launch {
             getWrongBookUseCase().collect {
                 android.util.Log.d("WrongBookViewModel", "收到错题本数据，数量: ${it.size}, 内容: $it")
                 _wrongQuestions.value = it
+                _fileNames.value = it.mapNotNull { w -> w.question.fileName }.distinct()
             }
         }
     }

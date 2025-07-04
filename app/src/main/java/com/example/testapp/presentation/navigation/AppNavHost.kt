@@ -25,7 +25,13 @@ fun AppNavHost(navController: NavHostController = rememberNavController(), setti
                 onStartQuiz = { quizId -> navController.navigate("question/$quizId") },
                 onSettings = { navController.navigate("settings") },
                 onViewQuestionDetail = { quizId -> navController.navigate("question_detail/$quizId") },
-                onWrongBook = { fileName -> navController.navigate("wrongbook/$fileName") },
+                onWrongBook = { fileName ->
+                    if (fileName.isBlank()) {
+                        navController.navigate("wrongbook")
+                    } else {
+                        navController.navigate("wrongbook/$fileName")
+                    }
+                },
                 onFavoriteBook = { fileName -> navController.navigate("favorite/$fileName") }
             )
         }
@@ -58,9 +64,14 @@ fun AppNavHost(navController: NavHostController = rememberNavController(), setti
                 onViewHistory = { navController.navigate("history") }
             )
         }
+        composable("wrongbook") { WrongBookScreen() }
         composable("wrongbook/{fileName}") { backStackEntry ->
             val fileName = backStackEntry.arguments?.getString("fileName") ?: ""
             WrongBookScreen(fileName = fileName)
+        }
+        composable("practice_wrongbook/{fileName}") { backStackEntry ->
+            val name = backStackEntry.arguments?.getString("fileName") ?: ""
+            PracticeScreen(isWrongBookMode = true, wrongBookFileName = name)
         }
         composable("wrongbook_practice") { WrongBookPracticeScreen() }
         composable("history") { HistoryScreen() }

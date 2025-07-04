@@ -87,7 +87,7 @@ fun HomeScreen(
                     selected = bottomNavIndex == 0,
                     onClick = {
                         bottomNavIndex = 0
-                        onWrongBook(selectedFileName.value)
+                        onWrongBook("")
                     },
                     icon = { Icon(Icons.Filled.Warning, contentDescription = "错题库") },
                     label = {
