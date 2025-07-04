@@ -8,8 +8,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
-import androidx.lifecycle.viewModelScope
-import com.example.testapp.domain.model.Question
 import com.example.testapp.presentation.screen.PracticeViewModel
 import com.example.testapp.presentation.screen.SettingsViewModel
 import com.example.testapp.presentation.component.LocalFontSize
@@ -43,8 +41,14 @@ fun PracticeScreen(
     val selectedOptions by viewModel.selectedOptions.collectAsState()
     val progressLoaded by viewModel.progressLoaded.collectAsState()
     val showResultList by viewModel.showResultList.collectAsState()
-    var score by remember { mutableStateOf(0) }
+    val favoriteViewModel: FavoriteViewModel = hiltViewModel()
+    val favoriteQuestions by favoriteViewModel.favoriteQuestions.collectAsState()
     val question = questions.getOrNull(currentIndex)
+    val isFavorite = remember(question, favoriteQuestions) {
+        question != null && favoriteQuestions.any { it.question.id == question.id }
+    }
+    var score by remember { mutableStateOf(0) }
+
     val selectedOption = selectedOptions.getOrNull(currentIndex) ?: -1
     val showResult = showResultList.getOrNull(currentIndex) ?: false
 
@@ -87,6 +91,22 @@ fun PracticeScreen(
                 fontFamily = LocalFontFamily.current
             )
         )
+        Spacer(modifier = Modifier.height(8.dp))
+        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
+            Button(onClick = {
+                if (isFavorite) {
+                    favoriteViewModel.removeFavorite(question.id)
+                } else {
+                    favoriteViewModel.addFavorite(question)
+                }
+            }) {
+                Text(
+                    if (isFavorite) "取消收藏" else "收藏",
+                    fontSize = LocalFontSize.current,
+                    fontFamily = LocalFontFamily.current
+                )
+            }
+        }
         Spacer(modifier = Modifier.height(16.dp))
         question.options.forEachIndexed { idx, option ->
             val correctIndex = answerLetterToIndex(question.answer)
@@ -100,11 +120,13 @@ fun PracticeScreen(
                 else -> MaterialTheme.colorScheme.surface
             }
             Row(
-                verticalAlignment = Alignment.CenterVertically,
+
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(vertical = 4.dp)
                     .background(backgroundColor)
+                    .background(backgroundColor),
+                verticalAlignment = Alignment.CenterVertically
             ) {
                 RadioButton(
                     selected = isSelected,
