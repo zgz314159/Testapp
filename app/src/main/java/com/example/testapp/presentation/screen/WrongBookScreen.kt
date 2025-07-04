@@ -43,7 +43,10 @@ fun WrongBookScreen(
                     val count = wrongList.value.count { it.question.fileName == name }
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
-                        modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp)
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable { navController?.navigate("practice_wrongbook/$name") }
+                            .padding(vertical = 4.dp)
                     ) {
                         Text(
                             "$name ($count)",
@@ -51,15 +54,7 @@ fun WrongBookScreen(
                             fontSize = LocalFontSize.current,
                             fontFamily = LocalFontFamily.current
                         )
-                        Button(onClick = {
-                            navController?.navigate("practice_wrongbook/$name")
-                        }) {
-                            Text(
-                                "练习",
-                                fontSize = LocalFontSize.current,
-                                fontFamily = LocalFontFamily.current
-                            )
-                        }
+                      
                     }
                 }
             }} else {
