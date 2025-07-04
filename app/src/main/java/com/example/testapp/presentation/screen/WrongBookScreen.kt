@@ -45,7 +45,10 @@ fun WrongBookScreen(
                         verticalAlignment = Alignment.CenterVertically,
                         modifier = Modifier
                             .fillMaxWidth()
-                            .clickable { navController?.navigate("practice_wrongbook/$name") }
+                            .clickable {
+                                val encoded = java.net.URLEncoder.encode(name, "UTF-8")
+                                navController?.navigate("practice_wrongbook/$encoded")
+                            }
                             .padding(vertical = 4.dp)
                     ) {
                         Text(
@@ -76,7 +79,8 @@ fun WrongBookScreen(
                     Spacer(modifier = Modifier.height(24.dp))
                     Button(
                         onClick = {
-                            navController?.navigate("practice_wrongbook/$fileName")
+                            val encoded = java.net.URLEncoder.encode(fileName, "UTF-8")
+                            navController?.navigate("practice_wrongbook/$encoded")
                         },
                         modifier = Modifier.align(Alignment.CenterHorizontally)
                     ) {

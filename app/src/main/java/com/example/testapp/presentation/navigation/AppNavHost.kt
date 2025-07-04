@@ -84,7 +84,15 @@ fun AppNavHost(navController: NavHostController = rememberNavController(), setti
         composable("practice_wrongbook/{fileName}") { backStackEntry ->
             val encoded = backStackEntry.arguments?.getString("fileName") ?: ""
             val name = java.net.URLDecoder.decode(encoded, "UTF-8")
-            PracticeScreen(isWrongBookMode = true, wrongBookFileName = name)
+            PracticeScreen(
+                isWrongBookMode = true,
+                wrongBookFileName = name,
+                onQuizEnd = { score, total ->
+                    navController.navigate("result/$score/$total") {
+                        popUpTo("wrongbook") { inclusive = false }
+                    }
+                }
+            )
 
 
         }

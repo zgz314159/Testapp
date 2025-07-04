@@ -28,6 +28,8 @@ fun PracticeScreen(
 ) {
     LaunchedEffect(quizId, isWrongBookMode, wrongBookFileName) {
         if (isWrongBookMode && wrongBookFileName != null) {
+            // 使用独立的进度 id，避免与普通练习冲突
+            viewModel.setProgressId("wrongbook_${wrongBookFileName}")
             viewModel.loadWrongQuestions(wrongBookFileName)
         } else {
             viewModel.setProgressId(quizId)
