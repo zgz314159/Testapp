@@ -175,14 +175,22 @@ fun SettingsScreen(viewModel: SettingsViewModel = hiltViewModel()) {
     if (isLoading) {
         Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                CircularProgressIndicator(progress = progress)
+                // 使用转圈式进度指示器，符合现代交互习惯
+                CircularProgressIndicator()
                 Spacer(modifier = Modifier.height(8.dp))
-                Text(text = "进度：${(progress * 100).toInt()}%", style = MaterialTheme.typography.bodyLarge.copy(fontSize = fontSize.sp, fontFamily = when (fontStyle) { "Serif" -> androidx.compose.ui.text.font.FontFamily.Serif; "Monospace" -> androidx.compose.ui.text.font.FontFamily.Monospace; else -> androidx.compose.ui.text.font.FontFamily.Default }))
-                Spacer(modifier = Modifier.height(8.dp))
-                Button(onClick = { viewModel.cancelImportExport() }) {
-                    Text("取消", style = MaterialTheme.typography.bodyLarge.copy(fontSize = fontSize.sp, fontFamily = when (fontStyle) { "Serif" -> androidx.compose.ui.text.font.FontFamily.Serif; "Monospace" -> androidx.compose.ui.text.font.FontFamily.Monospace; else -> androidx.compose.ui.text.font.FontFamily.Default }))
+                Text(
+                    text = "正在处理，请稍候…",
+                    style = MaterialTheme.typography.bodyLarge.copy(
+                        fontSize = fontSize.sp,
+                        fontFamily = when (fontStyle) {
+                            "Serif" -> androidx.compose.ui.text.font.FontFamily.Serif
+                            "Monospace" -> androidx.compose.ui.text.font.FontFamily.Monospace
+                            else -> androidx.compose.ui.text.font.FontFamily.Default
+                        }
+                    )
+                )
                 }
             }
         }
     }
-}
+
