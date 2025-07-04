@@ -1,5 +1,6 @@
 package com.example.testapp.presentation.screen
 
+
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.testapp.domain.model.PracticeProgress
@@ -157,6 +158,34 @@ class PracticeViewModel @Inject constructor(
                 saveQuestionsUseCase(old.fileName ?: "default.json", updatedList.filter { it.fileName == old.fileName })
                 // 保存后强制刷新题库内容
                 setProgressId(progressId)
+            }
+        }
+    }
+
+    /**
+     * Loads wrong questions from a specific file.
+     *
+     * This function fetches all wrong questions and filters them based on the provided [fileName].
+     * It then updates the [_questions] state with the filtered questions and resets
+     * progress-related states such as current index, answered list, selected options,
+     * and show result list. Finally, it sets [_progressLoaded] to true.
+     *
+     * @param fileName The name of the file from which to load wrong questions.
+     */
+    fun loadWrongQuestions(fileName: String) {
+        viewModelScope.launch {
+            // 获取所有错题，过滤出指定文件下的
+            com.example.testapp.domain.usecase.GetWrongBookUseCase(
+                com.example.testapp.data.repository.WrongBookRepositoryProvider.repository
+            ).invoke().collect { wrongList ->
+                val filtered = wrongList.filter { it.question.fileName == fileName }
+                _questions.value = filtered.map { it.question }
+                // 重置进度相关状态
+                _currentIndex.value = 0
+                _answeredList.value = emptyList()
+                _selectedOptions.value = emptyList()
+                _showResultList.value = emptyList()
+                _progressLoaded.value = true
             }
         }
     }

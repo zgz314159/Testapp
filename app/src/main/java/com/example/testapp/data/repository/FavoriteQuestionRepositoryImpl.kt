@@ -2,19 +2,33 @@ package com.example.testapp.data.repository
 
 import com.example.testapp.data.local.dao.FavoriteQuestionDao
 import com.example.testapp.data.local.entity.FavoriteQuestionEntity
+import com.example.testapp.domain.model.FavoriteQuestion
+import com.example.testapp.domain.model.Question
 import com.example.testapp.domain.repository.FavoriteQuestionRepository
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.flow.map
 import javax.inject.Inject
+import kotlinx.serialization.decodeFromString
+import kotlinx.serialization.encodeToString
+import kotlinx.serialization.json.Json
 
 class FavoriteQuestionRepositoryImpl @Inject constructor(
     private val dao: FavoriteQuestionDao
-
 ) : FavoriteQuestionRepository {
-    override fun getAll(): Flow<List<Int>> = dao.getAll().map { it.map { e -> e.questionId } }
-    override suspend fun add(questionId: Int) = dao.add(FavoriteQuestionEntity(questionId))
-    override suspend fun remove(questionId: Int) = dao.remove(FavoriteQuestionEntity(questionId))
+    override fun getAll(): Flow<List<FavoriteQuestion>> = dao.getAll().map { list ->
+        list.map { entity ->
+            val question = Json.decodeFromString<Question>(entity.questionJson)
+            FavoriteQuestion(question)
+        }
+    }
+
+    override suspend fun add(favorite: FavoriteQuestion) =
+        dao.add(FavoriteQuestionEntity(favorite.question.id, Json.encodeToString(favorite.question)))
+
+    override suspend fun remove(questionId: Int) =
+        dao.removeById(questionId)
+
     override suspend fun isFavorite(questionId: Int): Boolean =
         dao.getAll().map { list -> list.any { it.questionId == questionId } }.firstOrNull() ?: false
 }

@@ -99,6 +99,7 @@ fun SettingsScreen(viewModel: SettingsViewModel = hiltViewModel()) {
                 }
             )
         )
+        android.util.Log.d("SettingsScreen", "fontSize=$fontSize, fontStyle=$fontStyle, recomposed!")
         Spacer(modifier = Modifier.height(24.dp))
         Text(
             "字体大小：${fontSize}sp",

@@ -8,22 +8,30 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.viewModelScope
 import com.example.testapp.domain.model.Question
 import com.example.testapp.presentation.screen.PracticeViewModel
 import com.example.testapp.presentation.screen.SettingsViewModel
 import com.example.testapp.presentation.component.LocalFontSize
 import com.example.testapp.presentation.component.LocalFontFamily
+import kotlinx.coroutines.launch
 
 @Composable
 fun PracticeScreen(
     quizId: String = "default",
+    isWrongBookMode: Boolean = false,
+    wrongBookFileName: String? = null,
     viewModel: PracticeViewModel = hiltViewModel(),
     settingsViewModel: SettingsViewModel = hiltViewModel(),
     onQuizEnd: (score: Int, total: Int) -> Unit = { _, _ -> },
     onSubmit: (Boolean) -> Unit = {}
 ) {
-    LaunchedEffect(quizId) {
-        viewModel.setProgressId(quizId)
+    LaunchedEffect(quizId, isWrongBookMode, wrongBookFileName) {
+        if (isWrongBookMode && wrongBookFileName != null) {
+            viewModel.loadWrongQuestions(wrongBookFileName)
+        } else {
+            viewModel.setProgressId(quizId)
+        }
     }
     val questions by viewModel.questions.collectAsState()
     val fontSize by settingsViewModel.fontSize.collectAsState()
@@ -143,11 +151,25 @@ fun PracticeScreen(
             }
         }
         Spacer(modifier = Modifier.height(24.dp))
+        val wrongBookViewModel: WrongBookViewModel = hiltViewModel()
+        val coroutineScope = rememberCoroutineScope()
         Button(
             onClick = {
                 viewModel.updateShowResult(currentIndex, true)
                 val correctIndex = answerLetterToIndex(question.answer)
                 val correct = selectedOption == correctIndex
+                if (!correct && selectedOption != -1) {
+                    coroutineScope.launch {
+                        try {
+                            wrongBookViewModel.addWrongQuestion(
+                                com.example.testapp.domain.model.WrongQuestion(question, selectedOption)
+                            )
+                            android.util.Log.d("PracticeScreen", "保存错题: ${question.content}, 选项: $selectedOption, fileName: ${question.fileName}")
+                        } catch (e: Exception) {
+                            android.util.Log.e("PracticeScreen", "保存��题失败: ${e.message}")
+                        }
+                    }
+                }
                 if (correct) score++
                 onSubmit(correct)
             },

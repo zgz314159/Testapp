@@ -9,6 +9,7 @@ import com.example.testapp.domain.repository.WrongBookRepository
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.combine
 import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.json.Json
 import org.apache.poi.ss.usermodel.Row
@@ -20,7 +21,32 @@ class WrongBookRepositoryImpl @Inject constructor(
     private val questionDao: QuestionDao
 ) : WrongBookRepository {
     override fun getAll(): Flow<List<WrongQuestion>> =
-        dao.getAll().map { emptyList() } // Flow 版本暂未实现完整逻辑
+        dao.getAll().combine(questionDao.getAll()) { wrongEntities, questionEntities ->
+            val questionMap = questionEntities.associateBy(
+                { it.id },
+                {
+                    Question(
+                        id = it.id,
+                        content = it.content,
+                        type = it.type,
+                        options = Json.decodeFromString(it.options),
+                        answer = it.answer,
+                        explanation = it.explanation,
+                        isFavorite = it.isFavorite,
+                        isWrong = it.isWrong,
+                        fileName = it.fileName
+                    )
+                }
+            )
+            wrongEntities.mapNotNull { wrongEntity ->
+                questionMap[wrongEntity.questionId]?.let { q ->
+                    WrongQuestion(
+                        question = q,
+                        selected = wrongEntity.selected
+                    )
+                }
+            }
+        }
 
     // 新增：suspend 版本，获取完整错题本
     suspend fun getAllSuspend(): List<WrongQuestion> {

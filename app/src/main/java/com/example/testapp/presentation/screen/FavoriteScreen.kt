@@ -14,10 +14,12 @@ import com.example.testapp.presentation.component.LocalFontSize
 
 @Composable
 fun FavoriteScreen(
+    fileName: String? = null,
     navController: NavController? = null,
     viewModel: FavoriteViewModel = hiltViewModel()
 ) {
     val favorites = viewModel.favoriteQuestions.collectAsState()
+    val filteredFavorites = if (fileName.isNullOrEmpty()) favorites.value else favorites.value.filter { it.question.fileName == fileName }
     Column(modifier = Modifier.fillMaxSize().padding(16.dp)) {
         Text(
             "收藏夹",
@@ -27,14 +29,14 @@ fun FavoriteScreen(
             )
         )
         Spacer(modifier = Modifier.height(16.dp))
-        if (favorites.value.isEmpty()) {
+        if (filteredFavorites.isEmpty()) {
             Text(
                 "暂无收藏题目",
                 fontSize = LocalFontSize.current,
                 fontFamily = LocalFontFamily.current
             )
         } else {
-            favorites.value.forEachIndexed { idx, q ->
+            filteredFavorites.forEachIndexed { idx, q ->
                 Card(
                     modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
                     colors = CardDefaults.cardColors()
@@ -44,7 +46,7 @@ fun FavoriteScreen(
                         modifier = Modifier.fillMaxWidth().padding(8.dp)
                     ) {
                         Text(
-                            "${idx + 1}. ${q.content}",
+                            "${idx + 1}. ${q.question.content}",
                             modifier = Modifier.weight(1f),
                             fontSize = LocalFontSize.current,
                             fontFamily = LocalFontFamily.current
@@ -57,7 +59,7 @@ fun FavoriteScreen(
                             )
                         }
                         Spacer(modifier = Modifier.width(8.dp))
-                        Button(onClick = { viewModel.removeFavorite(q.id) }, colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)) {
+                        Button(onClick = { viewModel.removeFavorite(q.question.id) }, colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)) {
                             Text(
                                 "移除",
                                 color = MaterialTheme.colorScheme.onError,
@@ -69,7 +71,7 @@ fun FavoriteScreen(
                 }
             }
         }
-        if (favorites.value.isNotEmpty()) {
+        if (filteredFavorites.isNotEmpty()) {
             Spacer(modifier = Modifier.height(24.dp))
             Button(onClick = { navController?.navigate("question_fav") }) {
                 Text(

@@ -14,4 +14,7 @@ interface FavoriteQuestionDao {
 
     @Delete
     suspend fun remove(favorite: FavoriteQuestionEntity)
+
+    @Query("DELETE FROM favorite_questions WHERE questionId = :questionId")
+    suspend fun removeById(questionId: Int)
 }

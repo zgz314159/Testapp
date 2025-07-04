@@ -50,8 +50,8 @@ fun HomeScreen(
     onStartQuiz: (quizId: String) -> Unit = {},
     onSettings: () -> Unit = {},
     onViewQuestionDetail: (quizId: String) -> Unit = {},
-    onWrongBook: () -> Unit = {},
-    onFavoriteBook: () -> Unit = {}
+    onWrongBook: (fileName: String) -> Unit = {},
+    onFavoriteBook: (fileName: String) -> Unit = {}
 ) {
     val viewModel: HomeViewModel = hiltViewModel()
     val questions by viewModel.questions.collectAsState()
@@ -87,7 +87,7 @@ fun HomeScreen(
                     selected = bottomNavIndex == 0,
                     onClick = {
                         bottomNavIndex = 0
-                        onWrongBook()
+                        onWrongBook(selectedFileName.value)
                     },
                     icon = { Icon(Icons.Filled.Warning, contentDescription = "错题库") },
                     label = {
@@ -103,7 +103,7 @@ fun HomeScreen(
                     selected = bottomNavIndex == 1,
                     onClick = {
                         bottomNavIndex = 1
-                        onFavoriteBook()
+                        onFavoriteBook(selectedFileName.value)
                     },
                     icon = { Icon(Icons.Filled.Favorite, contentDescription = "收藏库") },
                     label = {
@@ -135,6 +135,7 @@ fun HomeScreen(
                 .padding(16.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
+            android.util.Log.d("HomeScreen", "fontSize=${LocalFontSize.current}, fontFamily=${LocalFontFamily.current}, recomposed!")
             // 文件名列表
             if (fileNames.isNotEmpty()) {
                 val screenHeight = LocalContext.current.resources.displayMetrics.heightPixels / LocalContext.current.resources.displayMetrics.density
@@ -151,7 +152,7 @@ fun HomeScreen(
                         items(fileNames, key = { it }) { name ->
                             val dismissState = rememberDismissState()
                             if (dismissState.currentValue == DismissValue.DismissedToStart) {
-                                Log.d("HomeScreen", "[Delete] 删除文件: $name, 当前fileNames=$fileNames, 当前选中=${selectedFileName.value}")
+                                Log.d("HomeScreen", "[Delete] 删除文件: $name, 当��fileNames=$fileNames, 当前选中=${selectedFileName.value}")
                                 viewModel.deleteFileAndData(name) {
                                     // 删除后回调，自动切换选中项
                                     val newList = fileNames.filter { it != name }

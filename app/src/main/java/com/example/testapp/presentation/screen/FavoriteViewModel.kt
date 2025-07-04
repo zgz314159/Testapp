@@ -6,6 +6,7 @@ import com.example.testapp.domain.usecase.AddFavoriteQuestionUseCase
 import com.example.testapp.domain.usecase.RemoveFavoriteQuestionUseCase
 import com.example.testapp.domain.usecase.GetFavoriteQuestionsUseCase
 import com.example.testapp.domain.model.Question
+import com.example.testapp.domain.model.FavoriteQuestion
 import com.example.testapp.domain.usecase.GetQuestionsUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -22,20 +23,18 @@ class FavoriteViewModel @Inject constructor(
     private val removeFavoriteQuestionUseCase: RemoveFavoriteQuestionUseCase,
     private val getQuestionsUseCase: GetQuestionsUseCase
 ) : ViewModel() {
-    private val _favoriteQuestions = MutableStateFlow<List<Question>>(emptyList())
-    val favoriteQuestions: StateFlow<List<Question>> = _favoriteQuestions.asStateFlow()
+    private val _favoriteQuestions = MutableStateFlow<List<FavoriteQuestion>>(emptyList())
+    val favoriteQuestions: StateFlow<List<FavoriteQuestion>> = _favoriteQuestions.asStateFlow()
 
     init {
         viewModelScope.launch {
-            getFavoriteQuestionsUseCase().combine(getQuestionsUseCase()) { favIds, allQuestions ->
-                allQuestions.filter { favIds.contains(it.id) }
-            }.collect {
+            getFavoriteQuestionsUseCase().collect {
                 _favoriteQuestions.value = it
             }
         }
     }
-    fun addFavorite(id: Int) {
-        viewModelScope.launch { addFavoriteQuestionUseCase(id) }
+    fun addFavorite(question: com.example.testapp.domain.model.Question) {
+        viewModelScope.launch { addFavoriteQuestionUseCase(FavoriteQuestion(question)) }
     }
     fun removeFavorite(id: Int) {
         viewModelScope.launch { removeFavoriteQuestionUseCase(id) }

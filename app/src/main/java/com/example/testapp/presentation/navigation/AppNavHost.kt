@@ -18,13 +18,15 @@ import com.example.testapp.presentation.screen.FavoriteScreen
 import com.example.testapp.presentation.screen.PracticeScreen
 
 @Composable
-fun AppNavHost(navController: NavHostController = rememberNavController()) {
+fun AppNavHost(navController: NavHostController = rememberNavController(), settingsViewModel: com.example.testapp.presentation.screen.SettingsViewModel) {
     NavHost(navController = navController, startDestination = "home") {
         composable("home") {
             HomeScreen(
                 onStartQuiz = { quizId -> navController.navigate("question/$quizId") },
                 onSettings = { navController.navigate("settings") },
-                onViewQuestionDetail = { quizId -> navController.navigate("question_detail/$quizId") }
+                onViewQuestionDetail = { quizId -> navController.navigate("question_detail/$quizId") },
+                onWrongBook = { fileName -> navController.navigate("wrongbook/$fileName") },
+                onFavoriteBook = { fileName -> navController.navigate("favorite/$fileName") }
             )
         }
         composable(
@@ -56,11 +58,17 @@ fun AppNavHost(navController: NavHostController = rememberNavController()) {
                 onViewHistory = { navController.navigate("history") }
             )
         }
-        composable("wrongbook") { WrongBookScreen() }
+        composable("wrongbook/{fileName}") { backStackEntry ->
+            val fileName = backStackEntry.arguments?.getString("fileName") ?: ""
+            WrongBookScreen(fileName = fileName)
+        }
         composable("wrongbook_practice") { WrongBookPracticeScreen() }
         composable("history") { HistoryScreen() }
-        composable("settings") { SettingsScreen() }
-        composable("favorite") { FavoriteScreen(navController = navController) }
+        composable("settings") { SettingsScreen(viewModel = settingsViewModel) }
+        composable("favorite/{fileName}") { backStackEntry ->
+            val fileName = backStackEntry.arguments?.getString("fileName") ?: ""
+            FavoriteScreen(fileName = fileName, navController = navController)
+        }
         composable("question_fav") {
             PracticeScreen(
                 quizId = "favorite",

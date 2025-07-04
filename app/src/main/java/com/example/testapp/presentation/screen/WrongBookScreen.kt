@@ -15,19 +15,20 @@ import com.example.testapp.presentation.component.LocalFontFamily
 import androidx.navigation.NavController
 
 @Composable
-fun WrongBookScreen(viewModel: WrongBookViewModel = hiltViewModel(), navController: NavController? = null) {
+fun WrongBookScreen(fileName: String? = null, viewModel: WrongBookViewModel = hiltViewModel(), navController: NavController? = null) {
     val wrongList = viewModel.wrongQuestions.collectAsState()
+    val filteredList = if (fileName.isNullOrEmpty()) wrongList.value else wrongList.value.filter { it.question.fileName == fileName }
     Column(modifier = Modifier.fillMaxSize().padding(16.dp)) {
         Text("错题本", modifier = Modifier.align(Alignment.CenterHorizontally), fontSize = LocalFontSize.current, fontFamily = LocalFontFamily.current)
         Spacer(modifier = Modifier.height(16.dp))
-        if (wrongList.value.isEmpty()) {
+        if (filteredList.isEmpty()) {
             Text(
                 "暂无错题",
                 fontSize = LocalFontSize.current,
                 fontFamily = LocalFontFamily.current
             )
         } else {
-            wrongList.value.forEachIndexed { idx, wrong ->
+            filteredList.forEachIndexed { idx, wrong ->
                 Text("${idx + 1}. ${wrong.question.content} (你的答案：${wrong.question.options[wrong.selected]})", fontSize = LocalFontSize.current, fontFamily = LocalFontFamily.current)
             }
             Spacer(modifier = Modifier.height(24.dp))
