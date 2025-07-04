@@ -54,7 +54,7 @@ fun WrongBookScreen(
                             fontSize = LocalFontSize.current,
                             fontFamily = LocalFontFamily.current
                         )
-                      
+
                     }
                 }
             }} else {
