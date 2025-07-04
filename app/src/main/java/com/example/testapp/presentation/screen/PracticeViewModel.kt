@@ -45,14 +45,20 @@ class PracticeViewModel @Inject constructor(
 
     private var progressId: String = "default"
 
-    fun setProgressId(id: String) {
+    fun setProgressId(id: String, loadQuestions: Boolean = true) {
         progressId = id
-        viewModelScope.launch {
-            getQuestionsUseCase(progressId).collect { qs ->
-                android.util.Log.d("PracticeDebug", "getQuestionsUseCase 收到题目数量: ${qs.size}")
-                _questions.value = qs
-                loadProgress()
+        if (loadQuestions) {
+            viewModelScope.launch {
+                getQuestionsUseCase(progressId).collect { qs ->
+                    android.util.Log.d("PracticeDebug", "getQuestionsUseCase 收到题目数量: ${qs.size}")
+                    _questions.value = qs
+                    loadProgress()
+                }
             }
+        }
+        else {
+            // 如果不加载题目，则直接加载进度
+            loadProgress()
         }
     }
 
