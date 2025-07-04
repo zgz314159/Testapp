@@ -19,16 +19,21 @@ fun PracticeScreen(
     quizId: String = "default",
     isWrongBookMode: Boolean = false,
     wrongBookFileName: String? = null,
+    isFavoriteMode: Boolean = false,
+    favoriteFileName: String? = null,
     viewModel: PracticeViewModel = hiltViewModel(),
     settingsViewModel: SettingsViewModel = hiltViewModel(),
     onQuizEnd: (score: Int, total: Int) -> Unit = { _, _ -> },
     onSubmit: (Boolean) -> Unit = {}
 ) {
-    LaunchedEffect(quizId, isWrongBookMode, wrongBookFileName) {
+    LaunchedEffect(quizId, isWrongBookMode, wrongBookFileName, isFavoriteMode, favoriteFileName) {
         if (isWrongBookMode && wrongBookFileName != null) {
             // 使用独立的进度 id，避免与普通练习冲突，并跳过题库加载
             viewModel.setProgressId("wrongbook_${wrongBookFileName}", loadQuestions = false)
             viewModel.loadWrongQuestions(wrongBookFileName)
+        } else if (isFavoriteMode && favoriteFileName != null) {
+            viewModel.setProgressId("favorite_${favoriteFileName}", loadQuestions = false)
+            viewModel.loadFavoriteQuestions(favoriteFileName)
         } else {
             viewModel.setProgressId(quizId)
         }

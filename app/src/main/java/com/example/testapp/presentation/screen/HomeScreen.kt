@@ -103,7 +103,7 @@ fun HomeScreen(
                     selected = bottomNavIndex == 1,
                     onClick = {
                         bottomNavIndex = 1
-                        onFavoriteBook(selectedFileName.value)
+                        onFavoriteBook("")
                     },
                     icon = { Icon(Icons.Filled.Favorite, contentDescription = "收藏库") },
                     label = {

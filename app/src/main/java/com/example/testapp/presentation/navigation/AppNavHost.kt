@@ -39,8 +39,12 @@ fun AppNavHost(navController: NavHostController = rememberNavController(), setti
                     }
                 },
                 onFavoriteBook = { fileName ->
-                    val encoded = java.net.URLEncoder.encode(fileName, "UTF-8")
-                    navController.navigate("favorite/$encoded")
+                    if (fileName.isBlank()) {
+                        navController.navigate("favorite")
+                    } else {
+                        val encoded = java.net.URLEncoder.encode(fileName, "UTF-8")
+                        navController.navigate("favorite/$encoded")
+                    }
                 }
             )
         }
@@ -99,10 +103,24 @@ fun AppNavHost(navController: NavHostController = rememberNavController(), setti
 
         composable("history") { HistoryScreen() }
         composable("settings") { SettingsScreen(viewModel = settingsViewModel) }
+        composable("favorite") { FavoriteScreen(navController = navController) }
         composable("favorite/{fileName}") { backStackEntry ->
             val encodedFav = backStackEntry.arguments?.getString("fileName") ?: ""
             val fileName = java.net.URLDecoder.decode(encodedFav, "UTF-8")
             FavoriteScreen(fileName = fileName, navController = navController)
+        }
+        composable("practice_favorite/{fileName}") { backStackEntry ->
+            val encoded = backStackEntry.arguments?.getString("fileName") ?: ""
+            val name = java.net.URLDecoder.decode(encoded, "UTF-8")
+            PracticeScreen(
+                isFavoriteMode = true,
+                favoriteFileName = name,
+                onQuizEnd = { score, total ->
+                    navController.navigate("result/$score/$total") {
+                        popUpTo("favorite") { inclusive = false }
+                    }
+                }
+            )
         }
         composable("question_fav") {
             PracticeScreen(

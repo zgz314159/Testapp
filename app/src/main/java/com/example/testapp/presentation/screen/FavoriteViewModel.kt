@@ -25,11 +25,14 @@ class FavoriteViewModel @Inject constructor(
 ) : ViewModel() {
     private val _favoriteQuestions = MutableStateFlow<List<FavoriteQuestion>>(emptyList())
     val favoriteQuestions: StateFlow<List<FavoriteQuestion>> = _favoriteQuestions.asStateFlow()
+    private val _fileNames = MutableStateFlow<List<String>>(emptyList())
+    val fileNames: StateFlow<List<String>> = _fileNames.asStateFlow()
 
     init {
         viewModelScope.launch {
             getFavoriteQuestionsUseCase().collect {
                 _favoriteQuestions.value = it
+                _fileNames.value = it.mapNotNull { fav -> fav.question.fileName }.distinct()
             }
         }
     }

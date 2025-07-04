@@ -10,6 +10,7 @@ import com.example.testapp.domain.usecase.GetQuestionsUseCase
 import com.example.testapp.domain.usecase.SavePracticeProgressUseCase
 import com.example.testapp.domain.usecase.SaveQuestionsUseCase
 import com.example.testapp.domain.usecase.GetWrongBookUseCase
+import com.example.testapp.domain.usecase.GetFavoriteQuestionsUseCase
 
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.*
@@ -23,7 +24,8 @@ class PracticeViewModel @Inject constructor(
     private val savePracticeProgressUseCase: SavePracticeProgressUseCase,
     private val clearPracticeProgressUseCase: ClearPracticeProgressUseCase,
     private val saveQuestionsUseCase: SaveQuestionsUseCase, // 新增注入
-    private val getWrongBookUseCase: GetWrongBookUseCase
+    private val getWrongBookUseCase: GetWrongBookUseCase,
+    private val getFavoriteQuestionsUseCase: GetFavoriteQuestionsUseCase
 ) : ViewModel() {
     private val _questions = MutableStateFlow<List<Question>>(emptyList())
     val questions: StateFlow<List<Question>> = _questions.asStateFlow()
@@ -180,6 +182,15 @@ class PracticeViewModel @Inject constructor(
                 val filtered = wrongList.filter { it.question.fileName == fileName }
                 _questions.value = filtered.map { it.question }
                 // 重置进度相关状态
+                loadProgress()
+            }
+        }
+    }
+    fun loadFavoriteQuestions(fileName: String) {
+        viewModelScope.launch {
+            getFavoriteQuestionsUseCase().collect { favList ->
+                val filtered = favList.filter { it.question.fileName == fileName }
+                _questions.value = filtered.map { it.question }
                 loadProgress()
             }
         }
