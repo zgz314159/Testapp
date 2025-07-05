@@ -154,13 +154,17 @@ fun SettingsScreen(viewModel: SettingsViewModel = hiltViewModel()) {
                 }
             )
         )
+        var sliderPosition by remember(examCount) {
+            mutableStateOf(if (examCount == 0) 150f else examCount.toFloat())
+        }
         Slider(
-            value = examCount.toFloat(),
+            value = sliderPosition,
             onValueChange = {
-                val value = it.roundToInt()
+                sliderPosition = it
+                val value = if (it <= 100f) it.roundToInt() else 0
                 viewModel.setExamQuestionCount(context, value)
             },
-            valueRange = 0f..100f,
+            valueRange = 0f..150f,
             steps = 0
         )
         Spacer(modifier = Modifier.height(24.dp))
