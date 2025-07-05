@@ -158,12 +158,10 @@ class SettingsViewModel @Inject constructor(
     fun exportWrongBookToUri(context: Context, uri: Uri, onResult: (Boolean) -> Unit) {
         viewModelScope.launch {
             try {
-                // TODO: 获取错题本数据并序列化导出
+                val wrongs = wrongBookRepository.getAll().firstOrNull() ?: emptyList()
                 context.contentResolver.openOutputStream(uri)?.use { output ->
-                    // 示例：导出为 JSON
-                    // val wrongs = wrongBookRepository.exportToList()
-                    // val json = kotlinx.serialization.json.Json.encodeToString(wrongs)
-                    // output.write(json.toByteArray())
+                    val json = Json.encodeToString(wrongs)
+                    output.write(json.toByteArray())
                 }
                 onResult(true)
             } catch (e: Exception) {
@@ -174,12 +172,10 @@ class SettingsViewModel @Inject constructor(
     fun exportHistoryToUri(context: Context, uri: Uri, onResult: (Boolean) -> Unit) {
         viewModelScope.launch {
             try {
-                // TODO: 获取历史记录数据并序列化导出
+                val history = historyRepository.getAll().firstOrNull() ?: emptyList()
                 context.contentResolver.openOutputStream(uri)?.use { output ->
-                    // 示例：导出为 JSON
-                    // val history = historyRepository.exportToList()
-                    // val json = kotlinx.serialization.json.Json.encodeToString(history)
-                    // output.write(json.toByteArray())
+                    val json = Json.encodeToString(history)
+                    output.write(json.toByteArray())
                 }
                 onResult(true)
             } catch (e: Exception) {

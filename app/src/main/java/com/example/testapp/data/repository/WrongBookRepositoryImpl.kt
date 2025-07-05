@@ -11,9 +11,12 @@ import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.combine
 import kotlinx.serialization.decodeFromString
+import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import org.apache.poi.ss.usermodel.Row
 import org.apache.poi.xssf.usermodel.XSSFWorkbook
+import org.apache.poi.ss.usermodel.WorkbookFactory
+import org.apache.poi.ss.usermodel.DataFormatter
 import javax.inject.Inject
 
 class WrongBookRepositoryImpl @Inject constructor(
@@ -91,12 +94,52 @@ class WrongBookRepositoryImpl @Inject constructor(
     override suspend fun clear() = dao.clear()
     // txt/Excel 文件解析，建议与题库格式保持一致，支持批量导入错题
     override suspend fun importFromFile(file: java.io.File): Int {
-        // TODO: 解析文件并插入错题，格式建议：题干|题型|选项1|...|解析|答案|用户选择
-        return 0
+        return try {
+            val content = file.readText()
+            val wrongs = try {
+                Json.decodeFromString<List<WrongQuestion>>(content)
+            } catch (_: Exception) {
+                parseExcelWrongBook(file)
+            }
+
+            val existingQuestions = questionDao.getAll().firstOrNull() ?: emptyList()
+            var count = 0
+            for (w in wrongs) {
+                val match = existingQuestions.find { it.content == w.question.content && it.answer == w.question.answer }
+                val qId = match?.id ?: run {
+                    val qEntity = com.example.testapp.data.local.entity.QuestionEntity(
+                        content = w.question.content,
+                        type = w.question.type,
+                        options = Json.encodeToString(w.question.options),
+                        answer = w.question.answer,
+                        explanation = w.question.explanation,
+                        isFavorite = w.question.isFavorite,
+                        isWrong = w.question.isWrong,
+                        fileName = w.question.fileName
+                    )
+                    questionDao.insertAll(listOf(qEntity))
+                    questionDao.getAll().firstOrNull()
+                        ?.find { it.content == w.question.content && it.answer == w.question.answer }?.id
+                }
+                qId?.let {
+                    dao.add(WrongQuestionEntity(questionId = it, selected = w.selected))
+                    count++
+                }
+            }
+            count
+        } catch (e: Exception) {
+            0
+        }
     }
     override suspend fun exportToFile(file: java.io.File): Boolean {
-        // TODO: 导出错题，格式同上
-        return false
+        return try {
+            val wrongs = getAllSuspend()
+            val json = Json.encodeToString(wrongs)
+            file.writeText(json)
+            true
+        } catch (e: Exception) {
+            false
+        }
     }
 
     fun exportWrongBookToExcel(wrongs: List<WrongQuestion>, file: java.io.File): Boolean {
@@ -127,5 +170,39 @@ class WrongBookRepositoryImpl @Inject constructor(
         } catch (e: Exception) {
             false
         }
+    }
+    private fun parseExcelWrongBook(file: java.io.File): List<WrongQuestion> {
+        val wrongs = mutableListOf<WrongQuestion>()
+        val formatter = org.apache.poi.ss.usermodel.DataFormatter()
+        WorkbookFactory.create(file).use { workbook ->
+            val sheet = workbook.getSheetAt(0)
+            for (row in sheet.drop(1)) {
+                val content = row.getCell(0)?.let { formatter.formatCellValue(it) } ?: ""
+                if (content.isBlank()) continue
+                val options = (2..8).mapNotNull { idx ->
+                    row.getCell(idx)?.let { formatter.formatCellValue(it) }.takeIf { !it.isNullOrBlank() }
+                }
+                val answer = row.getCell(10)?.let { formatter.formatCellValue(it) } ?: ""
+                val selectedStr = row.getCell(11)?.let { formatter.formatCellValue(it) } ?: ""
+                val selected = selectedStr.toIntOrNull() ?: -1
+                wrongs.add(
+                    WrongQuestion(
+                        question = Question(
+                            id = 0,
+                            content = content,
+                            type = "",
+                            options = options,
+                            answer = answer,
+                            explanation = "",
+                            isFavorite = false,
+                            isWrong = true,
+                            fileName = file.name
+                        ),
+                        selected = selected
+                    )
+                )
+            }
+        }
+        return wrongs
     }
 }
