@@ -59,9 +59,9 @@ fun SettingsScreen(viewModel: SettingsViewModel = hiltViewModel()) {
             }
         }
     }
-    val exportWrongBookLauncher = rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")) { uri ->
+    val exportWrongBookLauncher = rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("application/json")) { uri ->
         if (uri != null) {
-            viewModel.exportWrongBookToExcelFile(context, uri) { success ->
+            viewModel.exportWrongBookToUri(context, uri) { success ->
                 snackbarMessage = if (success) "错题本导出成功" else "错题本导出失败"
             }
         }
@@ -73,9 +73,9 @@ fun SettingsScreen(viewModel: SettingsViewModel = hiltViewModel()) {
             }
         }
     }
-    val exportHistoryLauncher = rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")) { uri ->
+    val exportHistoryLauncher = rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("application/json")) { uri ->
         if (uri != null) {
-            viewModel.exportHistoryToExcelFile(context, uri) { success ->
+            viewModel.exportHistoryToUri(context, uri) { success ->
                 snackbarMessage = if (success) "历史记录导出成功" else "历史记录导出失败"
             }
         }

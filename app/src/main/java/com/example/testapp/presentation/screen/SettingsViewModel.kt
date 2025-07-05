@@ -159,7 +159,9 @@ class SettingsViewModel @Inject constructor(
         viewModelScope.launch {
             try {
                 val wrongs = wrongBookRepository.getAll().firstOrNull() ?: emptyList()
-                context.contentResolver.openOutputStream(uri)?.use { output ->
+                val out = context.contentResolver.openOutputStream(uri)
+                    ?: throw Exception("无法写入文件")
+                out.use { output ->
                     val json = Json.encodeToString(wrongs)
                     output.write(json.toByteArray())
                 }
@@ -173,7 +175,9 @@ class SettingsViewModel @Inject constructor(
         viewModelScope.launch {
             try {
                 val history = historyRepository.getAll().firstOrNull() ?: emptyList()
-                context.contentResolver.openOutputStream(uri)?.use { output ->
+                val out = context.contentResolver.openOutputStream(uri)
+                    ?: throw Exception("无法写入文件")
+                out.use { output ->
                     val json = Json.encodeToString(history)
                     output.write(json.toByteArray())
                 }
