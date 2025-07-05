@@ -15,6 +15,7 @@ import com.example.testapp.presentation.screen.HistoryScreen
 import com.example.testapp.presentation.screen.SettingsScreen
 import com.example.testapp.presentation.screen.FavoriteScreen
 import com.example.testapp.presentation.screen.PracticeScreen
+import com.example.testapp.presentation.screen.ExamScreen
 
 @Composable
 fun AppNavHost(navController: NavHostController = rememberNavController(), settingsViewModel: com.example.testapp.presentation.screen.SettingsViewModel) {
@@ -24,6 +25,10 @@ fun AppNavHost(navController: NavHostController = rememberNavController(), setti
                 onStartQuiz = { quizId ->
                     val encoded = java.net.URLEncoder.encode(quizId, "UTF-8")
                     navController.navigate("question/$encoded")
+                },
+                onStartExam = { quizId ->
+                    val encoded = java.net.URLEncoder.encode(quizId, "UTF-8")
+                    navController.navigate("exam/$encoded")
                 },
                 onSettings = { navController.navigate("settings") },
                 onViewQuestionDetail = { quizId ->
@@ -56,6 +61,20 @@ fun AppNavHost(navController: NavHostController = rememberNavController(), setti
             val quizId = java.net.URLDecoder.decode(encoded, "UTF-8")
             PracticeScreen(quizId = quizId,
                 onQuizEnd = { score, total ->
+                    navController.navigate("result/$score/$total") {
+                        popUpTo("home") { inclusive = false }
+                    }
+                }
+            )
+        }
+        composable(
+            "exam/{quizId}",
+            arguments = listOf(navArgument("quizId") { type = NavType.StringType })
+        ) { backStackEntry ->
+            val encoded = backStackEntry.arguments?.getString("quizId") ?: "default"
+            val quizId = java.net.URLDecoder.decode(encoded, "UTF-8")
+            ExamScreen(quizId = quizId,
+                onExamEnd = { score, total ->
                     navController.navigate("result/$score/$total") {
                         popUpTo("home") { inclusive = false }
                     }

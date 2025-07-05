@@ -48,6 +48,7 @@ import androidx.compose.material.rememberDismissState
 @Composable
 fun HomeScreen(
     onStartQuiz: (quizId: String) -> Unit = {},
+    onStartExam: (quizId: String) -> Unit = {},
     onSettings: () -> Unit = {},
     onViewQuestionDetail: (quizId: String) -> Unit = {},
     onWrongBook: (fileName: String) -> Unit = {},
@@ -255,7 +256,7 @@ fun HomeScreen(
                 Button(
                     onClick = {
                         if (selectedFileName.value.isNotEmpty() && fileNames.contains(selectedFileName.value)) {
-                            onStartQuiz(selectedFileName.value)
+                            onStartExam(selectedFileName.value)
                         }
                     },
                     enabled = selectedFileName.value.isNotEmpty() && fileNames.contains(selectedFileName.value),
