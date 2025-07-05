@@ -14,6 +14,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import com.example.testapp.presentation.component.LocalFontFamily
 import com.example.testapp.presentation.component.LocalFontSize
 import androidx.compose.ui.unit.sp
+import kotlin.math.roundToInt
 
 @Composable
 fun SettingsScreen(viewModel: SettingsViewModel = hiltViewModel()) {
@@ -143,7 +144,7 @@ fun SettingsScreen(viewModel: SettingsViewModel = hiltViewModel()) {
         }
         Spacer(modifier = Modifier.height(24.dp))
         Text(
-            "考试题数：$examCount",
+            if (examCount == 0) "考试题数：全部" else "考试题数：$examCount",
             style = MaterialTheme.typography.bodyLarge.copy(
                 fontSize = fontSize.sp,
                 fontFamily = when (fontStyle) {
@@ -154,9 +155,13 @@ fun SettingsScreen(viewModel: SettingsViewModel = hiltViewModel()) {
             )
         )
         Slider(
-            value = examCount.toFloat(),
-            onValueChange = { viewModel.setExamQuestionCount(context, it.toInt()) },
-            valueRange = 1f..100f
+            value = if (examCount == 0) 101f else examCount.toFloat(),
+            onValueChange = {
+                val value = it.roundToInt()
+                viewModel.setExamQuestionCount(context, if (value > 100) 0 else value)
+            },
+            valueRange = 1f..101f,
+            steps = 100
         )
         Spacer(modifier = Modifier.height(24.dp))
         Button(onClick = {

@@ -7,6 +7,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.basicMarquee
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.List
 import androidx.compose.material.icons.filled.Delete
@@ -211,7 +212,9 @@ fun HomeScreen(
                                         Text(
                                             text = "$name (${questionCounts[name] ?: 0})",
                                             maxLines = 1,
-                                            modifier = Modifier.weight(1f),
+                                            modifier = Modifier
+                                                .weight(1f)
+                                                .basicMarquee(),
                                             fontSize = LocalFontSize.current,
                                             fontFamily = LocalFontFamily.current
                                         )
