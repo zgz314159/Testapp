@@ -57,6 +57,10 @@ fun HomeScreen(
     val questions by viewModel.questions.collectAsState()
     val fileNames by viewModel.fileNames.collectAsState()
     val selectedFileName = remember { mutableStateOf("") }
+    // 题目数量按文件统计
+    val questionCounts = remember(questions) {
+        questions.groupBy { it.fileName ?: "" }.mapValues { it.value.size }
+    }
     LaunchedEffect(fileNames) {
         if (fileNames.isNotEmpty() && selectedFileName.value !in fileNames) {
             selectedFileName.value = fileNames.first()
@@ -204,7 +208,7 @@ fun HomeScreen(
                                         verticalAlignment = Alignment.CenterVertically
                                     ) {
                                         Text(
-                                            text = name,
+                                            text = "$name (${questionCounts[name] ?: 0})",
                                             maxLines = 1,
                                             modifier = Modifier.weight(1f),
                                             fontSize = LocalFontSize.current,
@@ -225,30 +229,46 @@ fun HomeScreen(
                     fontSize = LocalFontSize.current,
                     fontFamily = LocalFontFamily.current
                 )
-            } else {
-                Text(
-                    text = "题目数量：${questions.size}",
-                    fontSize = LocalFontSize.current,
-                    fontFamily = LocalFontFamily.current
-                )
             }
             Spacer(modifier = Modifier.height(32.dp))
-            Button(
-                onClick = {
-                    if (selectedFileName.value.isNotEmpty() && fileNames.contains(selectedFileName.value)) {
-                        onStartQuiz(selectedFileName.value)
-                    }
-                },
-                enabled = selectedFileName.value.isNotEmpty() && fileNames.contains(selectedFileName.value),
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(56.dp)
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(16.dp)
             ) {
-                Text(
-                    "开始考试",
-                    fontSize = LocalFontSize.current,
-                    fontFamily = LocalFontFamily.current
-                )
+                Button(
+                    onClick = {
+                        if (selectedFileName.value.isNotEmpty() && fileNames.contains(selectedFileName.value)) {
+                            onStartQuiz(selectedFileName.value)
+                        }
+                    },
+                    enabled = selectedFileName.value.isNotEmpty() && fileNames.contains(selectedFileName.value),
+                    modifier = Modifier
+                        .weight(1f)
+                        .height(56.dp)
+                ) {
+                    Text(
+                        "开始练习",
+                        fontSize = LocalFontSize.current,
+                        fontFamily = LocalFontFamily.current
+                    )
+                }
+                Button(
+                    onClick = {
+                        if (selectedFileName.value.isNotEmpty() && fileNames.contains(selectedFileName.value)) {
+                            onStartQuiz(selectedFileName.value)
+                        }
+                    },
+                    enabled = selectedFileName.value.isNotEmpty() && fileNames.contains(selectedFileName.value),
+                    modifier = Modifier
+                        .weight(1f)
+                        .height(56.dp)
+                ) {
+                    Text(
+                        "开始考试",
+                        fontSize = LocalFontSize.current,
+                        fontFamily = LocalFontFamily.current
+                    )
+                }
             }
         }
     }
