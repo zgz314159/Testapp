@@ -155,13 +155,13 @@ fun SettingsScreen(viewModel: SettingsViewModel = hiltViewModel()) {
             )
         )
         Slider(
-            value = if (examCount == 0) 101f else examCount.toFloat(),
+            value = examCount.toFloat(),
             onValueChange = {
                 val value = it.roundToInt()
-                viewModel.setExamQuestionCount(context, if (value > 100) 0 else value)
+                viewModel.setExamQuestionCount(context, value)
             },
-            valueRange = 1f..101f,
-            steps = 100
+            valueRange = 0f..100f,
+            steps = 0
         )
         Spacer(modifier = Modifier.height(24.dp))
         Button(onClick = {

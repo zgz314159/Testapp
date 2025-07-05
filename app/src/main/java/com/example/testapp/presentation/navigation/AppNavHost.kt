@@ -59,7 +59,9 @@ fun AppNavHost(navController: NavHostController = rememberNavController(), setti
         ) { backStackEntry ->
             val encoded = backStackEntry.arguments?.getString("quizId") ?: "default"
             val quizId = java.net.URLDecoder.decode(encoded, "UTF-8")
-            PracticeScreen(quizId = quizId,
+            PracticeScreen(
+                quizId = quizId,
+                settingsViewModel = settingsViewModel,
                 onQuizEnd = { score, total ->
                     navController.navigate("result/$score/$total") {
                         popUpTo("home") { inclusive = false }
@@ -73,7 +75,9 @@ fun AppNavHost(navController: NavHostController = rememberNavController(), setti
         ) { backStackEntry ->
             val encoded = backStackEntry.arguments?.getString("quizId") ?: "default"
             val quizId = java.net.URLDecoder.decode(encoded, "UTF-8")
-            ExamScreen(quizId = quizId,
+            ExamScreen(
+                quizId = quizId,
+                settingsViewModel = settingsViewModel,
                 onExamEnd = { score, total ->
                     navController.navigate("result/$score/$total") {
                         popUpTo("home") { inclusive = false }
@@ -110,6 +114,7 @@ fun AppNavHost(navController: NavHostController = rememberNavController(), setti
             PracticeScreen(
                 isWrongBookMode = true,
                 wrongBookFileName = name,
+                settingsViewModel = settingsViewModel,
                 onQuizEnd = { score, total ->
                     navController.navigate("result/$score/$total") {
                         popUpTo("wrongbook") { inclusive = false }
@@ -134,6 +139,7 @@ fun AppNavHost(navController: NavHostController = rememberNavController(), setti
             PracticeScreen(
                 isFavoriteMode = true,
                 favoriteFileName = name,
+                settingsViewModel = settingsViewModel,
                 onQuizEnd = { score, total ->
                     navController.navigate("result/$score/$total") {
                         popUpTo("favorite") { inclusive = false }
@@ -144,6 +150,7 @@ fun AppNavHost(navController: NavHostController = rememberNavController(), setti
         composable("question_fav") {
             PracticeScreen(
                 quizId = "favorite",
+                settingsViewModel = settingsViewModel,
                 onQuizEnd = { score, total ->
                     navController.navigate("result/$score/$total") {
                         popUpTo("favorite") { inclusive = false }
