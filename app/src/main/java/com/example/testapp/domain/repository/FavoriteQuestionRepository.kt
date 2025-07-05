@@ -8,4 +8,7 @@ interface FavoriteQuestionRepository {
     suspend fun add(favorite: FavoriteQuestion)
     suspend fun remove(questionId: Int)
     suspend fun isFavorite(questionId: Int): Boolean
+    suspend fun importFromFile(file: java.io.File): Int
+    suspend fun exportToFile(file: java.io.File): Boolean
+
 }

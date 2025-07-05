@@ -31,4 +31,32 @@ class FavoriteQuestionRepositoryImpl @Inject constructor(
 
     override suspend fun isFavorite(questionId: Int): Boolean =
         dao.getAll().map { list -> list.any { it.questionId == questionId } }.firstOrNull() ?: false
+    private suspend fun getAllSuspend(): List<FavoriteQuestion> {
+        val entities = dao.getAll().firstOrNull() ?: emptyList()
+        return entities.map { entity ->
+            val question = Json.decodeFromString<Question>(entity.questionJson)
+            FavoriteQuestion(question)
+        }
+    }
+
+    override suspend fun importFromFile(file: java.io.File): Int {
+        return try {
+            val content = file.readText()
+            val favorites = Json.decodeFromString<List<FavoriteQuestion>>(content)
+            favorites.forEach {
+                dao.add(FavoriteQuestionEntity(it.question.id, Json.encodeToString(it.question)))
+            }
+            favorites.size
+        } catch (e: Exception) { 0 }
+    }
+
+    override suspend fun exportToFile(file: java.io.File): Boolean {
+        return try {
+            val favorites = getAllSuspend()
+            val json = Json.encodeToString(favorites)
+            file.writeText(json)
+            true
+        } catch (e: Exception) { false }
+    }
 }
+

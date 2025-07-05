@@ -7,6 +7,7 @@ import androidx.lifecycle.viewModelScope
 import com.example.testapp.domain.repository.QuestionRepository
 import com.example.testapp.domain.repository.WrongBookRepository
 import com.example.testapp.domain.repository.HistoryRepository
+import com.example.testapp.domain.repository.FavoriteQuestionRepository
 import com.example.testapp.data.datastore.FontSettingsDataStore
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Job
@@ -28,7 +29,8 @@ import kotlinx.coroutines.withContext
 class SettingsViewModel @Inject constructor(
     private val questionRepository: QuestionRepository,
     private val wrongBookRepository: WrongBookRepository,
-    private val historyRepository: HistoryRepository
+    private val historyRepository: HistoryRepository,
+    private val favoriteRepository: FavoriteQuestionRepository
 ) : ViewModel() {
     private val _fontSize = MutableStateFlow(18f)
     val fontSize: StateFlow<Float> = _fontSize.asStateFlow()
@@ -104,10 +106,10 @@ class SettingsViewModel @Inject constructor(
             onResult(count > 0)
         }
     }
-    fun importHistoryFromUri(context: Context, uri: Uri, onResult: (Boolean) -> Unit) {
+    fun importFavoritesFromUri(context: Context, uri: Uri, onResult: (Boolean) -> Unit) {
         viewModelScope.launch {
             val file = uriToFile(context, uri)
-            val count = if (file != null) historyRepository.importFromFile(file) else 0
+            val count = if (file != null) favoriteRepository.importFromFile(file) else 0
             onResult(count > 0)
         }
     }
@@ -171,14 +173,14 @@ class SettingsViewModel @Inject constructor(
             }
         }
     }
-    fun exportHistoryToUri(context: Context, uri: Uri, onResult: (Boolean) -> Unit) {
+    fun exportFavoritesToUri(context: Context, uri: Uri, onResult: (Boolean) -> Unit) {
         viewModelScope.launch {
             try {
-                val history = historyRepository.getAll().firstOrNull() ?: emptyList()
+                val favorites = favoriteRepository.getAll().firstOrNull() ?: emptyList()
                 val out = context.contentResolver.openOutputStream(uri)
                     ?: throw Exception("无法写入文件")
                 out.use { output ->
-                    val json = Json.encodeToString(history)
+                    val json = Json.encodeToString(favorites)
                     output.write(json.toByteArray())
                 }
                 onResult(true)

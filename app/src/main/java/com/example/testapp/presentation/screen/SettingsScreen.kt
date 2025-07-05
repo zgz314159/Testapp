@@ -66,17 +66,17 @@ fun SettingsScreen(viewModel: SettingsViewModel = hiltViewModel()) {
             }
         }
     }
-    val importHistoryLauncher = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
+    val importFavoriteLauncher = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
         if (uri != null) {
-            viewModel.importHistoryFromUri(context, uri) { success ->
-                snackbarMessage = if (success) "历史记录导入成功" else "历史记录导入失败"
+            viewModel.importFavoritesFromUri(context, uri) { success ->
+                snackbarMessage = if (success) "收藏记录导入成功" else "收藏记录导入失败"
             }
         }
     }
-    val exportHistoryLauncher = rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("application/json")) { uri ->
+    val exportFavoriteLauncher = rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("application/json")) { uri ->
         if (uri != null) {
-            viewModel.exportHistoryToUri(context, uri) { success ->
-                snackbarMessage = if (success) "历史记录导出成功" else "历史记录导出失败"
+            viewModel.exportFavoritesToUri(context, uri) { success ->
+                snackbarMessage = if (success) "收藏记录导出成功" else "收藏记录导出失败"
             }
         }
     }
@@ -188,12 +188,12 @@ fun SettingsScreen(viewModel: SettingsViewModel = hiltViewModel()) {
             Text("导出错题本", style = MaterialTheme.typography.bodyLarge.copy(fontSize = fontSize.sp, fontFamily = when (fontStyle) { "Serif" -> androidx.compose.ui.text.font.FontFamily.Serif; "Monospace" -> androidx.compose.ui.text.font.FontFamily.Monospace; else -> androidx.compose.ui.text.font.FontFamily.Default }))
         }
         Spacer(modifier = Modifier.height(24.dp))
-        Button(onClick = { importHistoryLauncher.launch(arrayOf("application/json", "text/plain")) }) {
-            Text("导入历史记录", style = MaterialTheme.typography.bodyLarge.copy(fontSize = fontSize.sp, fontFamily = when (fontStyle) { "Serif" -> androidx.compose.ui.text.font.FontFamily.Serif; "Monospace" -> androidx.compose.ui.text.font.FontFamily.Monospace; else -> androidx.compose.ui.text.font.FontFamily.Default }))
+        Button(onClick = { importFavoriteLauncher.launch(arrayOf("application/json", "text/plain")) }) {
+            Text("导入收藏记录", style = MaterialTheme.typography.bodyLarge.copy(fontSize = fontSize.sp, fontFamily = when (fontStyle) { "Serif" -> androidx.compose.ui.text.font.FontFamily.Serif; "Monospace" -> androidx.compose.ui.text.font.FontFamily.Monospace; else -> androidx.compose.ui.text.font.FontFamily.Default }))
         }
         Spacer(modifier = Modifier.height(8.dp))
-        Button(onClick = { exportHistoryLauncher.launch("history_export.json") }) {
-            Text("导出历史记录", style = MaterialTheme.typography.bodyLarge.copy(fontSize = fontSize.sp, fontFamily = when (fontStyle) { "Serif" -> androidx.compose.ui.text.font.FontFamily.Serif; "Monospace" -> androidx.compose.ui.text.font.FontFamily.Monospace; else -> androidx.compose.ui.text.font.FontFamily.Default }))
+        Button(onClick = { exportFavoriteLauncher.launch("favorite_export.json") }) {
+            Text("导出收藏记录", style = MaterialTheme.typography.bodyLarge.copy(fontSize = fontSize.sp, fontFamily = when (fontStyle) { "Serif" -> androidx.compose.ui.text.font.FontFamily.Serif; "Monospace" -> androidx.compose.ui.text.font.FontFamily.Monospace; else -> androidx.compose.ui.text.font.FontFamily.Default }))
         }
     }
     Box(modifier = Modifier.fillMaxSize()) {
