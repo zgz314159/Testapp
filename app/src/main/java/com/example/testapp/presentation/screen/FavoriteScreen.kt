@@ -108,15 +108,6 @@ fun FavoriteScreen(
                 }
             }
         }
-        if (favorites.value.isNotEmpty()) {
-            Spacer(modifier = Modifier.height(24.dp))
-            Button(onClick = { navController?.navigate("question_fav") }) {
-                Text(
-                    "练习全部收藏题",
-                    fontSize = LocalFontSize.current,
-                    fontFamily = LocalFontFamily.current
-                )
-            }
-        }
+
     }
 }

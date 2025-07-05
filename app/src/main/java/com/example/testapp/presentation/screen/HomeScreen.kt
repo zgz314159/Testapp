@@ -138,7 +138,7 @@ fun HomeScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(innerPadding)
-                .padding(16.dp),
+                .padding(5.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             android.util.Log.d("HomeScreen", "fontSize=${LocalFontSize.current}, fontFamily=${LocalFontFamily.current}, recomposed!")

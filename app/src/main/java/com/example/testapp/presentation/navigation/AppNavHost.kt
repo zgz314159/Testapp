@@ -147,17 +147,7 @@ fun AppNavHost(navController: NavHostController = rememberNavController(), setti
                 }
             )
         }
-        composable("question_fav") {
-            PracticeScreen(
-                quizId = "favorite",
-                settingsViewModel = settingsViewModel,
-                onQuizEnd = { score, total ->
-                    navController.navigate("result/$score/$total") {
-                        popUpTo("favorite") { inclusive = false }
-                    }
-                }
-            )
-        }
+
         // TODO: 添加更多页面
     }
 }
