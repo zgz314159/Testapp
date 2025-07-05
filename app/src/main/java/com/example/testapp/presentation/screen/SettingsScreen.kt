@@ -19,6 +19,7 @@ import androidx.compose.ui.unit.sp
 fun SettingsScreen(viewModel: SettingsViewModel = hiltViewModel()) {
     val fontSize by viewModel.fontSize.collectAsState()
     val fontStyle by viewModel.fontStyle.collectAsState()
+    val examCount by viewModel.examQuestionCount.collectAsState()
     val isLoading by viewModel.isLoading.collectAsState()
     val progress by viewModel.progress.collectAsState()
     val context = LocalContext.current
@@ -140,6 +141,23 @@ fun SettingsScreen(viewModel: SettingsViewModel = hiltViewModel()) {
             RadioButton(selected = fontStyle == "Monospace", onClick = { viewModel.setFontStyle(context, "Monospace") })
             Text("等宽", style = MaterialTheme.typography.bodyLarge.copy(fontSize = fontSize.sp, fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace))
         }
+        Spacer(modifier = Modifier.height(24.dp))
+        Text(
+            "考试题数：$examCount",
+            style = MaterialTheme.typography.bodyLarge.copy(
+                fontSize = fontSize.sp,
+                fontFamily = when (fontStyle) {
+                    "Serif" -> androidx.compose.ui.text.font.FontFamily.Serif
+                    "Monospace" -> androidx.compose.ui.text.font.FontFamily.Monospace
+                    else -> androidx.compose.ui.text.font.FontFamily.Default
+                }
+            )
+        )
+        Slider(
+            value = examCount.toFloat(),
+            onValueChange = { viewModel.setExamQuestionCount(context, it.toInt()) },
+            valueRange = 1f..100f
+        )
         Spacer(modifier = Modifier.height(24.dp))
         Button(onClick = {
             importLauncher.launch(arrayOf("application/vnd.ms-excel", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", "text/plain"))

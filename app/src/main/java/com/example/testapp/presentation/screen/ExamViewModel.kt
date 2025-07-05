@@ -30,11 +30,27 @@ class ExamViewModel @Inject constructor(
     private val _selectedOptions = MutableStateFlow<List<Int>>(emptyList())
     val selectedOptions: StateFlow<List<Int>> = _selectedOptions.asStateFlow()
 
-    fun loadQuestions(quizId: String) {
+    fun loadQuestions(quizId: String, count: Int) {
         viewModelScope.launch {
             getQuestionsUseCase(quizId).collect { list ->
-                _questions.value = list
-                _selectedOptions.value = List(list.size) { -1 }
+                val shuffled = list.shuffled().let { qs ->
+                    if (count > 0) qs.take(count.coerceAtMost(qs.size)) else qs
+                }
+                val finalList = shuffled.map { q ->
+                    val correctIndex = answerLetterToIndex(q.answer)
+                    if (correctIndex == null) {
+                        q
+                    } else {
+                        val pairs = q.options.mapIndexed { idx, opt -> idx to opt }.shuffled()
+                        val newOptions = pairs.map { it.second }
+                        val newCorrect = pairs.indexOfFirst { it.first == correctIndex }
+                        val newAnswer = ('A' + newCorrect).toString()
+                        q.copy(options = newOptions, answer = newAnswer)
+                    }
+                }
+                _questions.value = finalList
+                _selectedOptions.value = List(finalList.size) { -1 }
+                _currentIndex.value = 0
             }
         }
     }

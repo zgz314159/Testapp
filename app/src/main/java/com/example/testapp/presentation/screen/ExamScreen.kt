@@ -2,6 +2,7 @@ package com.example.testapp.presentation.screen
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -11,6 +12,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import kotlinx.coroutines.launch
 import com.example.testapp.presentation.component.LocalFontSize
 import com.example.testapp.presentation.component.LocalFontFamily
+import com.example.testapp.presentation.screen.FavoriteViewModel
 
 @Composable
 fun ExamScreen(
@@ -19,14 +21,19 @@ fun ExamScreen(
     settingsViewModel: SettingsViewModel = hiltViewModel(),
     onExamEnd: (score: Int, total: Int) -> Unit = { _, _ -> }
 ) {
-    LaunchedEffect(quizId) { viewModel.loadQuestions(quizId) }
+    val examCount by settingsViewModel.examQuestionCount.collectAsState()
+    LaunchedEffect(quizId, examCount) { viewModel.loadQuestions(quizId, examCount) }
     val questions by viewModel.questions.collectAsState()
     val currentIndex by viewModel.currentIndex.collectAsState()
     val selectedOptions by viewModel.selectedOptions.collectAsState()
     val fontSize by settingsViewModel.fontSize.collectAsState()
     val question = questions.getOrNull(currentIndex)
     val coroutineScope = rememberCoroutineScope()
-
+    val favoriteViewModel: FavoriteViewModel = hiltViewModel()
+    val favoriteQuestions by favoriteViewModel.favoriteQuestions.collectAsState()
+    val isFavorite = remember(question, favoriteQuestions) {
+        question != null && favoriteQuestions.any { it.question.id == question.id }
+    }
     if (question == null) {
         Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
             Text(
@@ -59,6 +66,22 @@ fun ExamScreen(
             )
         )
         Spacer(modifier = Modifier.height(8.dp))
+        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
+            Button(onClick = {
+                if (isFavorite) {
+                    favoriteViewModel.removeFavorite(question.id)
+                } else {
+                    favoriteViewModel.addFavorite(question)
+                }
+            }) {
+                Text(
+                    if (isFavorite) "取消收藏" else "收藏",
+                    fontSize = LocalFontSize.current,
+                    fontFamily = LocalFontFamily.current
+                )
+            }
+        }
+        Spacer(modifier = Modifier.height(16.dp))
         question.options.forEachIndexed { idx, option ->
             val isSelected = selectedOptions.getOrElse(currentIndex) { -1 } == idx
             Row(

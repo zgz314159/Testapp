@@ -38,6 +38,8 @@ class SettingsViewModel @Inject constructor(
     val isLoading: StateFlow<Boolean> = _isLoading.asStateFlow()
     private val _progress = MutableStateFlow(0f)
     val progress: StateFlow<Float> = _progress.asStateFlow()
+    private val _examQuestionCount = MutableStateFlow(10)
+    val examQuestionCount: StateFlow<Int> = _examQuestionCount.asStateFlow()
     private var currentJob: Job? = null
 
     fun setFontSize(context: Context, size: Float) {
@@ -52,12 +54,20 @@ class SettingsViewModel @Inject constructor(
             FontSettingsDataStore.setFontStyle(context, style)
         }
     }
+    fun setExamQuestionCount(context: Context, count: Int) {
+        _examQuestionCount.value = count
+        viewModelScope.launch {
+            FontSettingsDataStore.setExamQuestionCount(context, count)
+        }
+    }
     fun loadFontSettings(context: Context) {
         viewModelScope.launch {
             val size = FontSettingsDataStore.getFontSize(context).first()
             val style = FontSettingsDataStore.getFontStyle(context).first()
+            val examCount = FontSettingsDataStore.getExamQuestionCount(context).first()
             _fontSize.value = size
             _fontStyle.value = style
+            _examQuestionCount.value = examCount
         }
     }
 
