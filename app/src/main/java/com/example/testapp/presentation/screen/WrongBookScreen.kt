@@ -9,6 +9,10 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.example.testapp.presentation.component.LocalFontSize
@@ -53,7 +57,12 @@ fun WrongBookScreen(
                             .padding(vertical = 4.dp)
                     ) {
                         Text(
-                            "$name ($count)",
+                            buildAnnotatedString {
+                                append("$name ")
+                                withStyle(SpanStyle(color = Color.Blue)) {
+                                    append("($count)")
+                                }
+                            },
                             modifier = Modifier
                                 .weight(1f)
                                 .basicMarquee(),
