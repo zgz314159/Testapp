@@ -2,6 +2,7 @@ package com.example.testapp.presentation.screen
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.basicMarquee
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -53,7 +54,9 @@ fun FavoriteScreen(
                     ) {
                         Text(
                             "$name ($count)",
-                            modifier = Modifier.weight(1f),
+                            modifier = Modifier
+                                .weight(1f)
+                                .basicMarquee(),
                             fontSize = LocalFontSize.current,
                             fontFamily = LocalFontFamily.current
                         )

@@ -2,6 +2,7 @@ package com.example.testapp.presentation.screen
 
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.basicMarquee
 import androidx.compose.material3.Button
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -53,7 +54,9 @@ fun WrongBookScreen(
                     ) {
                         Text(
                             "$name ($count)",
-                            modifier = Modifier.weight(1f),
+                            modifier = Modifier
+                                .weight(1f)
+                                .basicMarquee(),
                             fontSize = LocalFontSize.current,
                             fontFamily = LocalFontFamily.current
                         )
