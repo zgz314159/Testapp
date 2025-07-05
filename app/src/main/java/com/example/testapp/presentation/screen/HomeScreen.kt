@@ -47,6 +47,8 @@ import androidx.compose.material.FractionalThreshold
 import androidx.compose.material.SwipeToDismiss
 import androidx.compose.material.rememberDismissState
 import androidx.compose.ui.text.withStyle
+import androidx.compose.material.icons.filled.FactCheck
+
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterialApi::class)
 @Composable
@@ -130,8 +132,13 @@ fun HomeScreen(
                         bottomNavIndex = 2
                         onViewQuestionDetail(selectedFileName.value)
                     },
-                    icon = { Icon(Icons.AutoMirrored.Filled.List, contentDescription = "题库详情") },
-                    label = { Text("题库详情") }
+                    icon = { Icon(Icons.Filled.FactCheck, contentDescription = "题库详情") },
+                    label = {
+                        Text(
+                            "题库详情",
+                            fontSize = LocalFontSize.current,
+                            fontFamily = LocalFontFamily.current
+                    ) }
                 )
             }
         }

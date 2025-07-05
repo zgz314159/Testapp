@@ -14,10 +14,13 @@ kotlinxSerialization = "1.7.3"
 datastorePreferencesCoreAndroid = "1.1.7"
 room = "2.7.2"
 hilt = "2.51.1"
+materialIconsExtended = "1.6.2"
 #composeCompiler = "1.5.14" # 这个版本号是给 composeOptions 使用的，插件版本由 kotlin 决定
 #kotlinComposeCompiler = "2.0.0" # <-- 移除这一行
 
 [libraries]
+
+compose-material-icons-extended = { group = "androidx.compose.material", name = "material-icons-extended", version.ref = "materialIconsExtended" }
 androidx-core-ktx                 = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
 junit                            = { group = "junit", name = "junit", version.ref = "junit" }
 androidx-junit                   = { group = "androidx.test.ext", name = "junit", version.ref = "junitVersion" }

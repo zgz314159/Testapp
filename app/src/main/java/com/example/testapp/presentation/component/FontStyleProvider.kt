@@ -5,7 +5,7 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.unit.sp
 
 val LocalFontFamily = compositionLocalOf { FontFamily.Default }
-val LocalFontSize = compositionLocalOf { 18.sp }
+val LocalFontSize = compositionLocalOf { 28.sp }
 
 @Composable
 fun FontStyleProvider(fontSize: Float, fontStyle: String, content: @Composable () -> Unit) {
