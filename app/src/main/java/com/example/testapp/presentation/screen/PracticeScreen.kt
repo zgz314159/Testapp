@@ -19,6 +19,7 @@ import com.example.testapp.presentation.screen.SettingsViewModel
 import com.example.testapp.presentation.component.LocalFontSize
 import com.example.testapp.presentation.component.LocalFontFamily
 import androidx.compose.ui.unit.sp
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 
 @Composable
@@ -50,6 +51,8 @@ fun PracticeScreen(
     val questions by viewModel.questions.collectAsState()
     val fontSize by settingsViewModel.fontSize.collectAsState()
     val fontStyle by settingsViewModel.fontStyle.collectAsState()
+    val correctDelay by settingsViewModel.correctDelay.collectAsState()
+    val wrongDelay by settingsViewModel.wrongDelay.collectAsState()
     val context = LocalContext.current
     val currentIndex by viewModel.currentIndex.collectAsState()
     val answeredList by viewModel.answeredList.collectAsState()
@@ -73,6 +76,7 @@ fun PracticeScreen(
     var menuExpanded by remember { mutableStateOf(false) }
     var score by remember { mutableStateOf(0) }
     var questionFontSize by remember { mutableStateOf(fontSize) }
+    var autoJob by remember { mutableStateOf<Job?>(null) }
 
     val selectedOption = selectedOptions.getOrNull(currentIndex) ?: -1
     val showResult = showResultList.getOrNull(currentIndex) ?: false
@@ -222,6 +226,18 @@ fun PracticeScreen(
                         score++
                     }
                     onSubmit(correct)
+                    autoJob?.cancel()
+                    autoJob = coroutineScope.launch {
+                        val d = if (correct) correctDelay else wrongDelay
+                        if (d > 0) kotlinx.coroutines.delay(d * 1000L)
+                        if (viewModel.currentIndex.value < questions.size - 1) {
+                            viewModel.updateShowResult(viewModel.currentIndex.value, true)
+                            viewModel.nextQuestion()
+                        } else {
+                            viewModel.updateShowResult(viewModel.currentIndex.value, true)
+                            onQuizEnd(score, questions.size)
+                        }
+                    }
                 }
             }
             question.options.forEachIndexed { idx, option ->
@@ -262,10 +278,11 @@ fun PracticeScreen(
 
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceEvenly
+                horizontalArrangement = Arrangement.SpaceBetween
             ) {
                 if (currentIndex > 0) {
                     Button(onClick = {
+                        autoJob?.cancel()
                         viewModel.updateShowResult(currentIndex, showResult)
                         viewModel.prevQuestion()
                     }) {
@@ -279,6 +296,7 @@ fun PracticeScreen(
                 if (question.type != "单选题" && question.type != "判断题") {
                     Button(
                         onClick = {
+                            autoJob?.cancel()
                             viewModel.updateShowResult(currentIndex, true)
                             val correctIndex = answerLetterToIndex(question.answer)
                             val correct = selectedOption == correctIndex
@@ -301,6 +319,17 @@ fun PracticeScreen(
                             }
                             if (correct) score++
                             onSubmit(correct)
+                            autoJob = coroutineScope.launch {
+                                val d = if (correct) correctDelay else wrongDelay
+                                if (d > 0) kotlinx.coroutines.delay(d * 1000L)
+                                if (viewModel.currentIndex.value < questions.size - 1) {
+                                    viewModel.updateShowResult(viewModel.currentIndex.value, true)
+                                    viewModel.nextQuestion()
+                                } else {
+                                    viewModel.updateShowResult(viewModel.currentIndex.value, true)
+                                    onQuizEnd(score, questions.size)
+                                }
+                            }
                         },
                         enabled = selectedOption != -1 && !showResult,
                     ) {
@@ -313,6 +342,7 @@ fun PracticeScreen(
                 }
                 if (currentIndex < questions.size - 1) {
                     Button(onClick = {
+                        autoJob?.cancel()
                         viewModel.updateShowResult(currentIndex, showResult)
                         viewModel.nextQuestion()
                     }) {
@@ -323,7 +353,10 @@ fun PracticeScreen(
                         )
                     }
                 } else {
-                    Button(onClick = { onQuizEnd(score, questions.size) }) {
+                    Button(onClick = {
+                        autoJob?.cancel()
+                        onQuizEnd(score, questions.size)
+                    }) {
                         Text(
                             "交卷",
                             fontSize = LocalFontSize.current,
