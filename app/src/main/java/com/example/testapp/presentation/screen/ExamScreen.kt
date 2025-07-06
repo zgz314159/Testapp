@@ -24,7 +24,8 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.ui.input.pointer.pointerInput
-
+import androidx.compose.ui.layout.onSizeChanged
+import kotlinx.coroutines.Job
 
 
 @Composable
@@ -40,6 +41,7 @@ fun ExamScreen(
     val currentIndex by viewModel.currentIndex.collectAsState()
     val selectedOptions by viewModel.selectedOptions.collectAsState()
     val fontSize by settingsViewModel.fontSize.collectAsState()
+    val examDelay by settingsViewModel.examDelay.collectAsState()
     val context = LocalContext.current
     val question = questions.getOrNull(currentIndex)
     val coroutineScope = rememberCoroutineScope()
@@ -59,6 +61,10 @@ fun ExamScreen(
     var menuExpanded by remember { mutableStateOf(false) }
     var questionFontSize by remember { mutableStateOf(fontSize) }
     var dragAmount by remember { mutableStateOf(0f) }
+    var autoJob by remember { mutableStateOf<kotlinx.coroutines.Job?>(null) }
+    var containerWidth by remember { mutableStateOf(0f) }
+    var dragStartX by remember { mutableStateOf(0f) }
+    var showExitDialog by remember { mutableStateOf(false) }
     if (question == null) {
         Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
             Text(
@@ -74,14 +80,30 @@ fun ExamScreen(
         modifier = Modifier
             .fillMaxSize()
             .padding(16.dp)
-            .pointerInput(currentIndex) {
+            .onSizeChanged { containerWidth = it.width.toFloat() }
+            .pointerInput(currentIndex, containerWidth) {
                 detectHorizontalDragGestures(
+                    onDragStart = { offset ->
+                        dragStartX = offset.x
+                    },
                     onHorizontalDrag = { _, amount -> dragAmount += amount },
                     onDragEnd = {
-                        if (dragAmount > 100f && currentIndex > 0) {
-                            viewModel.prevQuestion()
-                        } else if (dragAmount < -100f && currentIndex < questions.size - 1) {
-                            viewModel.nextQuestion()
+                        if ((dragStartX < 20f && dragAmount > 100f) ||
+                            (dragStartX > containerWidth - 20f && dragAmount < -100f)
+                        ) {
+                            showExitDialog = selectedOptions.any { it == -1 }
+                            if (!showExitDialog) {
+                                coroutineScope.launch {
+                                    val score = viewModel.gradeExam()
+                                    onExamEnd(score, questions.size)
+                                }
+                            }
+                        } else {
+                            if (dragAmount > 100f && currentIndex > 0) {
+                                viewModel.prevQuestion()
+                            } else if (dragAmount < -100f && currentIndex < questions.size - 1) {
+                                viewModel.nextQuestion()
+                            }
                         }
                         dragAmount = 0f
                     },
@@ -152,30 +174,30 @@ fun ExamScreen(
             })
         }
 
-            Spacer(modifier = Modifier.height(8.dp))
+        Spacer(modifier = Modifier.height(8.dp))
 
-            // Layer 2: type and progress
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Text(
-                    "题型：${question.type}",
-                    fontSize = LocalFontSize.current,
-                    fontFamily = LocalFontFamily.current
-                )
-                Spacer(modifier = Modifier.weight(1f))
-                Text(
-                    "${currentIndex + 1}/${questions.size}",
-                    fontSize = LocalFontSize.current,
-                    fontFamily = LocalFontFamily.current
-                )
-            }
-            LinearProgressIndicator(
-                progress = if (questions.isNotEmpty()) (currentIndex + 1f) / questions.size else 0f,
-                modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp)
+        // Layer 2: type and progress
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Text(
+                "题型：${question.type}",
+                fontSize = LocalFontSize.current,
+                fontFamily = LocalFontFamily.current
             )
-            // Layer 3: question and options
+            Spacer(modifier = Modifier.weight(1f))
+            Text(
+                "${currentIndex + 1}/${questions.size}",
+                fontSize = LocalFontSize.current,
+                fontFamily = LocalFontFamily.current
+            )
+        }
+        LinearProgressIndicator(
+            progress = if (questions.isNotEmpty()) (currentIndex + 1f) / questions.size else 0f,
+            modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp)
+        )
+        // Layer 3: question and options
         LazyColumn(
             modifier = Modifier
                 .weight(1f)
@@ -212,8 +234,12 @@ fun ExamScreen(
             val handleSelect: (Int) -> Unit = { idx ->
                 viewModel.selectOption(idx)
                 if (question.type == "单选题" || question.type == "判断题") {
-                    if (currentIndex < questions.size - 1) {
-                        viewModel.nextQuestion()
+                    autoJob?.cancel()
+                    autoJob = coroutineScope.launch {
+                        if (examDelay > 0) kotlinx.coroutines.delay(examDelay * 1000L)
+                        if (currentIndex < questions.size - 1) {
+                            viewModel.nextQuestion()
+                        }
                     }
                 }
             }
@@ -258,26 +284,26 @@ fun ExamScreen(
 
 
         Spacer(modifier = Modifier.height(8.dp))
-
-
-        // Layer 4: answer buttons
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.Center
-            ) {
-                Button(onClick = {
-                    coroutineScope.launch {
-                        val score = viewModel.gradeExam()
-                        onExamEnd(score, questions.size)
-                    }
-                }) {
-                    Text(
-                        "交卷",
-                        fontSize = LocalFontSize.current,
-                        fontFamily = LocalFontFamily.current
-                    )
-                }
-            }
-
-        }
     }
+
+
+if (showExitDialog) {
+    AlertDialog(
+        onDismissRequest = { showExitDialog = false },
+        confirmButton = {
+            TextButton(onClick = {
+                coroutineScope.launch {
+                    val score = viewModel.gradeExam()
+                    showExitDialog = false
+                    onExamEnd(score, questions.size)
+                }
+            }) {
+                Text("确定")
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = { showExitDialog = false }) { Text("取消") }
+        },
+        text = { Text("还未答完题，是否交卷？") }
+    )
+}}

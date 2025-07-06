@@ -24,6 +24,7 @@ fun SettingsScreen(viewModel: SettingsViewModel = hiltViewModel()) {
     val randomPractice by viewModel.randomPractice.collectAsState()
     val correctDelay by viewModel.correctDelay.collectAsState()
     val wrongDelay by viewModel.wrongDelay.collectAsState()
+    val examDelay by viewModel.examDelay.collectAsState()
     val isLoading by viewModel.isLoading.collectAsState()
     val progress by viewModel.progress.collectAsState()
     val context = LocalContext.current
@@ -147,6 +148,18 @@ fun SettingsScreen(viewModel: SettingsViewModel = hiltViewModel()) {
         }
         Spacer(modifier = Modifier.height(24.dp))
         Text(
+            "考试：",
+            style = MaterialTheme.typography.bodyLarge.copy(
+                fontSize = fontSize.sp,
+                fontFamily = when (fontStyle) {
+                    "Serif" -> androidx.compose.ui.text.font.FontFamily.Serif
+                    "Monospace" -> androidx.compose.ui.text.font.FontFamily.Monospace
+                    else -> androidx.compose.ui.text.font.FontFamily.Default
+                }
+            )
+        )
+        Spacer(modifier = Modifier.height(8.dp))
+        Text(
             if (examCount == 0) "考试题数：全部" else "考试题数：$examCount",
             style = MaterialTheme.typography.bodyLarge.copy(
                 fontSize = fontSize.sp,
@@ -170,7 +183,37 @@ fun SettingsScreen(viewModel: SettingsViewModel = hiltViewModel()) {
             valueRange = 0f..150f,
             steps = 0
         )
+        Spacer(modifier = Modifier.height(8.dp))
+        Text(
+            "答题停留时间：${examDelay}秒",
+            style = MaterialTheme.typography.bodyLarge.copy(
+                fontSize = fontSize.sp,
+                fontFamily = when (fontStyle) {
+                    "Serif" -> androidx.compose.ui.text.font.FontFamily.Serif
+                    "Monospace" -> androidx.compose.ui.text.font.FontFamily.Monospace
+                    else -> androidx.compose.ui.text.font.FontFamily.Default
+                }
+            )
+        )
+        Slider(
+            value = examDelay.toFloat(),
+            onValueChange = { viewModel.setExamDelay(context, it.roundToInt()) },
+            valueRange = 0f..5f,
+            steps = 5
+        )
         Spacer(modifier = Modifier.height(24.dp))
+        Text(
+            "练习：",
+            style = MaterialTheme.typography.bodyLarge.copy(
+                fontSize = fontSize.sp,
+                fontFamily = when (fontStyle) {
+                    "Serif" -> androidx.compose.ui.text.font.FontFamily.Serif
+                    "Monospace" -> androidx.compose.ui.text.font.FontFamily.Monospace
+                    else -> androidx.compose.ui.text.font.FontFamily.Default
+                }
+            )
+        )
+        Spacer(modifier = Modifier.height(8.dp))
         Row(verticalAlignment = Alignment.CenterVertically) {
             Text(
                 "随机练习：",
