@@ -30,6 +30,7 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.onSizeChanged
 import kotlinx.coroutines.Job
 import androidx.activity.compose.BackHandler
+import com.example.testapp.util.answerLetterToIndex
 
 
 @Composable

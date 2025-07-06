@@ -17,6 +17,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import javax.inject.Inject
+import com.example.testapp.util.answerLetterToIndex
 
 @HiltViewModel
 class ExamViewModel @Inject constructor(
@@ -177,10 +178,5 @@ class ExamViewModel @Inject constructor(
                 )
             )
         }
-    }
-
-
-    private fun answerLetterToIndex(answer: String): Int? {
-        return answer.trim().uppercase().firstOrNull()?.let { it - 'A' }
     }
 }

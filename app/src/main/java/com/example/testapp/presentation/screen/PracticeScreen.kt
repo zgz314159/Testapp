@@ -27,6 +27,7 @@ import com.example.testapp.presentation.component.LocalFontFamily
 import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
+import com.example.testapp.util.answerLetterToIndex
 
 @Composable
 fun PracticeScreen(
@@ -449,8 +450,4 @@ fun PracticeScreen(
     }
 }
 
-// 工具函数：将字母答案转为索引
-private fun answerLetterToIndex(answer: String): Int? {
-    return answer.trim().uppercase().firstOrNull()?.let { it - 'A' }
-}
 
