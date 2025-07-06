@@ -22,6 +22,8 @@ fun SettingsScreen(viewModel: SettingsViewModel = hiltViewModel()) {
     val fontStyle by viewModel.fontStyle.collectAsState()
     val examCount by viewModel.examQuestionCount.collectAsState()
     val randomPractice by viewModel.randomPractice.collectAsState()
+    val correctDelay by viewModel.correctDelay.collectAsState()
+    val wrongDelay by viewModel.wrongDelay.collectAsState()
     val isLoading by viewModel.isLoading.collectAsState()
     val progress by viewModel.progress.collectAsState()
     val context = LocalContext.current
@@ -187,6 +189,42 @@ fun SettingsScreen(viewModel: SettingsViewModel = hiltViewModel()) {
                 onCheckedChange = { viewModel.setRandomPractice(context, it) }
             )
         }
+        Spacer(modifier = Modifier.height(24.dp))
+        Text(
+            "答对停留时间：${correctDelay}秒",
+            style = MaterialTheme.typography.bodyLarge.copy(
+                fontSize = fontSize.sp,
+                fontFamily = when (fontStyle) {
+                    "Serif" -> androidx.compose.ui.text.font.FontFamily.Serif
+                    "Monospace" -> androidx.compose.ui.text.font.FontFamily.Monospace
+                    else -> androidx.compose.ui.text.font.FontFamily.Default
+                }
+            )
+        )
+        Slider(
+            value = correctDelay.toFloat(),
+            onValueChange = { viewModel.setCorrectDelay(context, it.roundToInt()) },
+            valueRange = 0f..5f,
+            steps = 5
+        )
+        Spacer(modifier = Modifier.height(24.dp))
+        Text(
+            "答错停留时间：${wrongDelay}秒",
+            style = MaterialTheme.typography.bodyLarge.copy(
+                fontSize = fontSize.sp,
+                fontFamily = when (fontStyle) {
+                    "Serif" -> androidx.compose.ui.text.font.FontFamily.Serif
+                    "Monospace" -> androidx.compose.ui.text.font.FontFamily.Monospace
+                    else -> androidx.compose.ui.text.font.FontFamily.Default
+                }
+            )
+        )
+        Slider(
+            value = wrongDelay.toFloat(),
+            onValueChange = { viewModel.setWrongDelay(context, it.roundToInt()) },
+            valueRange = 0f..5f,
+            steps = 5
+        )
         Spacer(modifier = Modifier.height(24.dp))
         Button(onClick = {
             importLauncher.launch(arrayOf("application/vnd.ms-excel", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", "text/plain"))

@@ -76,6 +76,8 @@ fun PracticeScreen(
 
     val selectedOption = selectedOptions.getOrNull(currentIndex) ?: -1
     val showResult = showResultList.getOrNull(currentIndex) ?: false
+    val wrongBookViewModel: WrongBookViewModel = hiltViewModel()
+    val coroutineScope = rememberCoroutineScope()
 
     if (question == null || !progressLoaded) {
         Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
@@ -197,6 +199,31 @@ fun PracticeScreen(
                 }
             }
             Spacer(modifier = Modifier.height(16.dp))
+            val handleSelect: (Int) -> Unit = { idx ->
+                viewModel.answerQuestion(idx)
+                if (!showResult && (question.type == "单选题" || question.type == "判断题")) {
+                    viewModel.updateShowResult(currentIndex, true)
+                    val correctIndex = answerLetterToIndex(question.answer)
+                    val correct = idx == correctIndex
+                    if (!correct) {
+                        coroutineScope.launch {
+                            try {
+                                wrongBookViewModel.addWrongQuestion(
+                                    com.example.testapp.domain.model.WrongQuestion(
+                                        question,
+                                        idx
+                                    )
+                                )
+                            } catch (e: Exception) {
+                                android.util.Log.e("PracticeScreen", "保存错题失败:${'$'}{e.message}")
+                            }
+                        }
+                    } else {
+                        score++
+                    }
+                    onSubmit(correct)
+                }
+            }
             question.options.forEachIndexed { idx, option ->
                 val correctIndex = answerLetterToIndex(question.answer)
                 val isCorrect = showResult && correctIndex != null && idx == correctIndex
@@ -213,12 +240,12 @@ fun PracticeScreen(
                         .fillMaxWidth()
                         .padding(vertical = 4.dp)
                         .background(backgroundColor)
-                        .clickable { viewModel.answerQuestion(idx) },
+                        .clickable(enabled = !showResult) { handleSelect(idx) },
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     RadioButton(
                         selected = isSelected,
-                        onClick = { viewModel.answerQuestion(idx) },
+                        onClick = { handleSelect(idx) },
                         enabled = !showResult
                     )
                     Text(
@@ -232,8 +259,7 @@ fun PracticeScreen(
             }
             Spacer(modifier = Modifier.weight(1f))
             // Layer 4: answer buttons
-            val wrongBookViewModel: WrongBookViewModel = hiltViewModel()
-            val coroutineScope = rememberCoroutineScope()
+
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceEvenly
@@ -250,42 +276,40 @@ fun PracticeScreen(
                         )
                     }
                 }
-                Button(
-                    onClick = {
-                        viewModel.updateShowResult(currentIndex, true)
-                        val correctIndex = answerLetterToIndex(question.answer)
-                        val correct = selectedOption == correctIndex
-                        if (!correct && selectedOption != -1) {
-                            coroutineScope.launch {
-                                try {
-                                    wrongBookViewModel.addWrongQuestion(
-                                        com.example.testapp.domain.model.WrongQuestion(
-                                            question,
-                                            selectedOption
+                if (question.type != "单选题" && question.type != "判断题") {
+                    Button(
+                        onClick = {
+                            viewModel.updateShowResult(currentIndex, true)
+                            val correctIndex = answerLetterToIndex(question.answer)
+                            val correct = selectedOption == correctIndex
+                            if (!correct && selectedOption != -1) {
+                                coroutineScope.launch {
+                                    try {
+                                        wrongBookViewModel.addWrongQuestion(
+                                            com.example.testapp.domain.model.WrongQuestion(
+                                                question,
+                                                selectedOption
+                                            )
                                         )
-                                    )
-                                    android.util.Log.d(
-                                        "PracticeScreen",
-                                        "保存错题: ${question.content}, 选项: $selectedOption, fileName: ${question.fileName}"
-                                    )
-                                } catch (e: Exception) {
-                                    android.util.Log.e(
-                                        "PracticeScreen",
-                                        "保存错题失败:${e.message}"
-                                    )
+                                    } catch (e: Exception) {
+                                        android.util.Log.e(
+                                            "PracticeScreen",
+                                            "保存错题失败:${'$'}{e.message}"
+                                        )
+                                    }
                                 }
                             }
-                        }
-                        if (correct) score++
-                        onSubmit(correct)
-                    },
-                    enabled = selectedOption != -1 && !showResult,
-                ) {
-                    Text(
-                        "提交答案",
-                        fontSize = LocalFontSize.current,
-                        fontFamily = LocalFontFamily.current
-                    )
+                            if (correct) score++
+                            onSubmit(correct)
+                        },
+                        enabled = selectedOption != -1 && !showResult,
+                    ) {
+                        Text(
+                            "提交答案",
+                            fontSize = LocalFontSize.current,
+                            fontFamily = LocalFontFamily.current
+                        )
+                    }
                 }
                 if (currentIndex < questions.size - 1) {
                     Button(onClick = {

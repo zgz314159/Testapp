@@ -44,6 +44,10 @@ class SettingsViewModel @Inject constructor(
     val examQuestionCount: StateFlow<Int> = _examQuestionCount.asStateFlow()
     private val _randomPractice = MutableStateFlow(false)
     val randomPractice: StateFlow<Boolean> = _randomPractice.asStateFlow()
+    private val _correctDelay = MutableStateFlow(1)
+    val correctDelay: StateFlow<Int> = _correctDelay.asStateFlow()
+    private val _wrongDelay = MutableStateFlow(2)
+    val wrongDelay: StateFlow<Int> = _wrongDelay.asStateFlow()
     private var currentJob: Job? = null
 
     fun setFontSize(context: Context, size: Float) {
@@ -70,16 +74,33 @@ class SettingsViewModel @Inject constructor(
             FontSettingsDataStore.setRandomPractice(context, enabled)
         }
     }
+    fun setCorrectDelay(context: Context, delay: Int) {
+        _correctDelay.value = delay
+        viewModelScope.launch {
+            FontSettingsDataStore.setCorrectDelay(context, delay)
+        }
+    }
+
+    fun setWrongDelay(context: Context, delay: Int) {
+        _wrongDelay.value = delay
+        viewModelScope.launch {
+            FontSettingsDataStore.setWrongDelay(context, delay)
+        }
+    }
     fun loadFontSettings(context: Context) {
         viewModelScope.launch {
             val size = FontSettingsDataStore.getFontSize(context).first()
             val style = FontSettingsDataStore.getFontStyle(context).first()
             val examCount = FontSettingsDataStore.getExamQuestionCount(context).first()
             val random = FontSettingsDataStore.getRandomPractice(context).first()
+            val correct = FontSettingsDataStore.getCorrectDelay(context).first()
+            val wrong = FontSettingsDataStore.getWrongDelay(context).first()
             _fontSize.value = size
             _fontStyle.value = style
             _examQuestionCount.value = examCount
             _randomPractice.value = random
+            _correctDelay.value = correct
+            _wrongDelay.value = wrong
         }
     }
 
