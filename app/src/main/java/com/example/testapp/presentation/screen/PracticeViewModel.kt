@@ -48,6 +48,8 @@ class PracticeViewModel @Inject constructor(
     private var progressId: String = "default"
     private var randomPracticeEnabled: Boolean = false
 
+
+
     fun setRandomPractice(enabled: Boolean) {
         randomPracticeEnabled = enabled
     }
@@ -116,6 +118,8 @@ class PracticeViewModel @Inject constructor(
         }
         _answeredList.value = updatedAnswered
         _selectedOptions.value = updatedSelected
+        // ✅ 关键点：标记当前题目已经显示了答题结果
+        updateShowResult(idx, true)
         saveProgress()
     }
 
