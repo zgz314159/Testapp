@@ -18,6 +18,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
+import androidx.activity.compose.BackHandler
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.example.testapp.presentation.screen.PracticeViewModel
 import com.example.testapp.presentation.screen.SettingsViewModel
@@ -82,11 +83,13 @@ fun PracticeScreen(
     var score by remember { mutableStateOf(0) }
     var questionFontSize by remember { mutableStateOf(fontSize) }
     var autoJob by remember { mutableStateOf<Job?>(null) }
+    var showExitDialog by remember { mutableStateOf(false) }
 
     val selectedOption = selectedOptions.getOrNull(currentIndex) ?: -1
     val showResult = showResultList.getOrNull(currentIndex) ?: false
     val wrongBookViewModel: WrongBookViewModel = hiltViewModel()
     val coroutineScope = rememberCoroutineScope()
+    BackHandler { showExitDialog = true }
 
     if (question == null || !progressLoaded) {
         Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
@@ -118,7 +121,7 @@ fun PracticeScreen(
                             if (currentIndex < questions.size - 1) {
                                 viewModel.nextQuestion()
                             } else {
-                                onQuizEnd(score, questions.size)
+                                showExitDialog = true
                             }
                         }
                         dragAmount = 0f
@@ -181,9 +184,14 @@ fun PracticeScreen(
                     modifier = Modifier.heightIn(max = 300.dp)
                 ) {
                     items(questions.size) { idx ->
+                        val answered = answeredList.contains(idx)
                         Box(
                             modifier = Modifier
                                 .padding(4.dp)
+                                .background(
+                                    if (answered) MaterialTheme.colorScheme.primary.copy(alpha = 0.3f)
+                                    else Color.Transparent
+                                )
                                 .clickable {
                                     viewModel.goToQuestion(idx)
                                     showList = false
@@ -231,7 +239,7 @@ fun PracticeScreen(
                     fontFamily = LocalFontFamily.current
                 )
             )
-          
+
             Spacer(modifier = Modifier.height(16.dp))
             val handleSelect: (Int) -> Unit = { idx ->
                 viewModel.answerQuestion(idx)
@@ -265,7 +273,7 @@ fun PracticeScreen(
                             viewModel.nextQuestion()
                         } else {
                             viewModel.updateShowResult(viewModel.currentIndex.value, true)
-                            onQuizEnd(score, questions.size)
+                            showExitDialog = true
                         }
                     }
                 }
@@ -379,7 +387,7 @@ fun PracticeScreen(
                                     viewModel.nextQuestion()
                                 } else {
                                     viewModel.updateShowResult(viewModel.currentIndex.value, true)
-                                    onQuizEnd(score, questions.size)
+                                    showExitDialog = true
                                 }
                             }
                         },
@@ -392,24 +400,32 @@ fun PracticeScreen(
                         )
                     }
                 }
-                if (currentIndex == questions.size - 1) {
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Button(onClick = {
-                        autoJob?.cancel()
-                        onQuizEnd(score, questions.size)
-                    }) {
-                        Text(
-                            "交卷",
-                            fontSize = LocalFontSize.current,
-                            fontFamily = LocalFontFamily.current
-                        )
-                    }
-                }
+
             }
 
 
         }
-    }}
+    }
+
+    if (showExitDialog) {
+        AlertDialog(
+            onDismissRequest = { showExitDialog = false },
+            confirmButton = {
+                TextButton(onClick = {
+                    autoJob?.cancel()
+                    showExitDialog = false
+                    onQuizEnd(score, questions.size)
+                }) { Text("确定") }
+            },
+            dismissButton = {
+                TextButton(onClick = { showExitDialog = false }) { Text("取消") }
+            },
+            text = {
+                Text(if (answeredList.size < questions.size) "还有未答题目，是否交卷？" else "确定交卷？")
+            }
+        )
+    }
+}
 
 // 工具函数：将字母答案转为索引
 private fun answerLetterToIndex(answer: String): Int? {

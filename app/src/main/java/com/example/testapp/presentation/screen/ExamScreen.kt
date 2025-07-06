@@ -16,6 +16,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.graphics.Color
 import androidx.hilt.navigation.compose.hiltViewModel
 import kotlinx.coroutines.launch
 import com.example.testapp.presentation.component.LocalFontSize
@@ -28,6 +29,7 @@ import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.onSizeChanged
 import kotlinx.coroutines.Job
+import androidx.activity.compose.BackHandler
 
 
 @Composable
@@ -67,6 +69,7 @@ fun ExamScreen(
     var containerWidth by remember { mutableStateOf(0f) }
     var dragStartX by remember { mutableStateOf(0f) }
     var showExitDialog by remember { mutableStateOf(false) }
+    BackHandler { showExitDialog = true }
     if (question == null) {
         Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
             Text(
@@ -93,18 +96,14 @@ fun ExamScreen(
                         if ((dragStartX < 20f && dragAmount > 100f) ||
                             (dragStartX > containerWidth - 20f && dragAmount < -100f)
                         ) {
-                            showExitDialog = selectedOptions.any { it == -1 }
-                            if (!showExitDialog) {
-                                coroutineScope.launch {
-                                    val score = viewModel.gradeExam()
-                                    onExamEnd(score, questions.size)
-                                }
-                            }
+                            showExitDialog = true
                         } else {
                             if (dragAmount > 100f && currentIndex > 0) {
                                 viewModel.prevQuestion()
                             } else if (dragAmount < -100f && currentIndex < questions.size - 1) {
                                 viewModel.nextQuestion()
+                            } else if (dragAmount < -100f) {
+                                showExitDialog = true
                             }
                         }
                         dragAmount = 0f
@@ -169,9 +168,14 @@ fun ExamScreen(
                     modifier = Modifier.heightIn(max = 300.dp)
                 ) {
                     items(questions.size) { idx ->
+                        val answered = selectedOptions.getOrElse(idx) { -1 } != -1
                         Box(
                             modifier = Modifier
                                 .padding(4.dp)
+                                .background(
+                                    if (answered) MaterialTheme.colorScheme.primary.copy(alpha = 0.3f)
+                                    else Color.Transparent
+                                )
                                 .clickable {
                                     viewModel.goToQuestion(idx)
                                     showList = false
@@ -239,6 +243,8 @@ fun ExamScreen(
                         if (examDelay > 0) kotlinx.coroutines.delay(examDelay * 1000L)
                         if (currentIndex < questions.size - 1) {
                             viewModel.nextQuestion()
+                        } else {
+                            showExitDialog = true
                         }
                     }
                 }
@@ -304,6 +310,6 @@ if (showExitDialog) {
         dismissButton = {
             TextButton(onClick = { showExitDialog = false }) { Text("取消") }
         },
-        text = { Text("还未答完题，是否交卷？") }
+        text = { Text(if (selectedOptions.any { it == -1 }) "还未答完题，是否交卷？" else "确定交卷？") }
     )
 }}

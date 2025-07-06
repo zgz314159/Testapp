@@ -198,7 +198,7 @@ fun SettingsScreen(viewModel: SettingsViewModel = hiltViewModel()) {
         Slider(
             value = examDelay.toFloat(),
             onValueChange = { viewModel.setExamDelay(context, it.roundToInt()) },
-            valueRange = 0f..5f,
+            valueRange = 0f..10f,
             steps = 5
         )
         Spacer(modifier = Modifier.height(24.dp))
@@ -247,7 +247,7 @@ fun SettingsScreen(viewModel: SettingsViewModel = hiltViewModel()) {
         Slider(
             value = correctDelay.toFloat(),
             onValueChange = { viewModel.setCorrectDelay(context, it.roundToInt()) },
-            valueRange = 0f..5f,
+            valueRange = 0f..10f,
             steps = 5
         )
         Spacer(modifier = Modifier.height(24.dp))
@@ -265,7 +265,7 @@ fun SettingsScreen(viewModel: SettingsViewModel = hiltViewModel()) {
         Slider(
             value = wrongDelay.toFloat(),
             onValueChange = { viewModel.setWrongDelay(context, it.roundToInt()) },
-            valueRange = 0f..5f,
+            valueRange = 0f..10f,
             steps = 5
         )
         Spacer(modifier = Modifier.height(24.dp))
