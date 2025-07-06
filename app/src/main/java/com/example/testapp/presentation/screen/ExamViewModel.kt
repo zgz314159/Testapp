@@ -76,6 +76,12 @@ class ExamViewModel @Inject constructor(
         }
     }
 
+    fun goToQuestion(index: Int) {
+        if (index in _questions.value.indices) {
+            _currentIndex.value = index
+        }
+    }
+
     suspend fun gradeExam(): Int {
         val qs = _questions.value
         val selections = _selectedOptions.value

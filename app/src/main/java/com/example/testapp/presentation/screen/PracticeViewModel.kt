@@ -115,6 +115,13 @@ class PracticeViewModel @Inject constructor(
             saveProgress()
         }
     }
+    fun goToQuestion(index: Int) {
+        if (index in _questions.value.indices) {
+            _currentIndex.value = index
+            saveProgress()
+        }
+    }
+
 
     fun saveProgress() {
         viewModelScope.launch {

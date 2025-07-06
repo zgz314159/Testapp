@@ -1,11 +1,17 @@
 package com.example.testapp.presentation.screen
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.example.testapp.presentation.screen.PracticeViewModel
@@ -43,6 +49,7 @@ fun PracticeScreen(
     val questions by viewModel.questions.collectAsState()
     val fontSize by settingsViewModel.fontSize.collectAsState()
     val fontStyle by settingsViewModel.fontStyle.collectAsState()
+    val context = LocalContext.current
     val currentIndex by viewModel.currentIndex.collectAsState()
     val answeredList by viewModel.answeredList.collectAsState()
     val selectedOptions by viewModel.selectedOptions.collectAsState()
@@ -54,6 +61,15 @@ fun PracticeScreen(
     val isFavorite = remember(question, favoriteQuestions) {
         question != null && favoriteQuestions.any { it.question.id == question.id }
     }
+    var elapsed by remember { mutableStateOf(0) }
+    LaunchedEffect(Unit) {
+        while (true) {
+            kotlinx.coroutines.delay(1000)
+            elapsed += 1
+        }
+    }
+    var showList by remember { mutableStateOf(false) }
+    var menuExpanded by remember { mutableStateOf(false) }
     var score by remember { mutableStateOf(0) }
 
     val selectedOption = selectedOptions.getOrNull(currentIndex) ?: -1
@@ -71,47 +87,104 @@ fun PracticeScreen(
     }
 
     Column(modifier = Modifier.fillMaxSize().padding(16.dp)) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
+        // Layer 1: timer, question list card and settings menu
+        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
             Text(
-                text = "第${currentIndex + 1}题 / 共${questions.size}题",
+                "时间：%02d:%02d".format(elapsed / 60, elapsed % 60),
                 fontSize = LocalFontSize.current,
                 fontFamily = LocalFontFamily.current
             )
             Spacer(modifier = Modifier.weight(1f))
-            Button(onClick = { viewModel.clearProgress() }, colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)) {
+            Card(onClick = { showList = true }) {
                 Text(
-                    "清除进度",
-                    color = MaterialTheme.colorScheme.onError,
+                    "共${questions.size}题",
+                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
                     fontSize = LocalFontSize.current,
                     fontFamily = LocalFontFamily.current
                 )
             }
+            IconButton(onClick = { menuExpanded = true }) {
+                Icon(Icons.Filled.MoreVert, contentDescription = "设置")
+            }
+            DropdownMenu(expanded = menuExpanded, onDismissRequest = { menuExpanded = false }) {
+                DropdownMenuItem(text = { Text("放大字体") }, onClick = {
+                    settingsViewModel.setFontSize(context, (fontSize + 2).coerceAtMost(32f))
+                    menuExpanded = false
+                })
+                DropdownMenuItem(text = { Text("缩小字体") }, onClick = {
+                    settingsViewModel.setFontSize(context, (fontSize - 2).coerceAtLeast(14f))
+                    menuExpanded = false
+                })
+            }
+        }
+        if (showList) {
+            AlertDialog(onDismissRequest = { showList = false }, confirmButton = {}, text = {
+                LazyVerticalGrid(columns = GridCells.Fixed(5), modifier = Modifier.heightIn(max = 300.dp)) {
+                    items(questions.size) { idx ->
+                        Box(
+                            modifier = Modifier
+                                .padding(4.dp)
+                                .clickable {
+                                    viewModel.goToQuestion(idx)
+                                    showList = false
+                                },
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                text = "${idx + 1}",
+                                fontSize = LocalFontSize.current,
+                                fontFamily = LocalFontFamily.current
+                            )
+                        }
+                    }
+                }
+            })
+        }
+
+        Spacer(modifier = Modifier.height(8.dp))
+
+        // Layer 2: type and progress
+        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
+            Text(
+                "题型：${question.type}",
+                fontSize = LocalFontSize.current,
+                fontFamily = LocalFontFamily.current
+            )
+            Spacer(modifier = Modifier.weight(1f))
+            Text(
+                "${currentIndex + 1}/${questions.size}",
+                fontSize = LocalFontSize.current,
+                fontFamily = LocalFontFamily.current
+            )
         }
         LinearProgressIndicator(
             progress = if (questions.isNotEmpty()) (currentIndex + 1f) / questions.size else 0f,
             modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp)
         )
-        Text(
-            text = "第${currentIndex + 1}题：${question.content}",
-            style = MaterialTheme.typography.titleMedium.copy(
-                fontSize = LocalFontSize.current,
-                fontFamily = LocalFontFamily.current
-            )
-        )
-        Spacer(modifier = Modifier.height(8.dp))
-        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
-            Button(onClick = {
-                if (isFavorite) {
-                    favoriteViewModel.removeFavorite(question.id)
-                } else {
-                    favoriteViewModel.addFavorite(question)
-                }
-            }) {
-                Text(
-                    if (isFavorite) "取消收藏" else "收藏",
+        // Layer 3: question and options
+        Column(modifier = Modifier.weight(1f, fill = false)) {
+            Text(
+                text = question.content,
+                style = MaterialTheme.typography.titleMedium.copy(
                     fontSize = LocalFontSize.current,
                     fontFamily = LocalFontFamily.current
                 )
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
+                Button(onClick = {
+                    if (isFavorite) {
+                        favoriteViewModel.removeFavorite(question.id)
+                    } else {
+                        favoriteViewModel.addFavorite(question)
+                    }
+                }) {
+                    Text(
+                        if (isFavorite) "取消收藏" else "收藏",
+                        fontSize = LocalFontSize.current,
+                        fontFamily = LocalFontFamily.current
+                    )
+                }
             }
         }
         Spacer(modifier = Modifier.height(16.dp))
@@ -127,11 +200,9 @@ fun PracticeScreen(
                 else -> MaterialTheme.colorScheme.surface
             }
             Row(
-
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(vertical = 4.dp)
-                    .background(backgroundColor)
                     .background(backgroundColor),
                 verticalAlignment = Alignment.CenterVertically
             ) {
@@ -142,8 +213,10 @@ fun PracticeScreen(
                 )
                 Text(option, fontSize = LocalFontSize.current, fontFamily = LocalFontFamily.current)
             }
+            }
         }
         Spacer(modifier = Modifier.height(24.dp))
+    // Layer 4: answer buttons
         Row {
             if (currentIndex > 0) {
                 Button(onClick = {
@@ -197,7 +270,7 @@ fun PracticeScreen(
                             )
                             android.util.Log.d("PracticeScreen", "保存错题: ${question.content}, 选项: $selectedOption, fileName: ${question.fileName}")
                         } catch (e: Exception) {
-                            android.util.Log.e("PracticeScreen", "保存��题失败: ${e.message}")
+                            android.util.Log.e("PracticeScreen", "保存错题失败:${e.message}")
                         }
                     }
                 }
@@ -221,7 +294,7 @@ fun PracticeScreen(
                 fontSize = LocalFontSize.current,
                 fontFamily = LocalFontFamily.current
             )
-            // 新增：显示 fileName 字段
+
             if (question.fileName != null) {
                 Spacer(modifier = Modifier.height(8.dp))
                 Text(
@@ -235,9 +308,10 @@ fun PracticeScreen(
             Spacer(modifier = Modifier.height(16.dp))
         }
     }
-}
+
 
 // 工具函数：将字母答案转为索引
 private fun answerLetterToIndex(answer: String): Int? {
     return answer.trim().uppercase().firstOrNull()?.let { it - 'A' }
 }
+
