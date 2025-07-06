@@ -194,7 +194,8 @@ fun ExamScreen(
                 Card(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(vertical = 4.dp),
+                        .padding(vertical = 4.dp)
+                        .clickable { viewModel.selectOption(idx) },
                     colors = CardDefaults.cardColors(
                         containerColor = if (isSelected)
                             MaterialTheme.colorScheme.primary.copy(alpha = 0.08f)
@@ -206,7 +207,6 @@ fun ExamScreen(
                         verticalAlignment = Alignment.CenterVertically,
                         modifier = Modifier
                             .fillMaxWidth()
-                            .clickable { viewModel.selectOption(idx) }
                             .padding(12.dp)
                     ) {
                         RadioButton(

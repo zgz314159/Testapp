@@ -212,7 +212,8 @@ fun PracticeScreen(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(vertical = 4.dp)
-                        .background(backgroundColor),
+                        .background(backgroundColor)
+                        .clickable { viewModel.answerQuestion(idx) },
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     RadioButton(
