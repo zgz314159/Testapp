@@ -81,7 +81,7 @@ fun PracticeScreen(
     var showList by remember { mutableStateOf(false) }
     var menuExpanded by remember { mutableStateOf(false) }
     var score by remember { mutableStateOf(0) }
-    var questionFontSize by remember { mutableStateOf(fontSize) }
+    var questionFontSize by remember(fontSize) { mutableStateOf(fontSize) }
     var autoJob by remember { mutableStateOf<Job?>(null) }
     var showExitDialog by remember { mutableStateOf(false) }
 
@@ -89,7 +89,14 @@ fun PracticeScreen(
     val showResult = showResultList.getOrNull(currentIndex) ?: false
     val wrongBookViewModel: WrongBookViewModel = hiltViewModel()
     val coroutineScope = rememberCoroutineScope()
-    BackHandler { showExitDialog = true }
+    BackHandler {
+        if (answeredList.size >= questions.size) {
+            autoJob?.cancel()
+            onQuizEnd(score, questions.size)
+        } else {
+            showExitDialog = true
+        }
+    }
 
     if (question == null || !progressLoaded) {
         Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
@@ -121,7 +128,12 @@ fun PracticeScreen(
                             if (currentIndex < questions.size - 1) {
                                 viewModel.nextQuestion()
                             } else {
-                                showExitDialog = true
+                                if (answeredList.size >= questions.size) {
+                                    autoJob?.cancel()
+                                    onQuizEnd(score, questions.size)
+                                } else {
+                                    showExitDialog = true
+                                }
                             }
                         }
                         dragAmount = 0f
@@ -165,10 +177,12 @@ fun PracticeScreen(
             DropdownMenu(expanded = menuExpanded, onDismissRequest = { menuExpanded = false }) {
                 DropdownMenuItem(text = { Text("放大字体") }, onClick = {
                     questionFontSize = (questionFontSize + 2).coerceAtMost(32f)
+                    settingsViewModel.setFontSize(context, questionFontSize)
                     menuExpanded = false
                 })
                 DropdownMenuItem(text = { Text("缩小字体") }, onClick = {
                     questionFontSize = (questionFontSize - 2).coerceAtLeast(14f)
+                    settingsViewModel.setFontSize(context, questionFontSize)
                     menuExpanded = false
                 })
                 DropdownMenuItem(text = { Text("清除进度") }, onClick = {
@@ -273,7 +287,11 @@ fun PracticeScreen(
                             viewModel.nextQuestion()
                         } else {
                             viewModel.updateShowResult(viewModel.currentIndex.value, true)
-                            showExitDialog = true
+                            if (answeredList.size >= questions.size) {
+                                onQuizEnd(score, questions.size)
+                            } else {
+                                showExitDialog = true
+                            }
                         }
                     }
                 }
@@ -387,7 +405,11 @@ fun PracticeScreen(
                                     viewModel.nextQuestion()
                                 } else {
                                     viewModel.updateShowResult(viewModel.currentIndex.value, true)
-                                    showExitDialog = true
+                                    if (answeredList.size >= questions.size) {
+                                        onQuizEnd(score, questions.size)
+                                    } else {
+                                        showExitDialog = true
+                                    }
                                 }
                             }
                         },

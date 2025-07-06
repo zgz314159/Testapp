@@ -63,13 +63,22 @@ fun ExamScreen(
     }
     var showList by remember { mutableStateOf(false) }
     var menuExpanded by remember { mutableStateOf(false) }
-    var questionFontSize by remember { mutableStateOf(fontSize) }
+    var questionFontSize by remember(fontSize) { mutableStateOf(fontSize) }
     var dragAmount by remember { mutableStateOf(0f) }
     var autoJob by remember { mutableStateOf<kotlinx.coroutines.Job?>(null) }
     var containerWidth by remember { mutableStateOf(0f) }
     var dragStartX by remember { mutableStateOf(0f) }
     var showExitDialog by remember { mutableStateOf(false) }
-    BackHandler { showExitDialog = true }
+    BackHandler {
+        if (selectedOptions.any { it == -1 }) {
+            showExitDialog = true
+        } else {
+            coroutineScope.launch {
+                val score = viewModel.gradeExam()
+                onExamEnd(score, questions.size)
+            }
+        }
+    }
     if (question == null) {
         Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
             Text(
@@ -96,14 +105,28 @@ fun ExamScreen(
                         if ((dragStartX < 20f && dragAmount > 100f) ||
                             (dragStartX > containerWidth - 20f && dragAmount < -100f)
                         ) {
-                            showExitDialog = true
+                            if (selectedOptions.any { it == -1 }) {
+                                showExitDialog = true
+                            } else {
+                                coroutineScope.launch {
+                                    val score = viewModel.gradeExam()
+                                    onExamEnd(score, questions.size)
+                                }
+                            }
                         } else {
                             if (dragAmount > 100f && currentIndex > 0) {
                                 viewModel.prevQuestion()
                             } else if (dragAmount < -100f && currentIndex < questions.size - 1) {
                                 viewModel.nextQuestion()
                             } else if (dragAmount < -100f) {
-                                showExitDialog = true
+                                if (selectedOptions.any { it == -1 }) {
+                                    showExitDialog = true
+                                } else {
+                                    coroutineScope.launch {
+                                        val score = viewModel.gradeExam()
+                                        onExamEnd(score, questions.size)
+                                    }
+                                }
                             }
                         }
                         dragAmount = 0f
@@ -148,10 +171,12 @@ fun ExamScreen(
             DropdownMenu(expanded = menuExpanded, onDismissRequest = { menuExpanded = false }) {
                 DropdownMenuItem(text = { Text("放大字体") }, onClick = {
                     questionFontSize = (questionFontSize + 2).coerceAtMost(32f)
+                    settingsViewModel.setFontSize(context, questionFontSize)
                     menuExpanded = false
                 })
                 DropdownMenuItem(text = { Text("缩小字体") }, onClick = {
                     questionFontSize = (questionFontSize - 2).coerceAtLeast(14f)
+                    settingsViewModel.setFontSize(context, questionFontSize)
                     menuExpanded = false
                 })
                 DropdownMenuItem(text = { Text("清除进度") }, onClick = {
@@ -244,7 +269,12 @@ fun ExamScreen(
                         if (currentIndex < questions.size - 1) {
                             viewModel.nextQuestion()
                         } else {
-                            showExitDialog = true
+                            if (selectedOptions.any { it == -1 }) {
+                                showExitDialog = true
+                            } else {
+                                val score = viewModel.gradeExam()
+                                onExamEnd(score, questions.size)
+                            }
                         }
                     }
                 }
