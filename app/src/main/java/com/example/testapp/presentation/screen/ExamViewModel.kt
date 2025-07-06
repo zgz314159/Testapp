@@ -11,6 +11,7 @@ import com.example.testapp.domain.usecase.AddHistoryRecordUseCase
 import com.example.testapp.domain.usecase.SaveExamProgressUseCase
 import com.example.testapp.domain.usecase.GetExamProgressFlowUseCase
 import com.example.testapp.domain.usecase.ClearExamProgressUseCase
+import kotlinx.coroutines.flow.firstOrNull
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -51,6 +52,10 @@ class ExamViewModel @Inject constructor(
         progressId = quizId
         _progressLoaded.value = false
         viewModelScope.launch {
+            val existing = getExamProgressFlowUseCase(progressId).firstOrNull()
+            if (existing?.finished == true) {
+                clearExamProgressUseCase(progressId)
+            }
             getQuestionsUseCase(quizId).collect { list ->
                 android.util.Log.d("ExamDebug", "loadQuestions: received ${'$'}{list.size} questions for ${'$'}quizId")
                 val shuffled = list.shuffled().let { qs ->

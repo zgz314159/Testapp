@@ -76,12 +76,25 @@ class PracticeViewModel @Inject constructor(
     private fun loadProgress() {
         viewModelScope.launch {
             getPracticeProgressFlowUseCase(progressId).collect { progress ->
-                android.util.Log.d("PracticeDebug", "loadProgress: progress=$progress, progressId=$progressId")
+                android.util.Log.d(
+                    "PracticeDebug",
+                    "loadProgress: progress=$progress, progressId=$progressId"
+                )
                 if (progress != null && !_progressLoaded.value) {
-                    _currentIndex.value = progress.currentIndex
+                    _currentIndex.value = progress.currentIndex.coerceAtMost(_questions.value.size - 1)
                     _answeredList.value = progress.answeredList
-                    _selectedOptions.value = progress.selectedOptions
-                    _showResultList.value = progress.showResultList
+                    _selectedOptions.value = if (progress.selectedOptions.size >= _questions.value.size) {
+                        progress.selectedOptions.take(_questions.value.size)
+                    } else {
+                        progress.selectedOptions +
+                                List(_questions.value.size - progress.selectedOptions.size) { -1 }
+                    }
+                    _showResultList.value = if (progress.showResultList.size >= _questions.value.size) {
+                        progress.showResultList.take(_questions.value.size)
+                    } else {
+                        progress.showResultList +
+                                List(_questions.value.size - progress.showResultList.size) { false }
+                    }
                     android.util.Log.d(
                         "PracticeDebug",
                         "恢复进度: currentIndex=${progress.currentIndex}, answeredList=${progress.answeredList}, selectedOptions=${progress.selectedOptions}, showResultList=${progress.showResultList}"
