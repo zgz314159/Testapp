@@ -58,7 +58,7 @@ class ExamViewModel @Inject constructor(
                 clearExamProgressUseCase(progressId)
             }
             getQuestionsUseCase(quizId).collect { list ->
-                android.util.Log.d("ExamDebug", "loadQuestions: received ${'$'}{list.size} questions for ${'$'}quizId")
+                android.util.Log.d("ExamDebug", "loadQuestions: received ${list.size} questions for $quizId")
                 val shuffled = list.shuffled().let { qs ->
                     if (count > 0) qs.take(count.coerceAtMost(qs.size)) else qs
                 }
@@ -87,7 +87,7 @@ class ExamViewModel @Inject constructor(
     private fun loadProgress() {
         viewModelScope.launch {
             getExamProgressFlowUseCase(progressId).collect { progress ->
-                android.util.Log.d("ExamDebug", "loadProgress: progress=${'$'}progress id=${'$'}progressId")
+                android.util.Log.d("ExamDebug", "loadProgress: progress=$progress id=$progressId")
                 if (progress != null && !_progressLoaded.value) {
                     _currentIndex.value =
                         progress.currentIndex.coerceAtMost(_questions.value.size - 1)
@@ -171,7 +171,7 @@ class ExamViewModel @Inject constructor(
 
     fun clearProgress() {
         viewModelScope.launch {
-            android.util.Log.d("ExamDebug", "clearProgress called for ${'$'}progressId")
+            android.util.Log.d("ExamDebug", "clearProgress called for $progressId")
             clearExamProgressUseCase(progressId)
             _currentIndex.value = 0
             _selectedOptions.value = emptyList()

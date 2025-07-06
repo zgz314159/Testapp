@@ -279,7 +279,7 @@ fun PracticeScreen(
                                     )
                                 )
                             } catch (e: Exception) {
-                                android.util.Log.e("PracticeScreen", "保存错题失败:${'$'}{e.message}")
+                                android.util.Log.e("PracticeScreen", "保存错题失败:${e.message}")
                             }
                         }
                     } else {
@@ -398,7 +398,7 @@ fun PracticeScreen(
                                     } catch (e: Exception) {
                                         android.util.Log.e(
                                             "PracticeScreen",
-                                            "保存错题失败:${'$'}{e.message}"
+                                            "保存错题失败:${e.message}"
                                         )
                                     }
                                 }

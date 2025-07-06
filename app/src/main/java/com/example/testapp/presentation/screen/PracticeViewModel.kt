@@ -180,7 +180,7 @@ class PracticeViewModel @Inject constructor(
 
     fun clearProgress() {
         viewModelScope.launch {
-            android.util.Log.d("PracticeDebug", "clearProgress called for ${'$'}progressId")
+            android.util.Log.d("PracticeDebug", "clearProgress called for $progressId")
             clearPracticeProgressUseCase(progressId)
             _currentIndex.value = 0
             _answeredList.value = emptyList()
