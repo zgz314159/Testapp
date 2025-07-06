@@ -62,8 +62,15 @@ class PracticeViewModel @Inject constructor(
                     clearPracticeProgressUseCase(progressId)
                 }
                 getQuestionsUseCase(progressId).collect { qs ->
-                    android.util.Log.d("PracticeDebug", "getQuestionsUseCase 收到题目数量: ${qs.size}")
+                    android.util.Log.d(
+                        "PracticeDebug",
+                        "getQuestionsUseCase 收到题目数量: ${qs.size}"
+                    )
                     val list = if (randomPracticeEnabled) qs.shuffled() else qs
+                    android.util.Log.d(
+                        "PracticeDebug",
+                        "加载题库: progressId=$progressId random=$randomPracticeEnabled"
+                    )
                     _questions.value = list
                     loadProgress()
                 }
@@ -116,6 +123,7 @@ class PracticeViewModel @Inject constructor(
 
     fun answerQuestion(option: Int) {
         val idx = _currentIndex.value
+        android.util.Log.d("PracticeDebug", "answerQuestion index=$idx option=$option")
         val updatedAnswered = if (!_answeredList.value.contains(idx)) _answeredList.value + idx else _answeredList.value
         val updatedSelected = _selectedOptions.value.toMutableList().apply {
             if (size > idx) this[idx] = option else add(option)
@@ -129,6 +137,7 @@ class PracticeViewModel @Inject constructor(
 
     fun nextQuestion() {
         if (_currentIndex.value < _questions.value.size - 1) {
+            android.util.Log.d("PracticeDebug", "nextQuestion from ${_currentIndex.value}")
             _currentIndex.value += 1
             saveProgress()
         }
@@ -136,12 +145,14 @@ class PracticeViewModel @Inject constructor(
 
     fun prevQuestion() {
         if (_currentIndex.value > 0) {
+            android.util.Log.d("PracticeDebug", "prevQuestion from ${_currentIndex.value}")
             _currentIndex.value -= 1
             saveProgress()
         }
     }
     fun goToQuestion(index: Int) {
         if (index in _questions.value.indices) {
+            android.util.Log.d("PracticeDebug", "goToQuestion $index")
             _currentIndex.value = index
             saveProgress()
         }
@@ -180,6 +191,7 @@ class PracticeViewModel @Inject constructor(
     }
 
     fun updateShowResult(index: Int, value: Boolean) {
+        android.util.Log.d("PracticeDebug", "updateShowResult index=$index value=$value")
         val list = _showResultList.value.toMutableList()
         while (list.size <= index) list.add(false)
         list[index] = value

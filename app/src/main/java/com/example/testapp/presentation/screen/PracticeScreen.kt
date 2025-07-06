@@ -90,6 +90,12 @@ fun PracticeScreen(
     val showResult = showResultList.getOrNull(currentIndex) ?: false
     val wrongBookViewModel: WrongBookViewModel = hiltViewModel()
     val coroutineScope = rememberCoroutineScope()
+    LaunchedEffect(selectedOption, showResult) {
+        android.util.Log.d(
+            "PracticeScreen",
+            "state current=$currentIndex selected=$selectedOption showResult=$showResult"
+        )
+    }
     BackHandler {
         if (answeredList.size >= questions.size) {
             autoJob?.cancel()
@@ -257,6 +263,7 @@ fun PracticeScreen(
 
             Spacer(modifier = Modifier.height(16.dp))
             val handleSelect: (Int) -> Unit = { idx ->
+                android.util.Log.d("PracticeScreen", "handleSelect index=$idx current=$currentIndex")
                 viewModel.answerQuestion(idx)
                 if (!showResult && (question.type == "单选题" || question.type == "判断题")) {
                     viewModel.updateShowResult(currentIndex, true)

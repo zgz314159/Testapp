@@ -85,7 +85,12 @@ fun ExamScreen(
     }
     val selectedOption = selectedOptions.getOrElse(currentIndex) { -1 }
     val showResult = showResultList.getOrNull(currentIndex) ?: false
-
+    LaunchedEffect(selectedOption, showResult) {
+        android.util.Log.d(
+            "ExamScreen",
+            "state current=$currentIndex selected=$selectedOption showResult=$showResult"
+        )
+    }
     if (question == null || !progressLoaded) {
         Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
             Text(
@@ -269,6 +274,7 @@ fun ExamScreen(
             }
 
             val handleSelect: (Int) -> Unit = { idx ->
+                android.util.Log.d("ExamScreen", "handleSelect index=$idx current=$currentIndex")
                 viewModel.selectOption(idx)
                 if (question.type == "单选题" || question.type == "判断题") {
                     autoJob?.cancel()

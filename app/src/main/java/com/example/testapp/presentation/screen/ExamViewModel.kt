@@ -52,6 +52,7 @@ class ExamViewModel @Inject constructor(
         progressId = quizId
         _progressLoaded.value = false
         viewModelScope.launch {
+            android.util.Log.d("ExamDebug", "loadQuestions start id=$quizId count=$count")
             val existing = getExamProgressFlowUseCase(progressId).firstOrNull()
             if (existing?.finished == true) {
                 clearExamProgressUseCase(progressId)
@@ -114,6 +115,7 @@ class ExamViewModel @Inject constructor(
 
     fun selectOption(option: Int) {
         val idx = _currentIndex.value
+        android.util.Log.d("ExamDebug", "selectOption index=$idx option=$option")
         val list = _selectedOptions.value.toMutableList()
         if (idx in list.indices) {
             list[idx] = option
@@ -124,6 +126,7 @@ class ExamViewModel @Inject constructor(
 
     fun nextQuestion() {
         if (_currentIndex.value < _questions.value.size - 1) {
+            android.util.Log.d("ExamDebug", "nextQuestion from ${_currentIndex.value}")
             _currentIndex.value += 1
             saveProgress()
         }
@@ -131,6 +134,7 @@ class ExamViewModel @Inject constructor(
 
     fun prevQuestion() {
         if (_currentIndex.value > 0) {
+            android.util.Log.d("ExamDebug", "prevQuestion from ${_currentIndex.value}")
             _currentIndex.value -= 1
             saveProgress()
         }
@@ -138,6 +142,7 @@ class ExamViewModel @Inject constructor(
 
     fun goToQuestion(index: Int) {
         if (index in _questions.value.indices) {
+            android.util.Log.d("ExamDebug", "goToQuestion $index")
             _currentIndex.value = index
             saveProgress()
         }
@@ -159,6 +164,7 @@ class ExamViewModel @Inject constructor(
         addHistoryRecordUseCase(HistoryRecord(score, qs.size))
         _showResultList.value = List(qs.size) { true }
         _finished.value = true
+        android.util.Log.d("ExamDebug", "gradeExam score=$score total=${qs.size}")
         saveProgress()
         return score
     }
