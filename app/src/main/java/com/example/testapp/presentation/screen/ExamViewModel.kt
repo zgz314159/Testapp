@@ -52,6 +52,7 @@ class ExamViewModel @Inject constructor(
         _progressLoaded.value = false
         viewModelScope.launch {
             getQuestionsUseCase(quizId).collect { list ->
+                android.util.Log.d("ExamDebug", "loadQuestions: received ${'$'}{list.size} questions for ${'$'}quizId")
                 val shuffled = list.shuffled().let { qs ->
                     if (count > 0) qs.take(count.coerceAtMost(qs.size)) else qs
                 }
@@ -73,7 +74,6 @@ class ExamViewModel @Inject constructor(
                 _currentIndex.value = 0
                 _finished.value = false
                 loadProgress()
-                saveProgress()
             }
         }
     }
@@ -81,6 +81,7 @@ class ExamViewModel @Inject constructor(
     private fun loadProgress() {
         viewModelScope.launch {
             getExamProgressFlowUseCase(progressId).collect { progress ->
+                android.util.Log.d("ExamDebug", "loadProgress: progress=${'$'}progress id=${'$'}progressId")
                 if (progress != null && !_progressLoaded.value) {
                     _currentIndex.value =
                         progress.currentIndex.coerceAtMost(_questions.value.size - 1)
@@ -97,6 +98,9 @@ class ExamViewModel @Inject constructor(
                             progress.showResultList + List(_questions.value.size - progress.showResultList.size) { false }
                         }
                     _finished.value = progress.finished
+                } else if (progress == null && !_progressLoaded.value) {
+                    // 初始化进度
+                    saveProgress()
                 }
                 _progressLoaded.value = true
             }
@@ -156,6 +160,7 @@ class ExamViewModel @Inject constructor(
 
     fun clearProgress() {
         viewModelScope.launch {
+            android.util.Log.d("ExamDebug", "clearProgress called for ${'$'}progressId")
             clearExamProgressUseCase(progressId)
             _currentIndex.value = 0
             _selectedOptions.value = emptyList()
@@ -167,6 +172,10 @@ class ExamViewModel @Inject constructor(
 
     private fun saveProgress() {
         viewModelScope.launch {
+            android.util.Log.d(
+                "ExamDebug",
+                "saveProgress: index=${'$'}{_currentIndex.value} selected=${'$'}{_selectedOptions.value} showResult=${'$'}{_showResultList.value} finished=${'$'}{_finished.value}"
+            )
             saveExamProgressUseCase(
                 com.example.testapp.domain.model.ExamProgress(
                     id = progressId,

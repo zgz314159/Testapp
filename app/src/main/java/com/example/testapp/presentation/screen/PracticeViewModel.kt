@@ -86,6 +86,9 @@ class PracticeViewModel @Inject constructor(
                         "PracticeDebug",
                         "恢复进度: currentIndex=${progress.currentIndex}, answeredList=${progress.answeredList}, selectedOptions=${progress.selectedOptions}, showResultList=${progress.showResultList}"
                     )
+                } else if (progress == null && !_progressLoaded.value) {
+                    android.util.Log.d("PracticeDebug", "no existing progress, initializing")
+                    saveProgress()
                 }
                 _progressLoaded.value = true
             }
@@ -126,6 +129,10 @@ class PracticeViewModel @Inject constructor(
 
     fun saveProgress() {
         viewModelScope.launch {
+            android.util.Log.d(
+                "PracticeDebug",
+                "saveProgress: index=${'$'}{_currentIndex.value} answered=${'$'}{_answeredList.value} selected=${'$'}{_selectedOptions.value} showResult=${'$'}{_showResultList.value}"
+            )
             savePracticeProgressUseCase(
                 PracticeProgress(
                     id = progressId,
@@ -141,6 +148,7 @@ class PracticeViewModel @Inject constructor(
 
     fun clearProgress() {
         viewModelScope.launch {
+            android.util.Log.d("PracticeDebug", "clearProgress called for ${'$'}progressId")
             clearPracticeProgressUseCase(progressId)
             _currentIndex.value = 0
             _answeredList.value = emptyList()
