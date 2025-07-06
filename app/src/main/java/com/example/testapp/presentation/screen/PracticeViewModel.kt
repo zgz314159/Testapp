@@ -53,6 +53,7 @@ class PracticeViewModel @Inject constructor(
     }
     fun setProgressId(id: String, loadQuestions: Boolean = true) {
         progressId = id
+        _progressLoaded.value = false
         if (loadQuestions) {
             viewModelScope.launch {
                 if (randomPracticeEnabled) {

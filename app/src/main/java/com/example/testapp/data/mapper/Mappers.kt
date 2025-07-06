@@ -74,3 +74,20 @@ fun WrongQuestion.toEntity() = WrongQuestionEntity(
     questionId = question.id,
     selected = selected
 )
+fun ExamProgressEntity.toDomain() = ExamProgress(
+    id = id,
+    currentIndex = currentIndex,
+    selectedOptions = selectedOptions,
+    showResultList = showResultList.map { it == 1 },
+    finished = finished,
+    timestamp = timestamp
+)
+
+fun ExamProgress.toEntity() = ExamProgressEntity(
+    id = id,
+    currentIndex = currentIndex,
+    selectedOptions = selectedOptions,
+    showResultList = showResultList.map { if (it) 1 else 0 },
+    finished = finished,
+    timestamp = timestamp
+)

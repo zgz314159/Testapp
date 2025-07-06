@@ -8,6 +8,9 @@ import com.example.testapp.domain.model.HistoryRecord
 import com.example.testapp.domain.usecase.GetQuestionsUseCase
 import com.example.testapp.domain.usecase.AddWrongQuestionUseCase
 import com.example.testapp.domain.usecase.AddHistoryRecordUseCase
+import com.example.testapp.domain.usecase.SaveExamProgressUseCase
+import com.example.testapp.domain.usecase.GetExamProgressFlowUseCase
+import com.example.testapp.domain.usecase.ClearExamProgressUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -19,7 +22,10 @@ import javax.inject.Inject
 class ExamViewModel @Inject constructor(
     private val getQuestionsUseCase: GetQuestionsUseCase,
     private val addWrongQuestionUseCase: AddWrongQuestionUseCase,
-    private val addHistoryRecordUseCase: AddHistoryRecordUseCase
+    private val addHistoryRecordUseCase: AddHistoryRecordUseCase,
+    private val saveExamProgressUseCase: SaveExamProgressUseCase,
+    private val getExamProgressFlowUseCase: GetExamProgressFlowUseCase,
+    private val clearExamProgressUseCase: ClearExamProgressUseCase
 ) : ViewModel() {
     private val _questions = MutableStateFlow<List<Question>>(emptyList())
     val questions: StateFlow<List<Question>> = _questions.asStateFlow()
@@ -29,8 +35,20 @@ class ExamViewModel @Inject constructor(
 
     private val _selectedOptions = MutableStateFlow<List<Int>>(emptyList())
     val selectedOptions: StateFlow<List<Int>> = _selectedOptions.asStateFlow()
+    private val _showResultList = MutableStateFlow<List<Boolean>>(emptyList())
+    val showResultList: StateFlow<List<Boolean>> = _showResultList.asStateFlow()
+
+    private val _progressLoaded = MutableStateFlow(false)
+    val progressLoaded: StateFlow<Boolean> = _progressLoaded.asStateFlow()
+
+    private val _finished = MutableStateFlow(false)
+    val finished: StateFlow<Boolean> = _finished.asStateFlow()
+
+    private var progressId: String = "default"
 
     fun loadQuestions(quizId: String, count: Int) {
+        progressId = quizId
+        _progressLoaded.value = false
         viewModelScope.launch {
             getQuestionsUseCase(quizId).collect { list ->
                 val shuffled = list.shuffled().let { qs ->
@@ -50,7 +68,36 @@ class ExamViewModel @Inject constructor(
                 }
                 _questions.value = finalList
                 _selectedOptions.value = List(finalList.size) { -1 }
+                _showResultList.value = List(finalList.size) { false }
                 _currentIndex.value = 0
+                _finished.value = false
+                loadProgress()
+                saveProgress()
+            }
+        }
+    }
+
+    private fun loadProgress() {
+        viewModelScope.launch {
+            getExamProgressFlowUseCase(progressId).collect { progress ->
+                if (progress != null && !_progressLoaded.value) {
+                    _currentIndex.value =
+                        progress.currentIndex.coerceAtMost(_questions.value.size - 1)
+                    _selectedOptions.value =
+                        if (progress.selectedOptions.size >= _questions.value.size) {
+                            progress.selectedOptions.take(_questions.value.size)
+                        } else {
+                            progress.selectedOptions + List(_questions.value.size - progress.selectedOptions.size) { -1 }
+                        }
+                    _showResultList.value =
+                        if (progress.showResultList.size >= _questions.value.size) {
+                            progress.showResultList
+                        } else {
+                            progress.showResultList + List(_questions.value.size - progress.showResultList.size) { false }
+                        }
+                    _finished.value = progress.finished
+                }
+                _progressLoaded.value = true
             }
         }
     }
@@ -61,24 +108,28 @@ class ExamViewModel @Inject constructor(
         if (idx in list.indices) {
             list[idx] = option
             _selectedOptions.value = list
+            saveProgress()
         }
     }
 
     fun nextQuestion() {
         if (_currentIndex.value < _questions.value.size - 1) {
             _currentIndex.value += 1
+            saveProgress()
         }
     }
 
     fun prevQuestion() {
         if (_currentIndex.value > 0) {
             _currentIndex.value -= 1
+            saveProgress()
         }
     }
 
     fun goToQuestion(index: Int) {
         if (index in _questions.value.indices) {
             _currentIndex.value = index
+            saveProgress()
         }
     }
 
@@ -96,10 +147,40 @@ class ExamViewModel @Inject constructor(
             }
         }
         addHistoryRecordUseCase(HistoryRecord(score, qs.size))
+        _showResultList.value = List(qs.size) { true }
+        _finished.value = true
+        saveProgress()
         return score
     }
-}
 
-private fun answerLetterToIndex(answer: String): Int? {
-    return answer.trim().uppercase().firstOrNull()?.let { it - 'A' }
+    fun clearProgress() {
+        viewModelScope.launch {
+            clearExamProgressUseCase(progressId)
+            _currentIndex.value = 0
+            _selectedOptions.value = emptyList()
+            _showResultList.value = emptyList()
+            _finished.value = false
+            _progressLoaded.value = false
+        }
+    }
+
+    private fun saveProgress() {
+        viewModelScope.launch {
+            saveExamProgressUseCase(
+                com.example.testapp.domain.model.ExamProgress(
+                    id = progressId,
+                    currentIndex = _currentIndex.value,
+                    selectedOptions = _selectedOptions.value,
+                    showResultList = _showResultList.value,
+                    finished = _finished.value,
+                    timestamp = System.currentTimeMillis()
+                )
+            )
+        }
+    }
+
+
+    private fun answerLetterToIndex(answer: String): Int? {
+        return answer.trim().uppercase().firstOrNull()?.let { it - 'A' }
+    }
 }

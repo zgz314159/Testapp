@@ -44,6 +44,9 @@ fun ExamScreen(
     val questions by viewModel.questions.collectAsState()
     val currentIndex by viewModel.currentIndex.collectAsState()
     val selectedOptions by viewModel.selectedOptions.collectAsState()
+    val progressLoaded by viewModel.progressLoaded.collectAsState()
+    val showResultList by viewModel.showResultList.collectAsState()
+    val finished by viewModel.finished.collectAsState()
     val fontSize by settingsViewModel.fontSize.collectAsState()
     val examDelay by settingsViewModel.examDelay.collectAsState()
     val context = LocalContext.current
@@ -79,10 +82,13 @@ fun ExamScreen(
             }
         }
     }
-    if (question == null) {
+    val selectedOption = selectedOptions.getOrElse(currentIndex) { -1 }
+    val showResult = showResultList.getOrNull(currentIndex) ?: false
+
+    if (question == null || !progressLoaded) {
         Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
             Text(
-                "暂无题目...",
+                "暂无题目或正在加载进度…",
                 fontSize = LocalFontSize.current,
                 fontFamily = LocalFontFamily.current
             )
@@ -180,6 +186,7 @@ fun ExamScreen(
                     menuExpanded = false
                 })
                 DropdownMenuItem(text = { Text("清除进度") }, onClick = {
+                    viewModel.clearProgress()
                     viewModel.loadQuestions(quizId, examCount)
                     elapsed = 0
                     menuExpanded = false
@@ -281,38 +288,75 @@ fun ExamScreen(
             }
 
             itemsIndexed(question.options) { idx, option ->
-                val isSelected = selectedOptions.getOrElse(currentIndex) { -1 } == idx
-                Card(
+                val selectedOption = selectedOptions.getOrElse(currentIndex) { -1 }
+                val correctIndex = answerLetterToIndex(question.answer)
+                val isSelected = selectedOption == idx
+                val isCorrect = showResult && correctIndex != null && idx == correctIndex
+                val isWrong = showResult && isSelected && !isCorrect
+                val backgroundColor = when {
+                    isCorrect -> MaterialTheme.colorScheme.primary.copy(alpha = 0.2f)
+                    isWrong -> MaterialTheme.colorScheme.error.copy(alpha = 0.2f)
+                    isSelected -> MaterialTheme.colorScheme.secondary.copy(alpha = 0.1f)
+                    else -> MaterialTheme.colorScheme.surface
+                }
+                Row(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(vertical = 4.dp)
-                        .clickable { handleSelect(idx) },
-                    colors = CardDefaults.cardColors(
-                        containerColor = if (isSelected)
-                            MaterialTheme.colorScheme.primary.copy(alpha = 0.08f)
-                        else
-                            MaterialTheme.colorScheme.surface
-                    )
+                        .background(backgroundColor)
+                        .clickable(enabled = !showResult) { handleSelect(idx) },
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
+                    RadioButton(
+                        selected = isSelected,
+                        onClick = { handleSelect(idx) },
+                        enabled = !showResult
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        text = option,
+                        modifier = Modifier.weight(1f),
+                        fontSize = questionFontSize.sp,
+                        lineHeight = (questionFontSize * 1.3f).sp,
+                        fontFamily = LocalFontFamily.current
+                    )
+                }
+            }
+
+            if (showResult) {
+                item {
+                    val correctIndex = answerLetterToIndex(question.answer)
+                    val correct = selectedOption == correctIndex
                     Row(
-                        verticalAlignment = Alignment.CenterVertically,
+
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(12.dp)
+                            .background(Color.LightGray)
+                            .padding(8.dp)
                     ) {
-                        RadioButton(
-                            selected = isSelected,
-                            onClick = { handleSelect(idx) }
-                        )
-                        Spacer(modifier = Modifier.width(8.dp))
+
                         Text(
-                            text = option,
-                            modifier = Modifier.weight(1f),
-                            fontSize = questionFontSize.sp,
-                            lineHeight = (questionFontSize * 1.3f).sp,
+                            if (correct) "回答正确！" else "回答错误，正确答案：${if (correctIndex != null && correctIndex in question.options.indices) question.options[correctIndex] else question.answer}",
+                            color = if (correct) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error,
+                            fontSize = LocalFontSize.current,
                             fontFamily = LocalFontFamily.current
                         )
                     }
+                    if (question.explanation.isNotBlank()) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .background(Color.LightGray)
+                                .padding(8.dp)
+                        ) {
+                            Text(
+                                text = "解析：${question.explanation}",
+                                fontSize = LocalFontSize.current,
+                                fontFamily = LocalFontFamily.current
+                            )
+                        }
+                    }
+                    Spacer(modifier = Modifier.height(16.dp))
                 }
             }
 

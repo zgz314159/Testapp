@@ -8,16 +8,19 @@ import com.example.testapp.data.local.dao.HistoryRecordDao
 import com.example.testapp.data.local.dao.QuestionDao
 import com.example.testapp.data.local.dao.WrongQuestionDao
 import com.example.testapp.data.local.dao.PracticeProgressDao
+import com.example.testapp.data.local.dao.ExamProgressDao
 import com.example.testapp.data.repository.FavoriteQuestionRepositoryImpl
 import com.example.testapp.data.repository.HistoryRepositoryImpl
 import com.example.testapp.data.repository.QuestionRepositoryImpl
 import com.example.testapp.data.repository.WrongBookRepositoryImpl
 import com.example.testapp.data.repository.PracticeProgressRepositoryImpl
+import com.example.testapp.data.repository.ExamProgressRepositoryImpl
 import com.example.testapp.domain.repository.FavoriteQuestionRepository
 import com.example.testapp.domain.repository.HistoryRepository
 import com.example.testapp.domain.repository.QuestionRepository
 import com.example.testapp.domain.repository.WrongBookRepository
 import com.example.testapp.domain.repository.PracticeProgressRepository
+import com.example.testapp.domain.repository.ExamProgressRepository
 import com.example.testapp.domain.usecase.AddFavoriteQuestionUseCase
 import com.example.testapp.domain.usecase.AddHistoryRecordUseCase
 import com.example.testapp.domain.usecase.AddWrongQuestionUseCase
@@ -29,6 +32,9 @@ import com.example.testapp.domain.usecase.RemoveFavoriteQuestionUseCase
 import com.example.testapp.domain.usecase.ClearPracticeProgressUseCase
 import com.example.testapp.domain.usecase.GetPracticeProgressFlowUseCase
 import com.example.testapp.domain.usecase.SavePracticeProgressUseCase
+import com.example.testapp.domain.usecase.SaveExamProgressUseCase
+import com.example.testapp.domain.usecase.GetExamProgressFlowUseCase
+import com.example.testapp.domain.usecase.ClearExamProgressUseCase
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -110,6 +116,9 @@ object AppModule {
     fun providePracticeProgressDao(db: AppDatabase): PracticeProgressDao = db.practiceProgressDao()
 
     @Provides
+    fun provideExamProgressDao(db: AppDatabase): ExamProgressDao = db.examProgressDao()
+
+    @Provides
     @Singleton
     fun provideFavoriteQuestionRepository(dao: FavoriteQuestionDao): FavoriteQuestionRepository = FavoriteQuestionRepositoryImpl(dao)
 
@@ -131,7 +140,15 @@ object AppModule {
 
     @Provides
     @Singleton
+    fun provideExamProgressRepository(dao: ExamProgressDao): ExamProgressRepository = ExamProgressRepositoryImpl(dao)
+
+    @Provides
+    @Singleton
     fun provideSavePracticeProgressUseCase(repo: PracticeProgressRepository): SavePracticeProgressUseCase = SavePracticeProgressUseCase(repo)
+
+    @Provides
+    @Singleton
+    fun provideSaveExamProgressUseCase(repo: ExamProgressRepository): SaveExamProgressUseCase = SaveExamProgressUseCase(repo)
 
     @Provides
     @Singleton
@@ -139,5 +156,14 @@ object AppModule {
 
     @Provides
     @Singleton
+    fun provideGetExamProgressFlowUseCase(repo: ExamProgressRepository): GetExamProgressFlowUseCase = GetExamProgressFlowUseCase(repo)
+
+    @Provides
+    @Singleton
     fun provideClearPracticeProgressUseCase(repo: PracticeProgressRepository): ClearPracticeProgressUseCase = ClearPracticeProgressUseCase(repo)
+
+    @Provides
+    @Singleton
+    fun provideClearExamProgressUseCase(repo: ExamProgressRepository): ClearExamProgressUseCase = ClearExamProgressUseCase(repo)
+
 }
