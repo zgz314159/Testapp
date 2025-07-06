@@ -103,6 +103,10 @@ class PracticeViewModel @Inject constructor(
                     )
                 } else if (progress == null && !_progressLoaded.value) {
                     android.util.Log.d("PracticeDebug", "no existing progress, initializing")
+                    _currentIndex.value = 0
+                    _answeredList.value = emptyList()
+                    _selectedOptions.value = List(_questions.value.size) { -1 }
+                    _showResultList.value = List(_questions.value.size) { false }
                     saveProgress()
                 }
                 _progressLoaded.value = true
@@ -148,7 +152,7 @@ class PracticeViewModel @Inject constructor(
         viewModelScope.launch {
             android.util.Log.d(
                 "PracticeDebug",
-                "saveProgress: index=${'$'}{_currentIndex.value} answered=${'$'}{_answeredList.value} selected=${'$'}{_selectedOptions.value} showResult=${'$'}{_showResultList.value}"
+                "saveProgress: index=${_currentIndex.value} answered=${_answeredList.value} selected=${_selectedOptions.value} showResult=${_showResultList.value}"
             )
             savePracticeProgressUseCase(
                 PracticeProgress(

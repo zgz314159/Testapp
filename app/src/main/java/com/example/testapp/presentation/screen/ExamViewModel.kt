@@ -179,7 +179,7 @@ class ExamViewModel @Inject constructor(
         viewModelScope.launch {
             android.util.Log.d(
                 "ExamDebug",
-                "saveProgress: index=${'$'}{_currentIndex.value} selected=${'$'}{_selectedOptions.value} showResult=${'$'}{_showResultList.value} finished=${'$'}{_finished.value}"
+                "saveProgress: index=${_currentIndex.value} selected=${_selectedOptions.value} showResult=${_showResultList.value} finished=${_finished.value}"
             )
             saveExamProgressUseCase(
                 com.example.testapp.domain.model.ExamProgress(
