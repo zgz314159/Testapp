@@ -274,8 +274,25 @@ fun PracticeScreen(
 
             }
             Spacer(modifier = Modifier.weight(1f))
-            // Layer 4: answer buttons
 
+            if (showResult) {
+                val correctIndex = answerLetterToIndex(question.answer)
+                val correct = selectedOption == correctIndex
+                Text(
+                    if (correct) "回答正确！" else "回答错误，正确答案：${if (correctIndex != null && correctIndex in question.options.indices) question.options[correctIndex] else question.answer}",
+                    color = if (correct) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error,
+                    fontSize = LocalFontSize.current,
+                    fontFamily = LocalFontFamily.current
+                )
+
+                if (question.fileName != null) {
+                    Spacer(modifier = Modifier.height(8.dp))
+
+                }
+                Spacer(modifier = Modifier.height(16.dp))
+            }
+
+            // Layer 4: answer buttons
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween
@@ -366,28 +383,7 @@ fun PracticeScreen(
                 }
             }
 
-            if (showResult) {
-                val correctIndex = answerLetterToIndex(question.answer)
-                val correct = selectedOption == correctIndex
-                Text(
-                    if (correct) "回答正确！" else "回答错误，正确答案：${if (correctIndex != null && correctIndex in question.options.indices) question.options[correctIndex] else question.answer}",
-                    color = if (correct) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error,
-                    fontSize = LocalFontSize.current,
-                    fontFamily = LocalFontFamily.current
-                )
 
-                if (question.fileName != null) {
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Text(
-                        "题目来源文件：${question.fileName}",
-                        style = MaterialTheme.typography.bodySmall.copy(
-                            fontSize = LocalFontSize.current,
-                            fontFamily = LocalFontFamily.current
-                        )
-                    )
-                }
-                Spacer(modifier = Modifier.height(16.dp))
-            }
         }
     }}
 
