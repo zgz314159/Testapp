@@ -18,6 +18,12 @@ import kotlinx.coroutines.launch
 import com.example.testapp.presentation.component.LocalFontSize
 import com.example.testapp.presentation.component.LocalFontFamily
 import com.example.testapp.presentation.screen.FavoriteViewModel
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.clickable
+
+
 
 @Composable
 fun ExamScreen(
@@ -61,71 +67,68 @@ fun ExamScreen(
     }
 
     Column(modifier = Modifier.fillMaxSize().padding(16.dp)) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            // Layer 1: timer, question list card and settings menu
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier.fillMaxWidth()
-            ) {
+        // Layer 1: timer, question list card and settings menu
+        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
+            Text(
+                "时间：%02d:%02d".format(elapsed / 60, elapsed % 60),
+                fontSize = LocalFontSize.current,
+                fontFamily = LocalFontFamily.current
+            )
+            Spacer(modifier = Modifier.weight(1f))
+            Card(onClick = { showList = true }) {
                 Text(
-                    "时间：%02d:%02d".format(elapsed / 60, elapsed % 60),
+                    "共${questions.size}题",
+                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
                     fontSize = LocalFontSize.current,
                     fontFamily = LocalFontFamily.current
                 )
-                Spacer(modifier = Modifier.weight(1f))
-                Card(onClick = { showList = true }) {
-                    Text(
-                        "共${questions.size}题",
-                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
-                        fontSize = LocalFontSize.current,
-                        fontFamily = LocalFontFamily.current
-                    )
-                }
-                IconButton(onClick = { menuExpanded = true }) {
-                    Icon(Icons.Filled.MoreVert, contentDescription = "设置")
-                }
-                DropdownMenu(expanded = menuExpanded, onDismissRequest = { menuExpanded = false }) {
-                    DropdownMenuItem(text = { Text("放大字体") }, onClick = {
-                        settingsViewModel.setFontSize(context, (fontSize + 2).coerceAtMost(32f))
-                        menuExpanded = false
-                    })
-                    DropdownMenuItem(text = { Text("缩小字体") }, onClick = {
-                        settingsViewModel.setFontSize(context, (fontSize - 2).coerceAtLeast(14f))
-                        menuExpanded = false
-                    })
-                    DropdownMenuItem(text = { Text("清除进度") }, onClick = {
-                        viewModel.loadQuestions(quizId, examCount)
-                        elapsed = 0
-                        menuExpanded = false
-                    })
-                }
+
             }
-            if (showList) {
-                AlertDialog(onDismissRequest = { showList = false }, confirmButton = {}, text = {
-                    LazyVerticalGrid(
-                        columns = GridCells.Fixed(5),
-                        modifier = Modifier.heightIn(max = 300.dp)
-                    ) {
-                        items(questions.size) { idx ->
-                            Box(
-                                modifier = Modifier
-                                    .padding(4.dp)
-                                    .clickable {
-                                        viewModel.goToQuestion(idx)
-                                        showList = false
-                                    },
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Text(
-                                    text = "${idx + 1}",
-                                    fontSize = LocalFontSize.current,
-                                    fontFamily = LocalFontFamily.current
-                                )
-                            }
+            IconButton(onClick = { menuExpanded = true }) {
+                Icon(Icons.Filled.MoreVert, contentDescription = "设置")
+            }
+            DropdownMenu(expanded = menuExpanded, onDismissRequest = { menuExpanded = false }) {
+                DropdownMenuItem(text = { Text("放大字体") }, onClick = {
+                    settingsViewModel.setFontSize(context, (fontSize + 2).coerceAtMost(32f))
+                    menuExpanded = false
+                })
+                DropdownMenuItem(text = { Text("缩小字体") }, onClick = {
+                    settingsViewModel.setFontSize(context, (fontSize - 2).coerceAtLeast(14f))
+                    menuExpanded = false
+                })
+                DropdownMenuItem(text = { Text("清除进度") }, onClick = {
+                    viewModel.loadQuestions(quizId, examCount)
+                    elapsed = 0
+                    menuExpanded = false
+                })
+            }
+        }
+        if (showList) {
+            AlertDialog(onDismissRequest = { showList = false }, confirmButton = {}, text = {
+                LazyVerticalGrid(
+                    columns = GridCells.Fixed(5),
+                    modifier = Modifier.heightIn(max = 300.dp)
+                ) {
+                    items(questions.size) { idx ->
+                        Box(
+                            modifier = Modifier
+                                .padding(4.dp)
+                                .clickable {
+                                    viewModel.goToQuestion(idx)
+                                    showList = false
+                                },
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                text = "${idx + 1}",
+                                fontSize = LocalFontSize.current,
+                                fontFamily = LocalFontFamily.current
+                            )
                         }
                     }
-                })
-            }}
+                }
+            })
+        }
 
             Spacer(modifier = Modifier.height(8.dp))
 
@@ -151,7 +154,12 @@ fun ExamScreen(
                 modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp)
             )
             // Layer 3: question and options
-            Column(modifier = Modifier.weight(1f)) {
+        LazyColumn(
+            modifier = Modifier
+                .weight(1f)
+                .padding(top = 8.dp)
+        ) {
+            item {
                 Text(
                     text = question.content,
                     style = MaterialTheme.typography.titleMedium.copy(
@@ -176,25 +184,36 @@ fun ExamScreen(
                     }
                 }
                 Spacer(modifier = Modifier.height(16.dp))
-                question.options.forEachIndexed { idx, option ->
-                    val isSelected = selectedOptions.getOrElse(currentIndex) { -1 } == idx
+            }
+
+            itemsIndexed(question.options) { idx, option ->
+                val isSelected = selectedOptions.getOrElse(currentIndex) { -1 } == idx
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 4.dp),
+                    colors = CardDefaults.cardColors(
+                        containerColor = if (isSelected)
+                            MaterialTheme.colorScheme.primary.copy(alpha = 0.08f)
+                        else
+                            MaterialTheme.colorScheme.surface
+                    )
+                ) {
                     Row(
+                        verticalAlignment = Alignment.CenterVertically,
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(vertical = 4.dp)
-                            .background(
-                                if (isSelected) MaterialTheme.colorScheme.secondary.copy(
-                                    alpha = 0.1f
-                                ) else MaterialTheme.colorScheme.surface
-                            ),
-                        verticalAlignment = Alignment.CenterVertically
+                            .clickable { viewModel.selectOption(idx) }
+                            .padding(12.dp)
                     ) {
                         RadioButton(
                             selected = isSelected,
                             onClick = { viewModel.selectOption(idx) }
                         )
+                        Spacer(modifier = Modifier.width(8.dp))
                         Text(
-                            option,
+                            text = option,
+                            modifier = Modifier.weight(1f),
                             fontSize = LocalFontSize.current,
                             fontFamily = LocalFontFamily.current
                         )
@@ -202,9 +221,13 @@ fun ExamScreen(
                 }
             }
 
-            Spacer(modifier = Modifier.weight(1f))
+        }
 
-            // Layer 4: answer buttons
+
+        Spacer(modifier = Modifier.height(8.dp))
+
+
+        // Layer 4: answer buttons
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceEvenly
