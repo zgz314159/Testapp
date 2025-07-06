@@ -2,7 +2,8 @@ package com.example.testapp.data.repository
 
 import com.example.testapp.data.local.dao.QuestionDao
 import com.example.testapp.data.local.dao.FavoriteQuestionDao
-import com.example.testapp.data.local.entity.QuestionEntity
+import com.example.testapp.data.mapper.toDomain
+import com.example.testapp.data.mapper.toEntity
 import com.example.testapp.domain.model.Question
 import com.example.testapp.domain.repository.QuestionRepository
 import kotlinx.coroutines.flow.Flow
@@ -23,73 +24,25 @@ class QuestionRepositoryImpl @Inject constructor(
     private val favoriteDao: FavoriteQuestionDao
 ) : QuestionRepository {
     override fun getQuestions(): Flow<List<Question>> =
-        dao.getAll().map { list ->
-            list.map {
-                Question(
-                    id = it.id,
-                    content = it.content,
-                    type = it.type,
-                    options = kotlinx.serialization.json.Json.decodeFromString(it.options),
-                    answer = it.answer,
-                    explanation = it.explanation,
-                    isFavorite = it.isFavorite,
-                    isWrong = it.isWrong,
-                    fileName = it.fileName
-                )
-            }
-        }
+        dao.getAll().map { list -> list.map { it.toDomain() } }
 
     override fun getFavoriteQuestions(): Flow<List<Question>> =
         favoriteDao.getAll().map { favList ->
             val favIds = favList.map { it.questionId }
             runCatching {
-                dao.getAll().firstOrNull()?.filter { q -> favIds.contains(q.id) }?.map {
-                    Question(
-                        id = it.id,
-                        content = it.content,
-                        type = it.type,
-                        options = kotlinx.serialization.json.Json.decodeFromString(it.options),
-                        answer = it.answer,
-                        explanation = it.explanation,
-                        isFavorite = it.isFavorite,
-                        isWrong = it.isWrong,
-                        fileName = it.fileName
-                    )
-                }
+                dao.getAll().firstOrNull()
+                    ?.filter { q -> favIds.contains(q.id) }
+                    ?.map { it.toDomain() }
             }.getOrDefault(emptyList()) ?: emptyList()
         }
 
     override fun getQuestionsByFileName(fileName: String): Flow<List<Question>> =
         dao.getQuestionsByFileName(fileName).map { list ->
-            list.map {
-                Question(
-                    id = it.id,
-                    content = it.content,
-                    type = it.type,
-                    options = kotlinx.serialization.json.Json.decodeFromString(it.options),
-                    answer = it.answer,
-                    explanation = it.explanation,
-                    isFavorite = it.isFavorite,
-                    isWrong = it.isWrong,
-                    fileName = it.fileName
-                )
-            }
+            list.map { it.toDomain() }
         }
 
     suspend fun insertAll(questions: List<Question>) {
-        dao.insertAll(questions.map {
-            QuestionEntity(
-                id = it.id,
-                content = it.content,
-                type = it.type,
-                options = kotlinx.serialization.json.Json.encodeToString(it.options),
-                answer = it.answer,
-                explanation = it.explanation,
-                isFavorite = it.isFavorite,
-                isWrong = it.isWrong,
-                fileName = it.fileName
-            )
-        })
+        dao.insertAll(questions.map { it.toEntity() })
     }
     suspend fun clear() = dao.clear()
 

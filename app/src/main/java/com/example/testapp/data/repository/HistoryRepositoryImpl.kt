@@ -3,6 +3,8 @@ package com.example.testapp.data.repository
 import com.example.testapp.data.local.dao.HistoryRecordDao
 import com.example.testapp.data.local.dao.QuestionDao
 import com.example.testapp.data.local.entity.HistoryRecordEntity
+import com.example.testapp.data.mapper.toDomain
+import com.example.testapp.data.mapper.toEntity
 import com.example.testapp.domain.model.HistoryRecord
 import com.example.testapp.domain.repository.HistoryRepository
 import kotlinx.coroutines.flow.Flow
@@ -26,23 +28,9 @@ class HistoryRepositoryImpl @Inject constructor(
     private val questionDao: QuestionDao
 ) : HistoryRepository {
     override fun getAll(): Flow<List<HistoryRecord>> =
-        dao.getAll().map { list ->
-            list.map {
-                HistoryRecord(
-                    score = it.score,
-                    total = it.total,
-                    time = LocalDateTime.ofInstant(Instant.ofEpochMilli(it.time), ZoneId.systemDefault())
-                )
-            }
-        }
+        dao.getAll().map { list -> list.map { it.toDomain() } }
     override suspend fun add(record: HistoryRecord) {
-        dao.add(
-            HistoryRecordEntity(
-                score = record.score,
-                total = record.total,
-                time = record.time.atZone(ZoneId.systemDefault()).toInstant().toEpochMilli()
-            )
-        )
+        dao.add(record.toEntity())
     }
     override suspend fun clear() = dao.clear()
     // txt/Excel 文件解析，建议字段：分数|总题数|时间戳
@@ -55,13 +43,7 @@ class HistoryRepositoryImpl @Inject constructor(
                 parseExcelHistory(file)
             }
             for (r in records) {
-                dao.add(
-                    HistoryRecordEntity(
-                        score = r.score,
-                        total = r.total,
-                        time = r.time.atZone(ZoneId.systemDefault()).toInstant().toEpochMilli()
-                    )
-                )
+                dao.add(r.toEntity())
             }
             records.size
         } catch (e: Exception) { 0 }
@@ -69,13 +51,7 @@ class HistoryRepositoryImpl @Inject constructor(
     override suspend fun exportToFile(file: java.io.File): Boolean {
         return try {
             val history = dao.getAll().map { list ->
-                list.map {
-                    HistoryRecord(
-                        score = it.score,
-                        total = it.total,
-                        time = LocalDateTime.ofInstant(Instant.ofEpochMilli(it.time), ZoneId.systemDefault())
-                    )
-                }
+                list.map { it.toDomain() }
             }.firstOrNull() ?: emptyList()
             val json = Json.encodeToString(history)
             file.writeText(json)

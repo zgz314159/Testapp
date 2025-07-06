@@ -2,6 +2,8 @@ package com.example.testapp.data.repository
 
 import com.example.testapp.data.local.dao.FavoriteQuestionDao
 import com.example.testapp.data.local.entity.FavoriteQuestionEntity
+import com.example.testapp.data.mapper.toDomain
+import com.example.testapp.data.mapper.toEntity
 import com.example.testapp.domain.model.FavoriteQuestion
 import com.example.testapp.domain.model.Question
 import com.example.testapp.domain.repository.FavoriteQuestionRepository
@@ -16,15 +18,12 @@ import kotlinx.serialization.json.Json
 class FavoriteQuestionRepositoryImpl @Inject constructor(
     private val dao: FavoriteQuestionDao
 ) : FavoriteQuestionRepository {
-    override fun getAll(): Flow<List<FavoriteQuestion>> = dao.getAll().map { list ->
-        list.map { entity ->
-            val question = Json.decodeFromString<Question>(entity.questionJson)
-            FavoriteQuestion(question)
-        }
-    }
+    override fun getAll(): Flow<List<FavoriteQuestion>> =
+        dao.getAll().map { list -> list.map { it.toDomain() } }
+
 
     override suspend fun add(favorite: FavoriteQuestion) =
-        dao.add(FavoriteQuestionEntity(favorite.question.id, Json.encodeToString(favorite.question)))
+        dao.add(favorite.toEntity())
 
     override suspend fun remove(questionId: Int) =
         dao.removeById(questionId)
@@ -33,19 +32,14 @@ class FavoriteQuestionRepositoryImpl @Inject constructor(
         dao.getAll().map { list -> list.any { it.questionId == questionId } }.firstOrNull() ?: false
     private suspend fun getAllSuspend(): List<FavoriteQuestion> {
         val entities = dao.getAll().firstOrNull() ?: emptyList()
-        return entities.map { entity ->
-            val question = Json.decodeFromString<Question>(entity.questionJson)
-            FavoriteQuestion(question)
-        }
+        return entities.map { it.toDomain() }
     }
 
     override suspend fun importFromFile(file: java.io.File): Int {
         return try {
             val content = file.readText()
             val favorites = Json.decodeFromString<List<FavoriteQuestion>>(content)
-            favorites.forEach {
-                dao.add(FavoriteQuestionEntity(it.question.id, Json.encodeToString(it.question)))
-            }
+            favorites.forEach { dao.add(it.toEntity()) }
             favorites.size
         } catch (e: Exception) { 0 }
     }

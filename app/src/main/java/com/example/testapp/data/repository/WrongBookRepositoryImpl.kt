@@ -3,6 +3,8 @@ package com.example.testapp.data.repository
 import com.example.testapp.data.local.dao.QuestionDao
 import com.example.testapp.data.local.dao.WrongQuestionDao
 import com.example.testapp.data.local.entity.WrongQuestionEntity
+import com.example.testapp.data.mapper.toDomain
+import com.example.testapp.data.mapper.toEntity
 import com.example.testapp.domain.model.Question
 import com.example.testapp.domain.model.WrongQuestion
 import com.example.testapp.domain.repository.WrongBookRepository
@@ -27,19 +29,7 @@ class WrongBookRepositoryImpl @Inject constructor(
         dao.getAll().combine(questionDao.getAll()) { wrongEntities, questionEntities ->
             val questionMap = questionEntities.associateBy(
                 { it.id },
-                {
-                    Question(
-                        id = it.id,
-                        content = it.content,
-                        type = it.type,
-                        options = Json.decodeFromString(it.options),
-                        answer = it.answer,
-                        explanation = it.explanation,
-                        isFavorite = it.isFavorite,
-                        isWrong = it.isWrong,
-                        fileName = it.fileName
-                    )
-                }
+                { it.toDomain() }
             )
             wrongEntities.mapNotNull { wrongEntity ->
                 questionMap[wrongEntity.questionId]?.let { q ->
@@ -59,17 +49,7 @@ class WrongBookRepositoryImpl @Inject constructor(
         val questionMap = questionEntities.associateBy(
             { it.id },
             {
-                Question(
-                    id = it.id,
-                    content = it.content,
-                    type = it.type,
-                    options = Json.decodeFromString(it.options),
-                    answer = it.answer,
-                    explanation = it.explanation,
-                    isFavorite = it.isFavorite,
-                    isWrong = it.isWrong,
-                    fileName = it.fileName
-                )
+                it.toDomain()
             }
         )
         return wrongEntities.mapNotNull { wrongEntity ->
@@ -84,12 +64,7 @@ class WrongBookRepositoryImpl @Inject constructor(
     }
 
     override suspend fun add(wrong: WrongQuestion) {
-        dao.add(
-            WrongQuestionEntity(
-                questionId = wrong.question.id,
-                selected = wrong.selected
-            )
-        )
+        dao.add(wrong.toEntity())
     }
     override suspend fun clear() = dao.clear()
     // txt/Excel 文件解析，建议与题库格式保持一致，支持批量导入错题
@@ -107,16 +82,7 @@ class WrongBookRepositoryImpl @Inject constructor(
             for (w in wrongs) {
                 val match = existingQuestions.find { it.content == w.question.content && it.answer == w.question.answer }
                 val qId = match?.id ?: run {
-                    val qEntity = com.example.testapp.data.local.entity.QuestionEntity(
-                        content = w.question.content,
-                        type = w.question.type,
-                        options = Json.encodeToString(w.question.options),
-                        answer = w.question.answer,
-                        explanation = w.question.explanation,
-                        isFavorite = w.question.isFavorite,
-                        isWrong = w.question.isWrong,
-                        fileName = w.question.fileName
-                    )
+                    val qEntity = w.question.toEntity()
                     questionDao.insertAll(listOf(qEntity))
                     questionDao.getAll().firstOrNull()
                         ?.find { it.content == w.question.content && it.answer == w.question.answer }?.id
