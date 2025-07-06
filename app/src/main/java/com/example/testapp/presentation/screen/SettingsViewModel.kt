@@ -42,6 +42,8 @@ class SettingsViewModel @Inject constructor(
     val progress: StateFlow<Float> = _progress.asStateFlow()
     private val _examQuestionCount = MutableStateFlow(10)
     val examQuestionCount: StateFlow<Int> = _examQuestionCount.asStateFlow()
+    private val _randomPractice = MutableStateFlow(false)
+    val randomPractice: StateFlow<Boolean> = _randomPractice.asStateFlow()
     private var currentJob: Job? = null
 
     fun setFontSize(context: Context, size: Float) {
@@ -62,14 +64,22 @@ class SettingsViewModel @Inject constructor(
             FontSettingsDataStore.setExamQuestionCount(context, count)
         }
     }
+    fun setRandomPractice(context: Context, enabled: Boolean) {
+        _randomPractice.value = enabled
+        viewModelScope.launch {
+            FontSettingsDataStore.setRandomPractice(context, enabled)
+        }
+    }
     fun loadFontSettings(context: Context) {
         viewModelScope.launch {
             val size = FontSettingsDataStore.getFontSize(context).first()
             val style = FontSettingsDataStore.getFontStyle(context).first()
             val examCount = FontSettingsDataStore.getExamQuestionCount(context).first()
+            val random = FontSettingsDataStore.getRandomPractice(context).first()
             _fontSize.value = size
             _fontStyle.value = style
             _examQuestionCount.value = examCount
+            _randomPractice.value = random
         }
     }
 

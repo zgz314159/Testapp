@@ -26,7 +26,9 @@ fun PracticeScreen(
     onQuizEnd: (score: Int, total: Int) -> Unit = { _, _ -> },
     onSubmit: (Boolean) -> Unit = {}
 ) {
-    LaunchedEffect(quizId, isWrongBookMode, wrongBookFileName, isFavoriteMode, favoriteFileName) {
+    val randomPractice by settingsViewModel.randomPractice.collectAsState()
+    LaunchedEffect(quizId, isWrongBookMode, wrongBookFileName, isFavoriteMode, favoriteFileName, randomPractice) {
+        viewModel.setRandomPractice(randomPractice)
         if (isWrongBookMode && wrongBookFileName != null) {
             // 使用独立的进度 id，避免与普通练习冲突，并跳过题库加载
             viewModel.setProgressId("wrongbook_${wrongBookFileName}", loadQuestions = false)

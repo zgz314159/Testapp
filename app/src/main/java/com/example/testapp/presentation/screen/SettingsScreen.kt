@@ -21,6 +21,7 @@ fun SettingsScreen(viewModel: SettingsViewModel = hiltViewModel()) {
     val fontSize by viewModel.fontSize.collectAsState()
     val fontStyle by viewModel.fontStyle.collectAsState()
     val examCount by viewModel.examQuestionCount.collectAsState()
+    val randomPractice by viewModel.randomPractice.collectAsState()
     val isLoading by viewModel.isLoading.collectAsState()
     val progress by viewModel.progress.collectAsState()
     val context = LocalContext.current
@@ -167,6 +168,25 @@ fun SettingsScreen(viewModel: SettingsViewModel = hiltViewModel()) {
             valueRange = 0f..150f,
             steps = 0
         )
+        Spacer(modifier = Modifier.height(24.dp))
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Text(
+                "随机练习：",
+                style = MaterialTheme.typography.bodyLarge.copy(
+                    fontSize = fontSize.sp,
+                    fontFamily = when (fontStyle) {
+                        "Serif" -> androidx.compose.ui.text.font.FontFamily.Serif
+                        "Monospace" -> androidx.compose.ui.text.font.FontFamily.Monospace
+                        else -> androidx.compose.ui.text.font.FontFamily.Default
+                    }
+                )
+            )
+            Spacer(modifier = Modifier.width(8.dp))
+            Switch(
+                checked = randomPractice,
+                onCheckedChange = { viewModel.setRandomPractice(context, it) }
+            )
+        }
         Spacer(modifier = Modifier.height(24.dp))
         Button(onClick = {
             importLauncher.launch(arrayOf("application/vnd.ms-excel", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", "text/plain"))

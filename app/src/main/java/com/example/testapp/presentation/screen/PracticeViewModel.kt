@@ -46,14 +46,22 @@ class PracticeViewModel @Inject constructor(
     val showResultList: StateFlow<List<Boolean>> = _showResultList.asStateFlow()
 
     private var progressId: String = "default"
+    private var randomPracticeEnabled: Boolean = false
 
+    fun setRandomPractice(enabled: Boolean) {
+        randomPracticeEnabled = enabled
+    }
     fun setProgressId(id: String, loadQuestions: Boolean = true) {
         progressId = id
         if (loadQuestions) {
             viewModelScope.launch {
+                if (randomPracticeEnabled) {
+                    clearPracticeProgressUseCase(progressId)
+                }
                 getQuestionsUseCase(progressId).collect { qs ->
                     android.util.Log.d("PracticeDebug", "getQuestionsUseCase 收到题目数量: ${qs.size}")
-                    _questions.value = qs
+                    val list = if (randomPracticeEnabled) qs.shuffled() else qs
+                    _questions.value = list
                     loadProgress()
                 }
             }
@@ -180,7 +188,8 @@ class PracticeViewModel @Inject constructor(
             // 获取指定文件下的错题并加载进度
             getWrongBookUseCase().collect { wrongList ->
                 val filtered = wrongList.filter { it.question.fileName == fileName }
-                _questions.value = filtered.map { it.question }
+                val list = filtered.map { it.question }
+                _questions.value = if (randomPracticeEnabled) list.shuffled() else list
                 // 重置进度相关状态
                 loadProgress()
             }
@@ -190,7 +199,8 @@ class PracticeViewModel @Inject constructor(
         viewModelScope.launch {
             getFavoriteQuestionsUseCase().collect { favList ->
                 val filtered = favList.filter { it.question.fileName == fileName }
-                _questions.value = filtered.map { it.question }
+                val list = filtered.map { it.question }
+                _questions.value = if (randomPracticeEnabled) list.shuffled() else list
                 loadProgress()
             }
         }
