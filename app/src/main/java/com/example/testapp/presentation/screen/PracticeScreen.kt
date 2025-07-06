@@ -115,6 +115,10 @@ fun PracticeScreen(
                     settingsViewModel.setFontSize(context, (fontSize - 2).coerceAtLeast(14f))
                     menuExpanded = false
                 })
+                DropdownMenuItem(text = { Text("清除进度") }, onClick = {
+                    viewModel.clearProgress()
+                    menuExpanded = false
+                })
             }
         }
         if (showList) {

@@ -93,6 +93,11 @@ fun ExamScreen(
                         settingsViewModel.setFontSize(context, (fontSize - 2).coerceAtLeast(14f))
                         menuExpanded = false
                     })
+                    DropdownMenuItem(text = { Text("清除进度") }, onClick = {
+                        viewModel.loadQuestions(quizId, examCount)
+                        elapsed = 0
+                        menuExpanded = false
+                    })
                 }
             }
             if (showList) {
