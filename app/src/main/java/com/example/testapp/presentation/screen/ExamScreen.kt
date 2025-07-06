@@ -125,7 +125,7 @@ fun ExamScreen(
                         }
                     }
                 })
-            }
+            }}
 
             Spacer(modifier = Modifier.height(8.dp))
 
@@ -244,4 +244,4 @@ fun ExamScreen(
             }
 
         }
-    }}
+    }
