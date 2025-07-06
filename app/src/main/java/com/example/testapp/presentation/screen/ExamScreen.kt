@@ -166,6 +166,7 @@ fun ExamScreen(
                     text = question.content,
                     style = MaterialTheme.typography.titleMedium.copy(
                         fontSize = questionFontSize.sp,
+                        lineHeight = (questionFontSize * 1.3f).sp,
                         fontFamily = LocalFontFamily.current
                     )
                 )
@@ -217,6 +218,7 @@ fun ExamScreen(
                             text = option,
                             modifier = Modifier.weight(1f),
                             fontSize = questionFontSize.sp,
+                            lineHeight = (questionFontSize * 1.3f).sp,
                             fontFamily = LocalFontFamily.current
                         )
                     }

@@ -176,6 +176,7 @@ fun PracticeScreen(
                 text = question.content,
                 style = MaterialTheme.typography.titleMedium.copy(
                     fontSize = questionFontSize.sp,
+                    lineHeight = (questionFontSize * 1.3f).sp,
                     fontFamily = LocalFontFamily.current
                 )
             )
@@ -222,6 +223,7 @@ fun PracticeScreen(
                     Text(
                         option,
                         fontSize = questionFontSize.sp,
+                        lineHeight = (questionFontSize * 1.3f).sp,
                         fontFamily = LocalFontFamily.current
                     )
                 }
