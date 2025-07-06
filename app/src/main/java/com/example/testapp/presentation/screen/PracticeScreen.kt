@@ -10,6 +10,8 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.graphics.Color
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material.icons.filled.Star
+import androidx.compose.material.icons.outlined.StarBorder
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -132,6 +134,19 @@ fun PracticeScreen(
                 fontSize = LocalFontSize.current,
                 fontFamily = LocalFontFamily.current
             )
+            Spacer(modifier = Modifier.width(8.dp))
+            IconButton(onClick = {
+                if (isFavorite) {
+                    favoriteViewModel.removeFavorite(question.id)
+                } else {
+                    favoriteViewModel.addFavorite(question)
+                }
+            }) {
+                Icon(
+                    imageVector = if (isFavorite) Icons.Filled.Star else Icons.Outlined.StarBorder,
+                    contentDescription = if (isFavorite) "取消收藏" else "收藏"
+                )
+            }
             Spacer(modifier = Modifier.weight(1f))
             Card(onClick = { showList = true }) {
                 Text(
@@ -216,22 +231,7 @@ fun PracticeScreen(
                     fontFamily = LocalFontFamily.current
                 )
             )
-            Spacer(modifier = Modifier.height(8.dp))
-            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
-                Button(onClick = {
-                    if (isFavorite) {
-                        favoriteViewModel.removeFavorite(question.id)
-                    } else {
-                        favoriteViewModel.addFavorite(question)
-                    }
-                }) {
-                    Text(
-                        if (isFavorite) "取消收藏" else "收藏",
-                        fontSize = LocalFontSize.current,
-                        fontFamily = LocalFontFamily.current
-                    )
-                }
-            }
+          
             Spacer(modifier = Modifier.height(16.dp))
             val handleSelect: (Int) -> Unit = { idx ->
                 viewModel.answerQuestion(idx)
