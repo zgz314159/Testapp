@@ -18,6 +18,7 @@ import com.example.testapp.presentation.screen.PracticeViewModel
 import com.example.testapp.presentation.screen.SettingsViewModel
 import com.example.testapp.presentation.component.LocalFontSize
 import com.example.testapp.presentation.component.LocalFontFamily
+import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.launch
 
 @Composable
@@ -71,6 +72,7 @@ fun PracticeScreen(
     var showList by remember { mutableStateOf(false) }
     var menuExpanded by remember { mutableStateOf(false) }
     var score by remember { mutableStateOf(0) }
+    var questionFontSize by remember { mutableStateOf(fontSize) }
 
     val selectedOption = selectedOptions.getOrNull(currentIndex) ?: -1
     val showResult = showResultList.getOrNull(currentIndex) ?: false
@@ -108,11 +110,11 @@ fun PracticeScreen(
             }
             DropdownMenu(expanded = menuExpanded, onDismissRequest = { menuExpanded = false }) {
                 DropdownMenuItem(text = { Text("放大字体") }, onClick = {
-                    settingsViewModel.setFontSize(context, (fontSize + 2).coerceAtMost(32f))
+                    questionFontSize = (questionFontSize + 2).coerceAtMost(32f)
                     menuExpanded = false
                 })
                 DropdownMenuItem(text = { Text("缩小字体") }, onClick = {
-                    settingsViewModel.setFontSize(context, (fontSize - 2).coerceAtLeast(14f))
+                    questionFontSize = (questionFontSize - 2).coerceAtLeast(14f)
                     menuExpanded = false
                 })
                 DropdownMenuItem(text = { Text("清除进度") }, onClick = {
@@ -173,7 +175,7 @@ fun PracticeScreen(
             Text(
                 text = question.content,
                 style = MaterialTheme.typography.titleMedium.copy(
-                    fontSize = LocalFontSize.current,
+                    fontSize = questionFontSize.sp,
                     fontFamily = LocalFontFamily.current
                 )
             )
@@ -219,7 +221,7 @@ fun PracticeScreen(
                     )
                     Text(
                         option,
-                        fontSize = LocalFontSize.current,
+                        fontSize = questionFontSize.sp,
                         fontFamily = LocalFontFamily.current
                     )
                 }

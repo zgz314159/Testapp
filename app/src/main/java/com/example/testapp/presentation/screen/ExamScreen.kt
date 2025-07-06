@@ -18,6 +18,7 @@ import kotlinx.coroutines.launch
 import com.example.testapp.presentation.component.LocalFontSize
 import com.example.testapp.presentation.component.LocalFontFamily
 import com.example.testapp.presentation.screen.FavoriteViewModel
+import androidx.compose.ui.unit.sp
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
@@ -55,6 +56,7 @@ fun ExamScreen(
     }
     var showList by remember { mutableStateOf(false) }
     var menuExpanded by remember { mutableStateOf(false) }
+    var questionFontSize by remember { mutableStateOf(fontSize) }
     if (question == null) {
         Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
             Text(
@@ -89,11 +91,11 @@ fun ExamScreen(
             }
             DropdownMenu(expanded = menuExpanded, onDismissRequest = { menuExpanded = false }) {
                 DropdownMenuItem(text = { Text("放大字体") }, onClick = {
-                    settingsViewModel.setFontSize(context, (fontSize + 2).coerceAtMost(32f))
+                    questionFontSize = (questionFontSize + 2).coerceAtMost(32f)
                     menuExpanded = false
                 })
                 DropdownMenuItem(text = { Text("缩小字体") }, onClick = {
-                    settingsViewModel.setFontSize(context, (fontSize - 2).coerceAtLeast(14f))
+                    questionFontSize = (questionFontSize - 2).coerceAtLeast(14f)
                     menuExpanded = false
                 })
                 DropdownMenuItem(text = { Text("清除进度") }, onClick = {
@@ -163,7 +165,7 @@ fun ExamScreen(
                 Text(
                     text = question.content,
                     style = MaterialTheme.typography.titleMedium.copy(
-                        fontSize = LocalFontSize.current,
+                        fontSize = questionFontSize.sp,
                         fontFamily = LocalFontFamily.current
                     )
                 )
@@ -214,7 +216,7 @@ fun ExamScreen(
                         Text(
                             text = option,
                             modifier = Modifier.weight(1f),
-                            fontSize = LocalFontSize.current,
+                            fontSize = questionFontSize.sp,
                             fontFamily = LocalFontFamily.current
                         )
                     }
