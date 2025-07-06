@@ -146,7 +146,7 @@ fun ExamScreen(
                 modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp)
             )
             // Layer 3: question and options
-            Column(modifier = Modifier.weight(1f, fill = false)) {
+            Column(modifier = Modifier.weight(1f)) {
                 Text(
                     text = question.content,
                     style = MaterialTheme.typography.titleMedium.copy(
@@ -197,10 +197,13 @@ fun ExamScreen(
                 }
             }
 
-            Spacer(modifier = Modifier.height(24.dp))
+            Spacer(modifier = Modifier.weight(1f))
 
             // Layer 4: answer buttons
-            Row {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceEvenly
+            ) {
                 if (currentIndex > 0) {
                     Button(onClick = { viewModel.prevQuestion() }) {
                         Text(
@@ -209,7 +212,20 @@ fun ExamScreen(
                             fontFamily = LocalFontFamily.current
                         )
                     }
-                    Spacer(modifier = Modifier.width(16.dp))
+                }
+                if (currentIndex >= 1) {
+                    Button(onClick = {
+                        coroutineScope.launch {
+                            val score = viewModel.gradeExam()
+                            onExamEnd(score, questions.size)
+                        }
+                    }) {
+                        Text(
+                            "交卷",
+                            fontSize = LocalFontSize.current,
+                            fontFamily = LocalFontFamily.current
+                        )
+                    }
                 }
                 if (currentIndex < questions.size - 1) {
                     Button(onClick = { viewModel.nextQuestion() }) {
@@ -221,20 +237,6 @@ fun ExamScreen(
                     }
                 }
             }
-            Spacer(modifier = Modifier.height(24.dp))
-            if (currentIndex >= 1) {
-                Button(onClick = {
-                    coroutineScope.launch {
-                        val score = viewModel.gradeExam()
-                        onExamEnd(score, questions.size)
-                    }
-                }) {
-                    Text(
-                        "交卷",
-                        fontSize = LocalFontSize.current,
-                        fontFamily = LocalFontFamily.current
-                    )
-                }
-            }
+
         }
     }}

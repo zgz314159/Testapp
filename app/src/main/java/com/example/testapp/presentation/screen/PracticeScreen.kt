@@ -119,7 +119,10 @@ fun PracticeScreen(
         }
         if (showList) {
             AlertDialog(onDismissRequest = { showList = false }, confirmButton = {}, text = {
-                LazyVerticalGrid(columns = GridCells.Fixed(5), modifier = Modifier.heightIn(max = 300.dp)) {
+                LazyVerticalGrid(
+                    columns = GridCells.Fixed(5),
+                    modifier = Modifier.heightIn(max = 300.dp)
+                ) {
                     items(questions.size) { idx ->
                         Box(
                             modifier = Modifier
@@ -162,7 +165,7 @@ fun PracticeScreen(
             modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp)
         )
         // Layer 3: question and options
-        Column(modifier = Modifier.weight(1f, fill = false)) {
+        Column(modifier = Modifier.weight(1f)) {
             Text(
                 text = question.content,
                 style = MaterialTheme.typography.titleMedium.copy(
@@ -186,129 +189,141 @@ fun PracticeScreen(
                     )
                 }
             }
-        }
-        Spacer(modifier = Modifier.height(16.dp))
-        question.options.forEachIndexed { idx, option ->
-            val correctIndex = answerLetterToIndex(question.answer)
-            val isCorrect = showResult && correctIndex != null && idx == correctIndex
-            val isSelected = selectedOption == idx
-            val isWrong = showResult && isSelected && !isCorrect
-            val backgroundColor = when {
-                isCorrect -> MaterialTheme.colorScheme.primary.copy(alpha = 0.2f)
-                isWrong -> MaterialTheme.colorScheme.error.copy(alpha = 0.2f)
-                isSelected -> MaterialTheme.colorScheme.secondary.copy(alpha = 0.1f)
-                else -> MaterialTheme.colorScheme.surface
-            }
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(vertical = 4.dp)
-                    .background(backgroundColor),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                RadioButton(
-                    selected = isSelected,
-                    onClick = { viewModel.answerQuestion(idx) },
-                    enabled = !showResult
-                )
-                Text(option, fontSize = LocalFontSize.current, fontFamily = LocalFontFamily.current)
-            }
-            }
-        }
-        Spacer(modifier = Modifier.height(24.dp))
-    // Layer 4: answer buttons
-        Row {
-            if (currentIndex > 0) {
-                Button(onClick = {
-                    viewModel.updateShowResult(currentIndex, showResult)
-                    viewModel.prevQuestion()
-                }) {
-                    Text(
-                        "上一题",
-                        fontSize = LocalFontSize.current,
-                        fontFamily = LocalFontFamily.current
-                    )
-                }
-                Spacer(modifier = Modifier.width(16.dp))
-            }
-            if (currentIndex < questions.size - 1) {
-                Button(onClick = {
-                    viewModel.updateShowResult(currentIndex, showResult)
-                    viewModel.nextQuestion()
-                }) {
-                    Text(
-                        "下一题",
-                        fontSize = LocalFontSize.current,
-                        fontFamily = LocalFontFamily.current
-                    )
-                }
-            } else {
-                Button(onClick = {
-                    onQuizEnd(score, questions.size)
-                }) {
-                    Text(
-                        "交卷",
-                        fontSize = LocalFontSize.current,
-                        fontFamily = LocalFontFamily.current
-                    )
-                }
-            }
-        }
-        Spacer(modifier = Modifier.height(24.dp))
-        val wrongBookViewModel: WrongBookViewModel = hiltViewModel()
-        val coroutineScope = rememberCoroutineScope()
-        Button(
-            onClick = {
-                viewModel.updateShowResult(currentIndex, true)
+            Spacer(modifier = Modifier.height(16.dp))
+            question.options.forEachIndexed { idx, option ->
                 val correctIndex = answerLetterToIndex(question.answer)
-                val correct = selectedOption == correctIndex
-                if (!correct && selectedOption != -1) {
-                    coroutineScope.launch {
-                        try {
-                            wrongBookViewModel.addWrongQuestion(
-                                com.example.testapp.domain.model.WrongQuestion(question, selectedOption)
-                            )
-                            android.util.Log.d("PracticeScreen", "保存错题: ${question.content}, 选项: $selectedOption, fileName: ${question.fileName}")
-                        } catch (e: Exception) {
-                            android.util.Log.e("PracticeScreen", "保存错题失败:${e.message}")
-                        }
+                val isCorrect = showResult && correctIndex != null && idx == correctIndex
+                val isSelected = selectedOption == idx
+                val isWrong = showResult && isSelected && !isCorrect
+                val backgroundColor = when {
+                    isCorrect -> MaterialTheme.colorScheme.primary.copy(alpha = 0.2f)
+                    isWrong -> MaterialTheme.colorScheme.error.copy(alpha = 0.2f)
+                    isSelected -> MaterialTheme.colorScheme.secondary.copy(alpha = 0.1f)
+                    else -> MaterialTheme.colorScheme.surface
+                }
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 4.dp)
+                        .background(backgroundColor),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    RadioButton(
+                        selected = isSelected,
+                        onClick = { viewModel.answerQuestion(idx) },
+                        enabled = !showResult
+                    )
+                    Text(
+                        option,
+                        fontSize = LocalFontSize.current,
+                        fontFamily = LocalFontFamily.current
+                    )
+                }
+
+            }
+            Spacer(modifier = Modifier.weight(1f))
+            // Layer 4: answer buttons
+            val wrongBookViewModel: WrongBookViewModel = hiltViewModel()
+            val coroutineScope = rememberCoroutineScope()
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceEvenly
+            ) {
+                if (currentIndex > 0) {
+                    Button(onClick = {
+                        viewModel.updateShowResult(currentIndex, showResult)
+                        viewModel.prevQuestion()
+                    }) {
+                        Text(
+                            "上一题",
+                            fontSize = LocalFontSize.current,
+                            fontFamily = LocalFontFamily.current
+                        )
                     }
                 }
-                if (correct) score++
-                onSubmit(correct)
-            },
-            enabled = selectedOption != -1 && !showResult,
-        ) {
-            Text(
-                "提交答案",
-                fontSize = LocalFontSize.current,
-                fontFamily = LocalFontFamily.current
-            )
-        }
-        if (showResult) {
-            val correctIndex = answerLetterToIndex(question.answer)
-            val correct = selectedOption == correctIndex
-            Text(
-                if (correct) "回答正确！" else "回答错误，正确答案：${if (correctIndex != null && correctIndex in question.options.indices) question.options[correctIndex] else question.answer}",
-                color = if (correct) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error,
-                fontSize = LocalFontSize.current,
-                fontFamily = LocalFontFamily.current
-            )
-
-            if (question.fileName != null) {
-                Spacer(modifier = Modifier.height(8.dp))
-                Text(
-                    "题目来源文件：${question.fileName}",
-                    style = MaterialTheme.typography.bodySmall.copy(
+                Button(
+                    onClick = {
+                        viewModel.updateShowResult(currentIndex, true)
+                        val correctIndex = answerLetterToIndex(question.answer)
+                        val correct = selectedOption == correctIndex
+                        if (!correct && selectedOption != -1) {
+                            coroutineScope.launch {
+                                try {
+                                    wrongBookViewModel.addWrongQuestion(
+                                        com.example.testapp.domain.model.WrongQuestion(
+                                            question,
+                                            selectedOption
+                                        )
+                                    )
+                                    android.util.Log.d(
+                                        "PracticeScreen",
+                                        "保存错题: ${question.content}, 选项: $selectedOption, fileName: ${question.fileName}"
+                                    )
+                                } catch (e: Exception) {
+                                    android.util.Log.e(
+                                        "PracticeScreen",
+                                        "保存错题失败:${e.message}"
+                                    )
+                                }
+                            }
+                        }
+                        if (correct) score++
+                        onSubmit(correct)
+                    },
+                    enabled = selectedOption != -1 && !showResult,
+                ) {
+                    Text(
+                        "提交答案",
                         fontSize = LocalFontSize.current,
                         fontFamily = LocalFontFamily.current
                     )
-                )
+                }
+                if (currentIndex < questions.size - 1) {
+                    Button(onClick = {
+                        viewModel.updateShowResult(currentIndex, showResult)
+                        viewModel.nextQuestion()
+                    }) {
+                        Text(
+                            "下一题",
+                            fontSize = LocalFontSize.current,
+                            fontFamily = LocalFontFamily.current
+                        )
+                    }
+                } else {
+                    Button(onClick = { onQuizEnd(score, questions.size) }) {
+                        Text(
+                            "交卷",
+                            fontSize = LocalFontSize.current,
+                            fontFamily = LocalFontFamily.current
+                        )
+                    }
+                }
             }
-            Spacer(modifier = Modifier.height(16.dp))
-        }
-    }
 
+            if (showResult) {
+                val correctIndex = answerLetterToIndex(question.answer)
+                val correct = selectedOption == correctIndex
+                Text(
+                    if (correct) "回答正确！" else "回答错误，正确答案：${if (correctIndex != null && correctIndex in question.options.indices) question.options[correctIndex] else question.answer}",
+                    color = if (correct) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error,
+                    fontSize = LocalFontSize.current,
+                    fontFamily = LocalFontFamily.current
+                )
+
+                if (question.fileName != null) {
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(
+                        "题目来源文件：${question.fileName}",
+                        style = MaterialTheme.typography.bodySmall.copy(
+                            fontSize = LocalFontSize.current,
+                            fontFamily = LocalFontFamily.current
+                        )
+                    )
+                }
+                Spacer(modifier = Modifier.height(16.dp))
+            }
+        }
+    }}
 
 // 工具函数：将字母答案转为索引
 private fun answerLetterToIndex(answer: String): Int? {
