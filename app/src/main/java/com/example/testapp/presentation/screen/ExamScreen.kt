@@ -2,6 +2,7 @@ package com.example.testapp.presentation.screen
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
@@ -22,7 +23,7 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
-import androidx.compose.foundation.clickable
+import androidx.compose.ui.input.pointer.pointerInput
 
 
 
@@ -57,6 +58,7 @@ fun ExamScreen(
     var showList by remember { mutableStateOf(false) }
     var menuExpanded by remember { mutableStateOf(false) }
     var questionFontSize by remember { mutableStateOf(fontSize) }
+    var dragAmount by remember { mutableStateOf(0f) }
     if (question == null) {
         Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
             Text(
@@ -68,7 +70,25 @@ fun ExamScreen(
         return
     }
 
-    Column(modifier = Modifier.fillMaxSize().padding(16.dp)) {
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(16.dp)
+            .pointerInput(currentIndex) {
+                detectHorizontalDragGestures(
+                    onHorizontalDrag = { _, amount -> dragAmount += amount },
+                    onDragEnd = {
+                        if (dragAmount > 100f && currentIndex > 0) {
+                            viewModel.prevQuestion()
+                        } else if (dragAmount < -100f && currentIndex < questions.size - 1) {
+                            viewModel.nextQuestion()
+                        }
+                        dragAmount = 0f
+                    },
+                    onDragCancel = { dragAmount = 0f }
+                )
+            }
+    ) {
         // Layer 1: timer, question list card and settings menu
         Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
             Text(
@@ -189,13 +209,22 @@ fun ExamScreen(
                 Spacer(modifier = Modifier.height(16.dp))
             }
 
+            val handleSelect: (Int) -> Unit = { idx ->
+                viewModel.selectOption(idx)
+                if (question.type == "单选题" || question.type == "判断题") {
+                    if (currentIndex < questions.size - 1) {
+                        viewModel.nextQuestion()
+                    }
+                }
+            }
+
             itemsIndexed(question.options) { idx, option ->
                 val isSelected = selectedOptions.getOrElse(currentIndex) { -1 } == idx
                 Card(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(vertical = 4.dp)
-                        .clickable { viewModel.selectOption(idx) },
+                        .clickable { handleSelect(idx) },
                     colors = CardDefaults.cardColors(
                         containerColor = if (isSelected)
                             MaterialTheme.colorScheme.primary.copy(alpha = 0.08f)
@@ -211,7 +240,7 @@ fun ExamScreen(
                     ) {
                         RadioButton(
                             selected = isSelected,
-                            onClick = { viewModel.selectOption(idx) }
+                            onClick = { handleSelect(idx) }
                         )
                         Spacer(modifier = Modifier.width(8.dp))
                         Text(
@@ -234,39 +263,19 @@ fun ExamScreen(
         // Layer 4: answer buttons
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceEvenly
+                horizontalArrangement = Arrangement.Center
             ) {
-                if (currentIndex > 0) {
-                    Button(onClick = { viewModel.prevQuestion() }) {
-                        Text(
-                            "上一题",
-                            fontSize = LocalFontSize.current,
-                            fontFamily = LocalFontFamily.current
-                        )
+                Button(onClick = {
+                    coroutineScope.launch {
+                        val score = viewModel.gradeExam()
+                        onExamEnd(score, questions.size)
                     }
-                }
-                if (currentIndex >= 1) {
-                    Button(onClick = {
-                        coroutineScope.launch {
-                            val score = viewModel.gradeExam()
-                            onExamEnd(score, questions.size)
-                        }
-                    }) {
-                        Text(
-                            "交卷",
-                            fontSize = LocalFontSize.current,
-                            fontFamily = LocalFontFamily.current
-                        )
-                    }
-                }
-                if (currentIndex < questions.size - 1) {
-                    Button(onClick = { viewModel.nextQuestion() }) {
-                        Text(
-                            "下一题",
-                            fontSize = LocalFontSize.current,
-                            fontFamily = LocalFontFamily.current
-                        )
-                    }
+                }) {
+                    Text(
+                        "交卷",
+                        fontSize = LocalFontSize.current,
+                        fontFamily = LocalFontFamily.current
+                    )
                 }
             }
 
