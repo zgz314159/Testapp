@@ -5,6 +5,9 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.gestures.detectHorizontalDragGestures
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.graphics.Color
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material3.*
@@ -94,7 +97,34 @@ fun PracticeScreen(
         return
     }
 
-    Column(modifier = Modifier.fillMaxSize().padding(16.dp)) {
+    var dragAmount by remember { mutableStateOf(0f) }
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(16.dp)
+            .pointerInput(currentIndex) {
+                detectHorizontalDragGestures(
+                    onHorizontalDrag = { _, amount -> dragAmount += amount },
+                    onDragEnd = {
+                        if (dragAmount > 100f && currentIndex > 0) {
+                            autoJob?.cancel()
+                            viewModel.updateShowResult(currentIndex, showResult)
+                            viewModel.prevQuestion()
+                        } else if (dragAmount < -100f) {
+                            autoJob?.cancel()
+                            viewModel.updateShowResult(currentIndex, showResult)
+                            if (currentIndex < questions.size - 1) {
+                                viewModel.nextQuestion()
+                            } else {
+                                onQuizEnd(score, questions.size)
+                            }
+                        }
+                        dragAmount = 0f
+                    },
+                    onDragCancel = { dragAmount = 0f }
+                )
+            }
+    ) {
         // Layer 1: timer, question list card and settings menu
         Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
             Text(
@@ -273,20 +303,37 @@ fun PracticeScreen(
                 }
 
             }
-            Spacer(modifier = Modifier.weight(1f))
+
 
             if (showResult) {
                 val correctIndex = answerLetterToIndex(question.answer)
                 val correct = selectedOption == correctIndex
-                Text(
-                    if (correct) "回答正确！" else "回答错误，正确答案：${if (correctIndex != null && correctIndex in question.options.indices) question.options[correctIndex] else question.answer}",
-                    color = if (correct) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error,
-                    fontSize = LocalFontSize.current,
-                    fontFamily = LocalFontFamily.current
-                )
-
-                if (question.fileName != null) {
-                    Spacer(modifier = Modifier.height(8.dp))
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .background(Color.LightGray)
+                        .padding(8.dp)
+                ) {
+                    Text(
+                        if (correct) "回答正确！" else "回答错误，正确答案：${if (correctIndex != null && correctIndex in question.options.indices) question.options[correctIndex] else question.answer}",
+                        color = if (correct) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error,
+                        fontSize = LocalFontSize.current,
+                        fontFamily = LocalFontFamily.current
+                    )
+                }
+                if (question.explanation.isNotBlank()) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .background(Color.LightGray)
+                            .padding(8.dp)
+                    ) {
+                        Text(
+                            text = "解析：${question.explanation}",
+                            fontSize = LocalFontSize.current,
+                            fontFamily = LocalFontFamily.current
+                        )
+                    }
 
                 }
                 Spacer(modifier = Modifier.height(16.dp))
@@ -295,21 +342,9 @@ fun PracticeScreen(
             // Layer 4: answer buttons
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween
+                horizontalArrangement = Arrangement.End
             ) {
-                if (currentIndex > 0) {
-                    Button(onClick = {
-                        autoJob?.cancel()
-                        viewModel.updateShowResult(currentIndex, showResult)
-                        viewModel.prevQuestion()
-                    }) {
-                        Text(
-                            "上一题",
-                            fontSize = LocalFontSize.current,
-                            fontFamily = LocalFontFamily.current
-                        )
-                    }
-                }
+
                 if (question.type != "单选题" && question.type != "判断题") {
                     Button(
                         onClick = {
@@ -357,19 +392,8 @@ fun PracticeScreen(
                         )
                     }
                 }
-                if (currentIndex < questions.size - 1) {
-                    Button(onClick = {
-                        autoJob?.cancel()
-                        viewModel.updateShowResult(currentIndex, showResult)
-                        viewModel.nextQuestion()
-                    }) {
-                        Text(
-                            "下一题",
-                            fontSize = LocalFontSize.current,
-                            fontFamily = LocalFontFamily.current
-                        )
-                    }
-                } else {
+                if (currentIndex == questions.size - 1) {
+                    Spacer(modifier = Modifier.width(8.dp))
                     Button(onClick = {
                         autoJob?.cancel()
                         onQuizEnd(score, questions.size)
