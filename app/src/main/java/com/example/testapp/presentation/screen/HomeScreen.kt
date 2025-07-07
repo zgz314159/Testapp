@@ -130,6 +130,7 @@ fun HomeScreen(
                     selected = bottomNavIndex == 2,
                     onClick = {
                         bottomNavIndex = 2
+                        if (selectedFileName.value.isNullOrBlank()) return@NavigationBarItem
                         onViewQuestionDetail(selectedFileName.value)
                     },
                     icon = { Icon(Icons.Filled.FactCheck, contentDescription = "题库详情") },

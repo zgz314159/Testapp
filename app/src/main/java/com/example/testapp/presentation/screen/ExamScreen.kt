@@ -48,6 +48,19 @@ fun ExamScreen(
     val progressLoaded by viewModel.progressLoaded.collectAsState()
     val showResultList by viewModel.showResultList.collectAsState()
     val finished by viewModel.finished.collectAsState()
+
+
+    // 关键：DisposableEffect 用于退出界面时自动判卷保存
+    DisposableEffect(finished, progressLoaded) {
+        onDispose {
+            if (progressLoaded && !finished) {
+                kotlinx.coroutines.runBlocking {
+                    viewModel.gradeExam()
+                }
+            }
+        }
+    }
+
     val fontSize by settingsViewModel.fontSize.collectAsState()
     val examDelay by settingsViewModel.examDelay.collectAsState()
     val context = LocalContext.current

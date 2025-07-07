@@ -52,5 +52,21 @@ class FavoriteQuestionRepositoryImpl @Inject constructor(
             true
         } catch (e: Exception) { false }
     }
+
+    override suspend fun removeByFileName(fileName: String) {
+        val all = dao.getAll().firstOrNull().orEmpty()
+        val json = kotlinx.serialization.json.Json
+        all.forEach { entity ->
+            // 反序列化 Question
+            val question = try {
+                json.decodeFromString<com.example.testapp.domain.model.Question>(entity.questionJson)
+            } catch (e: Exception) { null }
+            if (question != null && question.fileName == fileName) {
+                dao.removeById(question.id)
+            }
+        }
+    }
+
+
 }
 

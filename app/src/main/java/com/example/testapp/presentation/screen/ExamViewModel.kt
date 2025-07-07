@@ -152,18 +152,24 @@ class ExamViewModel @Inject constructor(
         val qs = _questions.value
         val selections = _selectedOptions.value
         var score = 0
+        val newShowResultList = _showResultList.value.toMutableList()
+
         for (i in qs.indices) {
             val correct = answerLetterToIndex(qs[i].answer)
             val sel = selections.getOrElse(i) { -1 }
-            if (sel == correct) {
-                score++
-            } else if (sel != -1) {
-                addWrongQuestionUseCase(WrongQuestion(qs[i], sel))
+            if (sel != -1) {// 已作答题
+                if (sel == correct) {
+                    score++
+                } else {
+                    addWrongQuestionUseCase(WrongQuestion(qs[i], sel))
+                }
+                newShowResultList[i] = true // 只对已答题批改
             }
+            // 未答的题保持原showResultList[i]（一般是false）
         }
         addHistoryRecordUseCase(HistoryRecord(score, qs.size))
-        _showResultList.value = List(qs.size) { true }
-        _finished.value = true
+        _showResultList.value = newShowResultList
+        _finished.value = newShowResultList.all { it }
         android.util.Log.d("ExamDebug", "gradeExam score=$score total=${qs.size}")
         saveProgress()
         return score

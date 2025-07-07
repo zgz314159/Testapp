@@ -10,5 +10,6 @@ interface FavoriteQuestionRepository {
     suspend fun isFavorite(questionId: Int): Boolean
     suspend fun importFromFile(file: java.io.File): Int
     suspend fun exportToFile(file: java.io.File): Boolean
+    suspend fun removeByFileName(fileName: String)
 
 }

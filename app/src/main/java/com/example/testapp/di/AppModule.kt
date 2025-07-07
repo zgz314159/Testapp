@@ -29,12 +29,12 @@ import com.example.testapp.domain.usecase.GetHistoryListUseCase
 import com.example.testapp.domain.usecase.GetQuestionsUseCase
 import com.example.testapp.domain.usecase.GetWrongBookUseCase
 import com.example.testapp.domain.usecase.RemoveFavoriteQuestionUseCase
-import com.example.testapp.domain.usecase.ClearPracticeProgressUseCase
 import com.example.testapp.domain.usecase.GetPracticeProgressFlowUseCase
 import com.example.testapp.domain.usecase.SavePracticeProgressUseCase
 import com.example.testapp.domain.usecase.SaveExamProgressUseCase
 import com.example.testapp.domain.usecase.GetExamProgressFlowUseCase
 import com.example.testapp.domain.usecase.ClearExamProgressUseCase
+import com.example.testapp.domain.usecase.ClearPracticeProgressUseCase
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn

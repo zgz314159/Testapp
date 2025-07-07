@@ -4,7 +4,9 @@ import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.testapp.domain.model.Question
+import com.example.testapp.domain.usecase.ClearPracticeProgressUseCase
 import com.example.testapp.domain.usecase.GetQuestionsUseCase
+import com.example.testapp.domain.usecase.RemoveFavoriteQuestionsByFileNameUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -15,7 +17,9 @@ import javax.inject.Inject
 
 @HiltViewModel
 class HomeViewModel @Inject constructor(
-    private val getQuestionsUseCase: GetQuestionsUseCase
+    private val getQuestionsUseCase: GetQuestionsUseCase,
+    private val clearPracticeProgressUseCase: ClearPracticeProgressUseCase,
+    private val removeFavoriteQuestionsByFileNameUseCase: RemoveFavoriteQuestionsByFileNameUseCase
 ) : ViewModel() {
     private val _questions = MutableStateFlow<List<Question>>(emptyList())
     val questions: StateFlow<List<Question>> = _questions.asStateFlow()
@@ -37,6 +41,8 @@ class HomeViewModel @Inject constructor(
         viewModelScope.launch {
             Log.d("HomeVM", "[deleteFileAndData] before: fileNames=$_fileNames, selectedFile=$fileName")
             getQuestionsUseCase.deleteQuestionsByFileName(fileName)
+            clearPracticeProgressUseCase(fileName) // ★ 新增清理进度
+            removeFavoriteQuestionsByFileNameUseCase(fileName) // 一行，批量删收藏
             // 等待数据库变更后再 collect 一次，确保刷新
             val list = getQuestionsUseCase().first()
             _questions.value = list
