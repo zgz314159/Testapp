@@ -76,10 +76,7 @@ class PracticeViewModel @Inject constructor(
                 }
             }
         }
-        else {
-            // 如果不加载题目，则直接加载进度
-            loadProgress()
-        }
+
     }
 
     private fun loadProgress() {
@@ -91,18 +88,25 @@ class PracticeViewModel @Inject constructor(
                 )
                 if (progress != null && !_progressLoaded.value) {
                     _currentIndex.value = progress.currentIndex.coerceAtMost(_questions.value.size - 1)
-                    _answeredList.value = progress.answeredList
-                    _selectedOptions.value = if (progress.selectedOptions.size >= _questions.value.size) {
-                        progress.selectedOptions.take(_questions.value.size)
+                    // answeredList 补齐长度
+                    _answeredList.value = if (progress.answeredList.size >= _questions.value.size) {
+                        progress.answeredList.take(_questions.value.size).toList()
                     } else {
-                        progress.selectedOptions +
-                                List(_questions.value.size - progress.selectedOptions.size) { -1 }
+                        (progress.answeredList + List(_questions.value.size - progress.answeredList.size) { -1 }).toList()
                     }
-                    _showResultList.value = if (progress.showResultList.size >= _questions.value.size) {
-                        progress.showResultList.take(_questions.value.size)
+                    _selectedOptions.value = emptyList()
+                    _selectedOptions.value = if (progress.selectedOptions.size >= _questions.value.size) {
+                        progress.selectedOptions.take(_questions.value.size).toList()
                     } else {
-                        progress.showResultList +
-                                List(_questions.value.size - progress.showResultList.size) { false }
+                        (progress.selectedOptions +
+                                List(_questions.value.size - progress.selectedOptions.size) { -1 }).toList()
+                    }
+                    _showResultList.value = emptyList()
+                    _showResultList.value = if (progress.showResultList.size >= _questions.value.size) {
+                        progress.showResultList.take(_questions.value.size).toList()
+                    } else {
+                        (progress.showResultList +
+                                List(_questions.value.size - progress.showResultList.size) { false }).toList()
                     }
                     android.util.Log.d(
                         "PracticeDebug",
@@ -111,7 +115,7 @@ class PracticeViewModel @Inject constructor(
                 } else if (progress == null && !_progressLoaded.value) {
                     android.util.Log.d("PracticeDebug", "no existing progress, initializing")
                     _currentIndex.value = 0
-                    _answeredList.value = emptyList()
+                    _answeredList.value = List(_questions.value.size) { -1 }
                     _selectedOptions.value = List(_questions.value.size) { -1 }
                     _showResultList.value = List(_questions.value.size) { false }
                     saveProgress()

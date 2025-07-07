@@ -29,6 +29,8 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import com.example.testapp.util.answerLetterToIndex
 
+
+
 @Composable
 fun PracticeScreen(
     quizId: String = "default",
@@ -55,6 +57,9 @@ fun PracticeScreen(
             viewModel.setProgressId(quizId)
         }
     }
+
+    val coroutineScope = rememberCoroutineScope()
+    val wrongBookViewModel: WrongBookViewModel = hiltViewModel()
     val questions by viewModel.questions.collectAsState()
     val fontSize by settingsViewModel.fontSize.collectAsState()
     val fontStyle by settingsViewModel.fontStyle.collectAsState()
@@ -69,6 +74,16 @@ fun PracticeScreen(
     val favoriteViewModel: FavoriteViewModel = hiltViewModel()
     val favoriteQuestions by favoriteViewModel.favoriteQuestions.collectAsState()
     val question = questions.getOrNull(currentIndex)
+    android.util.Log.d(
+        "PracticeScreen-question",
+        "currentIndex=$currentIndex, question=$question"
+    )
+    val selectedOption = selectedOptions.getOrNull(currentIndex) ?: -1
+    val showResult = showResultList.getOrNull(currentIndex) ?: false
+    android.util.Log.d(
+        "PracticeScreen-selected",
+        "currentIndex=$currentIndex, selectedOption=$selectedOption, showResult=$showResult"
+    )
     val isFavorite = remember(question, favoriteQuestions) {
         question != null && favoriteQuestions.any { it.question.id == question.id }
     }
@@ -86,14 +101,10 @@ fun PracticeScreen(
     var autoJob by remember { mutableStateOf<Job?>(null) }
     var showExitDialog by remember { mutableStateOf(false) }
 
-    val selectedOption = selectedOptions.getOrNull(currentIndex) ?: -1
-    val showResult = showResultList.getOrNull(currentIndex) ?: false
-    val wrongBookViewModel: WrongBookViewModel = hiltViewModel()
-    val coroutineScope = rememberCoroutineScope()
-    LaunchedEffect(selectedOption, showResult) {
+    LaunchedEffect(selectedOption, showResult, currentIndex, answeredList, selectedOptions, showResultList, progressLoaded) {
         android.util.Log.d(
-            "PracticeScreen",
-            "state current=$currentIndex selected=$selectedOption showResult=$showResult"
+            "PracticeScreen-LaunchedEffect",
+            "currentIndex=$currentIndex, selectedOption=$selectedOption, showResult=$showResult, answeredList=$answeredList, selectedOptions=$selectedOptions, showResultList=$showResultList, progressLoaded=$progressLoaded"
         )
     }
     BackHandler {
@@ -127,11 +138,11 @@ fun PracticeScreen(
                     onDragEnd = {
                         if (dragAmount > 100f && currentIndex > 0) {
                             autoJob?.cancel()
-                            viewModel.updateShowResult(currentIndex, showResult)
+                           // viewModel.updateShowResult(currentIndex, showResult)
                             viewModel.prevQuestion()
                         } else if (dragAmount < -100f) {
                             autoJob?.cancel()
-                            viewModel.updateShowResult(currentIndex, showResult)
+                           // viewModel.updateShowResult(currentIndex, showResult)
                             if (currentIndex < questions.size - 1) {
                                 viewModel.nextQuestion()
                             } else {
@@ -165,6 +176,7 @@ fun PracticeScreen(
                 }
             }) {
                 Icon(
+                    modifier = Modifier.size(24.dp),
                     imageVector = if (isFavorite) Icons.Filled.Star else Icons.Outlined.StarBorder,
                     contentDescription = if (isFavorite) "取消收藏" else "收藏"
                 )
@@ -205,14 +217,34 @@ fun PracticeScreen(
                     modifier = Modifier.heightIn(max = 300.dp)
                 ) {
                     items(questions.size) { idx ->
-                        val answered = answeredList.contains(idx)
+                       // val answered = answeredList.contains(idx)
+
+                        // 取出该题是否已显示解析 & 用户选项 & 正确答案
+                               val resultShown = showResultList.getOrNull(idx) == true
+                                val selected = selectedOptions.getOrNull(idx) ?: -1
+                                val q = questions.getOrNull(idx)
+                                val correctIdx = q?.let { answerLetterToIndex(it.answer) }
+
+                                // 决定背景色：绿色=答对，红色=答错，灰=已答未看解析，透明=未答
+                                val bgColor = when {
+                                        resultShown && selected == correctIdx ->
+                                                MaterialTheme.colorScheme.primary.copy(alpha = 0.3f)
+                                        resultShown && selected != correctIdx ->
+                                                MaterialTheme.colorScheme.error.copy(alpha = 0.3f)
+                                        idx in answeredList ->
+                                                MaterialTheme.colorScheme.secondary.copy(alpha = 0.1f)
+                                        else ->
+                                                Color.Transparent
+                                    }
+
+
                         Box(
                             modifier = Modifier
                                 .padding(4.dp)
-                                .background(
-                                    if (answered) MaterialTheme.colorScheme.primary.copy(alpha = 0.3f)
-                                    else Color.Transparent
-                                )
+                                .background(bgColor)
+//                                    if (answered) MaterialTheme.colorScheme.primary.copy(alpha = 0.3f)
+//                                    else Color.Transparent
+//                                )
                                 .clickable {
                                     viewModel.goToQuestion(idx)
                                     showList = false
@@ -266,7 +298,7 @@ fun PracticeScreen(
                 android.util.Log.d("PracticeScreen", "handleSelect index=$idx current=$currentIndex")
                 viewModel.answerQuestion(idx)
                 if (!showResult && (question.type == "单选题" || question.type == "判断题")) {
-                    viewModel.updateShowResult(currentIndex, true)
+                    //viewModel.updateShowResult(currentIndex, true)
                     val correctIndex = answerLetterToIndex(question.answer)
                     val correct = idx == correctIndex
                     if (!correct) {
@@ -456,5 +488,3 @@ fun PracticeScreen(
         )
     }
 }
-
-
