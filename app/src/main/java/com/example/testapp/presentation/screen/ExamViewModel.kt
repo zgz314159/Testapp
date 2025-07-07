@@ -49,7 +49,8 @@ class ExamViewModel @Inject constructor(
     private var progressId: String = "default"
 
     fun loadQuestions(quizId: String, count: Int) {
-        progressId = quizId
+        // 考试模式也使用前缀区分进度
+        progressId = "exam_${quizId}"
         _progressLoaded.value = false
         viewModelScope.launch {
             android.util.Log.d("ExamDebug", "loadQuestions start id=$quizId count=$count")

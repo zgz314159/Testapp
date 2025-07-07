@@ -48,13 +48,22 @@ fun PracticeScreen(
         viewModel.setRandomPractice(randomPractice)
         if (isWrongBookMode && wrongBookFileName != null) {
             // 使用独立的进度 id，避免与普通练习冲突，并跳过题库加载
-            viewModel.setProgressId("wrongbook_${wrongBookFileName}", loadQuestions = false)
+            viewModel.setProgressId(
+                id = "wrongbook_${wrongBookFileName}",
+                questionsId = wrongBookFileName,
+                loadQuestions = false
+            )
             viewModel.loadWrongQuestions(wrongBookFileName)
         } else if (isFavoriteMode && favoriteFileName != null) {
-            viewModel.setProgressId("favorite_${favoriteFileName}", loadQuestions = false)
+            viewModel.setProgressId(
+                id = "favorite_${favoriteFileName}",
+                questionsId = favoriteFileName,
+                loadQuestions = false
+            )
             viewModel.loadFavoriteQuestions(favoriteFileName)
         } else {
-            viewModel.setProgressId(quizId)
+            // 普通练习模式使用 "practice_" 前缀，避免与其他模式的进度混淆
+            viewModel.setProgressId(id = "practice_${quizId}", questionsId = quizId)
         }
     }
 

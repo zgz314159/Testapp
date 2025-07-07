@@ -219,14 +219,25 @@ fun ExamScreen(
                     modifier = Modifier.heightIn(max = 300.dp)
                 ) {
                     items(questions.size) { idx ->
-                        val answered = selectedOptions.getOrElse(idx) { -1 } != -1
+                        val resultShown = showResultList.getOrNull(idx) == true
+                        val selected = selectedOptions.getOrNull(idx) ?: -1
+                        val q = questions.getOrNull(idx)
+                        val correctIdx = q?.let { answerLetterToIndex(it.answer) }
+
+                        val bgColor = when {
+                            resultShown && selected == correctIdx ->
+                                MaterialTheme.colorScheme.primary.copy(alpha = 0.3f)
+                            resultShown && selected != correctIdx ->
+                                MaterialTheme.colorScheme.error.copy(alpha = 0.3f)
+                            selected != -1 ->
+                                MaterialTheme.colorScheme.secondary.copy(alpha = 0.1f)
+                            else -> Color.Transparent
+                        }
+
                         Box(
                             modifier = Modifier
                                 .padding(4.dp)
-                                .background(
-                                    if (answered) MaterialTheme.colorScheme.primary.copy(alpha = 0.3f)
-                                    else Color.Transparent
-                                )
+                                .background(bgColor)
                                 .clickable {
                                     viewModel.goToQuestion(idx)
                                     showList = false
@@ -243,6 +254,7 @@ fun ExamScreen(
                 }
             })
         }
+
 
         Spacer(modifier = Modifier.height(8.dp))
 

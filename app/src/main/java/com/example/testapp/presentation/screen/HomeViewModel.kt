@@ -41,7 +41,8 @@ class HomeViewModel @Inject constructor(
         viewModelScope.launch {
             Log.d("HomeVM", "[deleteFileAndData] before: fileNames=$_fileNames, selectedFile=$fileName")
             getQuestionsUseCase.deleteQuestionsByFileName(fileName)
-            clearPracticeProgressUseCase(fileName) // ★ 新增清理进度
+            // 使用带前缀的进度 ID，避免与其他模式冲突
+            clearPracticeProgressUseCase("practice_${fileName}")
             removeFavoriteQuestionsByFileNameUseCase(fileName) // 一行，批量删收藏
             // 等待数据库变更后再 collect 一次，确保刷新
             val list = getQuestionsUseCase().first()

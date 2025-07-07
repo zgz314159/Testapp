@@ -46,6 +46,7 @@ class PracticeViewModel @Inject constructor(
     val showResultList: StateFlow<List<Boolean>> = _showResultList.asStateFlow()
 
     private var progressId: String = "default"
+    private var questionSourceId: String = "default"
     private var randomPracticeEnabled: Boolean = false
 
 
@@ -53,15 +54,16 @@ class PracticeViewModel @Inject constructor(
     fun setRandomPractice(enabled: Boolean) {
         randomPracticeEnabled = enabled
     }
-    fun setProgressId(id: String, loadQuestions: Boolean = true) {
+    fun setProgressId(id: String, questionsId: String = id, loadQuestions: Boolean = true) {
         progressId = id
+        questionSourceId = questionsId
         _progressLoaded.value = false
         if (loadQuestions) {
             viewModelScope.launch {
                 if (randomPracticeEnabled) {
                     clearPracticeProgressUseCase(progressId)
                 }
-                getQuestionsUseCase(progressId).collect { qs ->
+                getQuestionsUseCase(questionSourceId).collect { qs ->
                     android.util.Log.d(
                         "PracticeDebug",
                         "getQuestionsUseCase 收到题目数量: ${qs.size}"
@@ -231,7 +233,8 @@ class PracticeViewModel @Inject constructor(
             viewModelScope.launch {
                 saveQuestionsUseCase(old.fileName ?: "default.json", updatedList.filter { it.fileName == old.fileName })
                 // 保存后强制刷新题库内容
-                setProgressId(progressId)
+                // 刷新题库并保持当前的进度 ID
+                setProgressId(progressId, questionSourceId)
             }
         }
     }

@@ -26,7 +26,8 @@ fun QuestionScreen(
 ) {
     // 初始化时设置 quizId，加载对应题库
     LaunchedEffect(quizId) {
-        viewModel.setProgressId(quizId)
+        // 与 PracticeScreen 一致，普通练习使用 "practice_" 前缀
+        viewModel.setProgressId(id = "practice_${quizId}", questionsId = quizId)
     }
     val questions by viewModel.questions.collectAsState()
     val currentIndex by viewModel.currentIndex.collectAsState()
