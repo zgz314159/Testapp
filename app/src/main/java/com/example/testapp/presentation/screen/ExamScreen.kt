@@ -72,7 +72,8 @@ fun ExamScreen(
         question != null && favoriteQuestions.any { it.question.id == question.id }
     }
     var elapsed by remember { mutableStateOf(0) }
-    LaunchedEffect(Unit) {
+    LaunchedEffect(currentIndex) {
+        elapsed = 0
         while (true) {
             kotlinx.coroutines.delay(1000)
             elapsed += 1
