@@ -13,7 +13,7 @@ import com.example.testapp.presentation.screen.ResultScreen
 import com.example.testapp.presentation.screen.WrongBookScreen
 import com.example.testapp.presentation.screen.HistoryScreen
 import com.example.testapp.presentation.screen.SettingsScreen
-import com.example.testapp.presentation.screen.WrongBookPracticeScreen
+
 import com.example.testapp.presentation.screen.FavoriteScreen
 import com.example.testapp.presentation.screen.PracticeScreen
 
@@ -57,7 +57,7 @@ fun AppNavHost(navController: NavHostController = rememberNavController()) {
             )
         }
         composable("wrongbook") { WrongBookScreen() }
-        composable("wrongbook_practice") { WrongBookPracticeScreen() }
+
         composable("history") { HistoryScreen() }
         composable("settings") { SettingsScreen() }
         composable("favorite") { FavoriteScreen(navController = navController) }
