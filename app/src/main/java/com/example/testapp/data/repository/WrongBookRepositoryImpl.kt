@@ -20,6 +20,7 @@ import org.apache.poi.xssf.usermodel.XSSFWorkbook
 import org.apache.poi.ss.usermodel.WorkbookFactory
 import org.apache.poi.ss.usermodel.DataFormatter
 import javax.inject.Inject
+import java.io.File
 
 class WrongBookRepositoryImpl @Inject constructor(
     private val dao: WrongQuestionDao,
@@ -74,7 +75,11 @@ class WrongBookRepositoryImpl @Inject constructor(
             val wrongs = try {
                 Json.decodeFromString<List<WrongQuestion>>(content)
             } catch (_: Exception) {
-                parseExcelWrongBook(file)
+                try {
+                    parseExcelQuestionStyle(file)
+                } catch (_: Exception) {
+                    parseExcelWrongBook(file)
+                }
             }
 
             val existingQuestions = questionDao.getAll().firstOrNull() ?: emptyList()
@@ -137,6 +142,36 @@ class WrongBookRepositoryImpl @Inject constructor(
             false
         }
     }
+
+    fun exportWrongBookAsQuestionExcel(wrongs: List<WrongQuestion>, file: File): Boolean {
+        return try {
+            val workbook = XSSFWorkbook()
+            val sheet = workbook.createSheet("错题本")
+            val header = sheet.createRow(0)
+            header.createCell(0).setCellValue("题干")
+            header.createCell(1).setCellValue("题型")
+            (2..8).forEach { header.createCell(it).setCellValue("选项${it-1}") }
+            header.createCell(9).setCellValue("解析")
+            header.createCell(10).setCellValue("答案")
+            wrongs.forEachIndexed { idx, w ->
+                val row: Row = sheet.createRow(idx + 1)
+                val q = w.question
+                row.createCell(0).setCellValue(q.content)
+                row.createCell(1).setCellValue(q.type)
+                q.options.forEachIndexed { i, opt ->
+                    row.createCell(2 + i).setCellValue(opt)
+                }
+                row.createCell(9).setCellValue(q.explanation)
+                row.createCell(10).setCellValue(q.answer)
+            }
+            file.outputStream().use { workbook.write(it) }
+            workbook.close()
+            true
+        } catch (e: Exception) {
+            false
+        }
+    }
+
     private fun parseExcelWrongBook(file: java.io.File): List<WrongQuestion> {
         val wrongs = mutableListOf<WrongQuestion>()
         val formatter = org.apache.poi.ss.usermodel.DataFormatter()
@@ -171,4 +206,40 @@ class WrongBookRepositoryImpl @Inject constructor(
         }
         return wrongs
     }
+
+    private fun parseExcelQuestionStyle(file: File): List<WrongQuestion> {
+        val wrongs = mutableListOf<WrongQuestion>()
+        val formatter = DataFormatter()
+        WorkbookFactory.create(file).use { workbook ->
+            val sheet = workbook.getSheetAt(0)
+            for (row in sheet.drop(1)) {
+                val content = row.getCell(0)?.let { formatter.formatCellValue(it) } ?: ""
+                if (content.isBlank()) continue
+                val type = row.getCell(1)?.let { formatter.formatCellValue(it) } ?: ""
+                val options = (2..8).mapNotNull { idx ->
+                    row.getCell(idx)?.let { formatter.formatCellValue(it) }.takeIf { !it.isNullOrBlank() }
+                }
+                val explanation = row.getCell(9)?.let { formatter.formatCellValue(it) } ?: ""
+                val answer = row.getCell(10)?.let { formatter.formatCellValue(it) } ?: ""
+                wrongs.add(
+                    WrongQuestion(
+                        question = Question(
+                            id = 0,
+                            content = content,
+                            type = type,
+                            options = options,
+                            answer = answer,
+                            explanation = explanation,
+                            isFavorite = false,
+                            isWrong = true,
+                            fileName = file.name
+                        ),
+                        selected = -1
+                    )
+                )
+            }
+        }
+        return wrongs
+    }
+
 }

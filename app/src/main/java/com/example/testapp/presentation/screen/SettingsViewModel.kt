@@ -237,7 +237,19 @@ class SettingsViewModel @Inject constructor(
                 // 获取错题本数据
                 val wrongs = wrongBookRepository.getAll().firstOrNull() ?: emptyList()
                 val file = uriToFile(context, uri) ?: throw Exception("无法写入文件")
-                val result = (wrongBookRepository as? com.example.testapp.data.repository.WrongBookRepositoryImpl)?.exportWrongBookToExcel(wrongs, file) ?: false
+                val result = (wrongBookRepository as? com.example.testapp.data.repository.WrongBookRepositoryImpl)?.exportWrongBookAsQuestionExcel(wrongs, file) ?: false
+                onResult(result)
+            } catch (e: Exception) {
+                onResult(false)
+            }
+        }
+    }
+    fun exportFavoritesToExcelFile(context: Context, uri: Uri, onResult: (Boolean) -> Unit) {
+        viewModelScope.launch {
+            try {
+                val favorites = favoriteRepository.getAll().firstOrNull() ?: emptyList()
+                val file = uriToFile(context, uri) ?: throw Exception("无法写入文件")
+                val result = (favoriteRepository as? com.example.testapp.data.repository.FavoriteQuestionRepositoryImpl)?.exportFavoritesToExcel(favorites, file) ?: false
                 onResult(result)
             } catch (e: Exception) {
                 onResult(false)
