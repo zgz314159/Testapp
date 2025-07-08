@@ -130,14 +130,21 @@ class PracticeViewModel @Inject constructor(
     fun answerQuestion(option: Int) {
         val idx = _currentIndex.value
         android.util.Log.d("PracticeDebug", "answerQuestion index=$idx option=$option")
+        selectOption(option)
+        // ✅ 关键点：标记当前题目已经显示了答题结果
+        updateShowResult(idx, true)
+    }
+
+    fun selectOption(option: Int) {
+        val idx = _currentIndex.value
+        android.util.Log.d("PracticeDebug", "selectOption index=$idx option=$option")
         val updatedAnswered = if (!_answeredList.value.contains(idx)) _answeredList.value + idx else _answeredList.value
         val updatedSelected = _selectedOptions.value.toMutableList().apply {
             if (size > idx) this[idx] = option else add(option)
         }
         _answeredList.value = updatedAnswered
         _selectedOptions.value = updatedSelected
-        // ✅ 关键点：标记当前题目已经显示了答题结果
-        updateShowResult(idx, true)
+
         saveProgress()
     }
 

@@ -306,13 +306,14 @@ fun PracticeScreen(
             Spacer(modifier = Modifier.height(16.dp))
             val handleSelect: (Int) -> Unit = { idx ->
                 android.util.Log.d("PracticeScreen", "handleSelect index=$idx current=$currentIndex")
-                viewModel.answerQuestion(idx)
-                if (!showResult && (question.type == "单选题" || question.type == "判断题")) {
-                    //viewModel.updateShowResult(currentIndex, true)
-                    val correctIndex = answerLetterToIndex(question.answer)
-                    val correct = idx == correctIndex
-                    if (!correct) {
-                        coroutineScope.launch {
+                if (question.type == "单选题" || question.type == "判断题") {
+                    viewModel.answerQuestion(idx)
+                    if (!showResult) {
+                        //viewModel.updateShowResult(currentIndex, true)
+                        val correctIndex = answerLetterToIndex(question.answer)
+                        val correct = idx == correctIndex
+                        if (!correct) {
+                            coroutineScope.launch {
                             try {
                                 wrongBookViewModel.addWrongQuestion(
                                     com.example.testapp.domain.model.WrongQuestion(
@@ -343,6 +344,9 @@ fun PracticeScreen(
                                 showExitDialog = true
                             }
                         }
+                    }
+                    } else {
+                        viewModel.selectOption(idx)
                     }
                 }
             }
