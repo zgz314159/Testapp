@@ -146,24 +146,30 @@ class WrongBookRepositoryImpl @Inject constructor(
     fun exportWrongBookAsQuestionExcel(wrongs: List<WrongQuestion>, file: File): Boolean {
         return try {
             val workbook = XSSFWorkbook()
-            val sheet = workbook.createSheet("错题本")
-            val header = sheet.createRow(0)
-            header.createCell(0).setCellValue("题干")
-            header.createCell(1).setCellValue("题型")
-            (2..8).forEach { header.createCell(it).setCellValue("选项${it-1}") }
-            header.createCell(9).setCellValue("解析")
-            header.createCell(10).setCellValue("答案")
-            wrongs.forEachIndexed { idx, w ->
-                val row: Row = sheet.createRow(idx + 1)
-                val q = w.question
-                row.createCell(0).setCellValue(q.content)
-                row.createCell(1).setCellValue(q.type)
-                q.options.forEachIndexed { i, opt ->
-                    row.createCell(2 + i).setCellValue(opt)
+            val grouped = wrongs.groupBy { it.question.fileName ?: "默认" }
+
+            grouped.forEach { (name, list) ->
+                val sheet = workbook.createSheet(sanitizeSheetName(name))
+                val header = sheet.createRow(0)
+                header.createCell(0).setCellValue("题干")
+                header.createCell(1).setCellValue("题型")
+                (2..8).forEach { header.createCell(it).setCellValue("选项${it-1}") }
+                header.createCell(9).setCellValue("解析")
+                header.createCell(10).setCellValue("答案")
+
+                list.forEachIndexed { idx, w ->
+                    val row: Row = sheet.createRow(idx + 1)
+                    val q = w.question
+                    row.createCell(0).setCellValue(q.content)
+                    row.createCell(1).setCellValue(q.type)
+                    q.options.forEachIndexed { i, opt ->
+                        row.createCell(2 + i).setCellValue(opt)
+                    }
+                    row.createCell(9).setCellValue(q.explanation)
+                    row.createCell(10).setCellValue(q.answer)
                 }
-                row.createCell(9).setCellValue(q.explanation)
-                row.createCell(10).setCellValue(q.answer)
             }
+
             file.outputStream().use { workbook.write(it) }
             workbook.close()
             true
@@ -171,6 +177,13 @@ class WrongBookRepositoryImpl @Inject constructor(
             false
         }
     }
+
+    private fun sanitizeSheetName(name: String): String {
+        var result = name.replace("[\\/:*?\\[\\]]".toRegex(), "_")
+        if (result.length > 31) result = result.substring(0, 31)
+        return if (result.isBlank()) "Sheet" else result
+    }
+
 
     private fun parseExcelWrongBook(file: java.io.File): List<WrongQuestion> {
         val wrongs = mutableListOf<WrongQuestion>()

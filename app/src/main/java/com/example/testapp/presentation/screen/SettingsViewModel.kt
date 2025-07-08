@@ -169,6 +169,15 @@ class SettingsViewModel @Inject constructor(
             null
         }
     }
+
+    private fun saveTempToUri(tempFile: java.io.File, context: Context, uri: Uri) {
+        context.contentResolver.openOutputStream(uri)?.use { out ->
+            tempFile.inputStream().use { input ->
+                input.copyTo(out)
+            }
+        } ?: throw Exception("无法写入文件")
+    }
+
     fun exportQuestionsToFile(context: Context, uri: Uri, onResult: (Boolean) -> Unit) {
         viewModelScope.launch {
             try {
@@ -189,8 +198,12 @@ class SettingsViewModel @Inject constructor(
             _isLoading.value = true
             try {
                 val questions = questionRepository.exportQuestions()
-                val file = uriToFile(context, uri) ?: throw Exception("无法写入文件")
-                val result = (questionRepository as? com.example.testapp.data.repository.QuestionRepositoryImpl)?.exportQuestionsToExcel(questions, file) ?: false
+                val tmp = java.io.File.createTempFile("export_", ".xlsx", context.cacheDir)
+                val result = (questionRepository as? com.example.testapp.data.repository.QuestionRepositoryImpl)?.exportQuestionsToExcel(questions, tmp) ?: false
+                if (result) {
+                    saveTempToUri(tmp, context, uri)
+                }
+                tmp.delete()
                 _isLoading.value = false
                 onResult(result)
             } catch (e: Exception) {
@@ -234,10 +247,14 @@ class SettingsViewModel @Inject constructor(
     fun exportWrongBookToExcelFile(context: Context, uri: Uri, onResult: (Boolean) -> Unit) {
         viewModelScope.launch {
             try {
-                // 获取错题本数据
+
                 val wrongs = wrongBookRepository.getAll().firstOrNull() ?: emptyList()
-                val file = uriToFile(context, uri) ?: throw Exception("无法写入文件")
-                val result = (wrongBookRepository as? com.example.testapp.data.repository.WrongBookRepositoryImpl)?.exportWrongBookAsQuestionExcel(wrongs, file) ?: false
+                val tmp = java.io.File.createTempFile("export_", ".xlsx", context.cacheDir)
+                val result = (wrongBookRepository as? com.example.testapp.data.repository.WrongBookRepositoryImpl)?.exportWrongBookAsQuestionExcel(wrongs, tmp) ?: false
+                if (result) {
+                    saveTempToUri(tmp, context, uri)
+                }
+                tmp.delete()
                 onResult(result)
             } catch (e: Exception) {
                 onResult(false)
@@ -248,8 +265,12 @@ class SettingsViewModel @Inject constructor(
         viewModelScope.launch {
             try {
                 val favorites = favoriteRepository.getAll().firstOrNull() ?: emptyList()
-                val file = uriToFile(context, uri) ?: throw Exception("无法写入文件")
-                val result = (favoriteRepository as? com.example.testapp.data.repository.FavoriteQuestionRepositoryImpl)?.exportFavoritesToExcel(favorites, file) ?: false
+                val tmp = java.io.File.createTempFile("export_", ".xlsx", context.cacheDir)
+                val result = (favoriteRepository as? com.example.testapp.data.repository.FavoriteQuestionRepositoryImpl)?.exportFavoritesToExcel(favorites, tmp) ?: false
+                if (result) {
+                    saveTempToUri(tmp, context, uri)
+                }
+                tmp.delete()
                 onResult(result)
             } catch (e: Exception) {
                 onResult(false)
@@ -260,8 +281,12 @@ class SettingsViewModel @Inject constructor(
         viewModelScope.launch {
             try {
                 val history = historyRepository.getAll().firstOrNull() ?: emptyList()
-                val file = uriToFile(context, uri) ?: throw Exception("无法写入文件")
-                val result = (historyRepository as? com.example.testapp.data.repository.HistoryRepositoryImpl)?.exportHistoryToExcel(history, file) ?: false
+                val tmp = java.io.File.createTempFile("export_", ".xlsx", context.cacheDir)
+                val result = (historyRepository as? com.example.testapp.data.repository.HistoryRepositoryImpl)?.exportHistoryToExcel(history, tmp) ?: false
+                if (result) {
+                    saveTempToUri(tmp, context, uri)
+                }
+                tmp.delete()
                 onResult(result)
             } catch (e: Exception) {
                 onResult(false)
