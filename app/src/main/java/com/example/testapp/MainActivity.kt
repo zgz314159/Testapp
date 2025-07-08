@@ -34,7 +34,7 @@ class MainActivity : ComponentActivity() {
                 LocalFontSize provides fontSize.sp
             ) {
                 FontStyleProvider(fontSize, fontStyle) {
-                    com.example.testapp.presentation.navigation.AppNavHost(settingsViewModel = settingsViewModel)
+                    com.example.testapp.presentation.navigation.AppNavHost()
                 }
             }
         }

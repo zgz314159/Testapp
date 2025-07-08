@@ -13,72 +13,27 @@ import com.example.testapp.presentation.screen.ResultScreen
 import com.example.testapp.presentation.screen.WrongBookScreen
 import com.example.testapp.presentation.screen.HistoryScreen
 import com.example.testapp.presentation.screen.SettingsScreen
+import com.example.testapp.presentation.screen.WrongBookPracticeScreen
 import com.example.testapp.presentation.screen.FavoriteScreen
 import com.example.testapp.presentation.screen.PracticeScreen
-import com.example.testapp.presentation.screen.ExamScreen
 
 @Composable
-fun AppNavHost(navController: NavHostController = rememberNavController(), settingsViewModel: com.example.testapp.presentation.screen.SettingsViewModel) {
+fun AppNavHost(navController: NavHostController = rememberNavController()) {
     NavHost(navController = navController, startDestination = "home") {
         composable("home") {
             HomeScreen(
-                onStartQuiz = { quizId ->
-                    val encoded = java.net.URLEncoder.encode(quizId, "UTF-8")
-                    navController.navigate("question/$encoded")
-                },
-                onStartExam = { quizId ->
-                    val encoded = java.net.URLEncoder.encode(quizId, "UTF-8")
-                    navController.navigate("exam/$encoded")
-                },
+                onStartQuiz = { quizId -> navController.navigate("question/$quizId") },
                 onSettings = { navController.navigate("settings") },
-                onViewQuestionDetail = { quizId ->
-                    val encoded = java.net.URLEncoder.encode(quizId, "UTF-8")
-                    navController.navigate("question_detail/$encoded")
-                },
-                onWrongBook = { fileName ->
-                    if (fileName.isBlank()) {
-                        navController.navigate("wrongbook")
-                    } else {
-                        val encoded = java.net.URLEncoder.encode(fileName, "UTF-8")
-                        navController.navigate("wrongbook/$encoded")
-                    }
-                },
-                onFavoriteBook = { fileName ->
-                    if (fileName.isBlank()) {
-                        navController.navigate("favorite")
-                    } else {
-                        val encoded = java.net.URLEncoder.encode(fileName, "UTF-8")
-                        navController.navigate("favorite/$encoded")
-                    }
-                }
+                onViewQuestionDetail = { quizId -> navController.navigate("question_detail/$quizId") }
             )
         }
         composable(
             "question/{quizId}",
             arguments = listOf(navArgument("quizId") { type = NavType.StringType })
         ) { backStackEntry ->
-            val encoded = backStackEntry.arguments?.getString("quizId") ?: "default"
-            val quizId = java.net.URLDecoder.decode(encoded, "UTF-8")
-            PracticeScreen(
-                quizId = quizId,
-                settingsViewModel = settingsViewModel,
+            val quizId = backStackEntry.arguments?.getString("quizId") ?: "default"
+            PracticeScreen(quizId = quizId,
                 onQuizEnd = { score, total ->
-                    navController.navigate("result/$score/$total") {
-                        popUpTo("home") { inclusive = false }
-                    }
-                }
-            )
-        }
-        composable(
-            "exam/{quizId}",
-            arguments = listOf(navArgument("quizId") { type = NavType.StringType })
-        ) { backStackEntry ->
-            val encoded = backStackEntry.arguments?.getString("quizId") ?: "default"
-            val quizId = java.net.URLDecoder.decode(encoded, "UTF-8")
-            ExamScreen(
-                quizId = quizId,
-                settingsViewModel = settingsViewModel,
-                onExamEnd = { score, total ->
                     navController.navigate("result/$score/$total") {
                         popUpTo("home") { inclusive = false }
                     }
@@ -89,8 +44,7 @@ fun AppNavHost(navController: NavHostController = rememberNavController(), setti
             "question_detail/{quizId}",
             arguments = listOf(navArgument("quizId") { type = NavType.StringType })
         ) { backStackEntry ->
-            val encodedDetail = backStackEntry.arguments?.getString("quizId") ?: "default"
-            val quizId = java.net.URLDecoder.decode(encodedDetail, "UTF-8")
+            val quizId = backStackEntry.arguments?.getString("quizId") ?: "default"
             QuestionScreen(quizId = quizId)
         }
         composable("result/{score}/{total}") { backStackEntry ->
@@ -102,44 +56,14 @@ fun AppNavHost(navController: NavHostController = rememberNavController(), setti
                 onViewHistory = { navController.navigate("history") }
             )
         }
-        composable("wrongbook") { WrongBookScreen(navController = navController) }
-        composable("wrongbook/{fileName}") { backStackEntry ->
-            val encoded = backStackEntry.arguments?.getString("fileName") ?: ""
-            val fileName = java.net.URLDecoder.decode(encoded, "UTF-8")
-            WrongBookScreen(fileName = fileName, navController = navController)
-        }
-        composable("practice_wrongbook/{fileName}") { backStackEntry ->
-            val encoded = backStackEntry.arguments?.getString("fileName") ?: ""
-            val name = java.net.URLDecoder.decode(encoded, "UTF-8")
-            PracticeScreen(
-                isWrongBookMode = true,
-                wrongBookFileName = name,
-                settingsViewModel = settingsViewModel,
-                onQuizEnd = { score, total ->
-                    navController.navigate("result/$score/$total") {
-                        popUpTo("wrongbook") { inclusive = false }
-                    }
-                }
-            )
-
-
-        }
-
+        composable("wrongbook") { WrongBookScreen() }
+        composable("wrongbook_practice") { WrongBookPracticeScreen() }
         composable("history") { HistoryScreen() }
-        composable("settings") { SettingsScreen(viewModel = settingsViewModel) }
+        composable("settings") { SettingsScreen() }
         composable("favorite") { FavoriteScreen(navController = navController) }
-        composable("favorite/{fileName}") { backStackEntry ->
-            val encodedFav = backStackEntry.arguments?.getString("fileName") ?: ""
-            val fileName = java.net.URLDecoder.decode(encodedFav, "UTF-8")
-            FavoriteScreen(fileName = fileName, navController = navController)
-        }
-        composable("practice_favorite/{fileName}") { backStackEntry ->
-            val encoded = backStackEntry.arguments?.getString("fileName") ?: ""
-            val name = java.net.URLDecoder.decode(encoded, "UTF-8")
+        composable("question_fav") {
             PracticeScreen(
-                isFavoriteMode = true,
-                favoriteFileName = name,
-                settingsViewModel = settingsViewModel,
+                quizId = "favorite",
                 onQuizEnd = { score, total ->
                     navController.navigate("result/$score/$total") {
                         popUpTo("favorite") { inclusive = false }
@@ -147,7 +71,6 @@ fun AppNavHost(navController: NavHostController = rememberNavController(), setti
                 }
             )
         }
-
         // TODO: 添加更多页面
     }
 }
