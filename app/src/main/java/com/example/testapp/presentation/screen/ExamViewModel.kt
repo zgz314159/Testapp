@@ -19,6 +19,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 import com.example.testapp.util.answerLetterToIndex
+import com.example.testapp.util.answerLettersToIndices
 
 @HiltViewModel
 class ExamViewModel @Inject constructor(
@@ -35,8 +36,8 @@ class ExamViewModel @Inject constructor(
     private val _currentIndex = MutableStateFlow(0)
     val currentIndex: StateFlow<Int> = _currentIndex.asStateFlow()
 
-    private val _selectedOptions = MutableStateFlow<List<Int>>(emptyList())
-    val selectedOptions: StateFlow<List<Int>> = _selectedOptions.asStateFlow()
+    private val _selectedOptions = MutableStateFlow<List<List<Int>>>(emptyList())
+    val selectedOptions: StateFlow<List<List<Int>>> = _selectedOptions.asStateFlow()
     private val _showResultList = MutableStateFlow<List<Boolean>>(emptyList())
     val showResultList: StateFlow<List<Boolean>> = _showResultList.asStateFlow()
 
@@ -76,7 +77,7 @@ class ExamViewModel @Inject constructor(
                     }
                 }
                 _questions.value = finalList
-                _selectedOptions.value = List(finalList.size) { -1 }
+                _selectedOptions.value = List(finalList.size) { emptyList() }
                 _showResultList.value = List(finalList.size) { false }
                 _currentIndex.value = 0
                 _finished.value = false
@@ -96,7 +97,7 @@ class ExamViewModel @Inject constructor(
                         if (progress.selectedOptions.size >= _questions.value.size) {
                             progress.selectedOptions.take(_questions.value.size)
                         } else {
-                            progress.selectedOptions + List(_questions.value.size - progress.selectedOptions.size) { -1 }
+                            progress.selectedOptions + List(_questions.value.size - progress.selectedOptions.size) { emptyList() }
                         }
                     _showResultList.value =
                         if (progress.showResultList.size >= _questions.value.size) {
@@ -118,11 +119,17 @@ class ExamViewModel @Inject constructor(
         val idx = _currentIndex.value
         android.util.Log.d("ExamDebug", "selectOption index=$idx option=$option")
         val list = _selectedOptions.value.toMutableList()
-        if (idx in list.indices) {
-            list[idx] = option
-            _selectedOptions.value = list
-            saveProgress()
+        while (list.size <= idx) list.add(emptyList())
+        val current = list[idx].toMutableList()
+        val isMulti = _questions.value.getOrNull(idx)?.type == "多选题"
+        if (isMulti) {
+            if (current.contains(option)) current.remove(option) else current.add(option)
+        } else {
+            current.clear(); current.add(option)
         }
+        list[idx] = current
+        _selectedOptions.value = list
+        saveProgress()
     }
 
     fun nextQuestion() {
@@ -156,10 +163,10 @@ class ExamViewModel @Inject constructor(
         val newShowResultList = _showResultList.value.toMutableList()
 
         for (i in qs.indices) {
-            val correct = answerLetterToIndex(qs[i].answer)
-            val sel = selections.getOrElse(i) { -1 }
-            if (sel != -1) {// 已作答题
-                if (sel == correct) {
+            val correct = answerLettersToIndices(qs[i].answer)
+            val sel = selections.getOrElse(i) { emptyList() }
+            if (sel.isNotEmpty()) {// 已作答题
+                if (sel.sorted() == correct.sorted()) {
                     score++
                 } else {
                     addWrongQuestionUseCase(WrongQuestion(qs[i], sel))

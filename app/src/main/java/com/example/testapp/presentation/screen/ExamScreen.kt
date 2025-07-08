@@ -88,7 +88,7 @@ fun ExamScreen(
     var dragStartX by remember { mutableStateOf(0f) }
     var showExitDialog by remember { mutableStateOf(false) }
     BackHandler {
-        if (selectedOptions.any { it == -1 }) {
+        if (selectedOptions.any { it.isEmpty() }) {
             showExitDialog = true
         } else {
             coroutineScope.launch {
@@ -97,7 +97,7 @@ fun ExamScreen(
             }
         }
     }
-    val selectedOption = selectedOptions.getOrElse(currentIndex) { -1 }
+    val selectedOption = selectedOptions.getOrElse(currentIndex) { emptyList<Int>() }
     val showResult = showResultList.getOrNull(currentIndex) ?: false
     LaunchedEffect(selectedOption, showResult) {
         android.util.Log.d(
@@ -131,7 +131,7 @@ fun ExamScreen(
                         if ((dragStartX < 20f && dragAmount > 100f) ||
                             (dragStartX > containerWidth - 20f && dragAmount < -100f)
                         ) {
-                            if (selectedOptions.any { it == -1 }) {
+                            if (selectedOptions.any { it.isEmpty() }) {
                                 showExitDialog = true
                             } else {
                                 coroutineScope.launch {
@@ -145,7 +145,7 @@ fun ExamScreen(
                             } else if (dragAmount < -100f && currentIndex < questions.size - 1) {
                                 viewModel.nextQuestion()
                             } else if (dragAmount < -100f) {
-                                if (selectedOptions.any { it == -1 }) {
+                                if (selectedOptions.any { it.isEmpty() }) {
                                     showExitDialog = true
                                 } else {
                                     coroutineScope.launch {
@@ -221,16 +221,16 @@ fun ExamScreen(
                 ) {
                     items(questions.size) { idx ->
                         val resultShown = showResultList.getOrNull(idx) == true
-                        val selected = selectedOptions.getOrNull(idx) ?: -1
+                        val selected = selectedOptions.getOrNull(idx) ?: emptyList<Int>()
                         val q = questions.getOrNull(idx)
                         val correctIdx = q?.let { answerLetterToIndex(it.answer) }
 
                         val bgColor = when {
-                            resultShown && selected == correctIdx ->
+                            resultShown && selected.singleOrNull() == correctIdx ->
                                 MaterialTheme.colorScheme.primary.copy(alpha = 0.3f)
-                            resultShown && selected != correctIdx ->
+                            resultShown && selected.isNotEmpty() && selected.singleOrNull() != correctIdx ->
                                 MaterialTheme.colorScheme.error.copy(alpha = 0.3f)
-                            selected != -1 ->
+                            selected.isNotEmpty() ->
                                 MaterialTheme.colorScheme.secondary.copy(alpha = 0.1f)
                             else -> Color.Transparent
                         }
@@ -309,7 +309,7 @@ fun ExamScreen(
                         if (currentIndex < questions.size - 1) {
                             viewModel.nextQuestion()
                         } else {
-                            if (selectedOptions.any { it == -1 }) {
+                            if (selectedOptions.any { it.isEmpty() }) {
                                 showExitDialog = true
                             } else {
                                 val score = viewModel.gradeExam()
@@ -321,9 +321,9 @@ fun ExamScreen(
             }
 
             itemsIndexed(question.options) { idx, option ->
-                val selectedOption = selectedOptions.getOrElse(currentIndex) { -1 }
+                val selectedOption = selectedOptions.getOrElse(currentIndex) { emptyList<Int>() }
                 val correctIndex = answerLetterToIndex(question.answer)
-                val isSelected = selectedOption == idx
+                val isSelected = selectedOption.contains(idx)
                 val isCorrect = showResult && correctIndex != null && idx == correctIndex
                 val isWrong = showResult && isSelected && !isCorrect
                 val backgroundColor = when {
@@ -340,11 +340,19 @@ fun ExamScreen(
                         .clickable(enabled = !showResult) { handleSelect(idx) },
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    RadioButton(
-                        selected = isSelected,
-                        onClick = { handleSelect(idx) },
-                        enabled = !showResult
-                    )
+                    if (question.type == "多选题") {
+                        Checkbox(
+                            checked = isSelected,
+                            onCheckedChange = { handleSelect(idx) },
+                            enabled = !showResult
+                        )
+                    } else {
+                        RadioButton(
+                            selected = isSelected,
+                            onClick = { handleSelect(idx) },
+                            enabled = !showResult
+                        )
+                    }
                     Spacer(modifier = Modifier.width(8.dp))
                     Text(
                         text = option,
@@ -359,7 +367,7 @@ fun ExamScreen(
             if (showResult) {
                 item {
                     val correctIndex = answerLetterToIndex(question.answer)
-                    val correct = selectedOption == correctIndex
+                    val correct = correctIndex != null && selectedOption.contains(correctIndex)
                     Row(
 
                         modifier = Modifier
@@ -417,6 +425,6 @@ if (showExitDialog) {
         dismissButton = {
             TextButton(onClick = { showExitDialog = false }) { Text("取消") }
         },
-        text = { Text(if (selectedOptions.any { it == -1 }) "还未答完题，是否交卷？" else "确定交卷？") }
+        text = { Text(if (selectedOptions.any { it.isEmpty() }) "还未答完题，是否交卷？" else "确定交卷？") }
     )
 }}

@@ -17,13 +17,14 @@ import com.example.testapp.data.local.entity.QuestionEntity
 import com.example.testapp.data.local.entity.WrongQuestionEntity
 import com.example.testapp.data.local.entity.converter.BooleanListConverter
 import com.example.testapp.data.local.entity.converter.IntListConverter
+import com.example.testapp.data.local.entity.converter.NestedIntListConverter
 
 @Database(
-    entities = [QuestionEntity::class, WrongQuestionEntity::class, HistoryRecordEntity::class, FavoriteQuestionEntity::class, PracticeProgressEntity::class,ExamProgressEntity::class],
-    version = 5, // 升级版本号，修复 Room schema 校验崩溃
+    entities = [QuestionEntity::class, WrongQuestionEntity::class, HistoryRecordEntity::class, FavoriteQuestionEntity::class, PracticeProgressEntity::class, ExamProgressEntity::class],
+    version = 6,
     exportSchema = false
 )
-@TypeConverters(IntListConverter::class, BooleanListConverter::class)
+@TypeConverters(IntListConverter::class, BooleanListConverter::class, NestedIntListConverter::class) // 这里加上
 abstract class AppDatabase : RoomDatabase() {
     abstract fun questionDao(): QuestionDao
     abstract fun wrongQuestionDao(): WrongQuestionDao
@@ -32,3 +33,4 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun practiceProgressDao(): PracticeProgressDao
     abstract fun examProgressDao(): ExamProgressDao
 }
+

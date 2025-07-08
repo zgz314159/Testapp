@@ -87,7 +87,7 @@ fun PracticeScreen(
         "PracticeScreen-question",
         "currentIndex=$currentIndex, question=$question"
     )
-    val selectedOption = selectedOptions.getOrNull(currentIndex) ?: -1
+    val selectedOption = selectedOptions.getOrNull(currentIndex) ?: emptyList<Int>()
     val showResult = showResultList.getOrNull(currentIndex) ?: false
     android.util.Log.d(
         "PracticeScreen-selected",
@@ -227,25 +227,28 @@ fun PracticeScreen(
                     modifier = Modifier.heightIn(max = 300.dp)
                 ) {
                     items(questions.size) { idx ->
-                       // val answered = answeredList.contains(idx)
+                        // val answered = answeredList.contains(idx)
 
                         // 取出该题是否已显示解析 & 用户选项 & 正确答案
-                               val resultShown = showResultList.getOrNull(idx) == true
-                                val selected = selectedOptions.getOrNull(idx) ?: -1
-                                val q = questions.getOrNull(idx)
-                                val correctIdx = q?.let { answerLetterToIndex(it.answer) }
+                        val resultShown = showResultList.getOrNull(idx) == true
+                        val selected = selectedOptions.getOrNull(idx) ?: emptyList<Int>()
+                        val q = questions.getOrNull(idx)
+                        val correctIdx = q?.let { answerLetterToIndex(it.answer) }
 
-                                // 决定背景色：绿色=答对，红色=答错，灰=已答未看解析，透明=未答
-                                val bgColor = when {
-                                        resultShown && selected == correctIdx ->
-                                                MaterialTheme.colorScheme.primary.copy(alpha = 0.3f)
-                                        resultShown && selected != correctIdx ->
-                                                MaterialTheme.colorScheme.error.copy(alpha = 0.3f)
-                                        idx in answeredList ->
-                                                MaterialTheme.colorScheme.secondary.copy(alpha = 0.1f)
-                                        else ->
-                                                Color.Transparent
-                                    }
+                        // 决定背景色：绿色=答对，红色=答错，灰=已答未看解析，透明=未答
+                        val bgColor = when {
+                            resultShown && selected.singleOrNull() == correctIdx ->
+                                MaterialTheme.colorScheme.primary.copy(alpha = 0.3f)
+
+                            resultShown && selected.isNotEmpty() && selected.singleOrNull() != correctIdx ->
+                                MaterialTheme.colorScheme.error.copy(alpha = 0.3f)
+
+                            idx in answeredList ->
+                                MaterialTheme.colorScheme.secondary.copy(alpha = 0.1f)
+
+                            else ->
+                                Color.Transparent
+                        }
 
 
                         Box(
@@ -292,8 +295,15 @@ fun PracticeScreen(
             progress = if (questions.isNotEmpty()) (currentIndex + 1f) / questions.size else 0f,
             modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp)
         )
+
+        // 2. 计算正确答案下标列表
+        val correctIndices: List<Int> = question.answer
+            .filter { it.isLetter() }
+            .mapNotNull { answerLetterToIndex(it.toString()) }
+
         // Layer 3: question and options
         Column(modifier = Modifier.weight(1f)) {
+            // 题干
             Text(
                 text = question.content,
                 style = MaterialTheme.typography.titleMedium.copy(
@@ -302,70 +312,52 @@ fun PracticeScreen(
                     fontFamily = LocalFontFamily.current
                 )
             )
-
             Spacer(modifier = Modifier.height(16.dp))
+
+            // 1. 声明 handleSelect
             val handleSelect: (Int) -> Unit = { idx ->
-                android.util.Log.d("PracticeScreen", "handleSelect index=$idx current=$currentIndex")
                 if (question.type == "单选题" || question.type == "判断题") {
+                    // 单选/判断题逻辑不变
                     viewModel.answerQuestion(idx)
-                    if (!showResult) {
-                        //viewModel.updateShowResult(currentIndex, true)
-                        val correctIndex = answerLetterToIndex(question.answer)
-                        val correct = idx == correctIndex
-                        if (!correct) {
-                            coroutineScope.launch {
-                            try {
-                                wrongBookViewModel.addWrongQuestion(
-                                    com.example.testapp.domain.model.WrongQuestion(
-                                        question,
-                                        idx
-                                    )
-                                )
-                            } catch (e: Exception) {
-                                android.util.Log.e("PracticeScreen", "保存错题失败:${e.message}")
-                            }
-                        }
-                    } else {
-                        score++
-                    }
+                    val correctIdx = answerLetterToIndex(question.answer)
+                    val correct = idx == correctIdx
                     onSubmit(correct)
                     autoJob?.cancel()
                     autoJob = coroutineScope.launch {
                         val d = if (correct) correctDelay else wrongDelay
                         if (d > 0) kotlinx.coroutines.delay(d * 1000L)
-                        if (viewModel.currentIndex.value < questions.size - 1) {
-                            viewModel.updateShowResult(viewModel.currentIndex.value, true)
-                            viewModel.nextQuestion()
-                        } else {
-                            viewModel.updateShowResult(viewModel.currentIndex.value, true)
-                            if (answeredList.size >= questions.size) {
-                                onQuizEnd(score, questions.size)
-                            } else {
-                                showExitDialog = true
-                            }
-                        }
+                        viewModel.updateShowResult(currentIndex, true)
+                        if (currentIndex < questions.size - 1) viewModel.nextQuestion()
+                        else if (answeredList.size >= questions.size) onQuizEnd(
+                            score,
+                            questions.size
+                        )
+                        else showExitDialog = true
                     }
-                    } else {
-                        viewModel.selectOption(idx)
-                    }
+                } else {
+                    // 多选题：切换选项状态
+                    viewModel.toggleOption(idx)
                 }
             }
+
+
+            // 3. 渲染所有选项（单次循环）
             question.options.forEachIndexed { idx, option ->
-                val correctIndex = answerLetterToIndex(question.answer)
-                val isCorrect = showResult && correctIndex != null && idx == correctIndex
-                val isSelected = selectedOption == idx
+                val isSelected = selectedOption.contains(idx)
+                val isCorrect = showResult && correctIndices.contains(idx)
                 val isWrong = showResult && isSelected && !isCorrect
-                val backgroundColor = when {
+                val bgColor = when {
                     isCorrect -> MaterialTheme.colorScheme.primary.copy(alpha = 0.2f)
                     isWrong -> MaterialTheme.colorScheme.error.copy(alpha = 0.2f)
                     isSelected -> MaterialTheme.colorScheme.secondary.copy(alpha = 0.1f)
                     else -> MaterialTheme.colorScheme.surface
                 }
+
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(vertical = 4.dp)
-                        .background(backgroundColor)
+                        .background(bgColor)
                         .clickable(enabled = !showResult) { handleSelect(idx) },
                     verticalAlignment = Alignment.CenterVertically
                 ) {
@@ -383,19 +375,18 @@ fun PracticeScreen(
                         )
                     }
                     Text(
-                        option,
+                        text = option,
                         fontSize = questionFontSize.sp,
                         lineHeight = (questionFontSize * 1.3f).sp,
                         fontFamily = LocalFontFamily.current
                     )
                 }
-
             }
 
-
+            // 4. 解析区
             if (showResult) {
-                val correctIndex = answerLetterToIndex(question.answer)
-                val correct = selectedOption == correctIndex
+                val correctText = correctIndices.joinToString("、") { question.options[it] }
+                val allCorrect = selectedOption.toSet() == correctIndices.toSet()
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -403,8 +394,8 @@ fun PracticeScreen(
                         .padding(8.dp)
                 ) {
                     Text(
-                        if (correct) "回答正确！" else "回答错误，正确答案：${if (correctIndex != null && correctIndex in question.options.indices) question.options[correctIndex] else question.answer}",
-                        color = if (correct) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error,
+                        text = if (allCorrect) "回答正确！" else "回答错误，正确答案：$correctText",
+                        color = if (allCorrect) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error,
                         fontSize = LocalFontSize.current,
                         fontFamily = LocalFontFamily.current
                     )
@@ -422,74 +413,57 @@ fun PracticeScreen(
                             fontFamily = LocalFontFamily.current
                         )
                     }
-
                 }
                 Spacer(modifier = Modifier.height(16.dp))
             }
+        }
 
-            // Layer 4: answer buttons
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.End
-            ) {
-
-                if (question.type != "单选题" && question.type != "判断题") {
-                    Button(
-                        onClick = {
-                            autoJob?.cancel()
-                            viewModel.updateShowResult(currentIndex, true)
-                            val correctIndex = answerLetterToIndex(question.answer)
-                            val correct = selectedOption == correctIndex
-                            if (!correct && selectedOption != -1) {
-                                coroutineScope.launch {
-                                    try {
-                                        wrongBookViewModel.addWrongQuestion(
-                                            com.example.testapp.domain.model.WrongQuestion(
-                                                question,
-                                                selectedOption
-                                            )
-                                        )
-                                    } catch (e: Exception) {
-                                        android.util.Log.e(
-                                            "PracticeScreen",
-                                            "保存错题失败:${e.message}"
-                                        )
-                                    }
-                                }
+        // Layer 4: 多选题的提交按钮
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.End
+        ) {
+            if (question.type == "多选题") {
+                Button(
+                    onClick = {
+                        autoJob?.cancel()
+                        viewModel.updateShowResult(currentIndex, true)
+                        val allCorrect = selectedOption.toSet() == correctIndices.toSet()
+                        if (!allCorrect && selectedOption.isNotEmpty()) {
+                            coroutineScope.launch {
+                                wrongBookViewModel.addWrongQuestion(
+                                    com.example.testapp.domain.model.WrongQuestion(
+                                        question, selectedOption
+                                    )
+                                )
                             }
-                            if (correct) score++
-                            onSubmit(correct)
-                            autoJob = coroutineScope.launch {
-                                val d = if (correct) correctDelay else wrongDelay
-                                if (d > 0) kotlinx.coroutines.delay(d * 1000L)
-                                if (viewModel.currentIndex.value < questions.size - 1) {
-                                    viewModel.updateShowResult(viewModel.currentIndex.value, true)
-                                    viewModel.nextQuestion()
-                                } else {
-                                    viewModel.updateShowResult(viewModel.currentIndex.value, true)
-                                    if (answeredList.size >= questions.size) {
-                                        onQuizEnd(score, questions.size)
-                                    } else {
-                                        showExitDialog = true
-                                    }
-                                }
-                            }
-                        },
-                        enabled = selectedOption != -1 && !showResult,
-                    ) {
-                        Text(
-                            "提交答案",
-                            fontSize = LocalFontSize.current,
-                            fontFamily = LocalFontFamily.current
-                        )
-                    }
+                        }
+                        if (allCorrect) score++
+                        onSubmit(allCorrect)
+                        autoJob = coroutineScope.launch {
+                            val d = if (allCorrect) correctDelay else wrongDelay
+                            if (d > 0) kotlinx.coroutines.delay(d * 1000L)
+                            if (currentIndex < questions.size - 1) viewModel.nextQuestion()
+                            else if (answeredList.size >= questions.size) onQuizEnd(
+                                score,
+                                questions.size
+                            )
+                            else showExitDialog = true
+                        }
+                    },
+                    enabled = selectedOption.isNotEmpty() && !showResult
+                ) {
+                    Text(
+                        "提交答案",
+                        fontSize = LocalFontSize.current,
+                        fontFamily = LocalFontFamily.current
+                    )
                 }
-
             }
-
-
         }
     }
+
+
 
     if (showExitDialog) {
         AlertDialog(

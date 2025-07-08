@@ -36,8 +36,8 @@ class PracticeViewModel @Inject constructor(
     private val _answeredList = MutableStateFlow<List<Int>>(emptyList())
     val answeredList: StateFlow<List<Int>> = _answeredList.asStateFlow()
 
-    private val _selectedOptions = MutableStateFlow<List<Int>>(emptyList())
-    val selectedOptions: StateFlow<List<Int>> = _selectedOptions.asStateFlow()
+    private val _selectedOptions = MutableStateFlow<List<List<Int>>>(emptyList())
+    val selectedOptions: StateFlow<List<List<Int>>> = _selectedOptions.asStateFlow()
 
     private val _progressLoaded = MutableStateFlow(false)
     val progressLoaded: StateFlow<Boolean> = _progressLoaded.asStateFlow()
@@ -101,7 +101,7 @@ class PracticeViewModel @Inject constructor(
                         progress.selectedOptions.take(_questions.value.size).toList()
                     } else {
                         (progress.selectedOptions +
-                                List(_questions.value.size - progress.selectedOptions.size) { -1 }).toList()
+                                List(_questions.value.size - progress.selectedOptions.size) { emptyList() }).toList()
                     }
                     _showResultList.value = emptyList()
                     _showResultList.value = if (progress.showResultList.size >= _questions.value.size) {
@@ -118,7 +118,7 @@ class PracticeViewModel @Inject constructor(
                     android.util.Log.d("PracticeDebug", "no existing progress, initializing")
                     _currentIndex.value = 0
                     _answeredList.value = List(_questions.value.size) { -1 }
-                    _selectedOptions.value = List(_questions.value.size) { -1 }
+                    _selectedOptions.value = List(_questions.value.size) { emptyList() }
                     _showResultList.value = List(_questions.value.size) { false }
                     saveProgress()
                 }
@@ -132,7 +132,7 @@ class PracticeViewModel @Inject constructor(
         android.util.Log.d("PracticeDebug", "answerQuestion index=$idx option=$option")
         val updatedAnswered = if (!_answeredList.value.contains(idx)) _answeredList.value + idx else _answeredList.value
         val updatedSelected = _selectedOptions.value.toMutableList().apply {
-            if (size > idx) this[idx] = option else add(option)
+            if (size > idx) this[idx] = listOf(option) else add(listOf(option))
         }
         _answeredList.value = updatedAnswered
         _selectedOptions.value = updatedSelected
@@ -140,6 +140,18 @@ class PracticeViewModel @Inject constructor(
         updateShowResult(idx, true)
         saveProgress()
     }
+
+    fun toggleOption(option: Int) {
+        val idx = _currentIndex.value
+        val list = _selectedOptions.value.toMutableList()
+        while (list.size <= idx) list.add(emptyList())
+        val current = list[idx].toMutableList()
+        if (current.contains(option)) current.remove(option) else current.add(option)
+        list[idx] = current
+        _selectedOptions.value = list
+        saveProgress()
+    }
+
 
     fun nextQuestion() {
         if (_currentIndex.value < _questions.value.size - 1) {

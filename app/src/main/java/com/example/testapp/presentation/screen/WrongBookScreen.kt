@@ -82,12 +82,16 @@ fun WrongBookScreen(
                     )
                 } else {
                     filteredList.forEachIndexed { idx, wrong ->
+                        val selectedOptions = wrong.selected.joinToString("，") { i ->
+                            wrong.question.options.getOrNull(i) ?: ""
+                        }
                         Text(
-                            "${idx + 1}. ${wrong.question.content} (你的答案：${wrong.question.options[wrong.selected]})",
+                            "${idx + 1}. ${wrong.question.content} (你的答案：$selectedOptions)",
                             fontSize = LocalFontSize.current,
                             fontFamily = LocalFontFamily.current
                         )
                     }
+
                     Spacer(modifier = Modifier.height(24.dp))
                     Button(
                         onClick = {

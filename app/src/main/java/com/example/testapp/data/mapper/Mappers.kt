@@ -74,6 +74,12 @@ fun WrongQuestion.toEntity() = WrongQuestionEntity(
     questionId = question.id,
     selected = selected
 )
+
+fun WrongQuestionEntity.toDomain(question: Question) = WrongQuestion(
+    question = question,
+    selected = selected
+)
+
 fun ExamProgressEntity.toDomain() = ExamProgress(
     id = id,
     currentIndex = currentIndex,

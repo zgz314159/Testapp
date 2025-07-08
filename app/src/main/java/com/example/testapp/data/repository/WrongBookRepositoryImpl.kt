@@ -34,10 +34,7 @@ class WrongBookRepositoryImpl @Inject constructor(
             )
             wrongEntities.mapNotNull { wrongEntity ->
                 questionMap[wrongEntity.questionId]?.let { q ->
-                    WrongQuestion(
-                        question = q,
-                        selected = wrongEntity.selected
-                    )
+                    wrongEntity.toDomain(q)
                 }
             }
         }
@@ -133,7 +130,7 @@ class WrongBookRepositoryImpl @Inject constructor(
                 }
                 row.createCell(9).setCellValue("")
                 row.createCell(10).setCellValue(w.question.answer.toString())
-                row.createCell(11).setCellValue(w.selected.toString())
+                row.createCell(11).setCellValue(w.selected.joinToString(","))
             }
             file.outputStream().use { workbook.write(it) }
             workbook.close()
@@ -198,7 +195,7 @@ class WrongBookRepositoryImpl @Inject constructor(
                 }
                 val answer = row.getCell(10)?.let { formatter.formatCellValue(it) } ?: ""
                 val selectedStr = row.getCell(11)?.let { formatter.formatCellValue(it) } ?: ""
-                val selected = selectedStr.toIntOrNull() ?: -1
+                val selected = selectedStr.split(',').mapNotNull { it.toIntOrNull() }
                 wrongs.add(
                     WrongQuestion(
                         question = Question(
@@ -247,7 +244,7 @@ class WrongBookRepositoryImpl @Inject constructor(
                             isWrong = true,
                             fileName = file.name
                         ),
-                        selected = -1
+                        selected = emptyList()
                     )
                 )
             }
