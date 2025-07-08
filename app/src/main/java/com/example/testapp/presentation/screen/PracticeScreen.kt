@@ -369,11 +369,19 @@ fun PracticeScreen(
                         .clickable(enabled = !showResult) { handleSelect(idx) },
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    RadioButton(
-                        selected = isSelected,
-                        onClick = { handleSelect(idx) },
-                        enabled = !showResult
-                    )
+                    if (question.type == "多选题") {
+                        Checkbox(
+                            checked = isSelected,
+                            onCheckedChange = { handleSelect(idx) },
+                            enabled = !showResult
+                        )
+                    } else {
+                        RadioButton(
+                            selected = isSelected,
+                            onClick = { handleSelect(idx) },
+                            enabled = !showResult
+                        )
+                    }
                     Text(
                         option,
                         fontSize = questionFontSize.sp,
