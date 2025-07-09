@@ -321,6 +321,16 @@ fun PracticeScreen(
                     viewModel.answerQuestion(idx)
                     val correctIdx = answerLetterToIndex(question.answer)
                     val correct = idx == correctIdx
+                    if (!correct) {
+                        coroutineScope.launch {
+                            wrongBookViewModel.addWrongQuestion(
+                                com.example.testapp.domain.model.WrongQuestion(
+                                    question,
+                                    listOf(idx)
+                                )
+                            )
+                        }
+                    }
                     onSubmit(correct)
                     autoJob?.cancel()
                     autoJob = coroutineScope.launch {

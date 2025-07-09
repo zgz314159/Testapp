@@ -156,6 +156,15 @@ class ExamViewModel @Inject constructor(
         }
     }
 
+    fun updateShowResult(index: Int, value: Boolean) {
+        android.util.Log.d("ExamDebug", "updateShowResult index=$index value=$value")
+        val list = _showResultList.value.toMutableList()
+        while (list.size <= index) list.add(false)
+        list[index] = value
+        _showResultList.value = list
+        saveProgress()
+    }
+
     suspend fun gradeExam(): Int {
         val qs = _questions.value
         val selections = _selectedOptions.value
@@ -165,15 +174,14 @@ class ExamViewModel @Inject constructor(
         for (i in qs.indices) {
             val correct = answerLettersToIndices(qs[i].answer)
             val sel = selections.getOrElse(i) { emptyList() }
-            if (sel.isNotEmpty()) {// 已作答题
+            if (sel.isNotEmpty()) {
                 if (sel.sorted() == correct.sorted()) {
                     score++
                 } else {
                     addWrongQuestionUseCase(WrongQuestion(qs[i], sel))
                 }
-                newShowResultList[i] = true // 只对已答题批改
             }
-            // 未答的题保持原showResultList[i]（一般是false）
+            newShowResultList[i] = true
         }
         addHistoryRecordUseCase(HistoryRecord(score, qs.size))
         _showResultList.value = newShowResultList

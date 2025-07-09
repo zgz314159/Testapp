@@ -303,6 +303,7 @@ fun ExamScreen(
                 android.util.Log.d("ExamScreen", "handleSelect index=$idx current=$currentIndex")
                 viewModel.selectOption(idx)
                 if (question.type == "单选题" || question.type == "判断题") {
+                    viewModel.updateShowResult(currentIndex, true)
                     autoJob?.cancel()
                     autoJob = coroutineScope.launch {
                         if (examDelay > 0) kotlinx.coroutines.delay(examDelay * 1000L)
