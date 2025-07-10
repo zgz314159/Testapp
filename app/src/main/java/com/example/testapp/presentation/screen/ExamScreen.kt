@@ -51,9 +51,13 @@ fun ExamScreen(
 
 
     // 关键：DisposableEffect 用于退出界面时自动判卷保存
-    DisposableEffect(finished, progressLoaded) {
+    DisposableEffect(finished, progressLoaded, selectedOptions) {
         onDispose {
-            if (progressLoaded && !finished) {
+            if (
+                progressLoaded &&
+                !finished &&
+                selectedOptions.any { it.isNotEmpty() }
+            ) {
                 kotlinx.coroutines.runBlocking {
                     viewModel.gradeExam()
                 }
