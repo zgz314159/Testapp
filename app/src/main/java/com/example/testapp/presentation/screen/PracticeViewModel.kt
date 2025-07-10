@@ -45,24 +45,38 @@ class PracticeViewModel @Inject constructor(
     private val _showResultList = MutableStateFlow<List<Boolean>>(emptyList())
     val showResultList: StateFlow<List<Boolean>> = _showResultList.asStateFlow()
 
-    private var progressId: String = "default"
-    private var questionSourceId: String = "default"
+    private var progressId: String = ""
+
+    val currentProgressId: String
+        get() = progressId
+
+    private var questionSourceId: String = ""
     private var randomPracticeEnabled: Boolean = false
 
+    init {
+        // 应用启动时，清理任何旧的 default 记录，防止误删到别的表
+        viewModelScope.launch {
+            clearPracticeProgressUseCase("default")
+        }
+    }
 
 
     fun setRandomPractice(enabled: Boolean) {
         randomPracticeEnabled = enabled
     }
     fun setProgressId(id: String, questionsId: String = id, loadQuestions: Boolean = true) {
-        progressId = id
+        // 1. 统一给练习进度加 practice_ 前缀
+        progressId = if (id.startsWith("practice_")) id else "practice_$id"
         questionSourceId = questionsId
         _progressLoaded.value = false
+
         if (loadQuestions) {
             viewModelScope.launch {
+                // 如果要随机练习，每次切场景时先清空旧的同名进度
                 if (randomPracticeEnabled) {
                     clearPracticeProgressUseCase(progressId)
                 }
+                // 然后加载题库和进度
                 getQuestionsUseCase(questionSourceId).collect { qs ->
                     android.util.Log.d(
                         "PracticeDebug",
@@ -73,7 +87,7 @@ class PracticeViewModel @Inject constructor(
                         "PracticeDebug",
                         "加载题库: progressId=$progressId random=$randomPracticeEnabled"
                     )
-                    _questions.value = list
+                    _questions.value = if (randomPracticeEnabled) qs.shuffled() else qs
                     loadProgress()
                 }
             }
@@ -89,7 +103,8 @@ class PracticeViewModel @Inject constructor(
                     "loadProgress: progress=$progress, progressId=$progressId"
                 )
                 if (progress != null && !_progressLoaded.value) {
-                    _currentIndex.value = progress.currentIndex.coerceAtMost(_questions.value.size - 1)
+                    _currentIndex.value =
+                        progress.currentIndex.coerceAtMost(_questions.value.size - 1)
                     // answeredList 补齐长度
                     _answeredList.value = if (progress.answeredList.size >= _questions.value.size) {
                         progress.answeredList.take(_questions.value.size).toList()
@@ -97,19 +112,21 @@ class PracticeViewModel @Inject constructor(
                         (progress.answeredList + List(_questions.value.size - progress.answeredList.size) { -1 }).toList()
                     }
                     _selectedOptions.value = emptyList()
-                    _selectedOptions.value = if (progress.selectedOptions.size >= _questions.value.size) {
-                        progress.selectedOptions.take(_questions.value.size).toList()
-                    } else {
-                        (progress.selectedOptions +
-                                List(_questions.value.size - progress.selectedOptions.size) { emptyList() }).toList()
-                    }
+                    _selectedOptions.value =
+                        if (progress.selectedOptions.size >= _questions.value.size) {
+                            progress.selectedOptions.take(_questions.value.size).toList()
+                        } else {
+                            (progress.selectedOptions +
+                                    List(_questions.value.size - progress.selectedOptions.size) { emptyList() }).toList()
+                        }
                     _showResultList.value = emptyList()
-                    _showResultList.value = if (progress.showResultList.size >= _questions.value.size) {
-                        progress.showResultList.take(_questions.value.size).toList()
-                    } else {
-                        (progress.showResultList +
-                                List(_questions.value.size - progress.showResultList.size) { false }).toList()
-                    }
+                    _showResultList.value =
+                        if (progress.showResultList.size >= _questions.value.size) {
+                            progress.showResultList.take(_questions.value.size).toList()
+                        } else {
+                            (progress.showResultList +
+                                    List(_questions.value.size - progress.showResultList.size) { false }).toList()
+                        }
                     android.util.Log.d(
                         "PracticeDebug",
                         "恢复进度: currentIndex=${progress.currentIndex}, answeredList=${progress.answeredList}, selectedOptions=${progress.selectedOptions}, showResultList=${progress.showResultList}"
@@ -124,6 +141,8 @@ class PracticeViewModel @Inject constructor(
                 }
                 _progressLoaded.value = true
             }
+
+
         }
     }
 

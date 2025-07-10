@@ -63,7 +63,7 @@ fun PracticeScreen(
             viewModel.loadFavoriteQuestions(favoriteFileName)
         } else {
             // 普通练习模式使用 "practice_" 前缀，避免与其他模式的进度混淆
-            viewModel.setProgressId(id = "practice_${quizId}", questionsId = quizId)
+            viewModel.setProgressId(id = quizId, questionsId = quizId)
         }
     }
 

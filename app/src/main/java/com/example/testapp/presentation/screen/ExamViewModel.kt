@@ -195,7 +195,7 @@ class ExamViewModel @Inject constructor(
             } else {
                 newShowResultList[i] = false
             }
-           
+
         }
         addHistoryRecordUseCase(HistoryRecord(score, qs.size))
         _showResultList.value = newShowResultList
