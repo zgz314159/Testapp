@@ -51,7 +51,7 @@ fun ExamScreen(
 
 
     // 关键：DisposableEffect 用于退出界面时自动判卷保存
-    DisposableEffect(finished, progressLoaded, selectedOptions) {
+    DisposableEffect(Unit) {
         onDispose {
             if (
                 progressLoaded &&
@@ -316,7 +316,7 @@ fun ExamScreen(
                 android.util.Log.d("ExamScreen", "handleSelect index=$idx current=$currentIndex")
                 viewModel.selectOption(idx)
                 if (question.type == "单选题" || question.type == "判断题") {
-                    viewModel.updateShowResult(currentIndex, true)
+                    //viewModel.updateShowResult(currentIndex, true)
                     autoJob?.cancel()
                     autoJob = coroutineScope.launch {
                         if (examDelay > 0) kotlinx.coroutines.delay(examDelay * 1000L)
@@ -326,8 +326,9 @@ fun ExamScreen(
                             if (selectedOptions.any { it.isEmpty() }) {
                                 showExitDialog = true
                             } else {
-                                val score = viewModel.gradeExam()
-                                onExamEnd(score, questions.size)
+                               // val score = viewModel.gradeExam()
+                                //onExamEnd(score, questions.size)
+                                showExitDialog = true
                             }
                         }
                     }
@@ -429,7 +430,7 @@ if (showExitDialog) {
             TextButton(onClick = {
                 coroutineScope.launch {
                     val score = viewModel.gradeExam()
-                    showExitDialog = false
+                    //showExitDialog = false
                     onExamEnd(score, questions.size)
                 }
             }) {

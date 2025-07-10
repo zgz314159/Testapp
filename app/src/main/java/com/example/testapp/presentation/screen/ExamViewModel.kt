@@ -57,9 +57,9 @@ class ExamViewModel @Inject constructor(
         viewModelScope.launch {
             android.util.Log.d("ExamDebug", "loadQuestions start id=$quizId count=$count")
             val existing = getExamProgressFlowUseCase(progressId).firstOrNull()
-            if (existing?.finished == true) {
+           /* if (existing?.finished == true) {
                 clearExamProgressUseCase(progressId)
-            }
+            }*/
             getQuestionsUseCase(quizId).collect { list ->
                 android.util.Log.d("ExamDebug", "loadQuestions: received ${list.size} questions for $quizId")
                 val shuffled = list.shuffled().let { qs ->
@@ -182,14 +182,20 @@ class ExamViewModel @Inject constructor(
         for (i in qs.indices) {
             val correct = answerLettersToIndices(qs[i].answer)
             val sel = selections.getOrElse(i) { emptyList() }
+
+            // 遍历每一道题
             if (sel.isNotEmpty()) {
+                // 仅对已选题目判分并标记
                 if (sel.sorted() == correct.sorted()) {
                     score++
                 } else {
                     addWrongQuestionUseCase(WrongQuestion(qs[i], sel))
                 }
+                newShowResultList[i] = true    // 标记已批改
+            } else {
+                newShowResultList[i] = false
             }
-            newShowResultList[i] = true
+           
         }
         addHistoryRecordUseCase(HistoryRecord(score, qs.size))
         _showResultList.value = newShowResultList
