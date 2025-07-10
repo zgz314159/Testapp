@@ -72,6 +72,7 @@ fun ExamScreen(
         question != null && favoriteQuestions.any { it.question.id == question.id }
     }
     var elapsed by remember { mutableStateOf(0) }
+
     LaunchedEffect(currentIndex) {
         elapsed = 0
         while (true) {
@@ -79,6 +80,14 @@ fun ExamScreen(
             elapsed += 1
         }
     }
+
+    LaunchedEffect(quizId, examCount, progressLoaded) {
+        if (!progressLoaded) {
+            viewModel.loadQuestions(quizId, examCount)
+        }
+    }
+
+
     var showList by remember { mutableStateOf(false) }
     var menuExpanded by remember { mutableStateOf(false) }
     var questionFontSize by remember(fontSize) { mutableStateOf(fontSize) }
@@ -207,7 +216,7 @@ fun ExamScreen(
                 })
                 DropdownMenuItem(text = { Text("清除进度") }, onClick = {
                     viewModel.clearProgress()
-                    viewModel.loadQuestions(quizId, examCount)
+                    menuExpanded = false
                     elapsed = 0
                     menuExpanded = false
                 })
@@ -373,7 +382,7 @@ fun ExamScreen(
 
                         modifier = Modifier
                             .fillMaxWidth()
-                            .background(Color.LightGray)
+                            .background(Color(0xFFD0E8FF)) // 明显蓝色
                             .padding(8.dp)
                     ) {
 
@@ -388,12 +397,12 @@ fun ExamScreen(
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .background(Color.LightGray)
+                                .background(Color(0xFFFFF5C0)) // 明显黄色
                                 .padding(8.dp)
                         ) {
                             Text(
-                                text = "解析：${question.explanation}",
-                                fontSize = LocalFontSize.current,
+                                text = "解析：" + if (question.explanation.isNotBlank()) question.explanation else "本题暂无解析",
+                                color = Color(0xFF835C00), // 深点的黄棕色，看着和底色区分开
                                 fontFamily = LocalFontFamily.current
                             )
                         }

@@ -15,7 +15,7 @@ data class PracticeProgressEntity(
     val answeredList: List<Int>, // 已答题目下标
     @TypeConverters(NestedIntListConverter::class)
     val selectedOptions: List<List<Int>>, // 支持多选的选项序号
-    @TypeConverters(IntListConverter::class)
-    val showResultList: List<Int>, // 用Int代替Boolean，0=未提交，1=已提交
+    @TypeConverters(BooleanListConverter::class) // <--- 修改为BooleanListConverter
+    val showResultList: List<Boolean>,           // <--- 类型直接用Boolean
     val timestamp: Long // 保存时间戳
 )

@@ -397,10 +397,11 @@ fun PracticeScreen(
             if (showResult) {
                 val correctText = correctIndices.joinToString("、") { question.options[it] }
                 val allCorrect = selectedOption.toSet() == correctIndices.toSet()
+                // ---- 答题结果显示（用 primaryContainer，偏蓝/主色调）
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .background(Color.LightGray)
+                        .background(Color(0xFFD0E8FF)) // 明显蓝色
                         .padding(8.dp)
                 ) {
                     Text(
@@ -414,11 +415,12 @@ fun PracticeScreen(
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .background(Color.LightGray)
+                            .background(Color(0xFFFFF5C0)) // 明显黄色
                             .padding(8.dp)
                     ) {
                         Text(
-                            text = "解析：${question.explanation}",
+                            text = "解析：" + if (question.explanation.isNotBlank()) question.explanation else "本题暂无解析",
+                            color = Color(0xFF835C00), // 深点的黄棕色，看着和底色区分开
                             fontSize = LocalFontSize.current,
                             fontFamily = LocalFontFamily.current
                         )

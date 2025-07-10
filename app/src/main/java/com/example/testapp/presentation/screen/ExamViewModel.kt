@@ -38,6 +38,7 @@ class ExamViewModel @Inject constructor(
 
     private val _selectedOptions = MutableStateFlow<List<List<Int>>>(emptyList())
     val selectedOptions: StateFlow<List<List<Int>>> = _selectedOptions.asStateFlow()
+
     private val _showResultList = MutableStateFlow<List<Boolean>>(emptyList())
     val showResultList: StateFlow<List<Boolean>> = _showResultList.asStateFlow()
 
@@ -168,6 +169,13 @@ class ExamViewModel @Inject constructor(
     suspend fun gradeExam(): Int {
         val qs = _questions.value
         val selections = _selectedOptions.value
+
+        // 判空，任何数据为0直接返回
+        if (qs.isEmpty() || selections.isEmpty() || _showResultList.value.isEmpty()) {
+            android.util.Log.w("ExamViewModel", "gradeExam called with empty data, skipping grading")
+            return 0
+        }
+
         var score = 0
         val newShowResultList = _showResultList.value.toMutableList()
 
@@ -190,6 +198,30 @@ class ExamViewModel @Inject constructor(
         saveProgress()
         return score
     }
+
+    fun clearProgressAndReload() {
+        viewModelScope.launch {
+            clearExamProgressUseCase(progressId)
+            // 重置状态
+            _currentIndex.value = 0
+            _selectedOptions.value = List(_questions.value.size) { emptyList() }
+            _showResultList.value = List(_questions.value.size) { false }
+            _finished.value = false
+            _progressLoaded.value = false
+            loadProgress()
+        }
+    }
+
+
+    fun resetAllStates() {
+        val qs = _questions.value
+        _currentIndex.value = 0
+        _selectedOptions.value = List(qs.size) { emptyList() }
+        _showResultList.value = List(qs.size) { false }
+        _finished.value = false
+        _progressLoaded.value = true
+    }
+
 
     fun clearProgress() {
         viewModelScope.launch {
