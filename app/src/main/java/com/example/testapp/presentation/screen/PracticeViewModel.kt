@@ -218,7 +218,8 @@ class PracticeViewModel @Inject constructor(
     fun clearProgress() {
         viewModelScope.launch {
             android.util.Log.d("PracticeDebug", "clearProgress called for $progressId")
-            clearPracticeProgressUseCase(progressId)
+            val id = if (progressId.startsWith("practice_")) progressId else "practice_$progressId"
+            clearPracticeProgressUseCase(id)
             _currentIndex.value = 0
             _answeredList.value = emptyList()
             _selectedOptions.value = emptyList()
