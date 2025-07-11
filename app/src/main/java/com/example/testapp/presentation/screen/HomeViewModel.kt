@@ -5,6 +5,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.testapp.domain.model.Question
 import com.example.testapp.domain.usecase.ClearPracticeProgressUseCase
+import com.example.testapp.domain.usecase.ClearExamProgressUseCase
 import com.example.testapp.domain.usecase.GetQuestionsUseCase
 import com.example.testapp.domain.usecase.RemoveFavoriteQuestionsByFileNameUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -19,6 +20,7 @@ import javax.inject.Inject
 class HomeViewModel @Inject constructor(
     private val getQuestionsUseCase: GetQuestionsUseCase,
     private val clearPracticeProgressUseCase: ClearPracticeProgressUseCase,
+    private val clearExamProgressUseCase: ClearExamProgressUseCase,
     private val removeFavoriteQuestionsByFileNameUseCase: RemoveFavoriteQuestionsByFileNameUseCase
 ) : ViewModel() {
     private val _questions = MutableStateFlow<List<Question>>(emptyList())
@@ -43,6 +45,7 @@ class HomeViewModel @Inject constructor(
             getQuestionsUseCase.deleteQuestionsByFileName(fileName)
             // 使用带前缀的进度 ID，避免与其他模式冲突
             clearPracticeProgressUseCase("practice_${fileName}")
+            clearExamProgressUseCase("exam_${fileName}")
             removeFavoriteQuestionsByFileNameUseCase(fileName) // 一行，批量删收藏
             // 等待数据库变更后再 collect 一次，确保刷新
             val list = getQuestionsUseCase().first()
