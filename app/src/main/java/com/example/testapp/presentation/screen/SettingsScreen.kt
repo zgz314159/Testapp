@@ -28,6 +28,7 @@ fun SettingsScreen(viewModel: SettingsViewModel = hiltViewModel()) {
     val fontStyle by viewModel.fontStyle.collectAsState()
     val examCount by viewModel.examQuestionCount.collectAsState()
     val randomPractice by viewModel.randomPractice.collectAsState()
+    val randomExam by viewModel.randomExam.collectAsState()
     val correctDelay by viewModel.correctDelay.collectAsState()
     val wrongDelay by viewModel.wrongDelay.collectAsState()
     val examDelay by viewModel.examDelay.collectAsState()
@@ -230,6 +231,24 @@ fun SettingsScreen(viewModel: SettingsViewModel = hiltViewModel()) {
             )
         }
         if (examExpanded) {
+
+            // 随机考试开关
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(
+                    "随机考试：",
+                    style = MaterialTheme.typography.bodyLarge.copy(
+                        fontSize = fontSize.sp,
+                        fontFamily = LocalFontFamily.current
+                    )
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Switch(
+                    checked = randomExam,
+                    onCheckedChange = { viewModel.setRandomExam(context, it) }
+                )
+            }
+            Spacer(modifier = Modifier.height(8.dp))
+
             // 考试题数
             Text(
                 if (examCount == 0) "考试题数：全部" else "考试题数：$examCount",
@@ -252,6 +271,7 @@ fun SettingsScreen(viewModel: SettingsViewModel = hiltViewModel()) {
                 steps = 0
             )
             Spacer(modifier = Modifier.height(8.dp))
+
             // 答题停留时间
             Text(
                 "答题停留时间：${examDelay}秒",

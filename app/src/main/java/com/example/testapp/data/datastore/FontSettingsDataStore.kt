@@ -18,6 +18,7 @@ object FontSettingsDataStore {
     private val FONT_STYLE_KEY = stringPreferencesKey("font_style")
     private val EXAM_COUNT_KEY = intPreferencesKey("exam_question_count")
     private val RANDOM_PRACTICE_KEY = intPreferencesKey("random_practice")
+    private val RANDOM_EXAM_KEY = intPreferencesKey("random_exam")
     private val CORRECT_DELAY_KEY = intPreferencesKey("correct_delay")
     private val WRONG_DELAY_KEY = intPreferencesKey("wrong_delay")
     private val EXAM_DELAY_KEY = intPreferencesKey("exam_delay")
@@ -43,9 +44,17 @@ object FontSettingsDataStore {
     fun getRandomPractice(context: Context, default: Boolean = false): Flow<Boolean> =
         context.dataStore.data.map { preferences -> (preferences[RANDOM_PRACTICE_KEY] ?: if (default) 1 else 0) != 0 }
 
+    fun getRandomExam(context: Context, default: Boolean = true): Flow<Boolean> =
+        context.dataStore.data.map { preferences -> (preferences[RANDOM_EXAM_KEY] ?: if (default) 1 else 0) != 0 }
+
     suspend fun setRandomPractice(context: Context, enabled: Boolean) {
         context.dataStore.edit { preferences -> preferences[RANDOM_PRACTICE_KEY] = if (enabled) 1 else 0 }
     }
+
+    suspend fun setRandomExam(context: Context, enabled: Boolean) {
+        context.dataStore.edit { preferences -> preferences[RANDOM_EXAM_KEY] = if (enabled) 1 else 0 }
+    }
+
     fun getCorrectDelay(context: Context, default: Int = 1): Flow<Int> =
         context.dataStore.data.map { preferences -> preferences[CORRECT_DELAY_KEY] ?: default }
 

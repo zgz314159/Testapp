@@ -50,32 +50,35 @@ class ExamViewModel @Inject constructor(
 
     private var progressId: String = "exam_default"
 
-    fun loadQuestions(quizId: String, count: Int) {
+    fun loadQuestions(quizId: String, count: Int, random: Boolean) {
         // 考试模式也使用前缀区分进度
         progressId = "exam_${quizId}"
         _progressLoaded.value = false
         viewModelScope.launch {
-            android.util.Log.d("ExamDebug", "loadQuestions start id=$quizId count=$count")
+            android.util.Log.d("ExamDebug", "loadQuestions start id=$quizId count=$count random=$random")
             val existing = getExamProgressFlowUseCase(progressId).firstOrNull()
            /* if (existing?.finished == true) {
                 clearExamProgressUseCase(progressId)
             }*/
             getQuestionsUseCase(quizId).collect { list ->
                 android.util.Log.d("ExamDebug", "loadQuestions: received ${list.size} questions for $quizId")
-                val shuffled = list.shuffled().let { qs ->
-                    if (count > 0) qs.take(count.coerceAtMost(qs.size)) else qs
-                }
-                val finalList = shuffled.map { q ->
-                    val correctIndex = answerLetterToIndex(q.answer)
-                    if (correctIndex == null) {
-                        q
-                    } else {
-                        val pairs = q.options.mapIndexed { idx, opt -> idx to opt }.shuffled()
-                        val newOptions = pairs.map { it.second }
-                        val newCorrect = pairs.indexOfFirst { it.first == correctIndex }
-                        val newAnswer = ('A' + newCorrect).toString()
-                        q.copy(options = newOptions, answer = newAnswer)
+                val ordered = if (random) list.shuffled() else list
+                val trimmed = if (count > 0) ordered.take(count.coerceAtMost(ordered.size)) else ordered
+                val finalList = if (random) {
+                    trimmed.map { q ->
+                        val correctIndex = answerLetterToIndex(q.answer)
+                        if (correctIndex == null) {
+                            q
+                        } else {
+                            val pairs = q.options.mapIndexed { idx, opt -> idx to opt }.shuffled()
+                            val newOptions = pairs.map { it.second }
+                            val newCorrect = pairs.indexOfFirst { it.first == correctIndex }
+                            val newAnswer = ('A' + newCorrect).toString()
+                            q.copy(options = newOptions, answer = newAnswer)
+                        }
                     }
+                } else {
+                    trimmed
                 }
                 _questions.value = finalList
                 _selectedOptions.value = List(finalList.size) { emptyList() }

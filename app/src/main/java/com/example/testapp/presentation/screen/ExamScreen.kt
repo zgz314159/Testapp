@@ -41,7 +41,8 @@ fun ExamScreen(
     onExamEnd: (score: Int, total: Int) -> Unit = { _, _ -> }
 ) {
     val examCount by settingsViewModel.examQuestionCount.collectAsState()
-    LaunchedEffect(quizId, examCount) { viewModel.loadQuestions(quizId, examCount) }
+    val randomExam by settingsViewModel.randomExam.collectAsState()
+    LaunchedEffect(quizId, examCount, randomExam) { viewModel.loadQuestions(quizId, examCount, randomExam) }
     val questions by viewModel.questions.collectAsState()
     val currentIndex by viewModel.currentIndex.collectAsState()
     val selectedOptions by viewModel.selectedOptions.collectAsState()
@@ -85,9 +86,9 @@ fun ExamScreen(
         }
     }
 
-    LaunchedEffect(quizId, examCount, progressLoaded) {
+    LaunchedEffect(quizId, examCount, randomExam, progressLoaded) {
         if (!progressLoaded) {
-            viewModel.loadQuestions(quizId, examCount)
+            viewModel.loadQuestions(quizId, examCount, randomExam)
         }
     }
 
