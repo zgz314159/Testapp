@@ -27,6 +27,7 @@ fun SettingsScreen(viewModel: SettingsViewModel = hiltViewModel()) {
     val fontSize by viewModel.fontSize.collectAsState()
     val fontStyle by viewModel.fontStyle.collectAsState()
     val examCount by viewModel.examQuestionCount.collectAsState()
+    val practiceCount by viewModel.practiceQuestionCount.collectAsState()
     val randomPractice by viewModel.randomPractice.collectAsState()
     val randomExam by viewModel.randomExam.collectAsState()
     val correctDelay by viewModel.correctDelay.collectAsState()
@@ -327,6 +328,30 @@ fun SettingsScreen(viewModel: SettingsViewModel = hiltViewModel()) {
                 )
             }
             Spacer(modifier = Modifier.height(8.dp))
+
+            // 练习题数
+            Text(
+                if (practiceCount == 0) "练习题数：全部" else "练习题数：$practiceCount",
+                style = MaterialTheme.typography.bodyLarge.copy(
+                    fontSize = fontSize.sp,
+                    fontFamily = LocalFontFamily.current
+                )
+            )
+            var practiceSliderPosition by remember(practiceCount) {
+                mutableStateOf(if (practiceCount == 0) 150f else practiceCount.toFloat())
+            }
+            Slider(
+                value = practiceSliderPosition,
+                onValueChange = {
+                    practiceSliderPosition = it
+                    val value = if (it <= 100f) it.roundToInt() else 0
+                    viewModel.setPracticeQuestionCount(context, value)
+                },
+                valueRange = 0f..150f,
+                steps = 0
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+
             // 答对停留时间
             Text(
                 "答对停留时间：${correctDelay}秒",

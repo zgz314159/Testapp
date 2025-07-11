@@ -64,7 +64,12 @@ class PracticeViewModel @Inject constructor(
     fun setRandomPractice(enabled: Boolean) {
         randomPracticeEnabled = enabled
     }
-    fun setProgressId(id: String, questionsId: String = id, loadQuestions: Boolean = true) {
+    fun setProgressId(
+        id: String,
+        questionsId: String = id,
+        loadQuestions: Boolean = true,
+        questionCount: Int = 0
+    ) {
         // 1. 统一给练习进度加 practice_ 前缀
         progressId = if (id.startsWith("practice_")) id else "practice_$id"
         questionSourceId = questionsId
@@ -72,22 +77,21 @@ class PracticeViewModel @Inject constructor(
 
         if (loadQuestions) {
             viewModelScope.launch {
-                // 如果要随机练习，每次切场景时先清空旧的同名进度
                 if (randomPracticeEnabled) {
                     clearPracticeProgressUseCase(progressId)
                 }
-                // 然后加载题库和进度
                 getQuestionsUseCase(questionSourceId).collect { qs ->
                     android.util.Log.d(
                         "PracticeDebug",
                         "getQuestionsUseCase 收到题目数量: ${qs.size}"
                     )
-                    val list = if (randomPracticeEnabled) qs.shuffled() else qs
+                    val ordered = if (randomPracticeEnabled) qs.shuffled() else qs
+                    val trimmed = if (questionCount > 0) ordered.take(questionCount.coerceAtMost(ordered.size)) else ordered
                     android.util.Log.d(
                         "PracticeDebug",
-                        "加载题库: progressId=$progressId random=$randomPracticeEnabled"
+                        "加载题库: progressId=$progressId random=$randomPracticeEnabled count=$questionCount"
                     )
-                    _questions.value = if (randomPracticeEnabled) qs.shuffled() else qs
+                    _questions.value = trimmed
                     loadProgress()
                 }
             }

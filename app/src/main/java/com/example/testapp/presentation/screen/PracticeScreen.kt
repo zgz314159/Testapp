@@ -44,7 +44,8 @@ fun PracticeScreen(
     onSubmit: (Boolean) -> Unit = {}
 ) {
     val randomPractice by settingsViewModel.randomPractice.collectAsState()
-    LaunchedEffect(quizId, isWrongBookMode, wrongBookFileName, isFavoriteMode, favoriteFileName, randomPractice) {
+    val practiceCount by settingsViewModel.practiceQuestionCount.collectAsState()
+    LaunchedEffect(quizId, isWrongBookMode, wrongBookFileName, isFavoriteMode, favoriteFileName, randomPractice, practiceCount) {
         viewModel.setRandomPractice(randomPractice)
         if (isWrongBookMode && wrongBookFileName != null) {
             // 使用独立的进度 id，避免与普通练习冲突，并跳过题库加载
@@ -63,7 +64,7 @@ fun PracticeScreen(
             viewModel.loadFavoriteQuestions(favoriteFileName)
         } else {
             // 普通练习模式使用 "practice_" 前缀，避免与其他模式的进度混淆
-            viewModel.setProgressId(id = quizId, questionsId = quizId)
+            viewModel.setProgressId(id = quizId, questionsId = quizId, questionCount = practiceCount)
         }
     }
 

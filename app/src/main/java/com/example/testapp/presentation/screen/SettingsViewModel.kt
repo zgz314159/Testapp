@@ -42,6 +42,8 @@ class SettingsViewModel @Inject constructor(
     val progress: StateFlow<Float> = _progress.asStateFlow()
     private val _examQuestionCount = MutableStateFlow(10)
     val examQuestionCount: StateFlow<Int> = _examQuestionCount.asStateFlow()
+    private val _practiceQuestionCount = MutableStateFlow(0)
+    val practiceQuestionCount: StateFlow<Int> = _practiceQuestionCount.asStateFlow()
     private val _randomPractice = MutableStateFlow(false)
     val randomPractice: StateFlow<Boolean> = _randomPractice.asStateFlow()
     private val _randomExam = MutableStateFlow(true)
@@ -70,6 +72,12 @@ class SettingsViewModel @Inject constructor(
         _examQuestionCount.value = count
         viewModelScope.launch {
             FontSettingsDataStore.setExamQuestionCount(context, count)
+        }
+    }
+    fun setPracticeQuestionCount(context: Context, count: Int) {
+        _practiceQuestionCount.value = count
+        viewModelScope.launch {
+            FontSettingsDataStore.setPracticeQuestionCount(context, count)
         }
     }
     fun setRandomPractice(context: Context, enabled: Boolean) {
@@ -111,6 +119,7 @@ class SettingsViewModel @Inject constructor(
             val size = FontSettingsDataStore.getFontSize(context).first()
             val style = FontSettingsDataStore.getFontStyle(context).first()
             val examCount = FontSettingsDataStore.getExamQuestionCount(context).first()
+            val practiceCount = FontSettingsDataStore.getPracticeQuestionCount(context).first()
             val random = FontSettingsDataStore.getRandomPractice(context).first()
             val randomExam = FontSettingsDataStore.getRandomExam(context).first()
             val correct = FontSettingsDataStore.getCorrectDelay(context).first()
@@ -119,6 +128,7 @@ class SettingsViewModel @Inject constructor(
             _fontSize.value = size
             _fontStyle.value = style
             _examQuestionCount.value = examCount
+            _practiceQuestionCount.value = practiceCount
             _randomPractice.value = random
             _randomExam.value = randomExam
             _correctDelay.value = correct

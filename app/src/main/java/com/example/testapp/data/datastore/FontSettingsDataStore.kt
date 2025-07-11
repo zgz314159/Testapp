@@ -17,6 +17,7 @@ object FontSettingsDataStore {
     private val FONT_SIZE_KEY = floatPreferencesKey("font_size")
     private val FONT_STYLE_KEY = stringPreferencesKey("font_style")
     private val EXAM_COUNT_KEY = intPreferencesKey("exam_question_count")
+    private val PRACTICE_COUNT_KEY = intPreferencesKey("practice_question_count")
     private val RANDOM_PRACTICE_KEY = intPreferencesKey("random_practice")
     private val RANDOM_EXAM_KEY = intPreferencesKey("random_exam")
     private val CORRECT_DELAY_KEY = intPreferencesKey("correct_delay")
@@ -41,6 +42,14 @@ object FontSettingsDataStore {
     suspend fun setExamQuestionCount(context: Context, count: Int) {
         context.dataStore.edit { preferences -> preferences[EXAM_COUNT_KEY] = count }
     }
+
+    fun getPracticeQuestionCount(context: Context, default: Int = 0): Flow<Int> =
+        context.dataStore.data.map { preferences -> preferences[PRACTICE_COUNT_KEY] ?: default }
+
+    suspend fun setPracticeQuestionCount(context: Context, count: Int) {
+        context.dataStore.edit { preferences -> preferences[PRACTICE_COUNT_KEY] = count }
+    }
+
     fun getRandomPractice(context: Context, default: Boolean = false): Flow<Boolean> =
         context.dataStore.data.map { preferences -> (preferences[RANDOM_PRACTICE_KEY] ?: if (default) 1 else 0) != 0 }
 
