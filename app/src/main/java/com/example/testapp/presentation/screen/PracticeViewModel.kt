@@ -56,7 +56,7 @@ class PracticeViewModel @Inject constructor(
     init {
         // 应用启动时，清理任何旧的 default 记录，防止误删到别的表
         viewModelScope.launch {
-            clearPracticeProgressUseCase("default")
+            clearPracticeProgressUseCase("practice_default")
         }
     }
 

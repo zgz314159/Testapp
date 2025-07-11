@@ -10,7 +10,7 @@ import com.example.testapp.data.local.entity.converter.NestedIntListConverter
 
 @Entity(tableName = "exam_progress")
 data class ExamProgressEntity(
-    @PrimaryKey val id: String = "default",
+    @PrimaryKey val id: String = "exam_default",
     val currentIndex: Int,
     @TypeConverters(NestedIntListConverter::class)
     val selectedOptions: List<List<Int>>,

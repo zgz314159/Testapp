@@ -48,7 +48,7 @@ class ExamViewModel @Inject constructor(
     private val _finished = MutableStateFlow(false)
     val finished: StateFlow<Boolean> = _finished.asStateFlow()
 
-    private var progressId: String = "default"
+    private var progressId: String = "exam_default"
 
     fun loadQuestions(quizId: String, count: Int) {
         // 考试模式也使用前缀区分进度

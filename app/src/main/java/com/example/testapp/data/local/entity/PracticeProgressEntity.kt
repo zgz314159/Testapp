@@ -9,7 +9,7 @@ import com.example.testapp.data.local.entity.converter.NestedIntListConverter
 
 @Entity(tableName = "practice_progress")
 data class PracticeProgressEntity(
-    @PrimaryKey val id: String = "default", // 可根据题库唯一标识扩展
+    @PrimaryKey val id: String = "practice_default", // 可根据题库唯一标识扩展
     val currentIndex: Int,
     @TypeConverters(IntListConverter::class)
     val answeredList: List<Int>, // 已答题目下标

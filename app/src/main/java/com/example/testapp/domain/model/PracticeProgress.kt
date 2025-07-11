@@ -1,7 +1,7 @@
 package com.example.testapp.domain.model
 
 data class PracticeProgress(
-    val id: String = "default",
+    val id: String = "practice_default",
     val currentIndex: Int,
     val answeredList: List<Int>,
     val selectedOptions: List<List<Int>>, // 支持多选！
