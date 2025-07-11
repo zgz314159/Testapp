@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import com.example.testapp.domain.model.WrongQuestion
 import com.example.testapp.domain.repository.WrongBookRepository
 import com.example.testapp.domain.usecase.GetWrongBookUseCase
+import com.example.testapp.domain.usecase.RemoveWrongQuestionsByFileNameUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -16,7 +17,8 @@ import javax.inject.Inject
 @HiltViewModel
 class WrongBookViewModel @Inject constructor(
     getWrongBookUseCase: GetWrongBookUseCase,
-    private val wrongBookRepository: WrongBookRepository
+    private val wrongBookRepository: WrongBookRepository,
+    private val removeWrongQuestionsByFileNameUseCase: RemoveWrongQuestionsByFileNameUseCase
 ) : ViewModel() {
     private val _wrongQuestions = MutableStateFlow<List<WrongQuestion>>(emptyList())
     val wrongQuestions: StateFlow<List<WrongQuestion>> = _wrongQuestions.asStateFlow()
@@ -40,5 +42,9 @@ class WrongBookViewModel @Inject constructor(
             wrongBookRepository.add(wrong)
             android.util.Log.d("WrongBookViewModel", "addWrongQuestion-保存完成: $wrong")
         }
+    }
+    // 新增：按文件名删除错题
+    fun removeByFileName(fileName: String) {
+        viewModelScope.launch { removeWrongQuestionsByFileNameUseCase(fileName) }
     }
 }

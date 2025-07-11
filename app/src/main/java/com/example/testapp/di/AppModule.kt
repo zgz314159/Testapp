@@ -28,6 +28,7 @@ import com.example.testapp.domain.usecase.GetFavoriteQuestionsUseCase
 import com.example.testapp.domain.usecase.GetHistoryListUseCase
 import com.example.testapp.domain.usecase.GetQuestionsUseCase
 import com.example.testapp.domain.usecase.GetWrongBookUseCase
+import com.example.testapp.domain.usecase.RemoveWrongQuestionsByFileNameUseCase
 import com.example.testapp.domain.usecase.RemoveFavoriteQuestionUseCase
 import com.example.testapp.domain.usecase.GetPracticeProgressFlowUseCase
 import com.example.testapp.domain.usecase.SavePracticeProgressUseCase
@@ -73,6 +74,11 @@ object AppModule {
     @Singleton
     fun provideGetWrongBookUseCase(repo: WrongBookRepository): GetWrongBookUseCase =
         GetWrongBookUseCase(repo)
+
+    @Provides
+    @Singleton
+    fun provideRemoveWrongQuestionsByFileNameUseCase(repo: WrongBookRepository): RemoveWrongQuestionsByFileNameUseCase =
+        RemoveWrongQuestionsByFileNameUseCase(repo)
 
     @Provides
     @Singleton

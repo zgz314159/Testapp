@@ -9,4 +9,7 @@ interface WrongBookRepository {
     suspend fun clear()
     suspend fun importFromFile(file: java.io.File): Int
     suspend fun exportToFile(file: java.io.File): Boolean
+    // 新增：按文件名批量删除错题
+    suspend fun removeByFileName(fileName: String)
+
 }

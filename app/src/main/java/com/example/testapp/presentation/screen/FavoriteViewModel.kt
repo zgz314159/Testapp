@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.testapp.domain.usecase.AddFavoriteQuestionUseCase
 import com.example.testapp.domain.usecase.RemoveFavoriteQuestionUseCase
+import com.example.testapp.domain.usecase.RemoveFavoriteQuestionsByFileNameUseCase
 import com.example.testapp.domain.usecase.GetFavoriteQuestionsUseCase
 import com.example.testapp.domain.model.Question
 import com.example.testapp.domain.model.FavoriteQuestion
@@ -21,7 +22,8 @@ class FavoriteViewModel @Inject constructor(
     private val getFavoriteQuestionsUseCase: GetFavoriteQuestionsUseCase,
     private val addFavoriteQuestionUseCase: AddFavoriteQuestionUseCase,
     private val removeFavoriteQuestionUseCase: RemoveFavoriteQuestionUseCase,
-    private val getQuestionsUseCase: GetQuestionsUseCase
+    private val getQuestionsUseCase: GetQuestionsUseCase,
+    private val removeFavoriteQuestionsByFileNameUseCase: RemoveFavoriteQuestionsByFileNameUseCase
 ) : ViewModel() {
     private val _favoriteQuestions = MutableStateFlow<List<FavoriteQuestion>>(emptyList())
     val favoriteQuestions: StateFlow<List<FavoriteQuestion>> = _favoriteQuestions.asStateFlow()
@@ -41,5 +43,10 @@ class FavoriteViewModel @Inject constructor(
     }
     fun removeFavorite(id: Int) {
         viewModelScope.launch { removeFavoriteQuestionUseCase(id) }
+    }
+
+    // 新增：按文件名批量移除收藏
+    fun removeByFileName(fileName: String) {
+        viewModelScope.launch { removeFavoriteQuestionsByFileNameUseCase(fileName) }
     }
 }
