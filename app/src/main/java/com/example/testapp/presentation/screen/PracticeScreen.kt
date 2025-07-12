@@ -109,6 +109,7 @@ fun PracticeScreen(
     }
     var elapsed by remember { mutableStateOf(0) }
     LaunchedEffect(currentIndex) {
+        aiViewModel.clear()
         elapsed = 0
         while (true) {
             kotlinx.coroutines.delay(1000)
