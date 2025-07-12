@@ -9,12 +9,14 @@ import com.example.testapp.data.local.dao.QuestionDao
 import com.example.testapp.data.local.dao.WrongQuestionDao
 import com.example.testapp.data.local.dao.PracticeProgressDao
 import com.example.testapp.data.local.dao.ExamProgressDao
+import com.example.testapp.data.local.dao.QuestionAnalysisDao
 import com.example.testapp.data.repository.FavoriteQuestionRepositoryImpl
 import com.example.testapp.data.repository.HistoryRepositoryImpl
 import com.example.testapp.data.repository.QuestionRepositoryImpl
 import com.example.testapp.data.repository.WrongBookRepositoryImpl
 import com.example.testapp.data.repository.PracticeProgressRepositoryImpl
 import com.example.testapp.data.repository.ExamProgressRepositoryImpl
+import com.example.testapp.data.repository.QuestionAnalysisRepositoryImpl
 import com.example.testapp.data.network.DeepSeekApiService
 import com.example.testapp.domain.repository.FavoriteQuestionRepository
 import com.example.testapp.domain.repository.HistoryRepository
@@ -22,6 +24,7 @@ import com.example.testapp.domain.repository.QuestionRepository
 import com.example.testapp.domain.repository.WrongBookRepository
 import com.example.testapp.domain.repository.PracticeProgressRepository
 import com.example.testapp.domain.repository.ExamProgressRepository
+import com.example.testapp.domain.repository.QuestionAnalysisRepository
 import com.example.testapp.domain.usecase.AddFavoriteQuestionUseCase
 import com.example.testapp.domain.usecase.AddHistoryRecordUseCase
 import com.example.testapp.domain.usecase.AddWrongQuestionUseCase
@@ -37,6 +40,8 @@ import com.example.testapp.domain.usecase.SaveExamProgressUseCase
 import com.example.testapp.domain.usecase.GetExamProgressFlowUseCase
 import com.example.testapp.domain.usecase.ClearExamProgressUseCase
 import com.example.testapp.domain.usecase.ClearPracticeProgressUseCase
+import com.example.testapp.domain.usecase.GetQuestionAnalysisUseCase
+import com.example.testapp.domain.usecase.SaveQuestionAnalysisUseCase
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -133,6 +138,9 @@ object AppModule {
     fun provideExamProgressDao(db: AppDatabase): ExamProgressDao = db.examProgressDao()
 
     @Provides
+    fun provideQuestionAnalysisDao(db: AppDatabase): QuestionAnalysisDao = db.questionAnalysisDao()
+
+    @Provides
     @Singleton
     fun provideFavoriteQuestionRepository(dao: FavoriteQuestionDao): FavoriteQuestionRepository = FavoriteQuestionRepositoryImpl(dao)
 
@@ -155,6 +163,10 @@ object AppModule {
     @Provides
     @Singleton
     fun provideExamProgressRepository(dao: ExamProgressDao): ExamProgressRepository = ExamProgressRepositoryImpl(dao)
+
+    @Provides
+    @Singleton
+    fun provideQuestionAnalysisRepository(dao: QuestionAnalysisDao): QuestionAnalysisRepository = QuestionAnalysisRepositoryImpl(dao)
 
     @Provides
     @Singleton
@@ -182,6 +194,14 @@ object AppModule {
 
     @Provides
     @Singleton
+    fun provideGetQuestionAnalysisUseCase(repo: QuestionAnalysisRepository): GetQuestionAnalysisUseCase = GetQuestionAnalysisUseCase(repo)
+
+    @Provides
+    @Singleton
+    fun provideSaveQuestionAnalysisUseCase(repo: QuestionAnalysisRepository): SaveQuestionAnalysisUseCase = SaveQuestionAnalysisUseCase(repo)
+
+    @Provides
+    @Singleton
     fun provideHttpClient(): HttpClient = HttpClient(CIO) {
         install(ContentNegotiation) {
             json(
@@ -191,7 +211,7 @@ object AppModule {
                 }
             )
         }
-        install(Logging) { level = LogLevel.BODY }
+        install(Logging) { level = LogLevel.INFO }
     }
 
     @Provides
