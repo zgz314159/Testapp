@@ -17,6 +17,7 @@ import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.outlined.StarBorder
 import androidx.compose.material.icons.filled.Lightbulb
 import androidx.compose.material3.*
+import androidx.compose.material3.LocalContentColor
 import androidx.compose.material.ExperimentalMaterialApi
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -99,6 +100,7 @@ fun PracticeScreen(
     val analysisPair by aiViewModel.analysis.collectAsState()
     val analysisList by viewModel.analysisList.collectAsState()
     val analysisText = if (analysisPair?.first == currentIndex) analysisPair?.second else analysisList.getOrNull(currentIndex)
+    val hasDeepSeekAnalysis = analysisList.getOrNull(currentIndex).orEmpty().isNotBlank()
     android.util.Log.d(
         "PracticeScreen-question",
         "currentIndex=$currentIndex, question=$question"
@@ -258,7 +260,11 @@ fun PracticeScreen(
                 )
             }
             IconButton(onClick = { if (question != null) aiViewModel.analyze(currentIndex, question) }) {
-                Icon(Icons.Filled.Lightbulb, contentDescription = "AI 解析")
+                Icon(
+                    imageVector = Icons.Filled.Lightbulb,
+                    contentDescription = "AI 解析",
+                    tint = if (hasDeepSeekAnalysis) MaterialTheme.colorScheme.primary else LocalContentColor.current
+                )
             }
             Spacer(modifier = Modifier.weight(1f))
             Card(onClick = { showList = true }) {
