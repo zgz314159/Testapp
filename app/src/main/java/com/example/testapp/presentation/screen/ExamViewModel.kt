@@ -49,28 +49,37 @@ class ExamViewModel @Inject constructor(
     val finished: StateFlow<Boolean> = _finished.asStateFlow()
 
     private var progressId: String = "exam_default"
+    private var progressSeed: Long = System.currentTimeMillis()
 
     fun loadQuestions(quizId: String, count: Int, random: Boolean) {
         // 考试模式也使用前缀区分进度
         progressId = "exam_${quizId}"
         _progressLoaded.value = false
         viewModelScope.launch {
-            android.util.Log.d("ExamDebug", "loadQuestions start id=$quizId count=$count random=$random")
+            android.util.Log.d(
+                "ExamDebug",
+                "loadQuestions start id=$quizId count=$count random=$random"
+            )
             val existing = getExamProgressFlowUseCase(progressId).firstOrNull()
+            progressSeed = existing?.timestamp ?: System.currentTimeMillis()
            /* if (existing?.finished == true) {
                 clearExamProgressUseCase(progressId)
             }*/
             getQuestionsUseCase(quizId).collect { list ->
-                android.util.Log.d("ExamDebug", "loadQuestions: received ${list.size} questions for $quizId")
-                val ordered = if (random) list.shuffled() else list
+                android.util.Log.d(
+                    "ExamDebug",
+                    "loadQuestions: received ${list.size} questions for $quizId seed=$progressSeed"
+                )
+                val ordered = if (random) list.shuffled(java.util.Random(progressSeed)) else list
                 val trimmed = if (count > 0) ordered.take(count.coerceAtMost(ordered.size)) else ordered
                 val finalList = if (random) {
-                    trimmed.map { q ->
+                    trimmed.mapIndexed { idx, q ->
                         val correctIndex = answerLetterToIndex(q.answer)
                         if (correctIndex == null) {
                             q
                         } else {
-                            val pairs = q.options.mapIndexed { idx, opt -> idx to opt }.shuffled()
+                            val rand = java.util.Random(progressSeed + idx)
+                            val pairs = q.options.mapIndexed { i, opt -> i to opt }.shuffled(rand)
                             val newOptions = pairs.map { it.second }
                             val newCorrect = pairs.indexOfFirst { it.first == correctIndex }
                             val newAnswer = ('A' + newCorrect).toString()
@@ -95,6 +104,7 @@ class ExamViewModel @Inject constructor(
             getExamProgressFlowUseCase(progressId).collect { progress ->
                 android.util.Log.d("ExamDebug", "loadProgress: progress=$progress id=$progressId")
                 if (progress != null && !_progressLoaded.value) {
+                    progressSeed = progress.timestamp
                     _currentIndex.value =
                         progress.currentIndex.coerceAtMost(_questions.value.size - 1)
                     _selectedOptions.value =
@@ -217,6 +227,7 @@ class ExamViewModel @Inject constructor(
             _showResultList.value = List(_questions.value.size) { false }
             _finished.value = false
             _progressLoaded.value = false
+            progressSeed = System.currentTimeMillis()
             loadProgress()
         }
     }
@@ -241,6 +252,7 @@ class ExamViewModel @Inject constructor(
             _showResultList.value = emptyList()
             _finished.value = false
             _progressLoaded.value = false
+            progressSeed = System.currentTimeMillis()
         }
     }
 
@@ -257,7 +269,7 @@ class ExamViewModel @Inject constructor(
                     selectedOptions = _selectedOptions.value,
                     showResultList = _showResultList.value,
                     finished = _finished.value,
-                    timestamp = System.currentTimeMillis()
+                    timestamp = progressSeed
                 )
             )
         }

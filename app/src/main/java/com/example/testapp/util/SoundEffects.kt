@@ -18,7 +18,7 @@ class SoundEffects(context: Context) {
     }
 
     fun playWrong() {
-        soundPool.play(wrongId, 1f, 1f, 1, 0, 1f)
+        soundPool.play(wrongId, 2f, 2f, 2, 0, 2f)
     }
 
     fun release() {
