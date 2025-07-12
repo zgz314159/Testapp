@@ -225,12 +225,10 @@ fun PracticeScreen(
             DropdownMenu(expanded = menuExpanded, onDismissRequest = { menuExpanded = false }) {
                 DropdownMenuItem(text = { Text("放大字体") }, onClick = {
                     questionFontSize = (questionFontSize + 2).coerceAtMost(32f)
-                    settingsViewModel.setFontSize(context, questionFontSize)
                     menuExpanded = false
                 })
                 DropdownMenuItem(text = { Text("缩小字体") }, onClick = {
                     questionFontSize = (questionFontSize - 2).coerceAtLeast(14f)
-                    settingsViewModel.setFontSize(context, questionFontSize)
                     menuExpanded = false
                 })
                 DropdownMenuItem(text = { Text("清除进度") }, onClick = {
