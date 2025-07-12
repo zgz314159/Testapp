@@ -104,9 +104,14 @@ fun ExamScreen(
     var containerWidth by remember { mutableStateOf(0f) }
     var dragStartX by remember { mutableStateOf(0f) }
     var showExitDialog by remember { mutableStateOf(false) }
+    var answeredThisSession by remember { mutableStateOf(false) }
+
+    LaunchedEffect(progressLoaded) {
+        if (progressLoaded) answeredThisSession = false
+    }
 
     BackHandler {
-        val hasAnswered = selectedOptions.any { it.isNotEmpty() }
+        val hasAnswered = answeredThisSession
         val hasUnanswered = selectedOptions.any { it.isEmpty() }
         when {
             !hasAnswered -> onExitWithoutAnswer()
@@ -153,11 +158,10 @@ fun ExamScreen(
                         if ((dragStartX < 20f && dragAmount > 100f) ||
                             (dragStartX > containerWidth - 20f && dragAmount < -100f)
                         ) {
-                            val hasAnsweredEdge = selectedOptions.any { it.isNotEmpty() }
-                            val hasUnansweredEdge = selectedOptions.any { it.isEmpty() }
+
                             when {
-                                !hasAnsweredEdge -> onExitWithoutAnswer()
-                                hasUnansweredEdge -> showExitDialog = true
+                                !answeredThisSession -> onExitWithoutAnswer()
+                                selectedOptions.any { it.isEmpty() } -> showExitDialog = true
                                 else -> {
                                     coroutineScope.launch {
                                         val score = viewModel.gradeExam()
@@ -171,11 +175,10 @@ fun ExamScreen(
                             } else if (dragAmount < -100f && currentIndex < questions.size - 1) {
                                 viewModel.nextQuestion()
                             } else if (dragAmount < -100f) {
-                                val hasAnsweredEdge = selectedOptions.any { it.isNotEmpty() }
-                                val hasUnansweredEdge = selectedOptions.any { it.isEmpty() }
+
                                 when {
-                                    !hasAnsweredEdge -> onExitWithoutAnswer()
-                                    hasUnansweredEdge -> showExitDialog = true
+                                    !answeredThisSession -> onExitWithoutAnswer()
+                                    selectedOptions.any { it.isEmpty() } -> showExitDialog = true
                                     else -> {
                                         coroutineScope.launch {
                                             val score = viewModel.gradeExam()
@@ -331,6 +334,7 @@ fun ExamScreen(
 
             val handleSelect: (Int) -> Unit = { idx ->
                 android.util.Log.d("ExamScreen", "handleSelect index=$idx current=$currentIndex")
+                answeredThisSession = true
                 viewModel.selectOption(idx)
                 if (question.type == "单选题" || question.type == "判断题") {
                     //viewModel.updateShowResult(currentIndex, true)
@@ -340,11 +344,10 @@ fun ExamScreen(
                         if (currentIndex < questions.size - 1) {
                             viewModel.nextQuestion()
                         } else {
-                            val hasAnsweredLast = selectedOptions.any { it.isNotEmpty() }
-                            val hasUnansweredLast = selectedOptions.any { it.isEmpty() }
+
                             when {
-                                !hasAnsweredLast -> onExitWithoutAnswer()
-                                hasUnansweredLast -> showExitDialog = true
+                                !answeredThisSession -> onExitWithoutAnswer()
+                                selectedOptions.any { it.isEmpty() } -> showExitDialog = true
                                 else -> {
                                     coroutineScope.launch {
                                         val score = viewModel.gradeExam()

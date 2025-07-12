@@ -114,6 +114,11 @@ fun PracticeScreen(
     var questionFontSize by remember(fontSize) { mutableStateOf(fontSize) }
     var autoJob by remember { mutableStateOf<Job?>(null) }
     var showExitDialog by remember { mutableStateOf(false) }
+    var answeredThisSession by remember { mutableStateOf(false) }
+
+    LaunchedEffect(progressLoaded) {
+        if (progressLoaded) answeredThisSession = false
+    }
 
     LaunchedEffect(selectedOption, showResult, currentIndex, answeredList, selectedOptions, showResultList, progressLoaded) {
         android.util.Log.d(
@@ -123,7 +128,7 @@ fun PracticeScreen(
     }
     BackHandler {
         when {
-            answeredList.isEmpty() -> {
+            !answeredThisSession -> {
                 autoJob?.cancel()
                 onExitWithoutAnswer()
             }
@@ -166,7 +171,7 @@ fun PracticeScreen(
                                 viewModel.nextQuestion()
                             } else {
                                 when {
-                                    answeredList.isEmpty() -> {
+                                    !answeredThisSession -> {
                                         autoJob?.cancel()
                                         onExitWithoutAnswer()
                                     }
@@ -330,6 +335,7 @@ fun PracticeScreen(
 
             // 1. 声明 handleSelect
             val handleSelect: (Int) -> Unit = { idx ->
+                answeredThisSession = true
                 if (question.type == "单选题" || question.type == "判断题") {
                     // 单选/判断题逻辑不变
                     viewModel.answerQuestion(idx)
