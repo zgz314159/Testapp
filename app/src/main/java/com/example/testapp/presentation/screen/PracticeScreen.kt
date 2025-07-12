@@ -16,7 +16,14 @@ import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.outlined.StarBorder
 import androidx.compose.material.icons.filled.Lightbulb
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material3.*
+import androidx.compose.material.DismissDirection
+import androidx.compose.material.DismissValue
+import androidx.compose.material.ExperimentalMaterialApi
+import androidx.compose.material.FractionalThreshold
+import androidx.compose.material.SwipeToDismiss
+import androidx.compose.material.rememberDismissState
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -37,7 +44,7 @@ import com.example.testapp.util.answerLetterToIndex
 import com.example.testapp.data.datastore.FontSettingsDataStore
 
 
-
+@OptIn(ExperimentalMaterialApi::class)
 @Composable
 fun PracticeScreen(
     quizId: String = "default",
@@ -502,26 +509,53 @@ fun PracticeScreen(
                         )
                     }
                     if (!analysisText.isNullOrBlank()) {
-                        Box(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .heightIn(max = 200.dp)
-                                .verticalScroll(rememberScrollState())
-                                .background(Color(0xFFE8F6FF))
-                                .padding(8.dp)
-                                .pointerInput(analysisText) {
-                                    detectTapGestures(onDoubleTap = {
-                                        onViewDeepSeek(analysisText!!)
-                                    })
-                                }
-                        ) {
-                            Text(
-                                text = analysisText ?: "",
-                                color = Color(0xFF004B6B),
-                                fontSize = questionFontSize.sp,
-                                fontFamily = LocalFontFamily.current
-                            )
+                        val dismissState = rememberDismissState()
+                        if (dismissState.currentValue == DismissValue.DismissedToStart) {
+                            aiViewModel.clear()
+                            viewModel.updateAnalysis(currentIndex, "")
                         }
+                        SwipeToDismiss(
+                            state = dismissState,
+                            directions = setOf(DismissDirection.EndToStart),
+                            dismissThresholds = { FractionalThreshold(0.2f) },
+                            background = {
+                                val showRed = dismissState.dismissDirection != null &&
+                                        dismissState.targetValue != DismissValue.Default
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxSize()
+                                        .background(if (showRed) MaterialTheme.colorScheme.error else Color.Transparent)
+                                        .padding(horizontal = 20.dp),
+                                    contentAlignment = Alignment.CenterEnd
+                                ) {
+                                    if (showRed) {
+                                        Icon(Icons.Filled.Delete, contentDescription = "删除", tint = Color.White)
+                                    }
+                                }
+                            },
+                            dismissContent = {
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .heightIn(max = 200.dp)
+                                        .verticalScroll(rememberScrollState())
+                                        .background(Color(0xFFE8F6FF))
+                                        .padding(8.dp)
+                                        .pointerInput(analysisText) {
+                                            detectTapGestures(onDoubleTap = {
+                                                onViewDeepSeek(analysisText!!)
+                                            })
+                                        }
+                                ) {
+                                    Text(
+                                        text = analysisText ?: "",
+                                        color = Color(0xFF004B6B),
+                                        fontSize = questionFontSize.sp,
+                                        fontFamily = LocalFontFamily.current
+                                    )
+                                }
+                            }
+                        )
                     }
                 }
                 Spacer(modifier = Modifier.height(16.dp))
