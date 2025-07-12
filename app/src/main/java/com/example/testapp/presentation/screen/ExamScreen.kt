@@ -451,7 +451,7 @@ fun ExamScreen(
                         Text(
                             if (correct) "回答正确！" else "回答错误，正确答案：${if (correctIndex != null && correctIndex in question.options.indices) question.options[correctIndex] else question.answer}",
                             color = if (correct) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error,
-                            fontSize = LocalFontSize.current,
+                            fontSize = questionFontSize.sp,
                             fontFamily = LocalFontFamily.current
                         )
                     }
@@ -465,7 +465,7 @@ fun ExamScreen(
                             Text(
                                 text = "解析：" + if (question.explanation.isNotBlank()) question.explanation else "本题暂无解析",
                                 color = Color(0xFF835C00), // 深点的黄棕色，看着和底色区分开
-                                fontSize = LocalFontSize.current,
+                                fontSize = questionFontSize.sp,
                                 fontFamily = LocalFontFamily.current
                             )
                         }

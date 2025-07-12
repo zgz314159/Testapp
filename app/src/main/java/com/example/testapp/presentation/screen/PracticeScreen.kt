@@ -461,7 +461,7 @@ fun PracticeScreen(
                     Text(
                         text = if (allCorrect) "回答正确！" else "回答错误，正确答案：$correctText",
                         color = if (allCorrect) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error,
-                        fontSize = LocalFontSize.current,
+                        fontSize = questionFontSize.sp,
                         fontFamily = LocalFontFamily.current
                     )
                 }
@@ -475,7 +475,7 @@ fun PracticeScreen(
                         Text(
                             text = "解析：" + if (question.explanation.isNotBlank()) question.explanation else "本题暂无解析",
                             color = Color(0xFF835C00), // 深点的黄棕色，看着和底色区分开
-                            fontSize = LocalFontSize.current,
+                            fontSize = questionFontSize.sp,
                             fontFamily = LocalFontFamily.current
                         )
                     }
