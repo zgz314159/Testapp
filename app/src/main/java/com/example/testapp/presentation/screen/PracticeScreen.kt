@@ -238,7 +238,7 @@ fun PracticeScreen(
         // Layer 1: timer, question list card and settings menu
         Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
             Text(
-                "时间：%02d:%02d".format(elapsed / 60, elapsed % 60),
+                "%02d:%02d".format(elapsed / 60, elapsed % 60),
                 fontSize = LocalFontSize.current,
                 fontFamily = LocalFontFamily.current
             )

@@ -57,21 +57,7 @@ fun DeepSeekScreen(
     }
     var menuExpanded by remember { mutableStateOf(false) }
     Box(modifier = Modifier.fillMaxSize()) {
-        IconButton(onClick = { menuExpanded = true }, modifier = Modifier.align(Alignment.TopEnd)) {
-            Icon(Icons.Filled.MoreVert, contentDescription = "设置")
-        }
-        DropdownMenu(expanded = menuExpanded, onDismissRequest = { menuExpanded = false }) {
-            DropdownMenuItem(text = { Text("放大字体") }, onClick = {
-                screenFontSize = (screenFontSize + 2).coerceAtMost(32f)
-                coroutineScope.launch { FontSettingsDataStore.setDeepSeekFontSize(context, screenFontSize) }
-                menuExpanded = false
-            })
-            DropdownMenuItem(text = { Text("缩小字体") }, onClick = {
-                screenFontSize = (screenFontSize - 2).coerceAtLeast(14f)
-                coroutineScope.launch { FontSettingsDataStore.setDeepSeekFontSize(context, screenFontSize) }
-                menuExpanded = false
-            })
-        }
+
         Box(
             modifier = Modifier
                 .fillMaxSize()
@@ -84,6 +70,30 @@ fun DeepSeekScreen(
                 fontSize = screenFontSize.sp,
                 fontFamily = LocalFontFamily.current
             )
+        }
+        Box(modifier = Modifier.align(Alignment.TopEnd)) {
+            IconButton(onClick = { menuExpanded = true }) {
+                Icon(Icons.Filled.MoreVert, contentDescription = "设置")
+            }
+            DropdownMenu(
+                expanded = menuExpanded,
+                onDismissRequest = { menuExpanded = false }
+            ) {
+                DropdownMenuItem(text = { Text("放大字体") }, onClick = {
+                    screenFontSize = (screenFontSize + 2).coerceAtMost(32f)
+                    coroutineScope.launch {
+                        FontSettingsDataStore.setDeepSeekFontSize(context, screenFontSize)
+                    }
+                    menuExpanded = false
+                })
+                DropdownMenuItem(text = { Text("缩小字体") }, onClick = {
+                    screenFontSize = (screenFontSize - 2).coerceAtLeast(14f)
+                    coroutineScope.launch {
+                        FontSettingsDataStore.setDeepSeekFontSize(context, screenFontSize)
+                    }
+                    menuExpanded = false
+                })
+            }
         }
     }
 }
