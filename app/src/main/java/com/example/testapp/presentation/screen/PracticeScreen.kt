@@ -29,6 +29,7 @@ import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import com.example.testapp.util.answerLetterToIndex
+import com.example.testapp.data.datastore.FontSettingsDataStore
 
 
 
@@ -111,7 +112,11 @@ fun PracticeScreen(
     var showList by remember { mutableStateOf(false) }
     var menuExpanded by remember { mutableStateOf(false) }
     var score by remember { mutableStateOf(0) }
-    var questionFontSize by remember(fontSize) { mutableStateOf(fontSize) }
+    val storedPracticeFontSize by FontSettingsDataStore.getPracticeFontSize(context).collectAsState(initial = fontSize)
+    var questionFontSize by remember(storedPracticeFontSize) { mutableStateOf(storedPracticeFontSize) }
+    LaunchedEffect(questionFontSize) {
+        FontSettingsDataStore.setPracticeFontSize(context, questionFontSize)
+    }
     var autoJob by remember { mutableStateOf<Job?>(null) }
     var showExitDialog by remember { mutableStateOf(false) }
     var answeredThisSession by remember { mutableStateOf(false) }

@@ -23,6 +23,8 @@ object FontSettingsDataStore {
     private val CORRECT_DELAY_KEY = intPreferencesKey("correct_delay")
     private val WRONG_DELAY_KEY = intPreferencesKey("wrong_delay")
     private val EXAM_DELAY_KEY = intPreferencesKey("exam_delay")
+    private val PRACTICE_FONT_SIZE_KEY = floatPreferencesKey("practice_font_size")
+    private val EXAM_FONT_SIZE_KEY = floatPreferencesKey("exam_font_size")
     fun getFontSize(context: Context, default: Float = 18f): Flow<Float> =
         context.dataStore.data.map { preferences -> preferences[FONT_SIZE_KEY] ?: default }
 
@@ -82,5 +84,18 @@ object FontSettingsDataStore {
 
     suspend fun setExamDelay(context: Context, delay: Int) {
         context.dataStore.edit { preferences -> preferences[EXAM_DELAY_KEY] = delay }
+    }
+    fun getPracticeFontSize(context: Context, default: Float = 18f): Flow<Float> =
+        context.dataStore.data.map { preferences -> preferences[PRACTICE_FONT_SIZE_KEY] ?: default }
+
+    suspend fun setPracticeFontSize(context: Context, size: Float) {
+        context.dataStore.edit { preferences -> preferences[PRACTICE_FONT_SIZE_KEY] = size }
+    }
+
+    fun getExamFontSize(context: Context, default: Float = 18f): Flow<Float> =
+        context.dataStore.data.map { preferences -> preferences[EXAM_FONT_SIZE_KEY] ?: default }
+
+    suspend fun setExamFontSize(context: Context, size: Float) {
+        context.dataStore.edit { preferences -> preferences[EXAM_FONT_SIZE_KEY] = size }
     }
 }

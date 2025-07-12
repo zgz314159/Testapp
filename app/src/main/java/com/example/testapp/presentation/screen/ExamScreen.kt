@@ -31,6 +31,7 @@ import androidx.compose.ui.layout.onSizeChanged
 import kotlinx.coroutines.Job
 import androidx.activity.compose.BackHandler
 import com.example.testapp.util.answerLetterToIndex
+import com.example.testapp.data.datastore.FontSettingsDataStore
 
 
 
@@ -98,7 +99,11 @@ fun ExamScreen(
 
     var showList by remember { mutableStateOf(false) }
     var menuExpanded by remember { mutableStateOf(false) }
-    var questionFontSize by remember(fontSize) { mutableStateOf(fontSize) }
+    val storedExamFontSize by FontSettingsDataStore.getExamFontSize(context).collectAsState(initial = fontSize)
+    var questionFontSize by remember(storedExamFontSize) { mutableStateOf(storedExamFontSize) }
+    LaunchedEffect(questionFontSize) {
+        FontSettingsDataStore.setExamFontSize(context, questionFontSize)
+    }
     var dragAmount by remember { mutableStateOf(0f) }
     var autoJob by remember { mutableStateOf<kotlinx.coroutines.Job?>(null) }
     var containerWidth by remember { mutableStateOf(0f) }
