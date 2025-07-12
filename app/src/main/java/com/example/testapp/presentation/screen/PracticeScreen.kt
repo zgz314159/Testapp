@@ -16,14 +16,8 @@ import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.outlined.StarBorder
 import androidx.compose.material.icons.filled.Lightbulb
-import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material3.*
-import androidx.compose.material.DismissDirection
-import androidx.compose.material.DismissValue
 import androidx.compose.material.ExperimentalMaterialApi
-import androidx.compose.material.FractionalThreshold
-import androidx.compose.material.SwipeToDismiss
-import androidx.compose.material.rememberDismissState
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -161,7 +155,7 @@ fun PracticeScreen(
     var autoJob by remember { mutableStateOf<Job?>(null) }
     var showExitDialog by remember { mutableStateOf(false) }
     var answeredThisSession by remember { mutableStateOf(false) }
-
+    var showDeleteDialog by remember { mutableStateOf(false) }
     LaunchedEffect(progressLoaded) {
         if (progressLoaded) answeredThisSession = false
     }
@@ -509,55 +503,31 @@ fun PracticeScreen(
                         )
                     }
                     if (!analysisText.isNullOrBlank()) {
-                        val dismissState = rememberDismissState()
-                        if (dismissState.currentValue == DismissValue.DismissedToStart) {
-                            aiViewModel.clear()
-                            viewModel.updateAnalysis(currentIndex, "")
-                        }
-                        SwipeToDismiss(
-                            state = dismissState,
-                            directions = setOf(DismissDirection.EndToStart),
-                            dismissThresholds = { FractionalThreshold(0.2f) },
-                            background = {
-                                val showRed = dismissState.dismissDirection != null &&
-                                        dismissState.targetValue != DismissValue.Default
-                                Box(
-                                    modifier = Modifier
-                                        .fillMaxSize()
-                                        .background(if (showRed) MaterialTheme.colorScheme.error else Color.Transparent)
-                                        .padding(horizontal = 20.dp),
-                                    contentAlignment = Alignment.CenterEnd
-                                ) {
-                                    if (showRed) {
-                                        Icon(Icons.Filled.Delete, contentDescription = "删除", tint = Color.White)
-                                    }
-                                }
-                            },
-                            dismissContent = {
-                                Box(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .heightIn(max = 200.dp)
-                                        .verticalScroll(rememberScrollState())
-                                        .background(Color(0xFFE8F6FF))
-                                        .padding(8.dp)
-                                        .pointerInput(analysisText) {
-                                            detectTapGestures(onDoubleTap = {
-                                                question?.let { q ->
-                                                    onViewDeepSeek(analysisText!!, q.id, currentIndex)
-                                                }
-                                            })
-                                        }
-                                ) {
-                                    Text(
-                                        text = analysisText ?: "",
-                                        color = Color(0xFF004B6B),
-                                        fontSize = questionFontSize.sp,
-                                        fontFamily = LocalFontFamily.current
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .heightIn(max = 200.dp)
+                                .verticalScroll(rememberScrollState())
+                                .background(Color(0xFFE8F6FF))
+                                .padding(8.dp)
+                                .pointerInput(analysisText) {
+                                    detectTapGestures(
+                                        onDoubleTap = {
+                                            question?.let { q ->
+                                                onViewDeepSeek(analysisText!!, q.id, currentIndex)
+                                            }
+                                        },
+                                        onLongPress = { showDeleteDialog = true }
                                     )
                                 }
-                            }
-                        )
+                        ) {
+                            Text(
+                                text = analysisText ?: "",
+                                color = Color(0xFF004B6B),
+                                fontSize = questionFontSize.sp,
+                                fontFamily = LocalFontFamily.current
+                            )
+                        }
                     }
                 }
                 Spacer(modifier = Modifier.height(16.dp))
@@ -615,6 +585,22 @@ fun PracticeScreen(
     }
 
 
+    if (showDeleteDialog) {
+        AlertDialog(
+            onDismissRequest = { showDeleteDialog = false },
+            confirmButton = {
+                TextButton(onClick = {
+                    aiViewModel.clear()
+                    viewModel.updateAnalysis(currentIndex, "")
+                    showDeleteDialog = false
+                }) { Text("确定") }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDeleteDialog = false }) { Text("取消") }
+            },
+            text = { Text("确定删除解析吗？") }
+        )
+    }
     if (showExitDialog) {
         AlertDialog(
             onDismissRequest = { showExitDialog = false },
