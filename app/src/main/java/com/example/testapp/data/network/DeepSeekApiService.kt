@@ -71,16 +71,16 @@ class DeepSeekApiService(private val client: HttpClient) {
         val networkDuration = System.currentTimeMillis() - requestStart
         android.util.Log.d(
             "DeepSeekApiService",
-            "Network duration=${'$'}networkDuration ms"
+            "Network duration=${networkDuration} ms"
         )
         android.util.Log.d(
             "DeepSeekApiService",
-            "Status=${'$'}{httpResponse.status.value}, Headers=${'$'}{httpResponse.headers}"
+            "Status=${httpResponse.status.value}, Headers=${httpResponse.headers}"
         )
         val raw: String = httpResponse.body()
         android.util.Log.d("DeepSeekApiService", "RawResponse=$raw")
         if (!httpResponse.status.isSuccess()) {
-            throw RuntimeException("HTTP ${'$'}{httpResponse.status.value}: ${'$'}raw")
+            throw RuntimeException("HTTP ${httpResponse.status.value}: $raw")
         }
         val parseStart = System.currentTimeMillis()
         val response = try {
@@ -90,12 +90,12 @@ class DeepSeekApiService(private val client: HttpClient) {
             throw e
         }
         val parseDuration = System.currentTimeMillis() - parseStart
-        android.util.Log.d("DeepSeekApiService", "Parse duration=${'$'}parseDuration ms")
-        android.util.Log.d("DeepSeekApiService", "Response=${'$'}response")
+        android.util.Log.d("DeepSeekApiService", "Parse duration=${parseDuration} ms")
+        android.util.Log.d("DeepSeekApiService", "Response=$response")
         val totalDuration = System.currentTimeMillis() - totalStart
         android.util.Log.d(
             "DeepSeekApiService",
-            "Total analyze duration=${'$'}totalDuration ms"
+            "Total analyze duration=${totalDuration} ms"
         )
         return response.choices.firstOrNull()?.message?.content ?: ""
     }

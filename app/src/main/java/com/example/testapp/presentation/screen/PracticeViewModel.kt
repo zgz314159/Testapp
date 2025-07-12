@@ -253,7 +253,7 @@ class PracticeViewModel @Inject constructor(
         saveProgress()
     }
     fun updateAnalysis(index: Int, text: String) {
-        android.util.Log.d("PracticeDebug", "updateAnalysis index=$index text=${'$'}text")
+        android.util.Log.d("PracticeDebug", "updateAnalysis index=$index text=$text")
         val list = _analysisList.value.toMutableList()
         while (list.size <= index) list.add("")
         list[index] = text
