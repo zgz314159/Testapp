@@ -99,9 +99,26 @@ fun ExamScreen(
 
     var showList by remember { mutableStateOf(false) }
     var menuExpanded by remember { mutableStateOf(false) }
-    val storedExamFontSize by FontSettingsDataStore.getExamFontSize(context).collectAsState(initial = fontSize)
-    var questionFontSize by remember(storedExamFontSize) { mutableStateOf(storedExamFontSize) }
+    val storedExamFontSize by FontSettingsDataStore
+        .getExamFontSize(context)
+        .collectAsState(initial = fontSize)
+    android.util.Log.d(
+        "ExamScreen-font",
+        "storedExamFontSize=$storedExamFontSize globalFontSize=$fontSize"
+    )
+    var questionFontSize by remember { mutableStateOf(storedExamFontSize) }
+    LaunchedEffect(storedExamFontSize) {
+        android.util.Log.d(
+            "ExamScreen-font",
+            "loaded storedExamFontSize=$storedExamFontSize"
+        )
+        questionFontSize = storedExamFontSize
+    }
     LaunchedEffect(questionFontSize) {
+        android.util.Log.d(
+            "ExamScreen-font",
+            "save exam questionFontSize=$questionFontSize"
+        )
         FontSettingsDataStore.setExamFontSize(context, questionFontSize)
     }
     var dragAmount by remember { mutableStateOf(0f) }
