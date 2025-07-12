@@ -109,12 +109,8 @@ class PracticeViewModel @Inject constructor(
                 if (progress != null && !_progressLoaded.value) {
                     _currentIndex.value =
                         progress.currentIndex.coerceAtMost(_questions.value.size - 1)
-                    // answeredList 补齐长度
-                    _answeredList.value = if (progress.answeredList.size >= _questions.value.size) {
-                        progress.answeredList.take(_questions.value.size).toList()
-                    } else {
-                        (progress.answeredList + List(_questions.value.size - progress.answeredList.size) { -1 }).toList()
-                    }
+                    // answeredList 直接使用已答题目下标列表，过滤非法值
+                    _answeredList.value = progress.answeredList.filter { it in _questions.value.indices }
                     _selectedOptions.value = emptyList()
                     _selectedOptions.value =
                         if (progress.selectedOptions.size >= _questions.value.size) {
@@ -138,7 +134,7 @@ class PracticeViewModel @Inject constructor(
                 } else if (progress == null && !_progressLoaded.value) {
                     android.util.Log.d("PracticeDebug", "no existing progress, initializing")
                     _currentIndex.value = 0
-                    _answeredList.value = List(_questions.value.size) { -1 }
+                    _answeredList.value = emptyList()
                     _selectedOptions.value = List(_questions.value.size) { emptyList() }
                     _showResultList.value = List(_questions.value.size) { false }
                     saveProgress()
