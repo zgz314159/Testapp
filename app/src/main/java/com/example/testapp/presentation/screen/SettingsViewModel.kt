@@ -58,6 +58,7 @@ class SettingsViewModel @Inject constructor(
 
     fun setFontSize(context: Context, size: Float) {
         _fontSize.value = size
+        android.util.Log.d("SettingsVM", "setFontSize size=$size")
         viewModelScope.launch {
             FontSettingsDataStore.setFontSize(context, size)
         }
@@ -125,6 +126,10 @@ class SettingsViewModel @Inject constructor(
             val correct = FontSettingsDataStore.getCorrectDelay(context).first()
             val wrong = FontSettingsDataStore.getWrongDelay(context).first()
             val examDelay = FontSettingsDataStore.getExamDelay(context).first()
+            android.util.Log.d(
+                "SettingsVM",
+                "loadFontSettings size=$size style=$style examCount=$examCount practiceCount=$practiceCount random=$random randomExam=$randomExam"
+            )
             _fontSize.value = size
             _fontStyle.value = style
             _examQuestionCount.value = examCount

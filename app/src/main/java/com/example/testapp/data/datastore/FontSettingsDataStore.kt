@@ -26,9 +26,14 @@ object FontSettingsDataStore {
     private val PRACTICE_FONT_SIZE_KEY = floatPreferencesKey("practice_font_size")
     private val EXAM_FONT_SIZE_KEY = floatPreferencesKey("exam_font_size")
     fun getFontSize(context: Context, default: Float = 18f): Flow<Float> =
-        context.dataStore.data.map { preferences -> preferences[FONT_SIZE_KEY] ?: default }
+        context.dataStore.data.map { preferences ->
+            val value = preferences[FONT_SIZE_KEY] ?: default
+            android.util.Log.d("FontSettingsDataStore", "getFontSize -> $value")
+            value
+        }
 
     suspend fun setFontSize(context: Context, size: Float) {
+        android.util.Log.d("FontSettingsDataStore", "setFontSize size=$size")
         context.dataStore.edit { preferences -> preferences[FONT_SIZE_KEY] = size }
     }
 
@@ -86,16 +91,26 @@ object FontSettingsDataStore {
         context.dataStore.edit { preferences -> preferences[EXAM_DELAY_KEY] = delay }
     }
     fun getPracticeFontSize(context: Context, default: Float = 18f): Flow<Float> =
-        context.dataStore.data.map { preferences -> preferences[PRACTICE_FONT_SIZE_KEY] ?: default }
+        context.dataStore.data.map { preferences ->
+            val value = preferences[PRACTICE_FONT_SIZE_KEY] ?: default
+            android.util.Log.d("FontSettingsDataStore", "getPracticeFontSize -> $value")
+            value
+        }
 
     suspend fun setPracticeFontSize(context: Context, size: Float) {
+        android.util.Log.d("FontSettingsDataStore", "setPracticeFontSize size=$size")
         context.dataStore.edit { preferences -> preferences[PRACTICE_FONT_SIZE_KEY] = size }
     }
 
     fun getExamFontSize(context: Context, default: Float = 18f): Flow<Float> =
-        context.dataStore.data.map { preferences -> preferences[EXAM_FONT_SIZE_KEY] ?: default }
+        context.dataStore.data.map { preferences ->
+            val value = preferences[EXAM_FONT_SIZE_KEY] ?: default
+            android.util.Log.d("FontSettingsDataStore", "getExamFontSize -> $value")
+            value
+        }
 
     suspend fun setExamFontSize(context: Context, size: Float) {
+        android.util.Log.d("FontSettingsDataStore", "setExamFontSize size=$size")
         context.dataStore.edit { preferences -> preferences[EXAM_FONT_SIZE_KEY] = size }
     }
 }
