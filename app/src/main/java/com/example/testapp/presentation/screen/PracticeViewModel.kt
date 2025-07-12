@@ -11,7 +11,7 @@ import com.example.testapp.domain.usecase.SavePracticeProgressUseCase
 import com.example.testapp.domain.usecase.SaveQuestionsUseCase
 import com.example.testapp.domain.usecase.GetWrongBookUseCase
 import com.example.testapp.domain.usecase.GetFavoriteQuestionsUseCase
-
+import com.example.testapp.domain.usecase.GetQuestionAnalysisUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
@@ -25,7 +25,8 @@ class PracticeViewModel @Inject constructor(
     private val clearPracticeProgressUseCase: ClearPracticeProgressUseCase,
     private val saveQuestionsUseCase: SaveQuestionsUseCase, // 新增注入
     private val getWrongBookUseCase: GetWrongBookUseCase,
-    private val getFavoriteQuestionsUseCase: GetFavoriteQuestionsUseCase
+    private val getFavoriteQuestionsUseCase: GetFavoriteQuestionsUseCase,
+    private val getQuestionAnalysisUseCase: GetQuestionAnalysisUseCase
 ) : ViewModel() {
     private val _questions = MutableStateFlow<List<Question>>(emptyList())
     val questions: StateFlow<List<Question>> = _questions.asStateFlow()
@@ -55,6 +56,7 @@ class PracticeViewModel @Inject constructor(
 
     private var questionSourceId: String = ""
     private var randomPracticeEnabled: Boolean = false
+    private var analysisLoaded: Boolean = false
 
     init {
         // 应用启动时，清理任何旧的 default 记录，防止误删到别的表
@@ -77,7 +79,7 @@ class PracticeViewModel @Inject constructor(
         progressId = if (id.startsWith("practice_")) id else "practice_$id"
         questionSourceId = questionsId
         _progressLoaded.value = false
-
+        analysisLoaded = false
         if (loadQuestions) {
             viewModelScope.launch {
                 if (randomPracticeEnabled) {
@@ -155,8 +157,30 @@ class PracticeViewModel @Inject constructor(
                 }
                 _progressLoaded.value = true
             }
+            if (!analysisLoaded) {
+                loadAnalysisFromRepository()
+                analysisLoaded = true
+            }
 
-
+        }
+    }
+    private suspend fun loadAnalysisFromRepository() {
+        val qs = _questions.value
+        val list = _analysisList.value.toMutableList()
+        var changed = false
+        qs.forEachIndexed { idx, q ->
+            if (idx >= list.size) list.add("")
+            if (list[idx].isBlank()) {
+                val text = getQuestionAnalysisUseCase(q.id)
+                if (!text.isNullOrBlank()) {
+                    list[idx] = text
+                    changed = true
+                }
+            }
+        }
+        if (changed) {
+            _analysisList.value = list
+            saveProgress()
         }
     }
 
@@ -241,6 +265,7 @@ class PracticeViewModel @Inject constructor(
             _showResultList.value = emptyList()
             _analysisList.value = emptyList()
             _progressLoaded.value = false
+            analysisLoaded = false
         }
     }
 
