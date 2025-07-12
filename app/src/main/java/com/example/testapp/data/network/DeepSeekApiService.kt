@@ -41,6 +41,11 @@ private data class ResponseData(
 )
 
 class DeepSeekApiService(private val client: HttpClient) {
+
+    private fun stripMarkdown(text: String): String {
+        return text.replace("*", "").replace("_", "")
+    }
+
     suspend fun analyze(question: Question): String {
         val totalStart = System.currentTimeMillis()
         val prompt = buildString {
@@ -102,6 +107,7 @@ class DeepSeekApiService(private val client: HttpClient) {
             "DeepSeekApiService",
             "Total analyze duration=${totalDuration} ms"
         )
-        return response.choices.firstOrNull()?.message?.content ?: ""
+        val result = response.choices.firstOrNull()?.message?.content ?: ""
+        return stripMarkdown(result)
     }
 }
