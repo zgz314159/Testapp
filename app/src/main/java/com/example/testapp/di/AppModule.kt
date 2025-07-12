@@ -15,6 +15,7 @@ import com.example.testapp.data.repository.QuestionRepositoryImpl
 import com.example.testapp.data.repository.WrongBookRepositoryImpl
 import com.example.testapp.data.repository.PracticeProgressRepositoryImpl
 import com.example.testapp.data.repository.ExamProgressRepositoryImpl
+import com.example.testapp.data.network.DeepSeekApiService
 import com.example.testapp.domain.repository.FavoriteQuestionRepository
 import com.example.testapp.domain.repository.HistoryRepository
 import com.example.testapp.domain.repository.QuestionRepository
@@ -41,6 +42,12 @@ import dagger.Provides
 import dagger.hilt.InstallIn
 import dagger.hilt.components.SingletonComponent
 import dagger.hilt.android.qualifiers.ApplicationContext
+import io.ktor.client.HttpClient
+import io.ktor.client.engine.cio.CIO
+import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
+import io.ktor.client.plugins.logging.LogLevel
+import io.ktor.client.plugins.logging.Logging
+import io.ktor.serialization.kotlinx.json.json
 import javax.inject.Singleton
 
 @Module
@@ -172,4 +179,14 @@ object AppModule {
     @Singleton
     fun provideClearExamProgressUseCase(repo: ExamProgressRepository): ClearExamProgressUseCase = ClearExamProgressUseCase(repo)
 
+    @Provides
+    @Singleton
+    fun provideHttpClient(): HttpClient = HttpClient(CIO) {
+        install(ContentNegotiation) { json() }
+        install(Logging) { level = LogLevel.BODY }
+    }
+
+    @Provides
+    @Singleton
+    fun provideDeepSeekApiService(client: HttpClient): DeepSeekApiService = DeepSeekApiService(client)
 }

@@ -12,6 +12,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.outlined.StarBorder
+import androidx.compose.material.icons.filled.Lightbulb
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -23,6 +24,7 @@ import androidx.activity.compose.BackHandler
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.example.testapp.presentation.screen.PracticeViewModel
 import com.example.testapp.presentation.screen.SettingsViewModel
+import com.example.testapp.presentation.screen.DeepSeekViewModel
 import com.example.testapp.presentation.component.LocalFontSize
 import com.example.testapp.presentation.component.LocalFontFamily
 import androidx.compose.ui.unit.sp
@@ -42,6 +44,7 @@ fun PracticeScreen(
     favoriteFileName: String? = null,
     viewModel: PracticeViewModel = hiltViewModel(),
     settingsViewModel: SettingsViewModel = hiltViewModel(),
+    aiViewModel: DeepSeekViewModel = hiltViewModel(),
     onQuizEnd: (score: Int, total: Int) -> Unit = { _, _ -> },
     onSubmit: (Boolean) -> Unit = {},
     onExitWithoutAnswer: () -> Unit = {}
@@ -88,6 +91,7 @@ fun PracticeScreen(
     val favoriteViewModel: FavoriteViewModel = hiltViewModel()
     val favoriteQuestions by favoriteViewModel.favoriteQuestions.collectAsState()
     val question = questions.getOrNull(currentIndex)
+    val analysis by aiViewModel.analysis.collectAsState()
     android.util.Log.d(
         "PracticeScreen-question",
         "currentIndex=$currentIndex, question=$question"
@@ -238,6 +242,9 @@ fun PracticeScreen(
                     contentDescription = if (isFavorite) "取消收藏" else "收藏"
                 )
             }
+            IconButton(onClick = { if (question != null) aiViewModel.analyze(question) }) {
+                Icon(Icons.Filled.Lightbulb, contentDescription = "AI 解析")
+            }
             Spacer(modifier = Modifier.weight(1f))
             Card(onClick = { showList = true }) {
                 Text(
@@ -271,6 +278,7 @@ fun PracticeScreen(
                 })
             }
         }
+
         if (showList) {
             AlertDialog(onDismissRequest = { showList = false }, confirmButton = {}, text = {
                 LazyVerticalGrid(
@@ -533,7 +541,13 @@ fun PracticeScreen(
             }
         }
     }
-
+    if (analysis != null) {
+        AlertDialog(
+            onDismissRequest = { aiViewModel.clear() },
+            confirmButton = { TextButton(onClick = { aiViewModel.clear() }) { Text("关闭") } },
+            text = { Text(analysis ?: "") }
+        )
+    }
 
 
     if (showExitDialog) {
