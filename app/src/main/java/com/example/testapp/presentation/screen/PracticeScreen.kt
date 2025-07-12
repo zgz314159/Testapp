@@ -113,21 +113,23 @@ fun PracticeScreen(
     var menuExpanded by remember { mutableStateOf(false) }
     var score by remember { mutableStateOf(0) }
     val storedPracticeFontSize by FontSettingsDataStore
-        .getPracticeFontSize(context)
-        .collectAsState(initial = fontSize)
+        .getPracticeFontSize(context, Float.NaN)
+        .collectAsState(initial = Float.NaN)
     android.util.Log.d(
         "PracticeScreen-font",
         "storedPracticeFontSize=$storedPracticeFontSize globalFontSize=$fontSize"
     )
-    var questionFontSize by remember { mutableStateOf(storedPracticeFontSize) }
+    var questionFontSize by remember { mutableStateOf(fontSize) }
     var fontLoaded by remember { mutableStateOf(false) }
     LaunchedEffect(storedPracticeFontSize) {
-        android.util.Log.d(
-            "PracticeScreen-font",
-            "loaded storedPracticeFontSize=$storedPracticeFontSize"
-        )
-        questionFontSize = storedPracticeFontSize
-        fontLoaded = true
+        if (!storedPracticeFontSize.isNaN()) {
+            android.util.Log.d(
+                "PracticeScreen-font",
+                "loaded storedPracticeFontSize=$storedPracticeFontSize"
+            )
+            questionFontSize = storedPracticeFontSize
+            fontLoaded = true
+        }
     }
     LaunchedEffect(questionFontSize, fontLoaded) {
         if (fontLoaded) {

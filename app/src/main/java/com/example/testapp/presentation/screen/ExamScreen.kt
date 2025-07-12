@@ -100,21 +100,23 @@ fun ExamScreen(
     var showList by remember { mutableStateOf(false) }
     var menuExpanded by remember { mutableStateOf(false) }
     val storedExamFontSize by FontSettingsDataStore
-        .getExamFontSize(context)
-        .collectAsState(initial = fontSize)
+        .getExamFontSize(context, Float.NaN)
+        .collectAsState(initial = Float.NaN)
     android.util.Log.d(
         "ExamScreen-font",
         "storedExamFontSize=$storedExamFontSize globalFontSize=$fontSize"
     )
-    var questionFontSize by remember { mutableStateOf(storedExamFontSize) }
+    var questionFontSize by remember { mutableStateOf(fontSize) }
     var fontLoaded by remember { mutableStateOf(false) }
     LaunchedEffect(storedExamFontSize) {
-        android.util.Log.d(
-            "ExamScreen-font",
-            "loaded storedExamFontSize=$storedExamFontSize"
-        )
-        questionFontSize = storedExamFontSize
-        fontLoaded = true
+        if (!storedExamFontSize.isNaN()) {
+            android.util.Log.d(
+                "ExamScreen-font",
+                "loaded storedExamFontSize=$storedExamFontSize"
+            )
+            questionFontSize = storedExamFontSize
+            fontLoaded = true
+        }
     }
     LaunchedEffect(questionFontSize, fontLoaded) {
         if (fontLoaded) {
