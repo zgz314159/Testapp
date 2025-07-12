@@ -47,7 +47,9 @@ class DeepSeekApiService(private val client: HttpClient) {
     }
 
     suspend fun analyze(question: Question): String {
+
         val totalStart = System.currentTimeMillis()
+
         val prompt = buildString {
             appendLine(question.content)
             question.options.forEachIndexed { index, option ->
@@ -56,7 +58,9 @@ class DeepSeekApiService(private val client: HttpClient) {
             }
             append("请给出正确答案和解析。")
         }
+
         android.util.Log.d("DeepSeekApiService", "Prompt=\n$prompt")
+
         val requestBody = RequestBody(
             messages = listOf(Message("user", prompt)),
             maxTokens = 512
@@ -65,8 +69,10 @@ class DeepSeekApiService(private val client: HttpClient) {
             "DeepSeekApiService",
             "RequestBodyJson=${Json.encodeToString(requestBody)}"
         )
+
         val requestStart = System.currentTimeMillis()
         android.util.Log.d("DeepSeekApiService", "Sending request...")
+
         val httpResponse: HttpResponse = try {
             client.post {
                 url("https://api.deepseek.com/v1/chat/completions")
