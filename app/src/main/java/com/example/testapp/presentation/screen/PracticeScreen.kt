@@ -6,6 +6,8 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.graphics.Color
 import androidx.compose.material.icons.Icons
@@ -487,6 +489,23 @@ fun PracticeScreen(
                             fontFamily = LocalFontFamily.current
                         )
                     }
+                    if (analysis != null) {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .heightIn(max = 200.dp)
+                                .verticalScroll(rememberScrollState())
+                                .background(Color(0xFFE8F6FF))
+                                .padding(8.dp)
+                        ) {
+                            Text(
+                                text = analysis ?: "",
+                                color = Color(0xFF004B6B),
+                                fontSize = questionFontSize.sp,
+                                fontFamily = LocalFontFamily.current
+                            )
+                        }
+                    }
                 }
                 Spacer(modifier = Modifier.height(16.dp))
             }
@@ -540,13 +559,6 @@ fun PracticeScreen(
                 }
             }
         }
-    }
-    if (analysis != null) {
-        AlertDialog(
-            onDismissRequest = { aiViewModel.clear() },
-            confirmButton = { TextButton(onClick = { aiViewModel.clear() }) { Text("关闭") } },
-            text = { Text(analysis ?: "") }
-        )
     }
 
 
