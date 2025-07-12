@@ -17,6 +17,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import com.example.testapp.util.rememberSoundEffects
 import androidx.compose.ui.unit.dp
 import androidx.activity.compose.BackHandler
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -76,6 +77,7 @@ fun PracticeScreen(
     val correctDelay by settingsViewModel.correctDelay.collectAsState()
     val wrongDelay by settingsViewModel.wrongDelay.collectAsState()
     val context = LocalContext.current
+    val soundEffects = rememberSoundEffects()
     val currentIndex by viewModel.currentIndex.collectAsState()
     val answeredList by viewModel.answeredList.collectAsState()
     val selectedOptions by viewModel.selectedOptions.collectAsState()
@@ -322,6 +324,7 @@ fun PracticeScreen(
                     viewModel.answerQuestion(idx)
                     val correctIdx = answerLetterToIndex(question.answer)
                     val correct = idx == correctIdx
+                    if (correct) soundEffects.playCorrect() else soundEffects.playWrong()
                     if (!correct) {
                         coroutineScope.launch {
                             wrongBookViewModel.addWrongQuestion(
@@ -442,6 +445,7 @@ fun PracticeScreen(
                         autoJob?.cancel()
                         viewModel.updateShowResult(currentIndex, true)
                         val allCorrect = selectedOption.toSet() == correctIndices.toSet()
+                        if (allCorrect) soundEffects.playCorrect() else soundEffects.playWrong()
                         if (!allCorrect && selectedOption.isNotEmpty()) {
                             coroutineScope.launch {
                                 wrongBookViewModel.addWrongQuestion(
