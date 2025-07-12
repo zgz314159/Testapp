@@ -66,7 +66,8 @@ fun AppNavHost(navController: NavHostController = rememberNavController(), setti
                     navController.navigate("result/$score/$total") {
                         popUpTo("home") { inclusive = false }
                     }
-                }
+                },
+                onExitWithoutAnswer = { navController.popBackStack() }
             )
         }
         composable(
@@ -82,7 +83,8 @@ fun AppNavHost(navController: NavHostController = rememberNavController(), setti
                     navController.navigate("result/$score/$total") {
                         popUpTo("home") { inclusive = false }
                     }
-                }
+                },
+                onExitWithoutAnswer = { navController.popBackStack() }
             )
         }
         composable(
@@ -119,7 +121,8 @@ fun AppNavHost(navController: NavHostController = rememberNavController(), setti
                     navController.navigate("result/$score/$total") {
                         popUpTo("wrongbook") { inclusive = false }
                     }
-                }
+                },
+                onExitWithoutAnswer = { navController.popBackStack() }
             )
 
 
@@ -144,7 +147,8 @@ fun AppNavHost(navController: NavHostController = rememberNavController(), setti
                     navController.navigate("result/$score/$total") {
                         popUpTo("favorite") { inclusive = false }
                     }
-                }
+                },
+                onExitWithoutAnswer = { navController.popBackStack() }
             )
         }
 

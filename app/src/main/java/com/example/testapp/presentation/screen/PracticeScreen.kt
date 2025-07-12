@@ -42,7 +42,8 @@ fun PracticeScreen(
     viewModel: PracticeViewModel = hiltViewModel(),
     settingsViewModel: SettingsViewModel = hiltViewModel(),
     onQuizEnd: (score: Int, total: Int) -> Unit = { _, _ -> },
-    onSubmit: (Boolean) -> Unit = {}
+    onSubmit: (Boolean) -> Unit = {},
+    onExitWithoutAnswer: () -> Unit = {}
 ) {
     val randomPractice by settingsViewModel.randomPractice.collectAsState()
     val practiceCount by settingsViewModel.practiceQuestionCount.collectAsState()
@@ -121,14 +122,16 @@ fun PracticeScreen(
         )
     }
     BackHandler {
-        if (answeredList.isEmpty()) {
-            autoJob?.cancel()
-            onQuizEnd(score, questions.size)
-        } else if (answeredList.size >= questions.size) {
-            autoJob?.cancel()
-            onQuizEnd(score, questions.size)
-        } else {
-            showExitDialog = true
+        when {
+            answeredList.isEmpty() -> {
+                autoJob?.cancel()
+                onExitWithoutAnswer()
+            }
+            answeredList.size >= questions.size -> {
+                autoJob?.cancel()
+                onQuizEnd(score, questions.size)
+            }
+            else -> showExitDialog = true
         }
     }
 
@@ -162,14 +165,16 @@ fun PracticeScreen(
                             if (currentIndex < questions.size - 1) {
                                 viewModel.nextQuestion()
                             } else {
-                                if (answeredList.isEmpty()) {
-                                    autoJob?.cancel()
-                                    onQuizEnd(score, questions.size)
-                                } else if (answeredList.size >= questions.size) {
-                                    autoJob?.cancel()
-                                    onQuizEnd(score, questions.size)
-                                } else {
-                                    showExitDialog = true
+                                when {
+                                    answeredList.isEmpty() -> {
+                                        autoJob?.cancel()
+                                        onExitWithoutAnswer()
+                                    }
+                                    answeredList.size >= questions.size -> {
+                                        autoJob?.cancel()
+                                        onQuizEnd(score, questions.size)
+                                    }
+                                    else -> showExitDialog = true
                                 }
                             }
                         }
@@ -348,10 +353,7 @@ fun PracticeScreen(
                         if (d > 0) kotlinx.coroutines.delay(d * 1000L)
                         viewModel.updateShowResult(currentIndex, true)
                         if (currentIndex < questions.size - 1) viewModel.nextQuestion()
-                        else if (answeredList.isEmpty()) onQuizEnd(
-                            score,
-                            questions.size
-                        )
+                        else if (answeredList.isEmpty()) onExitWithoutAnswer()
                         else if (answeredList.size >= questions.size) onQuizEnd(
                             score,
                             questions.size
@@ -465,6 +467,7 @@ fun PracticeScreen(
                                 )
                             }
                         }
+
                         if (allCorrect) score++
                         onSubmit(allCorrect)
                         autoJob = coroutineScope.launch {
@@ -472,10 +475,7 @@ fun PracticeScreen(
                             if (d > 0) kotlinx.coroutines.delay(d * 1000L)
                             if (currentIndex < questions.size - 1) viewModel.nextQuestion()
 
-                            else if (answeredList.isEmpty()) onQuizEnd(
-                                score,
-                                questions.size
-                            )
+                            else if (answeredList.isEmpty()) onExitWithoutAnswer()
 
                             else if (answeredList.size >= questions.size) onQuizEnd(
                                 score,
