@@ -26,7 +26,8 @@ private data class Message(
 @Serializable
 private data class RequestBody(
     val model: String = "deepseek-chat",
-    val messages: List<Message>
+    val messages: List<Message>,
+    @SerialName("max_tokens") val maxTokens: Int = 256
 )
 
 @Serializable
@@ -51,7 +52,10 @@ class DeepSeekApiService(private val client: HttpClient) {
             append("请给出正确答案和解析。")
         }
         android.util.Log.d("DeepSeekApiService", "Prompt=\n$prompt")
-        val requestBody = RequestBody(messages = listOf(Message("user", prompt)))
+        val requestBody = RequestBody(
+            messages = listOf(Message("user", prompt)),
+            maxTokens = 256
+        )
         android.util.Log.d(
             "DeepSeekApiService",
             "RequestBodyJson=${Json.encodeToString(requestBody)}"
