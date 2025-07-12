@@ -204,6 +204,9 @@ object AppModule {
     @Singleton
     fun provideHttpClient(): HttpClient = HttpClient(CIO) {
         install(ContentNegotiation) {
+            engine {
+                requestTimeout = 10_000
+            }
             json(
                 Json {
                     ignoreUnknownKeys = true
@@ -211,7 +214,7 @@ object AppModule {
                 }
             )
         }
-        install(Logging) { level = LogLevel.INFO }
+        install(Logging) { level = LogLevel.NONE }
     }
 
     @Provides

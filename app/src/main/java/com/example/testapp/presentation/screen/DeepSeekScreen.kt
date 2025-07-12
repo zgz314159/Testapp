@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import android.widget.Toast
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material3.DropdownMenu
@@ -88,6 +89,7 @@ fun DeepSeekScreen(
             Button(onClick = {
                 practiceViewModel.updateAnalysis(index, editableText)
                 aiViewModel.save(questionId, editableText)
+                Toast.makeText(context, "保存成功", Toast.LENGTH_SHORT).show()
             }, modifier = Modifier.align(Alignment.End)) {
                 Text("保存")
             }
