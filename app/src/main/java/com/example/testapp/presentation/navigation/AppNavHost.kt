@@ -1,6 +1,9 @@
 package com.example.testapp.presentation.navigation
 
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
+import androidx.hilt.navigation.compose.hiltViewModel
+import com.example.testapp.presentation.screen.PracticeViewModel
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -176,7 +179,15 @@ fun AppNavHost(navController: NavHostController = rememberNavController(), setti
             val text = java.net.URLDecoder.decode(encoded, "UTF-8")
             val id = backStackEntry.arguments?.getInt("id") ?: 0
             val index = backStackEntry.arguments?.getInt("index") ?: 0
-            DeepSeekScreen(text = text, questionId = id, index = index, settingsViewModel = settingsViewModel)
+            val parentEntry = remember(backStackEntry) { navController.previousBackStackEntry }
+            val practiceViewModel: PracticeViewModel = parentEntry?.let { hiltViewModel(it) } ?: hiltViewModel()
+            DeepSeekScreen(
+                text = text,
+                questionId = id,
+                index = index,
+                practiceViewModel = practiceViewModel,
+                settingsViewModel = settingsViewModel
+            )
         }
         // TODO: 添加更多页面
     }
