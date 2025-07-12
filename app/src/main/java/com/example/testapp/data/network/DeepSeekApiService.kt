@@ -8,8 +8,8 @@ import io.ktor.client.request.post
 import io.ktor.client.request.setBody
 import io.ktor.client.request.header
 import io.ktor.client.request.url
-import io.ktor.client.request.contentType
 import io.ktor.http.ContentType
+import io.ktor.http.HttpHeaders
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
@@ -48,7 +48,7 @@ class DeepSeekApiService(private val client: HttpClient) {
         val response: ResponseData = client.post {
             url("https://api.deepseek.com/v1/chat/completions")
             header("Authorization", "Bearer ${BuildConfig.DEEPSEEK_API_KEY}")
-            contentType(ContentType.Application.Json)
+            header(HttpHeaders.ContentType, ContentType.Application.Json)
             setBody(RequestBody(messages = listOf(Message("user", prompt))))
         }.body()
         return response.choices.firstOrNull()?.message?.content ?: ""
