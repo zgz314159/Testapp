@@ -2,6 +2,10 @@ package com.example.testapp.presentation.screen
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
+import kotlinx.coroutines.sync.Semaphore
+import kotlinx.coroutines.sync.withPermit
 import com.example.testapp.data.network.DeepSeekApiService
 import com.example.testapp.domain.model.Question
 import com.example.testapp.domain.usecase.GetQuestionAnalysisUseCase
@@ -24,6 +28,8 @@ class DeepSeekViewModel @Inject constructor(
     private val _analysis = MutableStateFlow<Pair<Int, String>?>(null)
     val analysis: StateFlow<Pair<Int, String>?> = _analysis.asStateFlow()
 
+    /** Limit concurrent API calls to avoid saturating bandwidth */
+    private val semaphore = Semaphore(permits = 2)
     fun analyze(index: Int, question: Question) {
 
         viewModelScope.launch {
@@ -44,7 +50,11 @@ class DeepSeekViewModel @Inject constructor(
 
             _analysis.value = index to "解析中..."
             val apiStart = System.currentTimeMillis()
-            runCatching { api.analyze(question) }
+            runCatching {
+                semaphore.withPermit {
+                    withContext(Dispatchers.IO) { api.analyze(question) }
+                }
+            }
                 .onSuccess {
                     val apiDuration = System.currentTimeMillis() - apiStart
                     android.util.Log.d("DeepSeekViewModel", "API call duration=${apiDuration} ms")
