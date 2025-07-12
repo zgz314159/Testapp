@@ -16,6 +16,7 @@ import com.example.testapp.presentation.screen.SettingsScreen
 import com.example.testapp.presentation.screen.FavoriteScreen
 import com.example.testapp.presentation.screen.PracticeScreen
 import com.example.testapp.presentation.screen.ExamScreen
+import com.example.testapp.presentation.screen.DeepSeekScreen
 
 @Composable
 fun AppNavHost(navController: NavHostController = rememberNavController(), settingsViewModel: com.example.testapp.presentation.screen.SettingsViewModel) {
@@ -67,7 +68,11 @@ fun AppNavHost(navController: NavHostController = rememberNavController(), setti
                         popUpTo("home") { inclusive = false }
                     }
                 },
-                onExitWithoutAnswer = { navController.popBackStack() }
+                onExitWithoutAnswer = { navController.popBackStack() },
+                onViewDeepSeek = { text ->
+                    val encodedText = java.net.URLEncoder.encode(text, "UTF-8")
+                    navController.navigate("deepseek/$encodedText")
+                }
             )
         }
         composable(
@@ -122,7 +127,11 @@ fun AppNavHost(navController: NavHostController = rememberNavController(), setti
                         popUpTo("wrongbook") { inclusive = false }
                     }
                 },
-                onExitWithoutAnswer = { navController.popBackStack() }
+                onExitWithoutAnswer = { navController.popBackStack() },
+                onViewDeepSeek = { text ->
+                    val encodedText = java.net.URLEncoder.encode(text, "UTF-8")
+                    navController.navigate("deepseek/$encodedText")
+                }
             )
 
 
@@ -148,10 +157,21 @@ fun AppNavHost(navController: NavHostController = rememberNavController(), setti
                         popUpTo("favorite") { inclusive = false }
                     }
                 },
-                onExitWithoutAnswer = { navController.popBackStack() }
+                onExitWithoutAnswer = { navController.popBackStack() },
+                onViewDeepSeek = { text ->
+                    val encodedText = java.net.URLEncoder.encode(text, "UTF-8")
+                    navController.navigate("deepseek/$encodedText")
+                }
             )
         }
-
+        composable(
+            "deepseek/{text}",
+            arguments = listOf(navArgument("text") { type = NavType.StringType })
+        ) { backStackEntry ->
+            val encoded = backStackEntry.arguments?.getString("text") ?: ""
+            val text = java.net.URLDecoder.decode(encoded, "UTF-8")
+            DeepSeekScreen(text)
+        }
         // TODO: 添加更多页面
     }
 }

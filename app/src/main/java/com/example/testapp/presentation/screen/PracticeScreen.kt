@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.ui.input.pointer.pointerInput
@@ -49,7 +50,8 @@ fun PracticeScreen(
     aiViewModel: DeepSeekViewModel = hiltViewModel(),
     onQuizEnd: (score: Int, total: Int) -> Unit = { _, _ -> },
     onSubmit: (Boolean) -> Unit = {},
-    onExitWithoutAnswer: () -> Unit = {}
+    onExitWithoutAnswer: () -> Unit = {},
+    onViewDeepSeek: (String) -> Unit = {}
 ) {
     val randomPractice by settingsViewModel.randomPractice.collectAsState()
     val practiceCount by settingsViewModel.practiceQuestionCount.collectAsState()
@@ -507,6 +509,11 @@ fun PracticeScreen(
                                 .verticalScroll(rememberScrollState())
                                 .background(Color(0xFFE8F6FF))
                                 .padding(8.dp)
+                                .pointerInput(analysisText) {
+                                    detectTapGestures(onDoubleTap = {
+                                        onViewDeepSeek(analysisText!!)
+                                    })
+                                }
                         ) {
                             Text(
                                 text = analysisText ?: "",
