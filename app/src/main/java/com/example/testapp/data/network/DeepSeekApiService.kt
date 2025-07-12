@@ -8,8 +8,10 @@ import io.ktor.client.request.post
 import io.ktor.client.request.setBody
 import io.ktor.client.request.header
 import io.ktor.client.request.url
+import io.ktor.client.statement.HttpResponse
 import io.ktor.http.ContentType
 import io.ktor.http.HttpHeaders
+import io.ktor.http.isSuccess
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
@@ -46,18 +48,24 @@ class DeepSeekApiService(private val client: HttpClient) {
             append("请给出正确答案和解析。")
         }
         android.util.Log.d("DeepSeekApiService", "Prompt=\n$prompt")
-        val response: ResponseData = try {
+        val httpResponse: HttpResponse = try {
             client.post {
                 url("https://api.deepseek.com/v1/chat/completions")
                 header("Authorization", "Bearer ${BuildConfig.DEEPSEEK_API_KEY}")
                 header(HttpHeaders.ContentType, ContentType.Application.Json)
                 setBody(RequestBody(messages = listOf(Message("user", prompt))))
-            }.body()
+            }
         } catch (e: Exception) {
             android.util.Log.e("DeepSeekApiService", "Request failed", e)
             throw e
         }
-        android.util.Log.d("DeepSeekApiService", "Response=$response")
+        val raw: String = httpResponse.body()
+        android.util.Log.d("DeepSeekApiService", "RawResponse=$raw")
+        if (!httpResponse.status.isSuccess()) {
+            throw RuntimeException("HTTP ${'$'}{httpResponse.status.value}: ${'$'}raw")
+        }
+        val response = httpResponse.body<ResponseData>()
+        android.util.Log.d("DeepSeekApiService", "Response=${'$'}response")
         return response.choices.firstOrNull()?.message?.content ?: ""
     }
 }
