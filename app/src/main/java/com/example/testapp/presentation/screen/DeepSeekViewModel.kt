@@ -10,6 +10,8 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import javax.inject.Inject
+import kotlinx.serialization.encodeToString
+import kotlinx.serialization.json.Json
 
 @HiltViewModel
 class DeepSeekViewModel @Inject constructor(
@@ -21,6 +23,10 @@ class DeepSeekViewModel @Inject constructor(
     fun analyze(question: Question) {
         viewModelScope.launch {
             android.util.Log.d("DeepSeekViewModel", "Analyze question id=${question.id}")
+            android.util.Log.d(
+                "DeepSeekViewModel",
+                "QuestionJson=${Json.encodeToString(question)}"
+            )
             _analysis.value = "解析中..."
             runCatching { api.analyze(question) }
                 .onSuccess {

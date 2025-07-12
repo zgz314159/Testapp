@@ -14,6 +14,8 @@ import io.ktor.http.HttpHeaders
 import io.ktor.http.isSuccess
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.encodeToString
+import kotlinx.serialization.json.Json
 
 @Serializable
 private data class Message(
@@ -48,23 +50,37 @@ class DeepSeekApiService(private val client: HttpClient) {
             append("请给出正确答案和解析。")
         }
         android.util.Log.d("DeepSeekApiService", "Prompt=\n$prompt")
+        val requestBody = RequestBody(messages = listOf(Message("user", prompt)))
+        android.util.Log.d(
+            "DeepSeekApiService",
+            "RequestBodyJson=${Json.encodeToString(requestBody)}"
+        )
         val httpResponse: HttpResponse = try {
             client.post {
                 url("https://api.deepseek.com/v1/chat/completions")
                 header("Authorization", "Bearer ${BuildConfig.DEEPSEEK_API_KEY}")
                 header(HttpHeaders.ContentType, ContentType.Application.Json)
-                setBody(RequestBody(messages = listOf(Message("user", prompt))))
+                setBody(requestBody)
             }
         } catch (e: Exception) {
             android.util.Log.e("DeepSeekApiService", "Request failed", e)
             throw e
         }
+        android.util.Log.d(
+            "DeepSeekApiService",
+            "Status=${'$'}{httpResponse.status.value}, Headers=${'$'}{httpResponse.headers}"
+        )
         val raw: String = httpResponse.body()
         android.util.Log.d("DeepSeekApiService", "RawResponse=$raw")
         if (!httpResponse.status.isSuccess()) {
             throw RuntimeException("HTTP ${'$'}{httpResponse.status.value}: ${'$'}raw")
         }
-        val response = httpResponse.body<ResponseData>()
+        val response = try {
+            httpResponse.body<ResponseData>()
+        } catch (e: Exception) {
+            android.util.Log.e("DeepSeekApiService", "Parse response failed", e)
+            throw e
+        }
         android.util.Log.d("DeepSeekApiService", "Response=${'$'}response")
         return response.choices.firstOrNull()?.message?.content ?: ""
     }
