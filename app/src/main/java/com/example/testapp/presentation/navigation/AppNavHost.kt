@@ -170,7 +170,7 @@ fun AppNavHost(navController: NavHostController = rememberNavController(), setti
         ) { backStackEntry ->
             val encoded = backStackEntry.arguments?.getString("text") ?: ""
             val text = java.net.URLDecoder.decode(encoded, "UTF-8")
-            DeepSeekScreen(text)
+            DeepSeekScreen(text, settingsViewModel = settingsViewModel)
         }
         // TODO: 添加更多页面
     }
