@@ -120,19 +120,23 @@ fun PracticeScreen(
         "storedPracticeFontSize=$storedPracticeFontSize globalFontSize=$fontSize"
     )
     var questionFontSize by remember { mutableStateOf(storedPracticeFontSize) }
+    var fontLoaded by remember { mutableStateOf(false) }
     LaunchedEffect(storedPracticeFontSize) {
         android.util.Log.d(
             "PracticeScreen-font",
             "loaded storedPracticeFontSize=$storedPracticeFontSize"
         )
         questionFontSize = storedPracticeFontSize
+        fontLoaded = true
     }
-    LaunchedEffect(questionFontSize) {
-        android.util.Log.d(
-            "PracticeScreen-font",
-            "save practice questionFontSize=$questionFontSize"
-        )
-        FontSettingsDataStore.setPracticeFontSize(context, questionFontSize)
+    LaunchedEffect(questionFontSize, fontLoaded) {
+        if (fontLoaded) {
+            android.util.Log.d(
+                "PracticeScreen-font",
+                "save practice questionFontSize=$questionFontSize"
+            )
+            FontSettingsDataStore.setPracticeFontSize(context, questionFontSize)
+        }
     }
     var autoJob by remember { mutableStateOf<Job?>(null) }
     var showExitDialog by remember { mutableStateOf(false) }

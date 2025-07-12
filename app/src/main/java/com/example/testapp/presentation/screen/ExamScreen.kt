@@ -107,19 +107,23 @@ fun ExamScreen(
         "storedExamFontSize=$storedExamFontSize globalFontSize=$fontSize"
     )
     var questionFontSize by remember { mutableStateOf(storedExamFontSize) }
+    var fontLoaded by remember { mutableStateOf(false) }
     LaunchedEffect(storedExamFontSize) {
         android.util.Log.d(
             "ExamScreen-font",
             "loaded storedExamFontSize=$storedExamFontSize"
         )
         questionFontSize = storedExamFontSize
+        fontLoaded = true
     }
-    LaunchedEffect(questionFontSize) {
-        android.util.Log.d(
-            "ExamScreen-font",
-            "save exam questionFontSize=$questionFontSize"
-        )
-        FontSettingsDataStore.setExamFontSize(context, questionFontSize)
+    LaunchedEffect(questionFontSize, fontLoaded) {
+        if (fontLoaded) {
+            android.util.Log.d(
+                "ExamScreen-font",
+                "save exam questionFontSize=$questionFontSize"
+            )
+            FontSettingsDataStore.setExamFontSize(context, questionFontSize)
+        }
     }
     var dragAmount by remember { mutableStateOf(0f) }
     var autoJob by remember { mutableStateOf<kotlinx.coroutines.Job?>(null) }
