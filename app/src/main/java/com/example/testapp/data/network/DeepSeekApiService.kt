@@ -41,6 +41,7 @@ private data class ResponseData(
 
 class DeepSeekApiService(private val client: HttpClient) {
     suspend fun analyze(question: Question): String {
+        val totalStart = System.currentTimeMillis()
         val prompt = buildString {
             appendLine(question.content)
             question.options.forEachIndexed { index, option ->
@@ -55,6 +56,7 @@ class DeepSeekApiService(private val client: HttpClient) {
             "DeepSeekApiService",
             "RequestBodyJson=${Json.encodeToString(requestBody)}"
         )
+        val requestStart = System.currentTimeMillis()
         val httpResponse: HttpResponse = try {
             client.post {
                 url("https://api.deepseek.com/v1/chat/completions")
@@ -66,6 +68,11 @@ class DeepSeekApiService(private val client: HttpClient) {
             android.util.Log.e("DeepSeekApiService", "Request failed", e)
             throw e
         }
+        val networkDuration = System.currentTimeMillis() - requestStart
+        android.util.Log.d(
+            "DeepSeekApiService",
+            "Network duration=${'$'}networkDuration ms"
+        )
         android.util.Log.d(
             "DeepSeekApiService",
             "Status=${'$'}{httpResponse.status.value}, Headers=${'$'}{httpResponse.headers}"
@@ -75,13 +82,21 @@ class DeepSeekApiService(private val client: HttpClient) {
         if (!httpResponse.status.isSuccess()) {
             throw RuntimeException("HTTP ${'$'}{httpResponse.status.value}: ${'$'}raw")
         }
+        val parseStart = System.currentTimeMillis()
         val response = try {
             httpResponse.body<ResponseData>()
         } catch (e: Exception) {
             android.util.Log.e("DeepSeekApiService", "Parse response failed", e)
             throw e
         }
+        val parseDuration = System.currentTimeMillis() - parseStart
+        android.util.Log.d("DeepSeekApiService", "Parse duration=${'$'}parseDuration ms")
         android.util.Log.d("DeepSeekApiService", "Response=${'$'}response")
+        val totalDuration = System.currentTimeMillis() - totalStart
+        android.util.Log.d(
+            "DeepSeekApiService",
+            "Total analyze duration=${'$'}totalDuration ms"
+        )
         return response.choices.firstOrNull()?.message?.content ?: ""
     }
 }

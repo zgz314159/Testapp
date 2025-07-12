@@ -32,8 +32,10 @@ class DeepSeekViewModel @Inject constructor(
                 "DeepSeekViewModel",
                 "QuestionJson=${Json.encodeToString(question)}"
             )
-
+            val cacheStart = System.currentTimeMillis()
             val cached = getAnalysis(question.id)
+            val cacheDuration = System.currentTimeMillis() - cacheStart
+            android.util.Log.d("DeepSeekViewModel", "Check cache duration=${'$'}cacheDuration ms")
             if (!cached.isNullOrBlank()) {
                 android.util.Log.d("DeepSeekViewModel", "Use cached analysis")
                 _analysis.value = index to cached
@@ -41,13 +43,18 @@ class DeepSeekViewModel @Inject constructor(
             }
 
             _analysis.value = index to "解析中..."
+            val apiStart = System.currentTimeMillis()
             runCatching { api.analyze(question) }
                 .onSuccess {
+                    val apiDuration = System.currentTimeMillis() - apiStart
+                    android.util.Log.d("DeepSeekViewModel", "API call duration=${'$'}apiDuration ms")
                     android.util.Log.d("DeepSeekViewModel", "Analysis success: $it")
                     _analysis.value = index to it
                     saveAnalysis(question.id, it)
                 }
                 .onFailure {
+                    val apiDuration = System.currentTimeMillis() - apiStart
+                    android.util.Log.d("DeepSeekViewModel", "API call duration=${'$'}apiDuration ms")
                     android.util.Log.e("DeepSeekViewModel", "Analysis failed", it)
                     _analysis.value = index to "解析失败: ${'$'}{it.message}"
                 }
