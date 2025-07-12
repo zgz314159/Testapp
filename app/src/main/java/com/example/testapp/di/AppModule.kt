@@ -187,6 +187,7 @@ object AppModule {
             json(
                 Json {
                     ignoreUnknownKeys = true
+                    encodeDefaults = true
                 }
             )
         }
