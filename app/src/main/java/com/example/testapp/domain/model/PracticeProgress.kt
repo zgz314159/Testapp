@@ -6,5 +6,6 @@ data class PracticeProgress(
     val answeredList: List<Int>,
     val selectedOptions: List<List<Int>>, // 支持多选！
     val showResultList: List<Boolean>, // 新增：每题是否已提交/显示解析
+    val analysisList: List<String>,
     val timestamp: Long
 )

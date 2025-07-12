@@ -58,6 +58,7 @@ fun PracticeProgressEntity.toDomain() = PracticeProgress(
     answeredList = answeredList,
     selectedOptions = selectedOptions,
     showResultList = showResultList,
+    analysisList = analysisList,
     timestamp = timestamp
 )
 
@@ -67,6 +68,7 @@ fun PracticeProgress.toEntity() = PracticeProgressEntity(
     answeredList = answeredList,
     selectedOptions = selectedOptions,
     showResultList = showResultList,
+    analysisList = analysisList,
     timestamp = timestamp
 )
 

@@ -93,7 +93,9 @@ fun PracticeScreen(
     val favoriteViewModel: FavoriteViewModel = hiltViewModel()
     val favoriteQuestions by favoriteViewModel.favoriteQuestions.collectAsState()
     val question = questions.getOrNull(currentIndex)
-    val analysis by aiViewModel.analysis.collectAsState()
+    val analysisPair by aiViewModel.analysis.collectAsState()
+    val analysisList by viewModel.analysisList.collectAsState()
+    val analysisText = if (analysisPair?.first == currentIndex) analysisPair?.second else analysisList.getOrNull(currentIndex)
     android.util.Log.d(
         "PracticeScreen-question",
         "currentIndex=$currentIndex, question=$question"
@@ -153,6 +155,13 @@ fun PracticeScreen(
 
     LaunchedEffect(progressLoaded) {
         if (progressLoaded) answeredThisSession = false
+    }
+
+    LaunchedEffect(analysisPair) {
+        val pair = analysisPair
+        if (pair != null && pair.second != "解析中...") {
+            viewModel.updateAnalysis(pair.first, pair.second)
+        }
     }
 
     LaunchedEffect(selectedOption, showResult, currentIndex, answeredList, selectedOptions, showResultList, progressLoaded) {
@@ -245,7 +254,7 @@ fun PracticeScreen(
                     contentDescription = if (isFavorite) "取消收藏" else "收藏"
                 )
             }
-            IconButton(onClick = { if (question != null) aiViewModel.analyze(question) }) {
+            IconButton(onClick = { if (question != null) aiViewModel.analyze(currentIndex, question) }) {
                 Icon(Icons.Filled.Lightbulb, contentDescription = "AI 解析")
             }
             Spacer(modifier = Modifier.weight(1f))
@@ -490,7 +499,7 @@ fun PracticeScreen(
                             fontFamily = LocalFontFamily.current
                         )
                     }
-                    if (analysis != null) {
+                    if (!analysisText.isNullOrBlank()) {
                         Box(
                             modifier = Modifier
                                 .fillMaxWidth()
@@ -500,7 +509,7 @@ fun PracticeScreen(
                                 .padding(8.dp)
                         ) {
                             Text(
-                                text = analysis ?: "",
+                                text = analysisText ?: "",
                                 color = Color(0xFF004B6B),
                                 fontSize = questionFontSize.sp,
                                 fontFamily = LocalFontFamily.current

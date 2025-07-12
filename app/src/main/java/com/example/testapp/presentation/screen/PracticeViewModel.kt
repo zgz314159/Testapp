@@ -45,6 +45,9 @@ class PracticeViewModel @Inject constructor(
     private val _showResultList = MutableStateFlow<List<Boolean>>(emptyList())
     val showResultList: StateFlow<List<Boolean>> = _showResultList.asStateFlow()
 
+    private val _analysisList = MutableStateFlow<List<String>>(emptyList())
+    val analysisList: StateFlow<List<String>> = _analysisList.asStateFlow()
+
     private var progressId: String = ""
 
     val currentProgressId: String
@@ -127,6 +130,16 @@ class PracticeViewModel @Inject constructor(
                             (progress.showResultList +
                                     List(_questions.value.size - progress.showResultList.size) { false }).toList()
                         }
+
+                    _analysisList.value = emptyList()
+                    _analysisList.value =
+                        if (progress.analysisList.size >= _questions.value.size) {
+                            progress.analysisList.take(_questions.value.size).toList()
+                        } else {
+                            (progress.analysisList +
+                                    List(_questions.value.size - progress.analysisList.size) { "" }).toList()
+                        }
+
                     android.util.Log.d(
                         "PracticeDebug",
                         "恢复进度: currentIndex=${progress.currentIndex}, answeredList=${progress.answeredList}, selectedOptions=${progress.selectedOptions}, showResultList=${progress.showResultList}"
@@ -137,6 +150,7 @@ class PracticeViewModel @Inject constructor(
                     _answeredList.value = emptyList()
                     _selectedOptions.value = List(_questions.value.size) { emptyList() }
                     _showResultList.value = List(_questions.value.size) { false }
+                    _analysisList.value = List(_questions.value.size) { "" }
                     saveProgress()
                 }
                 _progressLoaded.value = true
@@ -209,6 +223,7 @@ class PracticeViewModel @Inject constructor(
                     answeredList = _answeredList.value,
                     selectedOptions = _selectedOptions.value,
                     showResultList = _showResultList.value,
+                    analysisList = _analysisList.value,
                     timestamp = System.currentTimeMillis()
                 )
             )
@@ -224,6 +239,7 @@ class PracticeViewModel @Inject constructor(
             _answeredList.value = emptyList()
             _selectedOptions.value = emptyList()
             _showResultList.value = emptyList()
+            _analysisList.value = emptyList()
             _progressLoaded.value = false
         }
     }
@@ -236,7 +252,14 @@ class PracticeViewModel @Inject constructor(
         _showResultList.value = list
         saveProgress()
     }
-
+    fun updateAnalysis(index: Int, text: String) {
+        android.util.Log.d("PracticeDebug", "updateAnalysis index=$index text=${'$'}text")
+        val list = _analysisList.value.toMutableList()
+        while (list.size <= index) list.add("")
+        list[index] = text
+        _analysisList.value = list
+        saveProgress()
+    }
     fun updateQuestionContent(index: Int, newContent: String) {
         val updatedList = _questions.value.toMutableList()
         if (index in updatedList.indices) {

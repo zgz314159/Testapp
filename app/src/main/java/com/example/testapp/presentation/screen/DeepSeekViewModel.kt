@@ -17,25 +17,26 @@ import kotlinx.serialization.json.Json
 class DeepSeekViewModel @Inject constructor(
     private val api: DeepSeekApiService
 ) : ViewModel() {
-    private val _analysis = MutableStateFlow<String?>(null)
-    val analysis: StateFlow<String?> = _analysis.asStateFlow()
+    private val _analysis = MutableStateFlow<Pair<Int, String>?>(null)
+    val analysis: StateFlow<Pair<Int, String>?> = _analysis.asStateFlow()
 
-    fun analyze(question: Question) {
+    fun analyze(index: Int, question: Question) {
+
         viewModelScope.launch {
             android.util.Log.d("DeepSeekViewModel", "Analyze question id=${question.id}")
             android.util.Log.d(
                 "DeepSeekViewModel",
                 "QuestionJson=${Json.encodeToString(question)}"
             )
-            _analysis.value = "解析中..."
+            _analysis.value = index to "解析中..."
             runCatching { api.analyze(question) }
                 .onSuccess {
                     android.util.Log.d("DeepSeekViewModel", "Analysis success: $it")
-                    _analysis.value = it
+                    _analysis.value = index to it
                 }
                 .onFailure {
                     android.util.Log.e("DeepSeekViewModel", "Analysis failed", it)
-                    _analysis.value = "解析失败: ${'$'}{it.message}"
+                    _analysis.value = index to "解析失败: ${'$'}{it.message}"
                 }
         }
     }
