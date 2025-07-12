@@ -58,7 +58,7 @@ fun PracticeScreen(
     onQuizEnd: (score: Int, total: Int) -> Unit = { _, _ -> },
     onSubmit: (Boolean) -> Unit = {},
     onExitWithoutAnswer: () -> Unit = {},
-    onViewDeepSeek: (String) -> Unit = {}
+    onViewDeepSeek: (String, Int, Int) -> Unit = { _, _, _ -> }
 ) {
     val randomPractice by settingsViewModel.randomPractice.collectAsState()
     val practiceCount by settingsViewModel.practiceQuestionCount.collectAsState()
@@ -543,7 +543,9 @@ fun PracticeScreen(
                                         .padding(8.dp)
                                         .pointerInput(analysisText) {
                                             detectTapGestures(onDoubleTap = {
-                                                onViewDeepSeek(analysisText!!)
+                                                question?.let { q ->
+                                                    onViewDeepSeek(analysisText!!, q.id, currentIndex)
+                                                }
                                             })
                                         }
                                 ) {

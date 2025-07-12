@@ -1,7 +1,11 @@
 package com.example.testapp.presentation.screen
 
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.MoreVert
@@ -9,6 +13,8 @@ import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.Button
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Text
@@ -23,6 +29,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.testapp.presentation.component.LocalFontFamily
@@ -34,6 +41,10 @@ import androidx.hilt.navigation.compose.hiltViewModel
 @Composable
 fun DeepSeekScreen(
     text: String,
+    questionId: Int,
+    index: Int,
+    practiceViewModel: PracticeViewModel = hiltViewModel(),
+    aiViewModel: DeepSeekViewModel = hiltViewModel(),
     settingsViewModel: SettingsViewModel = hiltViewModel()
 ) {
     val globalFontSize by settingsViewModel.fontSize.collectAsState()
@@ -56,20 +67,30 @@ fun DeepSeekScreen(
         }
     }
     var menuExpanded by remember { mutableStateOf(false) }
+    var editableText by remember { mutableStateOf(text) }
     Box(modifier = Modifier.fillMaxSize()) {
 
-        Box(
+        Column(
             modifier = Modifier
                 .fillMaxSize()
                 .verticalScroll(rememberScrollState())
-                .padding(16.dp),
-            contentAlignment = Alignment.TopStart
+                .padding(16.dp)
         ) {
-            Text(
-                text = text,
-                fontSize = screenFontSize.sp,
-                fontFamily = LocalFontFamily.current
+            OutlinedTextField(
+                value = editableText,
+                onValueChange = { editableText = it },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .weight(1f, fill = true),
+                textStyle = TextStyle(fontSize = screenFontSize.sp, fontFamily = LocalFontFamily.current)
             )
+            Spacer(modifier = Modifier.height(8.dp))
+            Button(onClick = {
+                practiceViewModel.updateAnalysis(index, editableText)
+                aiViewModel.save(questionId, editableText)
+            }, modifier = Modifier.align(Alignment.End)) {
+                Text("保存")
+            }
         }
         Box(modifier = Modifier.align(Alignment.TopEnd)) {
             IconButton(onClick = { menuExpanded = true }) {

@@ -19,7 +19,7 @@ import kotlinx.serialization.json.Json
 class DeepSeekViewModel @Inject constructor(
     private val api: DeepSeekApiService,
     private val getAnalysis: GetQuestionAnalysisUseCase,
-    private val saveAnalysis: SaveQuestionAnalysisUseCase
+    private val saveAnalysisUseCase: SaveQuestionAnalysisUseCase
 ) : ViewModel() {
     private val _analysis = MutableStateFlow<Pair<Int, String>?>(null)
     val analysis: StateFlow<Pair<Int, String>?> = _analysis.asStateFlow()
@@ -50,7 +50,7 @@ class DeepSeekViewModel @Inject constructor(
                     android.util.Log.d("DeepSeekViewModel", "API call duration=${apiDuration} ms")
                     android.util.Log.d("DeepSeekViewModel", "Analysis success: $it")
                     _analysis.value = index to it
-                    saveAnalysis(question.id, it)
+                    saveAnalysisUseCase(question.id, it)
                 }
                 .onFailure {
                     val apiDuration = System.currentTimeMillis() - apiStart
@@ -61,6 +61,11 @@ class DeepSeekViewModel @Inject constructor(
         }
     }
 
+    fun save(questionId: Int, analysis: String) {
+        viewModelScope.launch {
+            saveAnalysisUseCase(questionId, analysis)
+        }
+    }
     fun clear() {
         _analysis.value = null
     }

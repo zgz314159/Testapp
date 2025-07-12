@@ -69,9 +69,9 @@ fun AppNavHost(navController: NavHostController = rememberNavController(), setti
                     }
                 },
                 onExitWithoutAnswer = { navController.popBackStack() },
-                onViewDeepSeek = { text ->
+                onViewDeepSeek = { text, id, index ->
                     val encodedText = java.net.URLEncoder.encode(text, "UTF-8")
-                    navController.navigate("deepseek/$encodedText")
+                    navController.navigate("deepseek/$id/$index/$encodedText")
                 }
             )
         }
@@ -128,9 +128,9 @@ fun AppNavHost(navController: NavHostController = rememberNavController(), setti
                     }
                 },
                 onExitWithoutAnswer = { navController.popBackStack() },
-                onViewDeepSeek = { text ->
+                onViewDeepSeek = { text, id, index ->
                     val encodedText = java.net.URLEncoder.encode(text, "UTF-8")
-                    navController.navigate("deepseek/$encodedText")
+                    navController.navigate("deepseek/$id/$index/$encodedText")
                 }
             )
 
@@ -158,19 +158,25 @@ fun AppNavHost(navController: NavHostController = rememberNavController(), setti
                     }
                 },
                 onExitWithoutAnswer = { navController.popBackStack() },
-                onViewDeepSeek = { text ->
+                onViewDeepSeek = { text, id, index ->
                     val encodedText = java.net.URLEncoder.encode(text, "UTF-8")
-                    navController.navigate("deepseek/$encodedText")
+                    navController.navigate("deepseek/$id/$index/$encodedText")
                 }
             )
         }
         composable(
-            "deepseek/{text}",
-            arguments = listOf(navArgument("text") { type = NavType.StringType })
+            "deepseek/{id}/{index}/{text}",
+            arguments = listOf(
+                navArgument("id") { type = NavType.IntType },
+                navArgument("index") { type = NavType.IntType },
+                navArgument("text") { type = NavType.StringType }
+            )
         ) { backStackEntry ->
             val encoded = backStackEntry.arguments?.getString("text") ?: ""
             val text = java.net.URLDecoder.decode(encoded, "UTF-8")
-            DeepSeekScreen(text, settingsViewModel = settingsViewModel)
+            val id = backStackEntry.arguments?.getInt("id") ?: 0
+            val index = backStackEntry.arguments?.getInt("index") ?: 0
+            DeepSeekScreen(text = text, questionId = id, index = index, settingsViewModel = settingsViewModel)
         }
         // TODO: 添加更多页面
     }
