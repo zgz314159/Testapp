@@ -45,12 +45,19 @@ class DeepSeekApiService(private val client: HttpClient) {
             }
             append("请给出正确答案和解析。")
         }
-        val response: ResponseData = client.post {
-            url("https://api.deepseek.com/v1/chat/completions")
-            header("Authorization", "Bearer ${BuildConfig.DEEPSEEK_API_KEY}")
-            header(HttpHeaders.ContentType, ContentType.Application.Json)
-            setBody(RequestBody(messages = listOf(Message("user", prompt))))
-        }.body()
+        android.util.Log.d("DeepSeekApiService", "Prompt=\n$prompt")
+        val response: ResponseData = try {
+            client.post {
+                url("https://api.deepseek.com/v1/chat/completions")
+                header("Authorization", "Bearer ${BuildConfig.DEEPSEEK_API_KEY}")
+                header(HttpHeaders.ContentType, ContentType.Application.Json)
+                setBody(RequestBody(messages = listOf(Message("user", prompt))))
+            }.body()
+        } catch (e: Exception) {
+            android.util.Log.e("DeepSeekApiService", "Request failed", e)
+            throw e
+        }
+        android.util.Log.d("DeepSeekApiService", "Response=$response")
         return response.choices.firstOrNull()?.message?.content ?: ""
     }
 }

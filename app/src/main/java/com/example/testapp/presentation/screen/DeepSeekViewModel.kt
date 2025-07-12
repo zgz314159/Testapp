@@ -20,10 +20,17 @@ class DeepSeekViewModel @Inject constructor(
 
     fun analyze(question: Question) {
         viewModelScope.launch {
+            android.util.Log.d("DeepSeekViewModel", "Analyze question id=${question.id}")
             _analysis.value = "解析中..."
             runCatching { api.analyze(question) }
-                .onSuccess { _analysis.value = it }
-                .onFailure { _analysis.value = "解析失败: ${'$'}{it.message}" }
+                .onSuccess {
+                    android.util.Log.d("DeepSeekViewModel", "Analysis success: $it")
+                    _analysis.value = it
+                }
+                .onFailure {
+                    android.util.Log.e("DeepSeekViewModel", "Analysis failed", it)
+                    _analysis.value = "解析失败: ${'$'}{it.message}"
+                }
         }
     }
 
