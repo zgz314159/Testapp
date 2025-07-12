@@ -2,10 +2,8 @@ package com.example.testapp.presentation.screen
 
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import android.widget.Toast
 import androidx.compose.material.icons.Icons
@@ -14,11 +12,12 @@ import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.Button
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material3.Text
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -33,6 +32,8 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.activity.compose.BackHandler
+import androidx.navigation.NavController
 import com.example.testapp.presentation.component.LocalFontFamily
 import com.example.testapp.presentation.component.LocalFontSize
 import com.example.testapp.data.datastore.FontSettingsDataStore
@@ -44,6 +45,7 @@ fun DeepSeekScreen(
     text: String,
     questionId: Int,
     index: Int,
+    navController: NavController? = null,
     practiceViewModel: PracticeViewModel = hiltViewModel(),
     aiViewModel: DeepSeekViewModel = hiltViewModel(),
     settingsViewModel: SettingsViewModel = hiltViewModel()
@@ -69,6 +71,15 @@ fun DeepSeekScreen(
     }
     var menuExpanded by remember { mutableStateOf(false) }
     var editableText by remember { mutableStateOf(text) }
+    var showSaveDialog by remember { mutableStateOf(false) }
+
+    BackHandler {
+        if (editableText != text) {
+            showSaveDialog = true
+        } else {
+            navController?.popBackStack()
+        }
+    }
     Box(modifier = Modifier.fillMaxSize()) {
 
         Column(
@@ -77,7 +88,7 @@ fun DeepSeekScreen(
                 .verticalScroll(rememberScrollState())
                 .padding(16.dp)
         ) {
-            OutlinedTextField(
+            BasicTextField(
                 value = editableText,
                 onValueChange = { editableText = it },
                 modifier = Modifier
@@ -85,14 +96,7 @@ fun DeepSeekScreen(
                     .weight(1f, fill = true),
                 textStyle = TextStyle(fontSize = screenFontSize.sp, fontFamily = LocalFontFamily.current)
             )
-            Spacer(modifier = Modifier.height(8.dp))
-            Button(onClick = {
-                practiceViewModel.updateAnalysis(index, editableText)
-                aiViewModel.save(questionId, editableText)
-                Toast.makeText(context, "保存成功", Toast.LENGTH_SHORT).show()
-            }, modifier = Modifier.align(Alignment.End)) {
-                Text("保存")
-            }
+
         }
         Box(modifier = Modifier.align(Alignment.TopEnd)) {
             IconButton(onClick = { menuExpanded = true }) {
@@ -117,6 +121,27 @@ fun DeepSeekScreen(
                     menuExpanded = false
                 })
             }
+        }
+        if (showSaveDialog) {
+            AlertDialog(
+                onDismissRequest = { showSaveDialog = false },
+                confirmButton = {
+                    TextButton(onClick = {
+                        practiceViewModel.updateAnalysis(index, editableText)
+                        aiViewModel.save(questionId, editableText)
+                        Toast.makeText(context, "保存成功", Toast.LENGTH_SHORT).show()
+                        showSaveDialog = false
+                        navController?.popBackStack()
+                    }) { Text("保存") }
+                },
+                dismissButton = {
+                    TextButton(onClick = {
+                        showSaveDialog = false
+                        navController?.popBackStack()
+                    }) { Text("取消") }
+                },
+                text = { Text("是否保存修改？") }
+            )
         }
     }
 }

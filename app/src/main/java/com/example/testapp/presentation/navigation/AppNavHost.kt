@@ -185,6 +185,7 @@ fun AppNavHost(navController: NavHostController = rememberNavController(), setti
                 text = text,
                 questionId = id,
                 index = index,
+                navController = navController,
                 practiceViewModel = practiceViewModel,
                 settingsViewModel = settingsViewModel
             )
