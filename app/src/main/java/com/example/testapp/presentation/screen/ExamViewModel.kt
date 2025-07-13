@@ -214,7 +214,7 @@ class ExamViewModel @Inject constructor(
         _showResultList.value = newShowResultList
         _finished.value = newShowResultList.all { it }
         android.util.Log.d("ExamDebug", "gradeExam score=$score total=${qs.size}")
-        saveProgress()
+        saveProgressInternal()
         return score
     }
 
@@ -256,22 +256,24 @@ class ExamViewModel @Inject constructor(
         }
     }
 
+    private suspend fun saveProgressInternal() {
+        android.util.Log.d(
+            "ExamDebug",
+            "saveProgress: index=${_currentIndex.value} selected=${_selectedOptions.value} showResult=${_showResultList.value} finished=${_finished.value}"
+        )
+        saveExamProgressUseCase(
+            com.example.testapp.domain.model.ExamProgress(
+                id = progressId,
+                currentIndex = _currentIndex.value,
+                selectedOptions = _selectedOptions.value,
+                showResultList = _showResultList.value,
+                finished = _finished.value,
+                timestamp = progressSeed
+            )
+        )
+    }
+
     private fun saveProgress() {
-        viewModelScope.launch {
-            android.util.Log.d(
-                "ExamDebug",
-                "saveProgress: index=${_currentIndex.value} selected=${_selectedOptions.value} showResult=${_showResultList.value} finished=${_finished.value}"
-            )
-            saveExamProgressUseCase(
-                com.example.testapp.domain.model.ExamProgress(
-                    id = progressId,
-                    currentIndex = _currentIndex.value,
-                    selectedOptions = _selectedOptions.value,
-                    showResultList = _showResultList.value,
-                    finished = _finished.value,
-                    timestamp = progressSeed
-                )
-            )
-        }
+        viewModelScope.launch { saveProgressInternal() }
     }
 }
