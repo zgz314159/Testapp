@@ -522,6 +522,25 @@ fun PracticeScreen(
                         )
                     }
                 }
+
+                val note = noteList.getOrNull(currentIndex)
+                if (!note.isNullOrBlank()) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .background(Color(0xFFE0FFE0))
+                            .padding(8.dp)
+                    ) {
+                        Text(
+                            text = "笔记：$note",
+                            color = Color(0xFF004B00),
+                            fontSize = questionFontSize.sp,
+                            fontFamily = LocalFontFamily.current
+                        )
+                    }
+                }
+                Spacer(modifier = Modifier.height(16.dp))
+
                 if (!analysisText.isNullOrBlank()) {
                     Box(
                         modifier = Modifier
@@ -549,23 +568,7 @@ fun PracticeScreen(
                         )
                     }
                 }
-                val note = noteList.getOrNull(currentIndex)
-                if (!note.isNullOrBlank()) {
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .background(Color(0xFFE0FFE0))
-                            .padding(8.dp)
-                    ) {
-                        Text(
-                            text = "笔记：$note",
-                            color = Color(0xFF004B00),
-                            fontSize = questionFontSize.sp,
-                            fontFamily = LocalFontFamily.current
-                        )
-                    }
-                }
-                Spacer(modifier = Modifier.height(16.dp))
+
             }
         }
 
