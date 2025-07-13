@@ -30,6 +30,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import com.example.testapp.presentation.screen.PracticeViewModel
 import com.example.testapp.presentation.screen.SettingsViewModel
 import com.example.testapp.presentation.screen.DeepSeekViewModel
+import com.example.testapp.presentation.component.AnswerCardGrid
 import com.example.testapp.presentation.component.LocalFontSize
 import com.example.testapp.presentation.component.LocalFontFamily
 import androidx.compose.ui.unit.sp
@@ -302,54 +303,51 @@ fun PracticeScreen(
 
         if (showList) {
             AlertDialog(onDismissRequest = { showList = false }, confirmButton = {}, text = {
-                LazyVerticalGrid(
-                    columns = GridCells.Fixed(5),
-                    modifier = Modifier.heightIn(max = 300.dp)
-                ) {
-                    items(questions.size) { idx ->
-                        // val answered = answeredList.contains(idx)
+                val singleIndices = remember(questions) { questions.mapIndexedNotNull { i, q -> if (q.type == "单选题") i else null } }
+                val multiIndices = remember(questions) { questions.mapIndexedNotNull { i, q -> if (q.type == "多选题") i else null } }
+                val judgeIndices = remember(questions) { questions.mapIndexedNotNull { i, q -> if (q.type == "判断题") i else null } }
 
-                        // 取出该题是否已显示解析 & 用户选项 & 正确答案
-                        val resultShown = showResultList.getOrNull(idx) == true
-                        val selected = selectedOptions.getOrNull(idx) ?: emptyList<Int>()
-                        val q = questions.getOrNull(idx)
-                        val correctIdx = q?.let { answerLetterToIndex(it.answer) }
-
-                        // 决定背景色：绿色=答对，红色=答错，灰=已答未看解析，透明=未答
-                        val bgColor = when {
-                            resultShown && selected.singleOrNull() == correctIdx ->
-                                MaterialTheme.colorScheme.primary.copy(alpha = 0.3f)
-
-                            resultShown && selected.isNotEmpty() && selected.singleOrNull() != correctIdx ->
-                                MaterialTheme.colorScheme.error.copy(alpha = 0.3f)
-
-                            idx in answeredList ->
-                                MaterialTheme.colorScheme.secondary.copy(alpha = 0.1f)
-
-                            else ->
-                                Color.Transparent
-                        }
-
-
-                        Box(
-                            modifier = Modifier
-                                .padding(4.dp)
-                                .background(bgColor)
-//                                    if (answered) MaterialTheme.colorScheme.primary.copy(alpha = 0.3f)
-//                                    else Color.Transparent
-//                                )
-                                .clickable {
-                                    viewModel.goToQuestion(idx)
-                                    showList = false
-                                },
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Text(
-                                text = "${idx + 1}",
-                                fontSize = LocalFontSize.current,
-                                fontFamily = LocalFontFamily.current
-                            )
-                        }
+                Column(modifier = Modifier.heightIn(max = 300.dp)) {
+                    if (singleIndices.isNotEmpty()) {
+                        Text("单选题", fontSize = LocalFontSize.current, fontFamily = LocalFontFamily.current)
+                        AnswerCardGrid(
+                            indices = singleIndices,
+                            questions = questions,
+                            selectedOptions = selectedOptions,
+                            showResultList = showResultList,
+                            onClick = {
+                                viewModel.goToQuestion(it)
+                                showList = false
+                            }
+                        )
+                    }
+                    if (multiIndices.isNotEmpty()) {
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text("多选题", fontSize = LocalFontSize.current, fontFamily = LocalFontFamily.current)
+                        AnswerCardGrid(
+                            indices = multiIndices,
+                            questions = questions,
+                            selectedOptions = selectedOptions,
+                            showResultList = showResultList,
+                            onClick = {
+                                viewModel.goToQuestion(it)
+                                showList = false
+                            }
+                        )
+                    }
+                    if (judgeIndices.isNotEmpty()) {
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text("判断题", fontSize = LocalFontSize.current, fontFamily = LocalFontFamily.current)
+                        AnswerCardGrid(
+                            indices = judgeIndices,
+                            questions = questions,
+                            selectedOptions = selectedOptions,
+                            showResultList = showResultList,
+                            onClick = {
+                                viewModel.goToQuestion(it)
+                                showList = false
+                            }
+                        )
                     }
                 }
             })

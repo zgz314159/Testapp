@@ -26,6 +26,7 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
+import com.example.testapp.presentation.component.AnswerCardGrid
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.onSizeChanged
 import kotlinx.coroutines.Job
@@ -280,42 +281,51 @@ fun ExamScreen(
         }
         if (showList) {
             AlertDialog(onDismissRequest = { showList = false }, confirmButton = {}, text = {
-                LazyVerticalGrid(
-                    columns = GridCells.Fixed(5),
-                    modifier = Modifier.heightIn(max = 300.dp)
-                ) {
-                    items(questions.size) { idx ->
-                        val resultShown = showResultList.getOrNull(idx) == true
-                        val selected = selectedOptions.getOrNull(idx) ?: emptyList<Int>()
-                        val q = questions.getOrNull(idx)
-                        val correctIdx = q?.let { answerLetterToIndex(it.answer) }
+                val singleIndices = remember(questions) { questions.mapIndexedNotNull { i, q -> if (q.type == "单选题") i else null } }
+                val multiIndices = remember(questions) { questions.mapIndexedNotNull { i, q -> if (q.type == "多选题") i else null } }
+                val judgeIndices = remember(questions) { questions.mapIndexedNotNull { i, q -> if (q.type == "判断题") i else null } }
 
-                        val bgColor = when {
-                            resultShown && selected.singleOrNull() == correctIdx ->
-                                MaterialTheme.colorScheme.primary.copy(alpha = 0.3f)
-                            resultShown && selected.isNotEmpty() && selected.singleOrNull() != correctIdx ->
-                                MaterialTheme.colorScheme.error.copy(alpha = 0.3f)
-                            selected.isNotEmpty() ->
-                                MaterialTheme.colorScheme.secondary.copy(alpha = 0.1f)
-                            else -> Color.Transparent
-                        }
-
-                        Box(
-                            modifier = Modifier
-                                .padding(4.dp)
-                                .background(bgColor)
-                                .clickable {
-                                    viewModel.goToQuestion(idx)
-                                    showList = false
-                                },
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Text(
-                                text = "${idx + 1}",
-                                fontSize = LocalFontSize.current,
-                                fontFamily = LocalFontFamily.current
-                            )
-                        }
+                Column(modifier = Modifier.heightIn(max = 300.dp)) {
+                    if (singleIndices.isNotEmpty()) {
+                        Text("单选题", fontSize = LocalFontSize.current, fontFamily = LocalFontFamily.current)
+                        AnswerCardGrid(
+                            indices = singleIndices,
+                            questions = questions,
+                            selectedOptions = selectedOptions,
+                            showResultList = showResultList,
+                            onClick = {
+                                viewModel.goToQuestion(it)
+                                showList = false
+                            }
+                        )
+                    }
+                    if (multiIndices.isNotEmpty()) {
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text("多选题", fontSize = LocalFontSize.current, fontFamily = LocalFontFamily.current)
+                        AnswerCardGrid(
+                            indices = multiIndices,
+                            questions = questions,
+                            selectedOptions = selectedOptions,
+                            showResultList = showResultList,
+                            onClick = {
+                                viewModel.goToQuestion(it)
+                                showList = false
+                            }
+                        )
+                    }
+                    if (judgeIndices.isNotEmpty()) {
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text("判断题", fontSize = LocalFontSize.current, fontFamily = LocalFontFamily.current)
+                        AnswerCardGrid(
+                            indices = judgeIndices,
+                            questions = questions,
+                            selectedOptions = selectedOptions,
+                            showResultList = showResultList,
+                            onClick = {
+                                viewModel.goToQuestion(it)
+                                showList = false
+                            }
+                        )
                     }
                 }
             })
