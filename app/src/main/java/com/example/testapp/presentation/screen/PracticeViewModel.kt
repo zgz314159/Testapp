@@ -69,6 +69,11 @@ class PracticeViewModel @Inject constructor(
     fun setRandomPractice(enabled: Boolean) {
         randomPracticeEnabled = enabled
     }
+
+    private fun ensurePrefix(id: String): String =
+        if (id.startsWith("practice_")) id else "practice_$id"
+
+
     fun setProgressId(
         id: String,
         questionsId: String = id,
@@ -76,7 +81,7 @@ class PracticeViewModel @Inject constructor(
         questionCount: Int = 0
     ) {
         // 1. 统一给练习进度加 practice_ 前缀
-        progressId = if (id.startsWith("practice_")) id else "practice_$id"
+        progressId = ensurePrefix(id)
         questionSourceId = questionsId
         _progressLoaded.value = false
         analysisLoaded = false
@@ -257,16 +262,20 @@ class PracticeViewModel @Inject constructor(
     fun clearProgress() {
         viewModelScope.launch {
             android.util.Log.d("PracticeDebug", "clearProgress called for $progressId")
-            val id = if (progressId.startsWith("practice_")) progressId else "practice_$progressId"
-            clearPracticeProgressUseCase(id)
-            _currentIndex.value = 0
-            _answeredList.value = emptyList()
-            _selectedOptions.value = emptyList()
-            _showResultList.value = emptyList()
-            _analysisList.value = emptyList()
+            clearPracticeProgressUseCase(progressId)
+            resetLocalState()
             _progressLoaded.value = false
             analysisLoaded = false
         }
+    }
+
+    private fun resetLocalState() {
+        val count = _questions.value.size
+        _currentIndex.value = 0
+        _answeredList.value = emptyList()
+        _selectedOptions.value = List(count) { emptyList() }
+        _showResultList.value = List(count) { false }
+        _analysisList.value = List(count) { "" }
     }
 
     fun updateShowResult(index: Int, value: Boolean) {
