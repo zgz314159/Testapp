@@ -37,7 +37,7 @@ class QuestionAnalysisRepositoryImpl @Inject constructor(
 
     override suspend fun saveAnalysis(questionId: Int, analysis: String) {
         val dbStart = System.currentTimeMillis()
-        dao.upsert(QuestionAnalysisEntity(questionId, analysis))
+        dao.upsert(QuestionAnalysisEntity(questionId = questionId, analysis = analysis))
         val dbDuration = System.currentTimeMillis() - dbStart
         android.util.Log.d(
             "QuestionAnalysisRepo",

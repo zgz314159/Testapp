@@ -124,6 +124,11 @@ fun PracticeScreen(
             elapsed += 1
         }
     }
+    LaunchedEffect(showResult) {
+        if (showResult && analysisText.isNullOrBlank()) {
+            question?.let { aiViewModel.analyze(currentIndex, it) }
+        }
+    }
     var showList by remember { mutableStateOf(false) }
     var menuExpanded by remember { mutableStateOf(false) }
     var score by remember { mutableStateOf(0) }
@@ -506,32 +511,32 @@ fun PracticeScreen(
                             fontFamily = LocalFontFamily.current
                         )
                     }
-                    if (!analysisText.isNullOrBlank()) {
-                        Box(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .heightIn(max = 200.dp)
-                                .verticalScroll(rememberScrollState())
-                                .background(Color(0xFFE8F6FF))
-                                .padding(8.dp)
-                                .pointerInput(analysisText) {
-                                    detectTapGestures(
-                                        onDoubleTap = {
-                                            question?.let { q ->
-                                                onViewDeepSeek(analysisText!!, q.id, currentIndex)
-                                            }
-                                        },
-                                        onLongPress = { showDeleteDialog = true }
-                                    )
-                                }
-                        ) {
-                            Text(
-                                text = analysisText ?: "",
-                                color = Color(0xFF004B6B),
-                                fontSize = questionFontSize.sp,
-                                fontFamily = LocalFontFamily.current
-                            )
-                        }
+                }
+                if (!analysisText.isNullOrBlank()) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .heightIn(max = 200.dp)
+                            .verticalScroll(rememberScrollState())
+                            .background(Color(0xFFE8F6FF))
+                            .padding(8.dp)
+                            .pointerInput(analysisText) {
+                                detectTapGestures(
+                                    onDoubleTap = {
+                                        question?.let { q ->
+                                            onViewDeepSeek(analysisText!!, q.id, currentIndex)
+                                        }
+                                    },
+                                    onLongPress = { showDeleteDialog = true }
+                                )
+                            }
+                    ) {
+                        Text(
+                            text = analysisText ?: "",
+                            color = Color(0xFF004B6B),
+                            fontSize = questionFontSize.sp,
+                            fontFamily = LocalFontFamily.current
+                        )
                     }
                 }
                 Spacer(modifier = Modifier.height(16.dp))

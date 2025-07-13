@@ -24,7 +24,7 @@ import com.example.testapp.data.local.entity.converter.StringListConverter
 
 @Database(
     entities = [QuestionEntity::class, WrongQuestionEntity::class, HistoryRecordEntity::class, FavoriteQuestionEntity::class, PracticeProgressEntity::class, ExamProgressEntity::class, QuestionAnalysisEntity::class],
-    version = 8,
+    version = 9,
     exportSchema = false
 )
 @TypeConverters(IntListConverter::class, BooleanListConverter::class, NestedIntListConverter::class, StringListConverter::class)
