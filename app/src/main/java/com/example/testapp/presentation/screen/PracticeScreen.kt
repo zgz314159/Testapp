@@ -266,7 +266,15 @@ fun PracticeScreen(
                     contentDescription = if (isFavorite) "取消收藏" else "收藏"
                 )
             }
-            IconButton(onClick = { if (question != null) aiViewModel.analyze(currentIndex, question) }) {
+            IconButton(onClick = {
+                if (question != null) {
+                    if (hasDeepSeekAnalysis) {
+                        onViewDeepSeek(analysisText ?: "", question.id, currentIndex)
+                    } else {
+                        aiViewModel.analyze(currentIndex, question)
+                    }
+                }
+            }) {
                 Icon(
                     imageVector = Icons.Filled.Lightbulb,
                     contentDescription = "AI 解析",

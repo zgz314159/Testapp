@@ -283,6 +283,7 @@ class PracticeViewModel @Inject constructor(
                     selectedOptions = _selectedOptions.value,
                     showResultList = _showResultList.value,
                     analysisList = _analysisList.value,
+                    noteList = _noteList.value,
                     timestamp = System.currentTimeMillis()
                 )
             )
