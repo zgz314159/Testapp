@@ -121,10 +121,6 @@ class PracticeViewModel @Inject constructor(
     private fun loadProgress() {
         viewModelScope.launch {
             getPracticeProgressFlowUseCase(progressId).collect { progress ->
-                android.util.Log.d(
-                    "PracticeDebug",
-                    "loadProgress: progress=$progress, progressId=$progressId"
-                )
                 if (progress != null && !_progressLoaded.value) {
                     _currentIndex.value =
                         progress.currentIndex.coerceAtMost(_questions.value.size - 1)
@@ -155,11 +151,6 @@ class PracticeViewModel @Inject constructor(
                             (progress.analysisList +
                                     List(_questions.value.size - progress.analysisList.size) { "" }).toList()
                         }
-
-                    android.util.Log.d(
-                        "PracticeDebug",
-                        "恢复进度: currentIndex=${progress.currentIndex}, answeredList=${progress.answeredList}, selectedOptions=${progress.selectedOptions}, showResultList=${progress.showResultList}"
-                    )
                 } else if (progress == null && !_progressLoaded.value) {
                     android.util.Log.d("PracticeDebug", "no existing progress, initializing")
                     _currentIndex.value = 0
