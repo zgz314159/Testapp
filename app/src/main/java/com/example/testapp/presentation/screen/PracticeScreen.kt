@@ -16,6 +16,7 @@ import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.outlined.StarBorder
 import androidx.compose.material.icons.filled.Lightbulb
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material3.*
 import androidx.compose.material3.LocalContentColor
 import androidx.compose.material.ExperimentalMaterialApi
@@ -101,6 +102,7 @@ fun PracticeScreen(
     val analysisPair by aiViewModel.analysis.collectAsState()
     val analysisList by viewModel.analysisList.collectAsState()
     val analysisText = if (analysisPair?.first == currentIndex) analysisPair?.second else analysisList.getOrNull(currentIndex)
+    val noteList by viewModel.noteList.collectAsState()
     val hasDeepSeekAnalysis = analysisList.getOrNull(currentIndex).orEmpty().isNotBlank()
     android.util.Log.d(
         "PracticeScreen-question",
@@ -124,12 +126,11 @@ fun PracticeScreen(
             elapsed += 1
         }
     }
-    LaunchedEffect(showResult) {
-        if (showResult && analysisText.isNullOrBlank()) {
-            question?.let { aiViewModel.analyze(currentIndex, it) }
-        }
-    }
+    // When results are shown, display any cached AI analysis if available.
+    // Users must tap the bulb icon to trigger new analysis generation.
     var showList by remember { mutableStateOf(false) }
+    var showNoteDialog by remember { mutableStateOf(false) }
+    var noteText by remember { mutableStateOf("") }
     var menuExpanded by remember { mutableStateOf(false) }
     var score by remember { mutableStateOf(0) }
     val storedPracticeFontSize by FontSettingsDataStore
@@ -271,6 +272,15 @@ fun PracticeScreen(
                     contentDescription = "AI 解析",
                     tint = if (hasDeepSeekAnalysis) MaterialTheme.colorScheme.primary else LocalContentColor.current
                 )
+            }
+
+            IconButton(onClick = {
+                coroutineScope.launch {
+                    noteText = viewModel.getNote(question.id) ?: ""
+                    showNoteDialog = true
+                }
+            }) {
+                Icon(imageVector = Icons.Filled.Edit, contentDescription = "笔记")
             }
             Spacer(modifier = Modifier.weight(1f))
             Card(onClick = { showList = true }) {
@@ -539,6 +549,22 @@ fun PracticeScreen(
                         )
                     }
                 }
+                val note = noteList.getOrNull(currentIndex)
+                if (!note.isNullOrBlank()) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .background(Color(0xFFE0FFE0))
+                            .padding(8.dp)
+                    ) {
+                        Text(
+                            text = "笔记：$note",
+                            color = Color(0xFF004B00),
+                            fontSize = questionFontSize.sp,
+                            fontFamily = LocalFontFamily.current
+                        )
+                    }
+                }
                 Spacer(modifier = Modifier.height(16.dp))
             }
         }
@@ -591,6 +617,28 @@ fun PracticeScreen(
                 }
             }
         }
+    }
+    if (showNoteDialog) {
+        AlertDialog(
+            onDismissRequest = {
+                if (noteText.isNotBlank()) viewModel.saveNote(question.id, currentIndex, noteText)
+                showNoteDialog = false
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    if (noteText.isNotBlank()) viewModel.saveNote(question.id, currentIndex, noteText)
+                    showNoteDialog = false
+                }) { Text("完成") }
+            },
+            dismissButton = {
+                TextButton(onClick = {
+                    showNoteDialog = false
+                }) { Text("取消") }
+            },
+            text = {
+                TextField(value = noteText, onValueChange = { noteText = it })
+            }
+        )
     }
 
 

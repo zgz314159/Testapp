@@ -10,6 +10,7 @@ import com.example.testapp.data.local.dao.WrongQuestionDao
 import com.example.testapp.data.local.dao.PracticeProgressDao
 import com.example.testapp.data.local.dao.ExamProgressDao
 import com.example.testapp.data.local.dao.QuestionAnalysisDao
+import com.example.testapp.data.local.dao.QuestionNoteDao
 import com.example.testapp.data.repository.FavoriteQuestionRepositoryImpl
 import com.example.testapp.data.repository.HistoryRepositoryImpl
 import com.example.testapp.data.repository.QuestionRepositoryImpl
@@ -17,6 +18,7 @@ import com.example.testapp.data.repository.WrongBookRepositoryImpl
 import com.example.testapp.data.repository.PracticeProgressRepositoryImpl
 import com.example.testapp.data.repository.ExamProgressRepositoryImpl
 import com.example.testapp.data.repository.QuestionAnalysisRepositoryImpl
+import com.example.testapp.data.repository.QuestionNoteRepositoryImpl
 import com.example.testapp.data.network.DeepSeekApiService
 import com.example.testapp.domain.repository.FavoriteQuestionRepository
 import com.example.testapp.domain.repository.HistoryRepository
@@ -25,6 +27,7 @@ import com.example.testapp.domain.repository.WrongBookRepository
 import com.example.testapp.domain.repository.PracticeProgressRepository
 import com.example.testapp.domain.repository.ExamProgressRepository
 import com.example.testapp.domain.repository.QuestionAnalysisRepository
+import com.example.testapp.domain.repository.QuestionNoteRepository
 import com.example.testapp.domain.usecase.AddFavoriteQuestionUseCase
 import com.example.testapp.domain.usecase.AddHistoryRecordUseCase
 import com.example.testapp.domain.usecase.AddWrongQuestionUseCase
@@ -42,6 +45,8 @@ import com.example.testapp.domain.usecase.ClearExamProgressUseCase
 import com.example.testapp.domain.usecase.ClearPracticeProgressUseCase
 import com.example.testapp.domain.usecase.GetQuestionAnalysisUseCase
 import com.example.testapp.domain.usecase.SaveQuestionAnalysisUseCase
+import com.example.testapp.domain.usecase.GetQuestionNoteUseCase
+import com.example.testapp.domain.usecase.SaveQuestionNoteUseCase
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -142,6 +147,9 @@ object AppModule {
     fun provideQuestionAnalysisDao(db: AppDatabase): QuestionAnalysisDao = db.questionAnalysisDao()
 
     @Provides
+    fun provideQuestionNoteDao(db: AppDatabase): QuestionNoteDao = db.questionNoteDao()
+
+    @Provides
     @Singleton
     fun provideFavoriteQuestionRepository(dao: FavoriteQuestionDao): FavoriteQuestionRepository = FavoriteQuestionRepositoryImpl(dao)
 
@@ -168,6 +176,10 @@ object AppModule {
     @Provides
     @Singleton
     fun provideQuestionAnalysisRepository(dao: QuestionAnalysisDao): QuestionAnalysisRepository = QuestionAnalysisRepositoryImpl(dao)
+
+    @Provides
+    @Singleton
+    fun provideQuestionNoteRepository(dao: QuestionNoteDao): QuestionNoteRepository = QuestionNoteRepositoryImpl(dao)
 
     @Provides
     @Singleton
@@ -200,6 +212,15 @@ object AppModule {
     @Provides
     @Singleton
     fun provideSaveQuestionAnalysisUseCase(repo: QuestionAnalysisRepository): SaveQuestionAnalysisUseCase = SaveQuestionAnalysisUseCase(repo)
+
+
+    @Provides
+    @Singleton
+    fun provideGetQuestionNoteUseCase(repo: QuestionNoteRepository): GetQuestionNoteUseCase = GetQuestionNoteUseCase(repo)
+
+    @Provides
+    @Singleton
+    fun provideSaveQuestionNoteUseCase(repo: QuestionNoteRepository): SaveQuestionNoteUseCase = SaveQuestionNoteUseCase(repo)
 
     @Provides
     @Singleton

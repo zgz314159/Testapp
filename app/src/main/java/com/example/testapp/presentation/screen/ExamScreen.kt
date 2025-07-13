@@ -10,6 +10,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.outlined.StarBorder
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -76,6 +77,7 @@ fun ExamScreen(
     val context = LocalContext.current
     val question = questions.getOrNull(currentIndex)
     val coroutineScope = rememberCoroutineScope()
+    val noteList by viewModel.noteList.collectAsState()
     val favoriteViewModel: FavoriteViewModel = hiltViewModel()
     val favoriteQuestions by favoriteViewModel.favoriteQuestions.collectAsState()
     val isFavorite = remember(question, favoriteQuestions) {
@@ -99,6 +101,8 @@ fun ExamScreen(
 
 
     var showList by remember { mutableStateOf(false) }
+    var showNoteDialog by remember { mutableStateOf(false) }
+    var noteText by remember { mutableStateOf("") }
     var menuExpanded by remember { mutableStateOf(false) }
     val storedExamFontSize by FontSettingsDataStore
         .getExamFontSize(context, Float.NaN)
@@ -243,6 +247,16 @@ fun ExamScreen(
                     contentDescription = if (isFavorite) "取消收藏" else "收藏"
                 )
             }
+
+            IconButton(onClick = {
+                coroutineScope.launch {
+                    noteText = viewModel.getNote(question.id) ?: ""
+                    showNoteDialog = true
+                }
+            }) {
+                Icon(imageVector = Icons.Filled.Edit, contentDescription = "笔记")
+            }
+
             Spacer(modifier = Modifier.weight(1f))
             Card(onClick = { showList = true }) {
                 Text(
@@ -480,6 +494,22 @@ fun ExamScreen(
                             )
                         }
                     }
+                    val note = noteList.getOrNull(currentIndex)
+                    if (!note.isNullOrBlank()) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .background(Color(0xFFE0FFE0))
+                                .padding(8.dp)
+                        ) {
+                            Text(
+                                text = "笔记：$note",
+                                color = Color(0xFF004B00),
+                                fontSize = questionFontSize.sp,
+                                fontFamily = LocalFontFamily.current
+                            )
+                        }
+                    }
                     Spacer(modifier = Modifier.height(16.dp))
                 }
             }
@@ -488,6 +518,24 @@ fun ExamScreen(
 
 
         Spacer(modifier = Modifier.height(8.dp))
+    }
+    if (showNoteDialog) {
+        AlertDialog(
+            onDismissRequest = {
+                if (noteText.isNotBlank()) viewModel.saveNote(question.id, currentIndex, noteText)
+                showNoteDialog = false
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    if (noteText.isNotBlank()) viewModel.saveNote(question.id, currentIndex, noteText)
+                    showNoteDialog = false
+                }) { Text("完成") }
+            },
+            dismissButton = {
+                TextButton(onClick = { showNoteDialog = false }) { Text("取消") }
+            },
+            text = { TextField(value = noteText, onValueChange = { noteText = it }) }
+        )
     }
 
 

@@ -12,6 +12,8 @@ import com.example.testapp.domain.usecase.SaveQuestionsUseCase
 import com.example.testapp.domain.usecase.GetWrongBookUseCase
 import com.example.testapp.domain.usecase.GetFavoriteQuestionsUseCase
 import com.example.testapp.domain.usecase.GetQuestionAnalysisUseCase
+import com.example.testapp.domain.usecase.GetQuestionNoteUseCase
+import com.example.testapp.domain.usecase.SaveQuestionNoteUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
@@ -26,7 +28,9 @@ class PracticeViewModel @Inject constructor(
     private val saveQuestionsUseCase: SaveQuestionsUseCase, // 新增注入
     private val getWrongBookUseCase: GetWrongBookUseCase,
     private val getFavoriteQuestionsUseCase: GetFavoriteQuestionsUseCase,
-    private val getQuestionAnalysisUseCase: GetQuestionAnalysisUseCase
+    private val getQuestionAnalysisUseCase: GetQuestionAnalysisUseCase,
+    private val getQuestionNoteUseCase: GetQuestionNoteUseCase,
+    private val saveQuestionNoteUseCase: SaveQuestionNoteUseCase
 ) : ViewModel() {
     private val _questions = MutableStateFlow<List<Question>>(emptyList())
     val questions: StateFlow<List<Question>> = _questions.asStateFlow()
@@ -49,6 +53,9 @@ class PracticeViewModel @Inject constructor(
     private val _analysisList = MutableStateFlow<List<String>>(emptyList())
     val analysisList: StateFlow<List<String>> = _analysisList.asStateFlow()
 
+    private val _noteList = MutableStateFlow<List<String>>(emptyList())
+    val noteList: StateFlow<List<String>> = _noteList.asStateFlow()
+
     private var progressId: String = ""
 
     val currentProgressId: String
@@ -57,6 +64,7 @@ class PracticeViewModel @Inject constructor(
     private var questionSourceId: String = ""
     private var randomPracticeEnabled: Boolean = false
     private var analysisLoaded: Boolean = false
+    private var notesLoaded: Boolean = false
 
     init {
         // 应用启动时，清理任何旧的 default 记录，防止误删到别的表
@@ -85,6 +93,7 @@ class PracticeViewModel @Inject constructor(
         questionSourceId = questionsId
         _progressLoaded.value = false
         analysisLoaded = false
+        notesLoaded = false
         if (loadQuestions) {
             viewModelScope.launch {
                 if (randomPracticeEnabled) {
@@ -166,7 +175,10 @@ class PracticeViewModel @Inject constructor(
                 loadAnalysisFromRepository()
                 analysisLoaded = true
             }
-
+            if (!notesLoaded) {
+                loadNotesFromRepository()
+                notesLoaded = true
+            }
         }
     }
     private suspend fun loadAnalysisFromRepository() {
@@ -186,6 +198,24 @@ class PracticeViewModel @Inject constructor(
         if (changed) {
             _analysisList.value = list
             saveProgress()
+        }
+    }
+    private suspend fun loadNotesFromRepository() {
+        val qs = _questions.value
+        val list = _noteList.value.toMutableList()
+        var changed = false
+        qs.forEachIndexed { idx, q ->
+            if (idx >= list.size) list.add("")
+            if (list[idx].isBlank()) {
+                val text = getQuestionNoteUseCase(q.id)
+                if (!text.isNullOrBlank()) {
+                    list[idx] = text
+                    changed = true
+                }
+            }
+        }
+        if (changed) {
+            _noteList.value = list
         }
     }
 
@@ -266,6 +296,7 @@ class PracticeViewModel @Inject constructor(
             resetLocalState()
             _progressLoaded.value = false
             analysisLoaded = false
+            notesLoaded = false
         }
     }
 
@@ -294,6 +325,19 @@ class PracticeViewModel @Inject constructor(
         _analysisList.value = list
         saveProgress()
     }
+
+    fun saveNote(questionId: Int, index: Int, text: String) {
+        viewModelScope.launch {
+            saveQuestionNoteUseCase(questionId, text)
+        }
+        val list = _noteList.value.toMutableList()
+        while (list.size <= index) list.add("")
+        list[index] = text
+        _noteList.value = list
+    }
+
+    suspend fun getNote(questionId: Int): String? = getQuestionNoteUseCase(questionId)
+
     fun updateQuestionContent(index: Int, newContent: String) {
         val updatedList = _questions.value.toMutableList()
         if (index in updatedList.indices) {
