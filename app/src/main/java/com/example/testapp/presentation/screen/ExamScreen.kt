@@ -37,6 +37,10 @@ import androidx.activity.compose.BackHandler
 import com.example.testapp.util.answerLetterToIndex
 import com.example.testapp.data.datastore.FontSettingsDataStore
 import androidx.compose.material3.LocalContentColor
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.verticalScroll
+
 
 
 
@@ -129,6 +133,7 @@ fun ExamScreen(
     var showList by remember { mutableStateOf(false) }
     var showNoteDialog by remember { mutableStateOf(false) }
     var noteText by remember { mutableStateOf("") }
+    var showDeleteDialog by remember { mutableStateOf(false) }
     var menuExpanded by remember { mutableStateOf(false) }
     val storedExamFontSize by FontSettingsDataStore
         .getExamFontSize(context, Float.NaN)
@@ -556,6 +561,30 @@ fun ExamScreen(
                             )
                         }
                     }
+                    if (!analysisText.isNullOrBlank()) {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .verticalScroll(rememberScrollState())
+                                .background(Color(0xFFE8F6FF))
+                                .padding(8.dp)
+                                .pointerInput(analysisText) {
+                                    detectTapGestures(
+                                        onDoubleTap = {
+                                            onViewDeepSeek(analysisText!!, question.id, currentIndex)
+                                        },
+                                        onLongPress = { showDeleteDialog = true }
+                                    )
+                                }
+                        ) {
+                            Text(
+                                text = analysisText ?: "",
+                                color = Color(0xFF004B6B),
+                                fontSize = questionFontSize.sp,
+                                fontFamily = LocalFontFamily.current
+                            )
+                        }
+                    }
                     Spacer(modifier = Modifier.height(16.dp))
                 }
             }
@@ -583,7 +612,22 @@ fun ExamScreen(
             text = { TextField(value = noteText, onValueChange = { noteText = it }) }
         )
     }
-
+    if (showDeleteDialog) {
+        AlertDialog(
+            onDismissRequest = { showDeleteDialog = false },
+            confirmButton = {
+                TextButton(onClick = {
+                    aiViewModel.clear()
+                    viewModel.updateAnalysis(currentIndex, "")
+                    showDeleteDialog = false
+                }) { Text("确定") }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDeleteDialog = false }) { Text("取消") }
+            },
+            text = { Text("确定删除解析吗？") }
+        )
+    }
 
 if (showExitDialog) {
     AlertDialog(
