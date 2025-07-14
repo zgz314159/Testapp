@@ -56,7 +56,8 @@ fun AppNavHost(navController: NavHostController = rememberNavController(), setti
                     }
                 },
                 onViewResult = {
-                    navController.navigate("result/0/0/")
+                    navController.navigate("history")
+
                 }
             )
         }
