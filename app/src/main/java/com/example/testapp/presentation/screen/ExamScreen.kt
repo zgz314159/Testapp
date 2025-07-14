@@ -35,6 +35,7 @@ import androidx.compose.ui.layout.onSizeChanged
 import kotlinx.coroutines.Job
 import androidx.activity.compose.BackHandler
 import com.example.testapp.util.answerLetterToIndex
+import com.example.testapp.util.answerLettersToIndices
 import com.example.testapp.data.datastore.FontSettingsDataStore
 import androidx.compose.material3.LocalContentColor
 import androidx.compose.foundation.rememberScrollState
@@ -469,9 +470,9 @@ fun ExamScreen(
 
             itemsIndexed(question.options) { idx, option ->
                 val selectedOption = selectedOptions.getOrElse(currentIndex) { emptyList<Int>() }
-                val correctIndex = answerLetterToIndex(question.answer)
+                val correctIndices = answerLettersToIndices(question.answer)
                 val isSelected = selectedOption.contains(idx)
-                val isCorrect = showResult && correctIndex != null && idx == correctIndex
+                val isCorrect = showResult && correctIndices.contains(idx)
                 val isWrong = showResult && isSelected && !isCorrect
                 val backgroundColor = when {
                     isCorrect -> MaterialTheme.colorScheme.primary.copy(alpha = 0.2f)
@@ -513,8 +514,8 @@ fun ExamScreen(
 
             if (showResult) {
                 item {
-                    val correctIndex = answerLetterToIndex(question.answer)
-                    val correct = correctIndex != null && selectedOption.contains(correctIndex)
+                    val correctIndices = answerLettersToIndices(question.answer)
+                    val correct = selectedOption.sorted() == correctIndices.sorted()
                     Row(
 
                         modifier = Modifier
@@ -523,8 +524,12 @@ fun ExamScreen(
                             .padding(8.dp)
                     ) {
 
+                        val answerText = if (correctIndices.all { it in question.options.indices }) {
+                            correctIndices.joinToString("，") { question.options[it] }
+                        } else question.answer
+
                         Text(
-                            if (correct) "回答正确！" else "回答错误，正确答案：${if (correctIndex != null && correctIndex in question.options.indices) question.options[correctIndex] else question.answer}",
+                            if (correct) "回答正确！" else "回答错误，正确答案：$answerText",
                             color = if (correct) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error,
                             fontSize = questionFontSize.sp,
                             fontFamily = LocalFontFamily.current

@@ -18,6 +18,7 @@ import com.example.testapp.domain.model.Question
 import com.example.testapp.presentation.component.LocalFontFamily
 import com.example.testapp.presentation.component.LocalFontSize
 import com.example.testapp.util.answerLetterToIndex
+import com.example.testapp.util.answerLettersToIndices
 import androidx.compose.material3.Text
 
 @Composable
@@ -33,12 +34,14 @@ fun AnswerCardGrid(
             val resultShown = showResultList.getOrNull(idx) == true
             val selected = selectedOptions.getOrNull(idx) ?: emptyList<Int>()
             val q = questions.getOrNull(idx)
-            val correctIdx = q?.let { answerLetterToIndex(it.answer) }
+            val correctIndices = q?.let { answerLettersToIndices(it.answer) } ?: emptyList()
+
+            val isCorrect = selected.sorted() == correctIndices.sorted() && selected.isNotEmpty()
 
             val bgColor = when {
-                resultShown && selected.singleOrNull() == correctIdx ->
+                resultShown && isCorrect ->
                     MaterialTheme.colorScheme.primary.copy(alpha = 0.3f)
-                resultShown && selected.isNotEmpty() && selected.singleOrNull() != correctIdx ->
+                resultShown && selected.isNotEmpty() && !isCorrect ->
                     MaterialTheme.colorScheme.error.copy(alpha = 0.3f)
                 selected.isNotEmpty() ->
                     MaterialTheme.colorScheme.secondary.copy(alpha = 0.1f)
