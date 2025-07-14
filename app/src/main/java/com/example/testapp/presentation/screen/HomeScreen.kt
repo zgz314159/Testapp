@@ -58,7 +58,8 @@ fun HomeScreen(
     onSettings: () -> Unit = {},
     onViewQuestionDetail: (quizId: String) -> Unit = {},
     onWrongBook: (fileName: String) -> Unit = {},
-    onFavoriteBook: (fileName: String) -> Unit = {}
+    onFavoriteBook: (fileName: String) -> Unit = {},
+    onViewResult: () -> Unit = {}
 ) {
     val viewModel: HomeViewModel = hiltViewModel()
     val questions by viewModel.questions.collectAsState()
@@ -130,13 +131,12 @@ fun HomeScreen(
                     selected = bottomNavIndex == 2,
                     onClick = {
                         bottomNavIndex = 2
-                        if (selectedFileName.value.isNullOrBlank()) return@NavigationBarItem
-                        onViewQuestionDetail(selectedFileName.value)
+                        onViewResult()
                     },
-                    icon = { Icon(Icons.Filled.FactCheck, contentDescription = "题库详情") },
+                    icon = { Icon(Icons.Filled.FactCheck, contentDescription = "答题记录") },
                     label = {
                         Text(
-                            "题库详情",
+                            "答题记录",
                             fontSize = LocalFontSize.current,
                             fontFamily = LocalFontFamily.current
                     ) }
@@ -217,6 +217,7 @@ fun HomeScreen(
                                             )
                                             .clickable {
                                                 selectedFileName.value = name
+                                                onViewQuestionDetail(name)
                                             },
                                         verticalAlignment = Alignment.CenterVertically
                                     ) {

@@ -54,6 +54,9 @@ fun AppNavHost(navController: NavHostController = rememberNavController(), setti
                         val encoded = java.net.URLEncoder.encode(fileName, "UTF-8")
                         navController.navigate("favorite/$encoded")
                     }
+                },
+                onViewResult = {
+                    navController.navigate("result/0/0")
                 }
             )
         }
