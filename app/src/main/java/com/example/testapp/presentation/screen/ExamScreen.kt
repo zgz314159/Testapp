@@ -11,6 +11,7 @@ import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.outlined.StarBorder
 import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.Lightbulb
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -23,6 +24,7 @@ import kotlinx.coroutines.launch
 import com.example.testapp.presentation.component.LocalFontSize
 import com.example.testapp.presentation.component.LocalFontFamily
 import com.example.testapp.presentation.screen.FavoriteViewModel
+import com.example.testapp.presentation.screen.DeepSeekViewModel
 import androidx.compose.ui.unit.sp
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -34,6 +36,8 @@ import kotlinx.coroutines.Job
 import androidx.activity.compose.BackHandler
 import com.example.testapp.util.answerLetterToIndex
 import com.example.testapp.data.datastore.FontSettingsDataStore
+import androidx.compose.material3.LocalContentColor
+import androidx.compose.runtime.mutableStateMapOf
 
 
 
@@ -43,8 +47,10 @@ fun ExamScreen(
     quizId: String,
     viewModel: ExamViewModel = hiltViewModel(),
     settingsViewModel: SettingsViewModel = hiltViewModel(),
+    aiViewModel: DeepSeekViewModel = hiltViewModel(),
     onExamEnd: (score: Int, total: Int) -> Unit = { _, _ -> },
-    onExitWithoutAnswer: () -> Unit = {}
+    onExitWithoutAnswer: () -> Unit = {},
+    onViewDeepSeek: (String, Int, Int) -> Unit = { _, _, _ -> }
 ) {
     val examCount by settingsViewModel.examQuestionCount.collectAsState()
     val randomExam by settingsViewModel.randomExam.collectAsState()
@@ -78,6 +84,11 @@ fun ExamScreen(
     val question = questions.getOrNull(currentIndex)
     val coroutineScope = rememberCoroutineScope()
     val noteList by viewModel.noteList.collectAsState()
+    val analysisPair by aiViewModel.analysis.collectAsState()
+    val analysisMap = remember { mutableStateMapOf<Int, String>() }
+    val analysisText = if (analysisPair?.first == currentIndex) analysisPair?.second else analysisMap[currentIndex]
+    val hasDeepSeekAnalysis = analysisMap[currentIndex].orEmpty().isNotBlank()
+    val hasNote = noteList.getOrNull(currentIndex).orEmpty().isNotBlank()
     val favoriteViewModel: FavoriteViewModel = hiltViewModel()
     val favoriteQuestions by favoriteViewModel.favoriteQuestions.collectAsState()
     val isFavorite = remember(question, favoriteQuestions) {
@@ -90,6 +101,20 @@ fun ExamScreen(
         while (true) {
             kotlinx.coroutines.delay(1000)
             elapsed += 1
+        }
+    }
+
+    LaunchedEffect(question) {
+        if (question != null) {
+            val saved = aiViewModel.getSavedAnalysis(question.id) ?: ""
+            analysisMap[currentIndex] = saved
+        }
+    }
+
+    LaunchedEffect(analysisPair) {
+        val pair = analysisPair
+        if (pair != null && pair.second != "解析中...") {
+            analysisMap[pair.first] = pair.second
         }
     }
 
@@ -248,13 +273,33 @@ fun ExamScreen(
                 )
             }
 
-            IconButton(onClick = {
-                coroutineScope.launch {
-                    noteText = viewModel.getNote(question.id) ?: ""
-                    showNoteDialog = true
+            if (selectedOption.isNotEmpty()) {
+                IconButton(onClick = {
+                    if (hasDeepSeekAnalysis) {
+                        onViewDeepSeek(analysisText ?: "", question.id, currentIndex)
+                    } else {
+                        aiViewModel.analyze(currentIndex, question)
+                    }
+                }) {
+                    Icon(
+                        imageVector = Icons.Filled.Lightbulb,
+                        contentDescription = "AI 解析",
+                        tint = if (hasDeepSeekAnalysis) MaterialTheme.colorScheme.primary else LocalContentColor.current
+                    )
                 }
-            }) {
-                Icon(imageVector = Icons.Filled.Edit, contentDescription = "笔记")
+
+                IconButton(onClick = {
+                    coroutineScope.launch {
+                        noteText = viewModel.getNote(question.id) ?: ""
+                        showNoteDialog = true
+                    }
+                }) {
+                    Icon(
+                        imageVector = Icons.Filled.Edit,
+                        contentDescription = "笔记",
+                        tint = if (hasNote) MaterialTheme.colorScheme.primary else LocalContentColor.current
+                    )
+                }
             }
 
             Spacer(modifier = Modifier.weight(1f))

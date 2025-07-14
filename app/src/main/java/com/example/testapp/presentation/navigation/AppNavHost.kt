@@ -92,7 +92,11 @@ fun AppNavHost(navController: NavHostController = rememberNavController(), setti
                         popUpTo("home") { inclusive = false }
                     }
                 },
-                onExitWithoutAnswer = { navController.popBackStack() }
+                onExitWithoutAnswer = { navController.popBackStack() },
+                onViewDeepSeek = { text, id, index ->
+                    val encodedText = java.net.URLEncoder.encode(text, "UTF-8")
+                    navController.navigate("deepseek/$id/$index/$encodedText")
+                }
             )
         }
         composable(

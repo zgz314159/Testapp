@@ -30,6 +30,8 @@ class DeepSeekViewModel @Inject constructor(
 
     /** Limit concurrent API calls to avoid saturating bandwidth */
     private val semaphore = Semaphore(permits = 2)
+
+    suspend fun getSavedAnalysis(questionId: Int): String? = getAnalysis(questionId)
     fun analyze(index: Int, question: Question) {
 
         viewModelScope.launch {
