@@ -63,12 +63,15 @@ class ExamViewModel @Inject constructor(
     private var progressId: String = "exam_default"
     private var progressSeed: Long = System.currentTimeMillis()
 
+    private var quizIdInternal: String = ""
+
     private var notesLoaded: Boolean = false
     private var analysisLoaded: Boolean = false
 
     fun loadQuestions(quizId: String, count: Int, random: Boolean) {
         // 考试模式也使用前缀区分进度
         progressId = "exam_${quizId}"
+        quizIdInternal = quizId
         _progressLoaded.value = false
         viewModelScope.launch {
             android.util.Log.d(
@@ -304,7 +307,7 @@ class ExamViewModel @Inject constructor(
             }
 
         }
-        addHistoryRecordUseCase(HistoryRecord(score, qs.size))
+        addHistoryRecordUseCase(HistoryRecord(score, qs.size, quizIdInternal))
         _showResultList.value = newShowResultList
         _finished.value = newShowResultList.all { it }
         android.util.Log.d("ExamDebug", "gradeExam score=$score total=${qs.size}")

@@ -2,6 +2,7 @@ package com.example.testapp.presentation.screen
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.Canvas
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -9,20 +10,30 @@ import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.unit.dp
 import com.example.testapp.presentation.component.LocalFontFamily
 import com.example.testapp.presentation.component.LocalFontSize
+import androidx.hilt.navigation.compose.hiltViewModel
 
 @Composable
 fun ResultScreen(
     score: Int,
     total: Int,
+    quizId: String,
     onBackHome: () -> Unit,
-    onViewWrongBook: () -> Unit = {},
-    onViewHistory: () -> Unit = {}
+    onViewDetail: () -> Unit = {},
+    onBack: () -> Unit = onBackHome
 ) {
+    val viewModel: ResultViewModel = hiltViewModel()
+    androidx.compose.runtime.LaunchedEffect(quizId) {
+        viewModel.load(quizId)
+    }
+    val historyList = viewModel.history.collectAsState()
     val wrongCount = total - score
     val accuracyRate = if (total > 0) score.toFloat() / total else 0f
     val accuracyText = String.format("%.2f", accuracyRate * 100)
@@ -115,37 +126,57 @@ fun ResultScreen(
             }
             Spacer(modifier = Modifier.height(24.dp))
 
-            Button(
-                onClick = onBackHome,
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Text(
-                    "返回首页",
-                    fontSize = LocalFontSize.current,
-                    fontFamily = LocalFontFamily.current
-                )
+            val accuracyList = historyList.value.map { it.score.toFloat() / it.total }
+
+            if (accuracyList.isNotEmpty()) {
+                Canvas(modifier = Modifier
+                    .fillMaxWidth()
+                    .height(120.dp)
+                ) {
+                    val step = if (accuracyList.size > 1) size.width / (accuracyList.size - 1) else 0f
+                    val points = accuracyList.mapIndexed { idx, v ->
+                        Offset(idx * step, size.height - v.coerceIn(0f,1f) * size.height)
+                    }
+                    for (i in 0 until points.size - 1) {
+                        drawLine(Color.Blue, points[i], points[i + 1], strokeWidth = 4f)
+                    }
+                    points.forEach { drawCircle(Color.Red, 6f, it) }
+                }
+
+                Spacer(modifier = Modifier.height(16.dp))
+                historyList.value.forEachIndexed { idx, h ->
+                    val wrong = h.total - h.score
+                    val rate = if (h.total > 0) h.score * 100f / h.total else 0f
+                    Text(
+                        text = "${idx + 1}. 正确:${h.score} 错误:${wrong} 正确率:${"%.2f".format(rate)}%",
+                        fontSize = LocalFontSize.current,
+                        fontFamily = LocalFontFamily.current
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(24.dp))
             }
-            Spacer(modifier = Modifier.height(8.dp))
+
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 Button(
-                    onClick = onViewWrongBook,
+                    onClick = onBack,
                     modifier = Modifier.weight(1f)
                 ) {
                     Text(
-                        "查看错题本",
+                        "返回首页",
                         fontSize = LocalFontSize.current,
                         fontFamily = LocalFontFamily.current
                     )
                 }
                 Button(
-                    onClick = onViewHistory,
+                    onClick = onViewDetail,
                     modifier = Modifier.weight(1f)
                 ) {
                     Text(
-                        "查看历史记录",
+                        "答题详情",
                         fontSize = LocalFontSize.current,
                         fontFamily = LocalFontFamily.current
                     )

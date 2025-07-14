@@ -43,12 +43,14 @@ fun FavoriteQuestion.toEntity() =
 fun HistoryRecordEntity.toDomain() = HistoryRecord(
     score = score,
     total = total,
+    fileName = fileName,
     time = LocalDateTime.ofInstant(Instant.ofEpochMilli(time), ZoneId.systemDefault())
 )
 
 fun HistoryRecord.toEntity() = HistoryRecordEntity(
     score = score,
     total = total,
+    fileName = fileName,
     time = time.atZone(ZoneId.systemDefault()).toInstant().toEpochMilli()
 )
 

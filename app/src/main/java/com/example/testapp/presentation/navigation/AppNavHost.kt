@@ -56,7 +56,7 @@ fun AppNavHost(navController: NavHostController = rememberNavController(), setti
                     }
                 },
                 onViewResult = {
-                    navController.navigate("result/0/0")
+                    navController.navigate("result/0/0/")
                 }
             )
         }
@@ -70,7 +70,8 @@ fun AppNavHost(navController: NavHostController = rememberNavController(), setti
                 quizId = quizId,
                 settingsViewModel = settingsViewModel,
                 onQuizEnd = { score, total ->
-                    navController.navigate("result/$score/$total") {
+                    val e = java.net.URLEncoder.encode(quizId, "UTF-8")
+                    navController.navigate("result/$score/$total/$e") {
                         popUpTo("home") { inclusive = false }
                     }
                 },
@@ -91,7 +92,8 @@ fun AppNavHost(navController: NavHostController = rememberNavController(), setti
                 quizId = quizId,
                 settingsViewModel = settingsViewModel,
                 onExamEnd = { score, total ->
-                    navController.navigate("result/$score/$total") {
+                    val e = java.net.URLEncoder.encode(quizId, "UTF-8")
+                    navController.navigate("result/$score/$total/$e") {
                         popUpTo("home") { inclusive = false }
                     }
                 },
@@ -110,13 +112,18 @@ fun AppNavHost(navController: NavHostController = rememberNavController(), setti
             val quizId = java.net.URLDecoder.decode(encodedDetail, "UTF-8")
             QuestionScreen(quizId = quizId)
         }
-        composable("result/{score}/{total}") { backStackEntry ->
+        composable(
+            "result/{score}/{total}/{quizId}",
+            arguments = listOf(navArgument("quizId") { type = NavType.StringType })
+        ) { backStackEntry ->
             val score = backStackEntry.arguments?.getString("score")?.toIntOrNull() ?: 0
             val total = backStackEntry.arguments?.getString("total")?.toIntOrNull() ?: 0
-            ResultScreen(score, total,
+            val encodedQuiz = backStackEntry.arguments?.getString("quizId") ?: ""
+            val quizId = java.net.URLDecoder.decode(encodedQuiz, "UTF-8")
+            ResultScreen(score, total, quizId,
                 onBackHome = { navController.popBackStack("home", false) },
-                onViewWrongBook = { navController.navigate("wrongbook") },
-                onViewHistory = { navController.navigate("history") }
+                onViewDetail = { navController.navigate("exam/$encodedQuiz") },
+                onBack = { navController.popBackStack("home", false) }
             )
         }
         composable("wrongbook") { WrongBookScreen(navController = navController) }
@@ -133,7 +140,8 @@ fun AppNavHost(navController: NavHostController = rememberNavController(), setti
                 wrongBookFileName = name,
                 settingsViewModel = settingsViewModel,
                 onQuizEnd = { score, total ->
-                    navController.navigate("result/$score/$total") {
+                    val e = java.net.URLEncoder.encode(name, "UTF-8")
+                    navController.navigate("result/$score/$total/$e") {
                         popUpTo("wrongbook") { inclusive = false }
                     }
                 },
@@ -163,7 +171,8 @@ fun AppNavHost(navController: NavHostController = rememberNavController(), setti
                 favoriteFileName = name,
                 settingsViewModel = settingsViewModel,
                 onQuizEnd = { score, total ->
-                    navController.navigate("result/$score/$total") {
+                    val e = java.net.URLEncoder.encode(name, "UTF-8")
+                    navController.navigate("result/$score/$total/$e") {
                         popUpTo("favorite") { inclusive = false }
                     }
                 },
