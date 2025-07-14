@@ -170,6 +170,51 @@ class PracticeViewModel @Inject constructor(
                     notesLoaded = true
                 }
             }
+            if (!analysisLoaded) {
+                loadAnalysisFromRepository()
+                analysisLoaded = true
+            }
+            if (!notesLoaded) {
+                loadNotesFromRepository()
+                notesLoaded = true
+            }
+        }
+    }
+    private suspend fun loadAnalysisFromRepository() {
+        val qs = _questions.value
+        val list = _analysisList.value.toMutableList()
+        var changed = false
+        qs.forEachIndexed { idx, q ->
+            if (idx >= list.size) list.add("")
+            if (list[idx].isBlank()) {
+                val text = getQuestionAnalysisUseCase(q.id)
+                if (!text.isNullOrBlank()) {
+                    list[idx] = text
+                    changed = true
+                }
+            }
+        }
+        if (changed) {
+            _analysisList.value = list
+            saveProgress()
+        }
+    }
+    private suspend fun loadNotesFromRepository() {
+        val qs = _questions.value
+        val list = _noteList.value.toMutableList()
+        var changed = false
+        qs.forEachIndexed { idx, q ->
+            if (idx >= list.size) list.add("")
+            if (list[idx].isBlank()) {
+                val text = getQuestionNoteUseCase(q.id)
+                if (!text.isNullOrBlank()) {
+                    list[idx] = text
+                    changed = true
+                }
+            }
+        }
+        if (changed) {
+            _noteList.value = list
         }
     }
     private suspend fun loadAnalysisFromRepository() {
