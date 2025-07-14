@@ -307,7 +307,7 @@ class ExamViewModel @Inject constructor(
             }
 
         }
-        addHistoryRecordUseCase(HistoryRecord(score, qs.size, quizIdInternal))
+        addHistoryRecordUseCase(HistoryRecord(score, qs.size, "exam_${quizIdInternal}"))
         _showResultList.value = newShowResultList
         _finished.value = newShowResultList.all { it }
         android.util.Log.d("ExamDebug", "gradeExam score=$score total=${qs.size}")

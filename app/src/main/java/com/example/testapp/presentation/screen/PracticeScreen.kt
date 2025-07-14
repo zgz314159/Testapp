@@ -187,6 +187,7 @@ fun PracticeScreen(
             }
             answeredList.size >= questions.size -> {
                 autoJob?.cancel()
+                viewModel.addHistoryRecord(score, questions.size)
                 onQuizEnd(score, questions.size)
             }
             else -> showExitDialog = true
@@ -230,6 +231,7 @@ fun PracticeScreen(
                                     }
                                     answeredList.size >= questions.size -> {
                                         autoJob?.cancel()
+                                        viewModel.addHistoryRecord(score, questions.size)
                                         onQuizEnd(score, questions.size)
                                     }
                                     else -> showExitDialog = true
@@ -443,10 +445,13 @@ fun PracticeScreen(
                         viewModel.updateShowResult(currentIndex, true)
                         if (currentIndex < questions.size - 1) viewModel.nextQuestion()
                         else if (answeredList.isEmpty()) onExitWithoutAnswer()
-                        else if (answeredList.size >= questions.size) onQuizEnd(
-                            score,
-                            questions.size
-                        )
+                        else if (answeredList.size >= questions.size) {
+                            viewModel.addHistoryRecord(score, questions.size)
+                            onQuizEnd(
+                                score,
+                                questions.size
+                            )
+                        }
                         else showExitDialog = true
                     }
                 } else {
@@ -677,6 +682,7 @@ fun PracticeScreen(
                 TextButton(onClick = {
                     autoJob?.cancel()
                     showExitDialog = false
+                    viewModel.addHistoryRecord(score, questions.size)
                     onQuizEnd(score, questions.size)
                 }) { Text("确定") }
             },

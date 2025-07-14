@@ -70,7 +70,8 @@ fun AppNavHost(navController: NavHostController = rememberNavController(), setti
                 quizId = quizId,
                 settingsViewModel = settingsViewModel,
                 onQuizEnd = { score, total ->
-                    val e = java.net.URLEncoder.encode(quizId, "UTF-8")
+                    val id = "practice_${quizId}"
+                    val e = java.net.URLEncoder.encode(id, "UTF-8")
                     navController.navigate("result/$score/$total/$e") {
                         popUpTo("home") { inclusive = false }
                     }
@@ -92,7 +93,8 @@ fun AppNavHost(navController: NavHostController = rememberNavController(), setti
                 quizId = quizId,
                 settingsViewModel = settingsViewModel,
                 onExamEnd = { score, total ->
-                    val e = java.net.URLEncoder.encode(quizId, "UTF-8")
+                    val id = "exam_${quizId}"
+                    val e = java.net.URLEncoder.encode(id, "UTF-8")
                     navController.navigate("result/$score/$total/$e") {
                         popUpTo("home") { inclusive = false }
                     }
@@ -122,7 +124,11 @@ fun AppNavHost(navController: NavHostController = rememberNavController(), setti
             val quizId = java.net.URLDecoder.decode(encodedQuiz, "UTF-8")
             ResultScreen(score, total, quizId,
                 onBackHome = { navController.popBackStack("home", false) },
-                onViewDetail = { navController.navigate("exam/$encodedQuiz") },
+                onViewDetail = {
+                    if (encodedQuiz.isNotBlank()) {
+                        navController.navigate("exam/$encodedQuiz")
+                    }
+                },
                 onBack = { navController.popBackStack("home", false) }
             )
         }
@@ -140,7 +146,8 @@ fun AppNavHost(navController: NavHostController = rememberNavController(), setti
                 wrongBookFileName = name,
                 settingsViewModel = settingsViewModel,
                 onQuizEnd = { score, total ->
-                    val e = java.net.URLEncoder.encode(name, "UTF-8")
+                    val id = "practice_${name}"
+                    val e = java.net.URLEncoder.encode(id, "UTF-8")
                     navController.navigate("result/$score/$total/$e") {
                         popUpTo("wrongbook") { inclusive = false }
                     }
@@ -171,7 +178,8 @@ fun AppNavHost(navController: NavHostController = rememberNavController(), setti
                 favoriteFileName = name,
                 settingsViewModel = settingsViewModel,
                 onQuizEnd = { score, total ->
-                    val e = java.net.URLEncoder.encode(name, "UTF-8")
+                    val id = "practice_${name}"
+                    val e = java.net.URLEncoder.encode(id, "UTF-8")
                     navController.navigate("result/$score/$total/$e") {
                         popUpTo("favorite") { inclusive = false }
                     }

@@ -171,9 +171,11 @@ fun ResultScreen(
                         fontFamily = LocalFontFamily.current
                     )
                 }
+                val detailEnabled = quizId.isNotBlank()
                 Button(
                     onClick = onViewDetail,
-                    modifier = Modifier.weight(1f)
+                    modifier = Modifier.weight(1f),
+                    enabled = detailEnabled
                 ) {
                     Text(
                         "答题详情",

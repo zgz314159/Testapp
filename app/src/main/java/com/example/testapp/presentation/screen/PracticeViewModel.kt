@@ -14,6 +14,8 @@ import com.example.testapp.domain.usecase.GetFavoriteQuestionsUseCase
 import com.example.testapp.domain.usecase.GetQuestionAnalysisUseCase
 import com.example.testapp.domain.usecase.GetQuestionNoteUseCase
 import com.example.testapp.domain.usecase.SaveQuestionNoteUseCase
+import com.example.testapp.domain.usecase.AddHistoryRecordUseCase
+import com.example.testapp.domain.model.HistoryRecord
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
@@ -30,7 +32,8 @@ class PracticeViewModel @Inject constructor(
     private val getFavoriteQuestionsUseCase: GetFavoriteQuestionsUseCase,
     private val getQuestionAnalysisUseCase: GetQuestionAnalysisUseCase,
     private val getQuestionNoteUseCase: GetQuestionNoteUseCase,
-    private val saveQuestionNoteUseCase: SaveQuestionNoteUseCase
+    private val saveQuestionNoteUseCase: SaveQuestionNoteUseCase,
+    private val addHistoryRecordUseCase: AddHistoryRecordUseCase
 ) : ViewModel() {
     private val _questions = MutableStateFlow<List<Question>>(emptyList())
     val questions: StateFlow<List<Question>> = _questions.asStateFlow()
@@ -318,6 +321,14 @@ class PracticeViewModel @Inject constructor(
         _analysisList.value = list
         saveProgress()
     }
+
+    fun addHistoryRecord(score: Int, total: Int) {
+        viewModelScope.launch {
+            val id = "practice_${questionSourceId}"
+            addHistoryRecordUseCase(HistoryRecord(score, total, id))
+        }
+    }
+
 
     fun saveNote(questionId: Int, index: Int, text: String) {
         viewModelScope.launch {
