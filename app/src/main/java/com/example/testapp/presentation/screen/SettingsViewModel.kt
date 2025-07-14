@@ -42,8 +42,12 @@ class SettingsViewModel @Inject constructor(
     val progress: StateFlow<Float> = _progress.asStateFlow()
     private val _examQuestionCount = MutableStateFlow(10)
     val examQuestionCount: StateFlow<Int> = _examQuestionCount.asStateFlow()
+    private val _practiceQuestionCount = MutableStateFlow(0)
+    val practiceQuestionCount: StateFlow<Int> = _practiceQuestionCount.asStateFlow()
     private val _randomPractice = MutableStateFlow(false)
     val randomPractice: StateFlow<Boolean> = _randomPractice.asStateFlow()
+    private val _randomExam = MutableStateFlow(true)
+    val randomExam: StateFlow<Boolean> = _randomExam.asStateFlow()
     private val _correctDelay = MutableStateFlow(1)
     val correctDelay: StateFlow<Int> = _correctDelay.asStateFlow()
     private val _wrongDelay = MutableStateFlow(2)
@@ -54,6 +58,7 @@ class SettingsViewModel @Inject constructor(
 
     fun setFontSize(context: Context, size: Float) {
         _fontSize.value = size
+        android.util.Log.d("SettingsVM", "setFontSize size=$size")
         viewModelScope.launch {
             FontSettingsDataStore.setFontSize(context, size)
         }
@@ -70,12 +75,26 @@ class SettingsViewModel @Inject constructor(
             FontSettingsDataStore.setExamQuestionCount(context, count)
         }
     }
+    fun setPracticeQuestionCount(context: Context, count: Int) {
+        _practiceQuestionCount.value = count
+        viewModelScope.launch {
+            FontSettingsDataStore.setPracticeQuestionCount(context, count)
+        }
+    }
     fun setRandomPractice(context: Context, enabled: Boolean) {
         _randomPractice.value = enabled
         viewModelScope.launch {
             FontSettingsDataStore.setRandomPractice(context, enabled)
         }
     }
+
+    fun setRandomExam(context: Context, enabled: Boolean) {
+        _randomExam.value = enabled
+        viewModelScope.launch {
+            FontSettingsDataStore.setRandomExam(context, enabled)
+        }
+    }
+
     fun setCorrectDelay(context: Context, delay: Int) {
         _correctDelay.value = delay
         viewModelScope.launch {
@@ -101,14 +120,22 @@ class SettingsViewModel @Inject constructor(
             val size = FontSettingsDataStore.getFontSize(context).first()
             val style = FontSettingsDataStore.getFontStyle(context).first()
             val examCount = FontSettingsDataStore.getExamQuestionCount(context).first()
+            val practiceCount = FontSettingsDataStore.getPracticeQuestionCount(context).first()
             val random = FontSettingsDataStore.getRandomPractice(context).first()
+            val randomExam = FontSettingsDataStore.getRandomExam(context).first()
             val correct = FontSettingsDataStore.getCorrectDelay(context).first()
             val wrong = FontSettingsDataStore.getWrongDelay(context).first()
             val examDelay = FontSettingsDataStore.getExamDelay(context).first()
+            android.util.Log.d(
+                "SettingsVM",
+                "loadFontSettings size=$size style=$style examCount=$examCount practiceCount=$practiceCount random=$random randomExam=$randomExam"
+            )
             _fontSize.value = size
             _fontStyle.value = style
             _examQuestionCount.value = examCount
+            _practiceQuestionCount.value = practiceCount
             _randomPractice.value = random
+            _randomExam.value = randomExam
             _correctDelay.value = correct
             _wrongDelay.value = wrong
             _examDelay.value = examDelay

@@ -207,7 +207,7 @@ fun HomeScreen(
                                     Row(
                                         modifier = Modifier
                                             .fillMaxWidth()
-                                            .padding(horizontal = 12.dp, vertical = 8.dp)
+                                            .padding(horizontal = 12.dp, vertical = 11.dp)
                                             .background(
                                                 if (selectedFileName.value == name) {
                                                     Color(0xFFBBDEFB)

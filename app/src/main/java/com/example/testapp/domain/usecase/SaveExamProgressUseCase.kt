@@ -11,8 +11,8 @@ class SaveExamProgressUseCase @Inject constructor(
 
 class GetExamProgressFlowUseCase @Inject constructor(
     private val repository: ExamProgressRepository
-) { operator fun invoke(id: String = "default"): Flow<ExamProgress?> = repository.getProgressFlow(id) }
+) { operator fun invoke(id: String = "exam_default"): Flow<ExamProgress?> = repository.getProgressFlow(id) }
 
 class ClearExamProgressUseCase @Inject constructor(
     private val repository: ExamProgressRepository
-) { suspend operator fun invoke(id: String = "default") = repository.clearProgress(id) }
+) { suspend operator fun invoke(id: String = "exam_default") = repository.clearProgress(id) }

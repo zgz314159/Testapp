@@ -17,14 +17,24 @@ object FontSettingsDataStore {
     private val FONT_SIZE_KEY = floatPreferencesKey("font_size")
     private val FONT_STYLE_KEY = stringPreferencesKey("font_style")
     private val EXAM_COUNT_KEY = intPreferencesKey("exam_question_count")
+    private val PRACTICE_COUNT_KEY = intPreferencesKey("practice_question_count")
     private val RANDOM_PRACTICE_KEY = intPreferencesKey("random_practice")
+    private val RANDOM_EXAM_KEY = intPreferencesKey("random_exam")
     private val CORRECT_DELAY_KEY = intPreferencesKey("correct_delay")
     private val WRONG_DELAY_KEY = intPreferencesKey("wrong_delay")
     private val EXAM_DELAY_KEY = intPreferencesKey("exam_delay")
+    private val PRACTICE_FONT_SIZE_KEY = floatPreferencesKey("practice_font_size")
+    private val EXAM_FONT_SIZE_KEY = floatPreferencesKey("exam_font_size")
+    private val DEEPSEEK_FONT_SIZE_KEY = floatPreferencesKey("deepseek_font_size")
     fun getFontSize(context: Context, default: Float = 18f): Flow<Float> =
-        context.dataStore.data.map { preferences -> preferences[FONT_SIZE_KEY] ?: default }
+        context.dataStore.data.map { preferences ->
+            val value = preferences[FONT_SIZE_KEY] ?: default
+            android.util.Log.d("FontSettingsDataStore", "getFontSize -> $value")
+            value
+        }
 
     suspend fun setFontSize(context: Context, size: Float) {
+        android.util.Log.d("FontSettingsDataStore", "setFontSize size=$size")
         context.dataStore.edit { preferences -> preferences[FONT_SIZE_KEY] = size }
     }
 
@@ -40,12 +50,28 @@ object FontSettingsDataStore {
     suspend fun setExamQuestionCount(context: Context, count: Int) {
         context.dataStore.edit { preferences -> preferences[EXAM_COUNT_KEY] = count }
     }
+
+    fun getPracticeQuestionCount(context: Context, default: Int = 0): Flow<Int> =
+        context.dataStore.data.map { preferences -> preferences[PRACTICE_COUNT_KEY] ?: default }
+
+    suspend fun setPracticeQuestionCount(context: Context, count: Int) {
+        context.dataStore.edit { preferences -> preferences[PRACTICE_COUNT_KEY] = count }
+    }
+
     fun getRandomPractice(context: Context, default: Boolean = false): Flow<Boolean> =
         context.dataStore.data.map { preferences -> (preferences[RANDOM_PRACTICE_KEY] ?: if (default) 1 else 0) != 0 }
+
+    fun getRandomExam(context: Context, default: Boolean = true): Flow<Boolean> =
+        context.dataStore.data.map { preferences -> (preferences[RANDOM_EXAM_KEY] ?: if (default) 1 else 0) != 0 }
 
     suspend fun setRandomPractice(context: Context, enabled: Boolean) {
         context.dataStore.edit { preferences -> preferences[RANDOM_PRACTICE_KEY] = if (enabled) 1 else 0 }
     }
+
+    suspend fun setRandomExam(context: Context, enabled: Boolean) {
+        context.dataStore.edit { preferences -> preferences[RANDOM_EXAM_KEY] = if (enabled) 1 else 0 }
+    }
+
     fun getCorrectDelay(context: Context, default: Int = 1): Flow<Int> =
         context.dataStore.data.map { preferences -> preferences[CORRECT_DELAY_KEY] ?: default }
 
@@ -64,5 +90,39 @@ object FontSettingsDataStore {
 
     suspend fun setExamDelay(context: Context, delay: Int) {
         context.dataStore.edit { preferences -> preferences[EXAM_DELAY_KEY] = delay }
+    }
+    fun getPracticeFontSize(context: Context, default: Float = 18f): Flow<Float> =
+        context.dataStore.data.map { preferences ->
+            val value = preferences[PRACTICE_FONT_SIZE_KEY] ?: default
+            android.util.Log.d("FontSettingsDataStore", "getPracticeFontSize -> $value")
+            value
+        }
+
+    suspend fun setPracticeFontSize(context: Context, size: Float) {
+        android.util.Log.d("FontSettingsDataStore", "setPracticeFontSize size=$size")
+        context.dataStore.edit { preferences -> preferences[PRACTICE_FONT_SIZE_KEY] = size }
+    }
+
+    fun getExamFontSize(context: Context, default: Float = 18f): Flow<Float> =
+        context.dataStore.data.map { preferences ->
+            val value = preferences[EXAM_FONT_SIZE_KEY] ?: default
+            android.util.Log.d("FontSettingsDataStore", "getExamFontSize -> $value")
+            value
+        }
+
+    suspend fun setExamFontSize(context: Context, size: Float) {
+        android.util.Log.d("FontSettingsDataStore", "setExamFontSize size=$size")
+        context.dataStore.edit { preferences -> preferences[EXAM_FONT_SIZE_KEY] = size }
+    }
+    fun getDeepSeekFontSize(context: Context, default: Float = 18f): Flow<Float> =
+        context.dataStore.data.map { preferences ->
+            val value = preferences[DEEPSEEK_FONT_SIZE_KEY] ?: default
+            android.util.Log.d("FontSettingsDataStore", "getDeepSeekFontSize -> $value")
+            value
+        }
+
+    suspend fun setDeepSeekFontSize(context: Context, size: Float) {
+        android.util.Log.d("FontSettingsDataStore", "setDeepSeekFontSize size=$size")
+        context.dataStore.edit { preferences -> preferences[DEEPSEEK_FONT_SIZE_KEY] = size }
     }
 }

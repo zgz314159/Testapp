@@ -57,7 +57,9 @@ fun PracticeProgressEntity.toDomain() = PracticeProgress(
     currentIndex = currentIndex,
     answeredList = answeredList,
     selectedOptions = selectedOptions,
-    showResultList = showResultList.map { it == 1 },
+    showResultList = showResultList,
+    analysisList = analysisList,
+    noteList = noteList,
     timestamp = timestamp
 )
 
@@ -66,7 +68,9 @@ fun PracticeProgress.toEntity() = PracticeProgressEntity(
     currentIndex = currentIndex,
     answeredList = answeredList,
     selectedOptions = selectedOptions,
-    showResultList = showResultList.map { if (it) 1 else 0 },
+    showResultList = showResultList,
+    analysisList = analysisList,
+    noteList = noteList,
     timestamp = timestamp
 )
 
@@ -84,7 +88,7 @@ fun ExamProgressEntity.toDomain() = ExamProgress(
     id = id,
     currentIndex = currentIndex,
     selectedOptions = selectedOptions,
-    showResultList = showResultList.map { it == 1 },
+    showResultList = showResultList,
     finished = finished,
     timestamp = timestamp
 )
@@ -93,7 +97,7 @@ fun ExamProgress.toEntity() = ExamProgressEntity(
     id = id,
     currentIndex = currentIndex,
     selectedOptions = selectedOptions,
-    showResultList = showResultList.map { if (it) 1 else 0 },
+    showResultList = showResultList,
     finished = finished,
     timestamp = timestamp
 )

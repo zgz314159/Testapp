@@ -9,18 +9,25 @@ import com.example.testapp.data.local.dao.QuestionDao
 import com.example.testapp.data.local.dao.WrongQuestionDao
 import com.example.testapp.data.local.dao.PracticeProgressDao
 import com.example.testapp.data.local.dao.ExamProgressDao
+import com.example.testapp.data.local.dao.QuestionAnalysisDao
+import com.example.testapp.data.local.dao.QuestionNoteDao
 import com.example.testapp.data.repository.FavoriteQuestionRepositoryImpl
 import com.example.testapp.data.repository.HistoryRepositoryImpl
 import com.example.testapp.data.repository.QuestionRepositoryImpl
 import com.example.testapp.data.repository.WrongBookRepositoryImpl
 import com.example.testapp.data.repository.PracticeProgressRepositoryImpl
 import com.example.testapp.data.repository.ExamProgressRepositoryImpl
+import com.example.testapp.data.repository.QuestionAnalysisRepositoryImpl
+import com.example.testapp.data.repository.QuestionNoteRepositoryImpl
+import com.example.testapp.data.network.DeepSeekApiService
 import com.example.testapp.domain.repository.FavoriteQuestionRepository
 import com.example.testapp.domain.repository.HistoryRepository
 import com.example.testapp.domain.repository.QuestionRepository
 import com.example.testapp.domain.repository.WrongBookRepository
 import com.example.testapp.domain.repository.PracticeProgressRepository
 import com.example.testapp.domain.repository.ExamProgressRepository
+import com.example.testapp.domain.repository.QuestionAnalysisRepository
+import com.example.testapp.domain.repository.QuestionNoteRepository
 import com.example.testapp.domain.usecase.AddFavoriteQuestionUseCase
 import com.example.testapp.domain.usecase.AddHistoryRecordUseCase
 import com.example.testapp.domain.usecase.AddWrongQuestionUseCase
@@ -28,6 +35,7 @@ import com.example.testapp.domain.usecase.GetFavoriteQuestionsUseCase
 import com.example.testapp.domain.usecase.GetHistoryListUseCase
 import com.example.testapp.domain.usecase.GetQuestionsUseCase
 import com.example.testapp.domain.usecase.GetWrongBookUseCase
+import com.example.testapp.domain.usecase.RemoveWrongQuestionsByFileNameUseCase
 import com.example.testapp.domain.usecase.RemoveFavoriteQuestionUseCase
 import com.example.testapp.domain.usecase.GetPracticeProgressFlowUseCase
 import com.example.testapp.domain.usecase.SavePracticeProgressUseCase
@@ -35,11 +43,23 @@ import com.example.testapp.domain.usecase.SaveExamProgressUseCase
 import com.example.testapp.domain.usecase.GetExamProgressFlowUseCase
 import com.example.testapp.domain.usecase.ClearExamProgressUseCase
 import com.example.testapp.domain.usecase.ClearPracticeProgressUseCase
+import com.example.testapp.domain.usecase.GetQuestionAnalysisUseCase
+import com.example.testapp.domain.usecase.SaveQuestionAnalysisUseCase
+import com.example.testapp.domain.usecase.GetQuestionNoteUseCase
+import com.example.testapp.domain.usecase.SaveQuestionNoteUseCase
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
 import dagger.hilt.components.SingletonComponent
 import dagger.hilt.android.qualifiers.ApplicationContext
+import io.ktor.client.HttpClient
+import io.ktor.client.engine.cio.CIO
+import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
+import io.ktor.client.plugins.logging.LogLevel
+import io.ktor.client.plugins.logging.Logging
+import io.ktor.client.plugins.HttpTimeout
+import io.ktor.serialization.kotlinx.json.json
+import kotlinx.serialization.json.Json
 import javax.inject.Singleton
 
 @Module
@@ -73,6 +93,11 @@ object AppModule {
     @Singleton
     fun provideGetWrongBookUseCase(repo: WrongBookRepository): GetWrongBookUseCase =
         GetWrongBookUseCase(repo)
+
+    @Provides
+    @Singleton
+    fun provideRemoveWrongQuestionsByFileNameUseCase(repo: WrongBookRepository): RemoveWrongQuestionsByFileNameUseCase =
+        RemoveWrongQuestionsByFileNameUseCase(repo)
 
     @Provides
     @Singleton
@@ -119,6 +144,12 @@ object AppModule {
     fun provideExamProgressDao(db: AppDatabase): ExamProgressDao = db.examProgressDao()
 
     @Provides
+    fun provideQuestionAnalysisDao(db: AppDatabase): QuestionAnalysisDao = db.questionAnalysisDao()
+
+    @Provides
+    fun provideQuestionNoteDao(db: AppDatabase): QuestionNoteDao = db.questionNoteDao()
+
+    @Provides
     @Singleton
     fun provideFavoriteQuestionRepository(dao: FavoriteQuestionDao): FavoriteQuestionRepository = FavoriteQuestionRepositoryImpl(dao)
 
@@ -144,6 +175,14 @@ object AppModule {
 
     @Provides
     @Singleton
+    fun provideQuestionAnalysisRepository(dao: QuestionAnalysisDao): QuestionAnalysisRepository = QuestionAnalysisRepositoryImpl(dao)
+
+    @Provides
+    @Singleton
+    fun provideQuestionNoteRepository(dao: QuestionNoteDao): QuestionNoteRepository = QuestionNoteRepositoryImpl(dao)
+
+    @Provides
+    @Singleton
     fun provideSavePracticeProgressUseCase(repo: PracticeProgressRepository): SavePracticeProgressUseCase = SavePracticeProgressUseCase(repo)
 
     @Provides
@@ -166,4 +205,45 @@ object AppModule {
     @Singleton
     fun provideClearExamProgressUseCase(repo: ExamProgressRepository): ClearExamProgressUseCase = ClearExamProgressUseCase(repo)
 
+    @Provides
+    @Singleton
+    fun provideGetQuestionAnalysisUseCase(repo: QuestionAnalysisRepository): GetQuestionAnalysisUseCase = GetQuestionAnalysisUseCase(repo)
+
+    @Provides
+    @Singleton
+    fun provideSaveQuestionAnalysisUseCase(repo: QuestionAnalysisRepository): SaveQuestionAnalysisUseCase = SaveQuestionAnalysisUseCase(repo)
+
+
+    @Provides
+    @Singleton
+    fun provideGetQuestionNoteUseCase(repo: QuestionNoteRepository): GetQuestionNoteUseCase = GetQuestionNoteUseCase(repo)
+
+    @Provides
+    @Singleton
+    fun provideSaveQuestionNoteUseCase(repo: QuestionNoteRepository): SaveQuestionNoteUseCase = SaveQuestionNoteUseCase(repo)
+
+    @Provides
+    @Singleton
+    fun provideHttpClient(): HttpClient = HttpClient(CIO) {
+        engine {
+            requestTimeout = 20_000
+        }
+        install(ContentNegotiation) {
+
+            json(
+                Json {
+                    ignoreUnknownKeys = true
+                    encodeDefaults = true
+                }
+            )
+        }
+        install(Logging) { level = LogLevel.NONE }
+        install(HttpTimeout) {
+            requestTimeoutMillis = 20_000
+        }
+    }
+
+    @Provides
+    @Singleton
+    fun provideDeepSeekApiService(client: HttpClient): DeepSeekApiService = DeepSeekApiService(client)
 }

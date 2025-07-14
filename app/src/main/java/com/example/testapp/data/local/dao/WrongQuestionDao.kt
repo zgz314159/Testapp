@@ -14,4 +14,14 @@ interface WrongQuestionDao {
 
     @Query("DELETE FROM wrong_questions")
     suspend fun clear()
+
+    // 新增：按题目 ID 删除单条错题
+    @Query("DELETE FROM wrong_questions WHERE questionId = :questionId")
+    suspend fun removeById(questionId: Int)
+
+    // 新增：按文件名批量删除错题
+    @Query(
+        "DELETE FROM wrong_questions WHERE questionId IN (SELECT id FROM questions WHERE fileName = :fileName)"
+    )
+    suspend fun removeByFileName(fileName: String)
 }

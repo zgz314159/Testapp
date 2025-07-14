@@ -14,11 +14,11 @@ class SavePracticeProgressUseCase @Inject constructor(
 class GetPracticeProgressFlowUseCase @Inject constructor(
     private val repository: PracticeProgressRepository
 ) {
-    operator fun invoke(id: String = "default"): Flow<PracticeProgress?> = repository.getProgressFlow(id)
+    operator fun invoke(id: String = "practice_default"): Flow<PracticeProgress?> = repository.getProgressFlow(id)
 }
 
 class ClearPracticeProgressUseCase @Inject constructor(
     private val repository: PracticeProgressRepository
 ) {
-    suspend operator fun invoke(id: String = "default") = repository.clearProgress(id)
+    suspend operator fun invoke(id: String = "practice_default") = repository.clearProgress(id)
 }

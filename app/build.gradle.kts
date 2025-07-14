@@ -20,6 +20,7 @@ android {
         versionCode       = 1
         versionName       = "1.0"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+        buildConfigField("String", "DEEPSEEK_API_KEY", "\"sk-23ec89dfe2484c17ba5f9329aae3d102\"")
     }
 
     buildTypes {
@@ -40,6 +41,7 @@ android {
     }
     buildFeatures {
         compose = true
+        buildConfig = true
     }
     composeOptions {
         kotlinCompilerExtensionVersion = "1.5.14" // 保持这个版本，与 Kotlin 2.0.0 兼容
@@ -83,4 +85,9 @@ dependencies {
     implementation(libs.kotlinx.serialization.json)
     implementation(libs.androidx.material)
     implementation("androidx.compose.compiler:compiler:1.5.14")
+    implementation(libs.ktor.client.core)
+    implementation(libs.ktor.client.cio)
+    implementation(libs.ktor.client.content.negotiation)
+    implementation(libs.ktor.serialization.kotlinx.json)
+    implementation(libs.ktor.client.logging)
 }

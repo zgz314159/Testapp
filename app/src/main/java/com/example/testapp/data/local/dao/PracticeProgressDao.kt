@@ -13,8 +13,8 @@ interface PracticeProgressDao {
     suspend fun upsertProgress(progress: PracticeProgressEntity)
 
     @Query("SELECT * FROM practice_progress WHERE id = :id LIMIT 1")
-    fun getProgressFlow(id: String = "default"): Flow<PracticeProgressEntity?>
+    fun getProgressFlow(id: String = "practice_default"): Flow<PracticeProgressEntity?>
 
     @Query("DELETE FROM practice_progress WHERE id = :id")
-    suspend fun deleteProgress(id: String = "default")
+    suspend fun deleteProgress(id: String = "practice_default")
 }

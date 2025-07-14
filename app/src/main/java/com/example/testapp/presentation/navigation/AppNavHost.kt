@@ -1,6 +1,9 @@
 package com.example.testapp.presentation.navigation
 
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
+import androidx.hilt.navigation.compose.hiltViewModel
+import com.example.testapp.presentation.screen.PracticeViewModel
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -16,6 +19,7 @@ import com.example.testapp.presentation.screen.SettingsScreen
 import com.example.testapp.presentation.screen.FavoriteScreen
 import com.example.testapp.presentation.screen.PracticeScreen
 import com.example.testapp.presentation.screen.ExamScreen
+import com.example.testapp.presentation.screen.DeepSeekScreen
 
 @Composable
 fun AppNavHost(navController: NavHostController = rememberNavController(), settingsViewModel: com.example.testapp.presentation.screen.SettingsViewModel) {
@@ -66,6 +70,11 @@ fun AppNavHost(navController: NavHostController = rememberNavController(), setti
                     navController.navigate("result/$score/$total") {
                         popUpTo("home") { inclusive = false }
                     }
+                },
+                onExitWithoutAnswer = { navController.popBackStack() },
+                onViewDeepSeek = { text, id, index ->
+                    val encodedText = java.net.URLEncoder.encode(text, "UTF-8")
+                    navController.navigate("deepseek/$id/$index/$encodedText")
                 }
             )
         }
@@ -82,7 +91,8 @@ fun AppNavHost(navController: NavHostController = rememberNavController(), setti
                     navController.navigate("result/$score/$total") {
                         popUpTo("home") { inclusive = false }
                     }
-                }
+                },
+                onExitWithoutAnswer = { navController.popBackStack() }
             )
         }
         composable(
@@ -119,6 +129,11 @@ fun AppNavHost(navController: NavHostController = rememberNavController(), setti
                     navController.navigate("result/$score/$total") {
                         popUpTo("wrongbook") { inclusive = false }
                     }
+                },
+                onExitWithoutAnswer = { navController.popBackStack() },
+                onViewDeepSeek = { text, id, index ->
+                    val encodedText = java.net.URLEncoder.encode(text, "UTF-8")
+                    navController.navigate("deepseek/$id/$index/$encodedText")
                 }
             )
 
@@ -144,10 +159,37 @@ fun AppNavHost(navController: NavHostController = rememberNavController(), setti
                     navController.navigate("result/$score/$total") {
                         popUpTo("favorite") { inclusive = false }
                     }
+                },
+                onExitWithoutAnswer = { navController.popBackStack() },
+                onViewDeepSeek = { text, id, index ->
+                    val encodedText = java.net.URLEncoder.encode(text, "UTF-8")
+                    navController.navigate("deepseek/$id/$index/$encodedText")
                 }
             )
         }
-
+        composable(
+            "deepseek/{id}/{index}/{text}",
+            arguments = listOf(
+                navArgument("id") { type = NavType.IntType },
+                navArgument("index") { type = NavType.IntType },
+                navArgument("text") { type = NavType.StringType }
+            )
+        ) { backStackEntry ->
+            val encoded = backStackEntry.arguments?.getString("text") ?: ""
+            val text = java.net.URLDecoder.decode(encoded, "UTF-8")
+            val id = backStackEntry.arguments?.getInt("id") ?: 0
+            val index = backStackEntry.arguments?.getInt("index") ?: 0
+            val parentEntry = remember(backStackEntry) { navController.previousBackStackEntry }
+            val practiceViewModel: PracticeViewModel = parentEntry?.let { hiltViewModel(it) } ?: hiltViewModel()
+            DeepSeekScreen(
+                text = text,
+                questionId = id,
+                index = index,
+                navController = navController,
+                practiceViewModel = practiceViewModel,
+                settingsViewModel = settingsViewModel
+            )
+        }
         // TODO: 添加更多页面
     }
 }

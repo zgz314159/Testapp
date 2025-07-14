@@ -9,22 +9,27 @@ import com.example.testapp.data.local.dao.PracticeProgressDao
 import com.example.testapp.data.local.dao.QuestionDao
 import com.example.testapp.data.local.dao.WrongQuestionDao
 import com.example.testapp.data.local.dao.ExamProgressDao
+import com.example.testapp.data.local.dao.QuestionAnalysisDao
+import com.example.testapp.data.local.dao.QuestionNoteDao
 import com.example.testapp.data.local.entity.ExamProgressEntity
 import com.example.testapp.data.local.entity.FavoriteQuestionEntity
 import com.example.testapp.data.local.entity.HistoryRecordEntity
 import com.example.testapp.data.local.entity.PracticeProgressEntity
 import com.example.testapp.data.local.entity.QuestionEntity
 import com.example.testapp.data.local.entity.WrongQuestionEntity
+import com.example.testapp.data.local.entity.QuestionAnalysisEntity
+import com.example.testapp.data.local.entity.QuestionNoteEntity
 import com.example.testapp.data.local.entity.converter.BooleanListConverter
 import com.example.testapp.data.local.entity.converter.IntListConverter
 import com.example.testapp.data.local.entity.converter.NestedIntListConverter
+import com.example.testapp.data.local.entity.converter.StringListConverter
 
 @Database(
-    entities = [QuestionEntity::class, WrongQuestionEntity::class, HistoryRecordEntity::class, FavoriteQuestionEntity::class, PracticeProgressEntity::class, ExamProgressEntity::class],
-    version = 6,
+    entities = [QuestionEntity::class, WrongQuestionEntity::class, HistoryRecordEntity::class, FavoriteQuestionEntity::class, PracticeProgressEntity::class, ExamProgressEntity::class, QuestionAnalysisEntity::class, QuestionNoteEntity::class],
+    version = 12,
     exportSchema = false
 )
-@TypeConverters(IntListConverter::class, BooleanListConverter::class, NestedIntListConverter::class) // 这里加上
+@TypeConverters(IntListConverter::class, BooleanListConverter::class, NestedIntListConverter::class, StringListConverter::class)
 abstract class AppDatabase : RoomDatabase() {
     abstract fun questionDao(): QuestionDao
     abstract fun wrongQuestionDao(): WrongQuestionDao
@@ -32,5 +37,7 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun favoriteQuestionDao(): FavoriteQuestionDao
     abstract fun practiceProgressDao(): PracticeProgressDao
     abstract fun examProgressDao(): ExamProgressDao
+    abstract fun questionAnalysisDao(): QuestionAnalysisDao
+    abstract fun questionNoteDao(): QuestionNoteDao
 }
 

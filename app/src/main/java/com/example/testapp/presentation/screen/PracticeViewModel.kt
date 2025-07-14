@@ -11,7 +11,9 @@ import com.example.testapp.domain.usecase.SavePracticeProgressUseCase
 import com.example.testapp.domain.usecase.SaveQuestionsUseCase
 import com.example.testapp.domain.usecase.GetWrongBookUseCase
 import com.example.testapp.domain.usecase.GetFavoriteQuestionsUseCase
-
+import com.example.testapp.domain.usecase.GetQuestionAnalysisUseCase
+import com.example.testapp.domain.usecase.GetQuestionNoteUseCase
+import com.example.testapp.domain.usecase.SaveQuestionNoteUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
@@ -25,7 +27,10 @@ class PracticeViewModel @Inject constructor(
     private val clearPracticeProgressUseCase: ClearPracticeProgressUseCase,
     private val saveQuestionsUseCase: SaveQuestionsUseCase, // 新增注入
     private val getWrongBookUseCase: GetWrongBookUseCase,
-    private val getFavoriteQuestionsUseCase: GetFavoriteQuestionsUseCase
+    private val getFavoriteQuestionsUseCase: GetFavoriteQuestionsUseCase,
+    private val getQuestionAnalysisUseCase: GetQuestionAnalysisUseCase,
+    private val getQuestionNoteUseCase: GetQuestionNoteUseCase,
+    private val saveQuestionNoteUseCase: SaveQuestionNoteUseCase
 ) : ViewModel() {
     private val _questions = MutableStateFlow<List<Question>>(emptyList())
     val questions: StateFlow<List<Question>> = _questions.asStateFlow()
@@ -45,19 +50,50 @@ class PracticeViewModel @Inject constructor(
     private val _showResultList = MutableStateFlow<List<Boolean>>(emptyList())
     val showResultList: StateFlow<List<Boolean>> = _showResultList.asStateFlow()
 
-    private var progressId: String = "default"
-    private var questionSourceId: String = "default"
-    private var randomPracticeEnabled: Boolean = false
+    private val _analysisList = MutableStateFlow<List<String>>(emptyList())
+    val analysisList: StateFlow<List<String>> = _analysisList.asStateFlow()
 
+    private val _noteList = MutableStateFlow<List<String>>(emptyList())
+    val noteList: StateFlow<List<String>> = _noteList.asStateFlow()
+
+    private var progressId: String = ""
+
+    val currentProgressId: String
+        get() = progressId
+
+    private var questionSourceId: String = ""
+    private var randomPracticeEnabled: Boolean = false
+    private var analysisLoaded: Boolean = false
+    private var notesLoaded: Boolean = false
+
+    init {
+        // 应用启动时，清理任何旧的 default 记录，防止误删到别的表
+        viewModelScope.launch {
+            clearPracticeProgressUseCase("practice_default")
+        }
+    }
 
 
     fun setRandomPractice(enabled: Boolean) {
         randomPracticeEnabled = enabled
     }
-    fun setProgressId(id: String, questionsId: String = id, loadQuestions: Boolean = true) {
-        progressId = id
+
+    private fun ensurePrefix(id: String): String =
+        if (id.startsWith("practice_")) id else "practice_$id"
+
+
+    fun setProgressId(
+        id: String,
+        questionsId: String = id,
+        loadQuestions: Boolean = true,
+        questionCount: Int = 0
+    ) {
+        // 1. 统一给练习进度加 practice_ 前缀
+        progressId = ensurePrefix(id)
         questionSourceId = questionsId
         _progressLoaded.value = false
+        analysisLoaded = false
+        notesLoaded = false
         if (loadQuestions) {
             viewModelScope.launch {
                 if (randomPracticeEnabled) {
@@ -68,12 +104,13 @@ class PracticeViewModel @Inject constructor(
                         "PracticeDebug",
                         "getQuestionsUseCase 收到题目数量: ${qs.size}"
                     )
-                    val list = if (randomPracticeEnabled) qs.shuffled() else qs
+                    val ordered = if (randomPracticeEnabled) qs.shuffled() else qs
+                    val trimmed = if (questionCount > 0) ordered.take(questionCount.coerceAtMost(ordered.size)) else ordered
                     android.util.Log.d(
                         "PracticeDebug",
-                        "加载题库: progressId=$progressId random=$randomPracticeEnabled"
+                        "加载题库: progressId=$progressId random=$randomPracticeEnabled count=$questionCount"
                     )
-                    _questions.value = list
+                    _questions.value = trimmed
                     loadProgress()
                 }
             }
@@ -84,46 +121,92 @@ class PracticeViewModel @Inject constructor(
     private fun loadProgress() {
         viewModelScope.launch {
             getPracticeProgressFlowUseCase(progressId).collect { progress ->
-                android.util.Log.d(
-                    "PracticeDebug",
-                    "loadProgress: progress=$progress, progressId=$progressId"
-                )
                 if (progress != null && !_progressLoaded.value) {
-                    _currentIndex.value = progress.currentIndex.coerceAtMost(_questions.value.size - 1)
-                    // answeredList 补齐长度
-                    _answeredList.value = if (progress.answeredList.size >= _questions.value.size) {
-                        progress.answeredList.take(_questions.value.size).toList()
-                    } else {
-                        (progress.answeredList + List(_questions.value.size - progress.answeredList.size) { -1 }).toList()
-                    }
+                    _currentIndex.value =
+                        progress.currentIndex.coerceAtMost(_questions.value.size - 1)
+                    // answeredList 直接使用已答题目下标列表，过滤非法值
+                    _answeredList.value = progress.answeredList.filter { it in _questions.value.indices }
                     _selectedOptions.value = emptyList()
-                    _selectedOptions.value = if (progress.selectedOptions.size >= _questions.value.size) {
-                        progress.selectedOptions.take(_questions.value.size).toList()
-                    } else {
-                        (progress.selectedOptions +
-                                List(_questions.value.size - progress.selectedOptions.size) { emptyList() }).toList()
-                    }
+                    _selectedOptions.value =
+                        if (progress.selectedOptions.size >= _questions.value.size) {
+                            progress.selectedOptions.take(_questions.value.size).toList()
+                        } else {
+                            (progress.selectedOptions +
+                                    List(_questions.value.size - progress.selectedOptions.size) { emptyList() }).toList()
+                        }
                     _showResultList.value = emptyList()
-                    _showResultList.value = if (progress.showResultList.size >= _questions.value.size) {
-                        progress.showResultList.take(_questions.value.size).toList()
-                    } else {
-                        (progress.showResultList +
-                                List(_questions.value.size - progress.showResultList.size) { false }).toList()
-                    }
-                    android.util.Log.d(
-                        "PracticeDebug",
-                        "恢复进度: currentIndex=${progress.currentIndex}, answeredList=${progress.answeredList}, selectedOptions=${progress.selectedOptions}, showResultList=${progress.showResultList}"
-                    )
+                    _showResultList.value =
+                        if (progress.showResultList.size >= _questions.value.size) {
+                            progress.showResultList.take(_questions.value.size).toList()
+                        } else {
+                            (progress.showResultList +
+                                    List(_questions.value.size - progress.showResultList.size) { false }).toList()
+                        }
+
+                    _analysisList.value = emptyList()
+                    _analysisList.value =
+                        if (progress.analysisList.size >= _questions.value.size) {
+                            progress.analysisList.take(_questions.value.size).toList()
+                        } else {
+                            (progress.analysisList +
+                                    List(_questions.value.size - progress.analysisList.size) { "" }).toList()
+                        }
                 } else if (progress == null && !_progressLoaded.value) {
                     android.util.Log.d("PracticeDebug", "no existing progress, initializing")
                     _currentIndex.value = 0
-                    _answeredList.value = List(_questions.value.size) { -1 }
+                    _answeredList.value = emptyList()
                     _selectedOptions.value = List(_questions.value.size) { emptyList() }
                     _showResultList.value = List(_questions.value.size) { false }
+                    _analysisList.value = List(_questions.value.size) { "" }
                     saveProgress()
                 }
                 _progressLoaded.value = true
+                if (!analysisLoaded) {
+                    loadAnalysisFromRepository()
+                    analysisLoaded = true
+                }
+                if (!notesLoaded) {
+                    loadNotesFromRepository()
+                    notesLoaded = true
+                }
             }
+        }
+    }
+    private suspend fun loadAnalysisFromRepository() {
+        val qs = _questions.value
+        val list = _analysisList.value.toMutableList()
+        var changed = false
+        qs.forEachIndexed { idx, q ->
+            if (idx >= list.size) list.add("")
+            if (list[idx].isBlank()) {
+                val text = getQuestionAnalysisUseCase(q.id)
+                if (!text.isNullOrBlank()) {
+                    list[idx] = text
+                    changed = true
+                }
+            }
+        }
+        if (changed) {
+            _analysisList.value = list
+            saveProgress()
+        }
+    }
+    private suspend fun loadNotesFromRepository() {
+        val qs = _questions.value
+        val list = _noteList.value.toMutableList()
+        var changed = false
+        qs.forEachIndexed { idx, q ->
+            if (idx >= list.size) list.add("")
+            if (list[idx].isBlank()) {
+                val text = getQuestionNoteUseCase(q.id)
+                if (!text.isNullOrBlank()) {
+                    list[idx] = text
+                    changed = true
+                }
+            }
+        }
+        if (changed) {
+            _noteList.value = list
         }
     }
 
@@ -190,6 +273,8 @@ class PracticeViewModel @Inject constructor(
                     answeredList = _answeredList.value,
                     selectedOptions = _selectedOptions.value,
                     showResultList = _showResultList.value,
+                    analysisList = _analysisList.value,
+                    noteList = _noteList.value,
                     timestamp = System.currentTimeMillis()
                 )
             )
@@ -200,12 +285,20 @@ class PracticeViewModel @Inject constructor(
         viewModelScope.launch {
             android.util.Log.d("PracticeDebug", "clearProgress called for $progressId")
             clearPracticeProgressUseCase(progressId)
-            _currentIndex.value = 0
-            _answeredList.value = emptyList()
-            _selectedOptions.value = emptyList()
-            _showResultList.value = emptyList()
+            resetLocalState()
             _progressLoaded.value = false
+            analysisLoaded = false
+            notesLoaded = false
         }
+    }
+
+    private fun resetLocalState() {
+        val count = _questions.value.size
+        _currentIndex.value = 0
+        _answeredList.value = emptyList()
+        _selectedOptions.value = List(count) { emptyList() }
+        _showResultList.value = List(count) { false }
+        _analysisList.value = List(count) { "" }
     }
 
     fun updateShowResult(index: Int, value: Boolean) {
@@ -216,6 +309,26 @@ class PracticeViewModel @Inject constructor(
         _showResultList.value = list
         saveProgress()
     }
+    fun updateAnalysis(index: Int, text: String) {
+        android.util.Log.d("PracticeDebug", "updateAnalysis index=$index text=$text")
+        val list = _analysisList.value.toMutableList()
+        while (list.size <= index) list.add("")
+        list[index] = text
+        _analysisList.value = list
+        saveProgress()
+    }
+
+    fun saveNote(questionId: Int, index: Int, text: String) {
+        viewModelScope.launch {
+            saveQuestionNoteUseCase(questionId, text)
+        }
+        val list = _noteList.value.toMutableList()
+        while (list.size <= index) list.add("")
+        list[index] = text
+        _noteList.value = list
+    }
+
+    suspend fun getNote(questionId: Int): String? = getQuestionNoteUseCase(questionId)
 
     fun updateQuestionContent(index: Int, newContent: String) {
         val updatedList = _questions.value.toMutableList()

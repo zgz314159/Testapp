@@ -110,6 +110,12 @@ class WrongBookRepositoryImpl @Inject constructor(
         }
     }
 
+    // 新增：按文件名批量删除错题
+    override suspend fun removeByFileName(fileName: String) {
+        dao.removeByFileName(fileName)
+    }
+
+
     fun exportWrongBookToExcel(wrongs: List<WrongQuestion>, file: java.io.File): Boolean {
         return try {
             val workbook = XSSFWorkbook()

@@ -20,6 +20,8 @@ import kotlinx.coroutines.launch
 import javax.inject.Inject
 import com.example.testapp.util.answerLetterToIndex
 import com.example.testapp.util.answerLettersToIndices
+import com.example.testapp.domain.usecase.GetQuestionNoteUseCase
+import com.example.testapp.domain.usecase.SaveQuestionNoteUseCase
 
 @HiltViewModel
 class ExamViewModel @Inject constructor(
@@ -28,7 +30,9 @@ class ExamViewModel @Inject constructor(
     private val addHistoryRecordUseCase: AddHistoryRecordUseCase,
     private val saveExamProgressUseCase: SaveExamProgressUseCase,
     private val getExamProgressFlowUseCase: GetExamProgressFlowUseCase,
-    private val clearExamProgressUseCase: ClearExamProgressUseCase
+    private val clearExamProgressUseCase: ClearExamProgressUseCase,
+    private val getQuestionNoteUseCase: GetQuestionNoteUseCase,
+    private val saveQuestionNoteUseCase: SaveQuestionNoteUseCase
 ) : ViewModel() {
     private val _questions = MutableStateFlow<List<Question>>(emptyList())
     val questions: StateFlow<List<Question>> = _questions.asStateFlow()
@@ -38,8 +42,12 @@ class ExamViewModel @Inject constructor(
 
     private val _selectedOptions = MutableStateFlow<List<List<Int>>>(emptyList())
     val selectedOptions: StateFlow<List<List<Int>>> = _selectedOptions.asStateFlow()
+
     private val _showResultList = MutableStateFlow<List<Boolean>>(emptyList())
     val showResultList: StateFlow<List<Boolean>> = _showResultList.asStateFlow()
+
+    private val _noteList = MutableStateFlow<List<String>>(emptyList())
+    val noteList: StateFlow<List<String>> = _noteList.asStateFlow()
 
     private val _progressLoaded = MutableStateFlow(false)
     val progressLoaded: StateFlow<Boolean> = _progressLoaded.asStateFlow()
@@ -47,34 +55,48 @@ class ExamViewModel @Inject constructor(
     private val _finished = MutableStateFlow(false)
     val finished: StateFlow<Boolean> = _finished.asStateFlow()
 
-    private var progressId: String = "default"
+    private var progressId: String = "exam_default"
+    private var progressSeed: Long = System.currentTimeMillis()
 
-    fun loadQuestions(quizId: String, count: Int) {
+    private var notesLoaded: Boolean = false
+
+    fun loadQuestions(quizId: String, count: Int, random: Boolean) {
         // 考试模式也使用前缀区分进度
         progressId = "exam_${quizId}"
         _progressLoaded.value = false
         viewModelScope.launch {
-            android.util.Log.d("ExamDebug", "loadQuestions start id=$quizId count=$count")
+            android.util.Log.d(
+                "ExamDebug",
+                "loadQuestions start id=$quizId count=$count random=$random"
+            )
             val existing = getExamProgressFlowUseCase(progressId).firstOrNull()
-            if (existing?.finished == true) {
+            progressSeed = existing?.timestamp ?: System.currentTimeMillis()
+           /* if (existing?.finished == true) {
                 clearExamProgressUseCase(progressId)
-            }
+            }*/
             getQuestionsUseCase(quizId).collect { list ->
-                android.util.Log.d("ExamDebug", "loadQuestions: received ${list.size} questions for $quizId")
-                val shuffled = list.shuffled().let { qs ->
-                    if (count > 0) qs.take(count.coerceAtMost(qs.size)) else qs
-                }
-                val finalList = shuffled.map { q ->
-                    val correctIndex = answerLetterToIndex(q.answer)
-                    if (correctIndex == null) {
-                        q
-                    } else {
-                        val pairs = q.options.mapIndexed { idx, opt -> idx to opt }.shuffled()
-                        val newOptions = pairs.map { it.second }
-                        val newCorrect = pairs.indexOfFirst { it.first == correctIndex }
-                        val newAnswer = ('A' + newCorrect).toString()
-                        q.copy(options = newOptions, answer = newAnswer)
+                android.util.Log.d(
+                    "ExamDebug",
+                    "loadQuestions: received ${list.size} questions for $quizId seed=$progressSeed"
+                )
+                val ordered = if (random) list.shuffled(java.util.Random(progressSeed)) else list
+                val trimmed = if (count > 0) ordered.take(count.coerceAtMost(ordered.size)) else ordered
+                val finalList = if (random) {
+                    trimmed.mapIndexed { idx, q ->
+                        val correctIndex = answerLetterToIndex(q.answer)
+                        if (correctIndex == null) {
+                            q
+                        } else {
+                            val rand = java.util.Random(progressSeed + idx)
+                            val pairs = q.options.mapIndexed { i, opt -> i to opt }.shuffled(rand)
+                            val newOptions = pairs.map { it.second }
+                            val newCorrect = pairs.indexOfFirst { it.first == correctIndex }
+                            val newAnswer = ('A' + newCorrect).toString()
+                            q.copy(options = newOptions, answer = newAnswer)
+                        }
                     }
+                } else {
+                    trimmed
                 }
                 _questions.value = finalList
                 _selectedOptions.value = List(finalList.size) { emptyList() }
@@ -91,6 +113,7 @@ class ExamViewModel @Inject constructor(
             getExamProgressFlowUseCase(progressId).collect { progress ->
                 android.util.Log.d("ExamDebug", "loadProgress: progress=$progress id=$progressId")
                 if (progress != null && !_progressLoaded.value) {
+                    progressSeed = progress.timestamp
                     _currentIndex.value =
                         progress.currentIndex.coerceAtMost(_questions.value.size - 1)
                     _selectedOptions.value =
@@ -111,6 +134,10 @@ class ExamViewModel @Inject constructor(
                     saveProgress()
                 }
                 _progressLoaded.value = true
+            }
+            if (!notesLoaded) {
+                loadNotesFromRepository()
+                notesLoaded = true
             }
         }
     }
@@ -147,7 +174,34 @@ class ExamViewModel @Inject constructor(
             saveProgress()
         }
     }
+    private suspend fun loadNotesFromRepository() {
+        val qs = _questions.value
+        val list = _noteList.value.toMutableList()
+        var changed = false
+        qs.forEachIndexed { idx, q ->
+            if (idx >= list.size) list.add("")
+            if (list[idx].isBlank()) {
+                val text = getQuestionNoteUseCase(q.id)
+                if (!text.isNullOrBlank()) {
+                    list[idx] = text
+                    changed = true
+                }
+            }
+        }
+        if (changed) {
+            _noteList.value = list
+        }
+    }
 
+    fun saveNote(questionId: Int, index: Int, text: String) {
+        viewModelScope.launch { saveQuestionNoteUseCase(questionId, text) }
+        val list = _noteList.value.toMutableList()
+        while (list.size <= index) list.add("")
+        list[index] = text
+        _noteList.value = list
+    }
+
+    suspend fun getNote(questionId: Int): String? = getQuestionNoteUseCase(questionId)
     fun goToQuestion(index: Int) {
         if (index in _questions.value.indices) {
             android.util.Log.d("ExamDebug", "goToQuestion $index")
@@ -156,32 +210,79 @@ class ExamViewModel @Inject constructor(
         }
     }
 
+    fun updateShowResult(index: Int, value: Boolean) {
+        android.util.Log.d("ExamDebug", "updateShowResult index=$index value=$value")
+        val list = _showResultList.value.toMutableList()
+        while (list.size <= index) list.add(false)
+        list[index] = value
+        _showResultList.value = list
+        saveProgress()
+    }
+
     suspend fun gradeExam(): Int {
         val qs = _questions.value
         val selections = _selectedOptions.value
+
+        // 判空，任何数据为0直接返回
+        if (qs.isEmpty() || selections.isEmpty() || _showResultList.value.isEmpty()) {
+            android.util.Log.w("ExamViewModel", "gradeExam called with empty data, skipping grading")
+            return 0
+        }
+
         var score = 0
         val newShowResultList = _showResultList.value.toMutableList()
 
         for (i in qs.indices) {
             val correct = answerLettersToIndices(qs[i].answer)
             val sel = selections.getOrElse(i) { emptyList() }
-            if (sel.isNotEmpty()) {// 已作答题
+
+            // 遍历每一道题
+            if (sel.isNotEmpty()) {
+                // 仅对已选题目判分并标记
                 if (sel.sorted() == correct.sorted()) {
                     score++
                 } else {
                     addWrongQuestionUseCase(WrongQuestion(qs[i], sel))
                 }
-                newShowResultList[i] = true // 只对已答题批改
+                newShowResultList[i] = true    // 标记已批改
+            } else {
+                newShowResultList[i] = false
             }
-            // 未答的题保持原showResultList[i]（一般是false）
+
         }
         addHistoryRecordUseCase(HistoryRecord(score, qs.size))
         _showResultList.value = newShowResultList
         _finished.value = newShowResultList.all { it }
         android.util.Log.d("ExamDebug", "gradeExam score=$score total=${qs.size}")
-        saveProgress()
+        saveProgressInternal()
         return score
     }
+
+    fun clearProgressAndReload() {
+        viewModelScope.launch {
+            clearExamProgressUseCase(progressId)
+            // 重置状态
+            _currentIndex.value = 0
+            _selectedOptions.value = List(_questions.value.size) { emptyList() }
+            _showResultList.value = List(_questions.value.size) { false }
+            _finished.value = false
+            _progressLoaded.value = false
+            progressSeed = System.currentTimeMillis()
+            notesLoaded = false
+            loadProgress()
+        }
+    }
+
+
+    fun resetAllStates() {
+        val qs = _questions.value
+        _currentIndex.value = 0
+        _selectedOptions.value = List(qs.size) { emptyList() }
+        _showResultList.value = List(qs.size) { false }
+        _finished.value = false
+        _progressLoaded.value = true
+    }
+
 
     fun clearProgress() {
         viewModelScope.launch {
@@ -192,25 +293,29 @@ class ExamViewModel @Inject constructor(
             _showResultList.value = emptyList()
             _finished.value = false
             _progressLoaded.value = false
+            progressSeed = System.currentTimeMillis()
+            notesLoaded = false
         }
     }
 
+    private suspend fun saveProgressInternal() {
+        android.util.Log.d(
+            "ExamDebug",
+            "saveProgress: index=${_currentIndex.value} selected=${_selectedOptions.value} showResult=${_showResultList.value} finished=${_finished.value}"
+        )
+        saveExamProgressUseCase(
+            com.example.testapp.domain.model.ExamProgress(
+                id = progressId,
+                currentIndex = _currentIndex.value,
+                selectedOptions = _selectedOptions.value,
+                showResultList = _showResultList.value,
+                finished = _finished.value,
+                timestamp = progressSeed
+            )
+        )
+    }
+
     private fun saveProgress() {
-        viewModelScope.launch {
-            android.util.Log.d(
-                "ExamDebug",
-                "saveProgress: index=${_currentIndex.value} selected=${_selectedOptions.value} showResult=${_showResultList.value} finished=${_finished.value}"
-            )
-            saveExamProgressUseCase(
-                com.example.testapp.domain.model.ExamProgress(
-                    id = progressId,
-                    currentIndex = _currentIndex.value,
-                    selectedOptions = _selectedOptions.value,
-                    showResultList = _showResultList.value,
-                    finished = _finished.value,
-                    timestamp = System.currentTimeMillis()
-                )
-            )
-        }
+        viewModelScope.launch { saveProgressInternal() }
     }
 }
