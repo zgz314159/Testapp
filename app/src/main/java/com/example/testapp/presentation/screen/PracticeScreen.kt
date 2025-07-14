@@ -582,11 +582,11 @@ fun PracticeScreen(
         }
 
         // Layer 4: 多选题的提交按钮
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.End
-        ) {
-            if (question.type == "多选题") {
+        if (question.type == "多选题" && !showResult) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.End
+            ) {
                 Button(
                     onClick = {
                         autoJob?.cancel()
@@ -619,7 +619,7 @@ fun PracticeScreen(
                             else showExitDialog = true
                         }
                     },
-                    enabled = selectedOption.isNotEmpty() && !showResult
+                    enabled = selectedOption.isNotEmpty()
                 ) {
                     Text(
                         "提交答案",
