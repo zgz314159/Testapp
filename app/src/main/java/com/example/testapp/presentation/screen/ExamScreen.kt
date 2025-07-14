@@ -37,7 +37,6 @@ import androidx.activity.compose.BackHandler
 import com.example.testapp.util.answerLetterToIndex
 import com.example.testapp.data.datastore.FontSettingsDataStore
 import androidx.compose.material3.LocalContentColor
-import androidx.compose.runtime.mutableStateMapOf
 
 
 
@@ -85,9 +84,9 @@ fun ExamScreen(
     val coroutineScope = rememberCoroutineScope()
     val noteList by viewModel.noteList.collectAsState()
     val analysisPair by aiViewModel.analysis.collectAsState()
-    val analysisMap = remember { mutableStateMapOf<Int, String>() }
-    val analysisText = if (analysisPair?.first == currentIndex) analysisPair?.second else analysisMap[currentIndex]
-    val hasDeepSeekAnalysis = analysisMap[currentIndex].orEmpty().isNotBlank()
+    val analysisList by viewModel.analysisList.collectAsState()
+    val analysisText = if (analysisPair?.first == currentIndex) analysisPair?.second else analysisList.getOrNull(currentIndex)
+    val hasDeepSeekAnalysis = analysisList.getOrNull(currentIndex).orEmpty().isNotBlank()
     val hasNote = noteList.getOrNull(currentIndex).orEmpty().isNotBlank()
     val favoriteViewModel: FavoriteViewModel = hiltViewModel()
     val favoriteQuestions by favoriteViewModel.favoriteQuestions.collectAsState()
@@ -107,14 +106,16 @@ fun ExamScreen(
     LaunchedEffect(question) {
         if (question != null) {
             val saved = aiViewModel.getSavedAnalysis(question.id) ?: ""
-            analysisMap[currentIndex] = saved
+            if (saved.isNotBlank()) {
+                viewModel.updateAnalysis(currentIndex, saved)
+            }
         }
     }
 
     LaunchedEffect(analysisPair) {
         val pair = analysisPair
         if (pair != null && pair.second != "解析中...") {
-            analysisMap[pair.first] = pair.second
+            viewModel.updateAnalysis(pair.first, pair.second)
         }
     }
 

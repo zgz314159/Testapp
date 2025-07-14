@@ -22,6 +22,7 @@ import com.example.testapp.util.answerLetterToIndex
 import com.example.testapp.util.answerLettersToIndices
 import com.example.testapp.domain.usecase.GetQuestionNoteUseCase
 import com.example.testapp.domain.usecase.SaveQuestionNoteUseCase
+import com.example.testapp.domain.usecase.GetQuestionAnalysisUseCase
 
 @HiltViewModel
 class ExamViewModel @Inject constructor(
@@ -32,7 +33,8 @@ class ExamViewModel @Inject constructor(
     private val getExamProgressFlowUseCase: GetExamProgressFlowUseCase,
     private val clearExamProgressUseCase: ClearExamProgressUseCase,
     private val getQuestionNoteUseCase: GetQuestionNoteUseCase,
-    private val saveQuestionNoteUseCase: SaveQuestionNoteUseCase
+    private val saveQuestionNoteUseCase: SaveQuestionNoteUseCase,
+    private val getQuestionAnalysisUseCase: GetQuestionAnalysisUseCase
 ) : ViewModel() {
     private val _questions = MutableStateFlow<List<Question>>(emptyList())
     val questions: StateFlow<List<Question>> = _questions.asStateFlow()
@@ -45,6 +47,9 @@ class ExamViewModel @Inject constructor(
 
     private val _showResultList = MutableStateFlow<List<Boolean>>(emptyList())
     val showResultList: StateFlow<List<Boolean>> = _showResultList.asStateFlow()
+
+    private val _analysisList = MutableStateFlow<List<String>>(emptyList())
+    val analysisList: StateFlow<List<String>> = _analysisList.asStateFlow()
 
     private val _noteList = MutableStateFlow<List<String>>(emptyList())
     val noteList: StateFlow<List<String>> = _noteList.asStateFlow()
@@ -59,6 +64,7 @@ class ExamViewModel @Inject constructor(
     private var progressSeed: Long = System.currentTimeMillis()
 
     private var notesLoaded: Boolean = false
+    private var analysisLoaded: Boolean = false
 
     fun loadQuestions(quizId: String, count: Int, random: Boolean) {
         // 考试模式也使用前缀区分进度
@@ -101,6 +107,8 @@ class ExamViewModel @Inject constructor(
                 _questions.value = finalList
                 _selectedOptions.value = List(finalList.size) { emptyList() }
                 _showResultList.value = List(finalList.size) { false }
+                _analysisList.value = List(finalList.size) { "" }
+                _noteList.value = List(finalList.size) { "" }
                 _currentIndex.value = 0
                 _finished.value = false
                 loadProgress()
@@ -128,12 +136,28 @@ class ExamViewModel @Inject constructor(
                         } else {
                             progress.showResultList + List(_questions.value.size - progress.showResultList.size) { false }
                         }
+                    _analysisList.value =
+                        if (progress.analysisList.size >= _questions.value.size) {
+                            progress.analysisList.take(_questions.value.size)
+                        } else {
+                            progress.analysisList + List(_questions.value.size - progress.analysisList.size) { "" }
+                        }
+                    _noteList.value =
+                        if (progress.noteList.size >= _questions.value.size) {
+                            progress.noteList.take(_questions.value.size)
+                        } else {
+                            progress.noteList + List(_questions.value.size - progress.noteList.size) { "" }
+                        }
                     _finished.value = progress.finished
                 } else if (progress == null && !_progressLoaded.value) {
                     // 初始化进度
                     saveProgress()
                 }
                 _progressLoaded.value = true
+            }
+            if (!analysisLoaded) {
+                loadAnalysisFromRepository()
+                analysisLoaded = true
             }
             if (!notesLoaded) {
                 loadNotesFromRepository()
@@ -193,6 +217,25 @@ class ExamViewModel @Inject constructor(
         }
     }
 
+    private suspend fun loadAnalysisFromRepository() {
+        val qs = _questions.value
+        val list = _analysisList.value.toMutableList()
+        var changed = false
+        qs.forEachIndexed { idx, q ->
+            if (idx >= list.size) list.add("")
+            if (list[idx].isBlank()) {
+                val text = getQuestionAnalysisUseCase(q.id)
+                if (!text.isNullOrBlank()) {
+                    list[idx] = text
+                    changed = true
+                }
+            }
+        }
+        if (changed) {
+            _analysisList.value = list
+        }
+    }
+
     fun saveNote(questionId: Int, index: Int, text: String) {
         viewModelScope.launch { saveQuestionNoteUseCase(questionId, text) }
         val list = _noteList.value.toMutableList()
@@ -218,6 +261,17 @@ class ExamViewModel @Inject constructor(
         _showResultList.value = list
         saveProgress()
     }
+
+    fun updateAnalysis(index: Int, text: String) {
+        android.util.Log.d("ExamDebug", "updateAnalysis index=$index text=$text")
+        val list = _analysisList.value.toMutableList()
+        while (list.size <= index) list.add("")
+        list[index] = text
+        _analysisList.value = list
+        saveProgress()
+    }
+
+
 
     suspend fun gradeExam(): Int {
         val qs = _questions.value
@@ -265,9 +319,12 @@ class ExamViewModel @Inject constructor(
             _currentIndex.value = 0
             _selectedOptions.value = List(_questions.value.size) { emptyList() }
             _showResultList.value = List(_questions.value.size) { false }
+            _analysisList.value = List(_questions.value.size) { "" }
+            _noteList.value = List(_questions.value.size) { "" }
             _finished.value = false
             _progressLoaded.value = false
             progressSeed = System.currentTimeMillis()
+            analysisLoaded = false
             notesLoaded = false
             loadProgress()
         }
@@ -279,6 +336,8 @@ class ExamViewModel @Inject constructor(
         _currentIndex.value = 0
         _selectedOptions.value = List(qs.size) { emptyList() }
         _showResultList.value = List(qs.size) { false }
+        _analysisList.value = List(qs.size) { "" }
+        _noteList.value = List(qs.size) { "" }
         _finished.value = false
         _progressLoaded.value = true
     }
@@ -291,9 +350,12 @@ class ExamViewModel @Inject constructor(
             _currentIndex.value = 0
             _selectedOptions.value = emptyList()
             _showResultList.value = emptyList()
+            _analysisList.value = emptyList()
+            _noteList.value = emptyList()
             _finished.value = false
             _progressLoaded.value = false
             progressSeed = System.currentTimeMillis()
+            analysisLoaded = false
             notesLoaded = false
         }
     }
@@ -309,6 +371,8 @@ class ExamViewModel @Inject constructor(
                 currentIndex = _currentIndex.value,
                 selectedOptions = _selectedOptions.value,
                 showResultList = _showResultList.value,
+                analysisList = _analysisList.value,
+                noteList = _noteList.value,
                 finished = _finished.value,
                 timestamp = progressSeed
             )

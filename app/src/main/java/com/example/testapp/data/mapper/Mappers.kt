@@ -89,6 +89,8 @@ fun ExamProgressEntity.toDomain() = ExamProgress(
     currentIndex = currentIndex,
     selectedOptions = selectedOptions,
     showResultList = showResultList,
+    analysisList = analysisList,
+    noteList = noteList,
     finished = finished,
     timestamp = timestamp
 )
@@ -98,6 +100,8 @@ fun ExamProgress.toEntity() = ExamProgressEntity(
     currentIndex = currentIndex,
     selectedOptions = selectedOptions,
     showResultList = showResultList,
+    analysisList = analysisList,
+    noteList = noteList,
     finished = finished,
     timestamp = timestamp
 )
