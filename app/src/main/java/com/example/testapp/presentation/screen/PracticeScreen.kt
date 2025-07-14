@@ -104,10 +104,7 @@ fun PracticeScreen(
     val analysisText = if (analysisPair?.first == currentIndex) analysisPair?.second else analysisList.getOrNull(currentIndex)
     val noteList by viewModel.noteList.collectAsState()
     val hasDeepSeekAnalysis = analysisList.getOrNull(currentIndex).orEmpty().isNotBlank()
-    android.util.Log.d(
-        "PracticeScreen-question",
-        "currentIndex=$currentIndex, question=$question"
-    )
+    val hasNote = noteList.getOrNull(currentIndex).orEmpty().isNotBlank()
     val selectedOption = selectedOptions.getOrNull(currentIndex) ?: emptyList<Int>()
     val showResult = showResultList.getOrNull(currentIndex) ?: false
     android.util.Log.d(
@@ -288,7 +285,11 @@ fun PracticeScreen(
                     showNoteDialog = true
                 }
             }) {
-                Icon(imageVector = Icons.Filled.Edit, contentDescription = "笔记")
+                Icon(
+                    imageVector = Icons.Filled.Edit,
+                    contentDescription = "笔记",
+                    tint = if (hasNote) MaterialTheme.colorScheme.primary else LocalContentColor.current
+                )
             }
             Spacer(modifier = Modifier.weight(1f))
             Card(onClick = { showList = true }) {
