@@ -2,6 +2,8 @@ package com.example.testapp.data.repository
 
 import com.example.testapp.data.local.dao.QuestionDao
 import com.example.testapp.data.local.dao.WrongQuestionDao
+import com.example.testapp.data.local.dao.QuestionAnalysisDao
+import com.example.testapp.data.local.dao.QuestionNoteDao
 import com.example.testapp.data.local.entity.WrongQuestionEntity
 import com.example.testapp.data.mapper.toDomain
 import com.example.testapp.data.mapper.toEntity
@@ -24,7 +26,9 @@ import java.io.File
 
 class WrongBookRepositoryImpl @Inject constructor(
     private val dao: WrongQuestionDao,
-    private val questionDao: QuestionDao
+    private val questionDao: QuestionDao,
+    private val analysisDao: QuestionAnalysisDao,
+    private val noteDao: QuestionNoteDao
 ) : WrongBookRepository {
     override fun getAll(): Flow<List<WrongQuestion>> =
         dao.getAll().combine(questionDao.getAll()) { wrongEntities, questionEntities ->
@@ -146,7 +150,10 @@ class WrongBookRepositoryImpl @Inject constructor(
         }
     }
 
-    fun exportWrongBookAsQuestionExcel(wrongs: List<WrongQuestion>, file: File): Boolean {
+    suspend fun exportWrongBookAsQuestionExcel(
+        wrongs: List<WrongQuestion>,
+        file: File
+    ): Boolean {
         return try {
             val workbook = XSSFWorkbook()
             val grouped = wrongs.groupBy { it.question.fileName ?: "默认" }
@@ -159,6 +166,8 @@ class WrongBookRepositoryImpl @Inject constructor(
                 (2..8).forEach { header.createCell(it).setCellValue("选项${it-1}") }
                 header.createCell(9).setCellValue("解析")
                 header.createCell(10).setCellValue("答案")
+                header.createCell(11).setCellValue("AI解析")
+                header.createCell(12).setCellValue("笔记")
 
                 list.forEachIndexed { idx, w ->
                     val row: Row = sheet.createRow(idx + 1)
@@ -170,6 +179,10 @@ class WrongBookRepositoryImpl @Inject constructor(
                     }
                     row.createCell(9).setCellValue(q.explanation)
                     row.createCell(10).setCellValue(q.answer)
+                    val analysis = analysisDao.getAnalysis(q.id) ?: ""
+                    val note = noteDao.getNote(q.id) ?: ""
+                    row.createCell(11).setCellValue(analysis)
+                    row.createCell(12).setCellValue(note)
                 }
             }
 

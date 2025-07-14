@@ -81,8 +81,11 @@ object AppModule {
     @Singleton
     fun provideWrongBookRepository(
         wrongDao: WrongQuestionDao,
-        questionDao: QuestionDao
-    ): WrongBookRepository = WrongBookRepositoryImpl(wrongDao, questionDao)
+        questionDao: QuestionDao,
+        analysisDao: QuestionAnalysisDao,
+        noteDao: QuestionNoteDao
+    ): WrongBookRepository =
+        WrongBookRepositoryImpl(wrongDao, questionDao, analysisDao, noteDao)
 
     @Provides
     @Singleton
@@ -151,7 +154,12 @@ object AppModule {
 
     @Provides
     @Singleton
-    fun provideFavoriteQuestionRepository(dao: FavoriteQuestionDao): FavoriteQuestionRepository = FavoriteQuestionRepositoryImpl(dao)
+    fun provideFavoriteQuestionRepository(
+        dao: FavoriteQuestionDao,
+        analysisDao: QuestionAnalysisDao,
+        noteDao: QuestionNoteDao
+    ): FavoriteQuestionRepository =
+        FavoriteQuestionRepositoryImpl(dao, analysisDao, noteDao)
 
     @Provides
     @Singleton
