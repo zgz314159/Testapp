@@ -176,6 +176,7 @@ class ExamViewModel @Inject constructor(
             if (!notesLoaded) {
                 loadNotesFromRepository()
                 notesLoaded = true
+
             }
         }
     }

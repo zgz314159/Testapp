@@ -40,6 +40,8 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.example.testapp.presentation.component.LocalFontFamily
 import com.example.testapp.presentation.component.LocalFontSize
+import com.example.testapp.presentation.screen.SettingsViewModel
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material.DismissDirection
 import androidx.compose.material.DismissValue
 import androidx.compose.material.ExperimentalMaterialApi
@@ -60,12 +62,15 @@ fun HomeScreen(
     onViewQuestionDetail: (quizId: String) -> Unit = {},
     onWrongBook: (fileName: String) -> Unit = {},
     onFavoriteBook: (fileName: String) -> Unit = {},
-    onViewResult: (fileName: String) -> Unit = {}
+    onViewResult: (fileName: String) -> Unit = {},
+    settingsViewModel: SettingsViewModel
 ) {
     val viewModel: HomeViewModel = hiltViewModel()
     val questions by viewModel.questions.collectAsState()
     val fileNames by viewModel.fileNames.collectAsState()
     val selectedFileName = remember { mutableStateOf("") }
+    val isLoading by settingsViewModel.isLoading.collectAsState()
+    val importProgress by settingsViewModel.progress.collectAsState()
     // 题目数量按文件统计
     val questionCounts = remember(questions) {
         questions.groupBy { it.fileName ?: "" }.mapValues { it.value.size }
@@ -146,13 +151,18 @@ fun HomeScreen(
         }
     ) { innerPadding ->
         Log.d("HomeScreen", "[Compose] fileNames=$fileNames, selectedFileName=${selectedFileName.value}, questions.size=${questions.size}")
-        Column(
+        Box(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(innerPadding)
-                .padding(5.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
+
         ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(5.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
             android.util.Log.d("HomeScreen", "fontSize=${LocalFontSize.current}, fontFamily=${LocalFontFamily.current}, recomposed!")
             // 文件名列表
             if (fileNames.isNotEmpty()) {
@@ -299,7 +309,20 @@ fun HomeScreen(
                     )
                 }
             }
+                if (isLoading) {
+                    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            CircularProgressIndicator(progress = importProgress)
+                            Spacer(modifier = Modifier.height(8.dp))
+                            Text(
+                                "正在处理，请稍候…",
+                                fontSize = LocalFontSize.current,
+                                fontFamily = LocalFontFamily.current
+                            )
+                        }
+                    }
+                }
         }
     }
 
-}
+}}

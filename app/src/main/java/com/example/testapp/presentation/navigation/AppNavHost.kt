@@ -60,7 +60,8 @@ fun AppNavHost(navController: NavHostController = rememberNavController(), setti
                     val encoded = java.net.URLEncoder.encode(fileName, "UTF-8")
                     navController.navigate("result/0/0/$encoded")
 
-                }
+                },
+                settingsViewModel = settingsViewModel
             )
         }
         composable(
@@ -173,7 +174,12 @@ fun AppNavHost(navController: NavHostController = rememberNavController(), setti
         }
 
         composable("history") { HistoryScreen() }
-        composable("settings") { SettingsScreen(viewModel = settingsViewModel) }
+        composable("settings") {
+            SettingsScreen(
+                viewModel = settingsViewModel,
+                onBackHome = { navController.popBackStack("home", false) }
+            )
+        }
         composable("favorite") { FavoriteScreen(navController = navController) }
         composable("favorite/{fileName}") { backStackEntry ->
             val encodedFav = backStackEntry.arguments?.getString("fileName") ?: ""
