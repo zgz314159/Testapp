@@ -108,12 +108,12 @@ class ExamViewModel @Inject constructor(
                     trimmed
                 }
                 _questions.value = finalList
-                _selectedOptions.value = List(finalList.size) { emptyList() }
+              /*  _selectedOptions.value = List(finalList.size) { emptyList() }
                 _showResultList.value = List(finalList.size) { false }
                 _analysisList.value = List(finalList.size) { "" }
                 _noteList.value = List(finalList.size) { "" }
                 _currentIndex.value = 0
-                _finished.value = false
+                _finished.value = false*/
                 loadProgress()
             }
         }

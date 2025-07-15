@@ -145,12 +145,16 @@ fun HomeScreen(
                             "答题记录",
                             fontSize = LocalFontSize.current,
                             fontFamily = LocalFontFamily.current
-                    ) }
+                        )
+                    }
                 )
             }
         }
     ) { innerPadding ->
-        Log.d("HomeScreen", "[Compose] fileNames=$fileNames, selectedFileName=${selectedFileName.value}, questions.size=${questions.size}")
+        Log.d(
+            "HomeScreen",
+            "[Compose] fileNames=$fileNames, selectedFileName=${selectedFileName.value}, questions.size=${questions.size}"
+        )
         Box(
             modifier = Modifier
                 .fillMaxSize()
@@ -163,152 +167,183 @@ fun HomeScreen(
                     .padding(5.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-            android.util.Log.d("HomeScreen", "fontSize=${LocalFontSize.current}, fontFamily=${LocalFontFamily.current}, recomposed!")
-            // 文件名列表
-            if (fileNames.isNotEmpty()) {
-                val screenHeight = LocalContext.current.resources.displayMetrics.heightPixels / LocalContext.current.resources.displayMetrics.density
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .weight(1f) // 让列表撑满剩余空间
-                ) {
-                    LazyColumn(
+                android.util.Log.d(
+                    "HomeScreen",
+                    "fontSize=${LocalFontSize.current}, fontFamily=${LocalFontFamily.current}, recomposed!"
+                )
+                // 文件名列表
+                if (fileNames.isNotEmpty()) {
+                    val screenHeight =
+                        LocalContext.current.resources.displayMetrics.heightPixels / LocalContext.current.resources.displayMetrics.density
+                    Box(
                         modifier = Modifier
-                            .fillMaxSize()
-                            .padding(vertical = 8.dp)
+                            .fillMaxWidth()
+                            .weight(1f) // 让列表撑满剩余空间
                     ) {
-                        items(fileNames, key = { it }) { name ->
-                            val dismissState = rememberDismissState()
-                            if (dismissState.currentValue == DismissValue.DismissedToStart) {
-                                Log.d("HomeScreen", "[Delete] 删除文件: $name, 当��fileNames=$fileNames, 当前选中=${selectedFileName.value}")
-                                viewModel.deleteFileAndData(name) {
-                                    // 删除后回调，自动切换选中项
-                                    val newList = fileNames.filter { it != name }
-                                    selectedFileName.value = newList.firstOrNull() ?: ""
-                                    Log.d("HomeScreen", "[Delete] 更新选中: ${selectedFileName.value}")
-                                }
-                            }
-                            SwipeToDismiss(
-                                state = dismissState,
-                                directions = setOf(DismissDirection.EndToStart),
-                                dismissThresholds = { direction ->
-                                    FractionalThreshold(0.2f)
-                                },
-                                background = {
-
-                                    Log.d("HomeScreen", "[SwipeToDismiss-background] name=$name, dismissDirection=${dismissState.dismissDirection}, targetValue=${dismissState.targetValue}, currentValue=${dismissState.currentValue}")
-                                    val showRed = dismissState.dismissDirection != null && dismissState.targetValue != DismissValue.Default
-                                    Box(
-                                        modifier = Modifier
-                                            .fillMaxSize()
-                                            .background(
-                                                if (showRed) MaterialTheme.colorScheme.error else Color.Transparent
-                                            )
-                                            .padding(horizontal = 20.dp),
-                                        contentAlignment = Alignment.CenterEnd
-                                    ) {
-                                        if (showRed) {
-                                            Icon(Icons.Filled.Delete, contentDescription = "删除", tint = Color.White)
-                                        } else {
-                                            Log.d("HomeScreen", "[SwipeToDismiss-background] 显示透明 name=$name")
-                                        }
-                                    }
-                                },
-                                dismissContent = {
-                                    Row(
-                                        modifier = Modifier
-                                            .fillMaxWidth()
-                                            .padding(horizontal = 12.dp, vertical = 11.dp)
-                                            .background(
-                                                if (selectedFileName.value == name) {
-                                                    Color(0xFFBBDEFB)
-                                                } else {
-                                                    MaterialTheme.colorScheme.surface
-                                                }
-                                            )
-                                            .pointerInput(name) {
-                                                detectTapGestures(
-                                                    onTap = {
-                                                        selectedFileName.value = name
-                                                    },
-                                                    onDoubleTap = {
-                                                        selectedFileName.value = name
-                                                        onViewQuestionDetail(name)
-                                                    }
-                                                )
-                                            },
-                                        verticalAlignment = Alignment.CenterVertically
-                                    ) {
-                                        Text(
-                                            text = buildAnnotatedString {
-                                                append("$name ")
-                                                withStyle(SpanStyle(color = Color.Blue)) {
-                                                    append("(${questionCounts[name] ?: 0})")
-                                                }
-                                            },
-                                            maxLines = 1,
-                                            modifier = Modifier
-                                                .weight(1f)
-                                                .basicMarquee(),
-                                            fontSize = LocalFontSize.current,
-                                            fontFamily = LocalFontFamily.current
+                        LazyColumn(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .padding(vertical = 8.dp)
+                        ) {
+                            items(fileNames, key = { it }) { name ->
+                                val dismissState = rememberDismissState()
+                                if (dismissState.currentValue == DismissValue.DismissedToStart) {
+                                    Log.d(
+                                        "HomeScreen",
+                                        "[Delete] 删除文件: $name, 当��fileNames=$fileNames, 当前选中=${selectedFileName.value}"
+                                    )
+                                    viewModel.deleteFileAndData(name) {
+                                        // 删除后回调，自动切换选中项
+                                        val newList = fileNames.filter { it != name }
+                                        selectedFileName.value = newList.firstOrNull() ?: ""
+                                        Log.d(
+                                            "HomeScreen",
+                                            "[Delete] 更新选中: ${selectedFileName.value}"
                                         )
                                     }
                                 }
-                            )
+                                SwipeToDismiss(
+                                    state = dismissState,
+                                    directions = setOf(DismissDirection.EndToStart),
+                                    dismissThresholds = { direction ->
+                                        FractionalThreshold(0.2f)
+                                    },
+                                    background = {
+
+                                        Log.d(
+                                            "HomeScreen",
+                                            "[SwipeToDismiss-background] name=$name, dismissDirection=${dismissState.dismissDirection}, targetValue=${dismissState.targetValue}, currentValue=${dismissState.currentValue}"
+                                        )
+                                        val showRed =
+                                            dismissState.dismissDirection != null && dismissState.targetValue != DismissValue.Default
+                                        Box(
+                                            modifier = Modifier
+                                                .fillMaxSize()
+                                                .background(
+                                                    if (showRed) MaterialTheme.colorScheme.error else Color.Transparent
+                                                )
+                                                .padding(horizontal = 20.dp),
+                                            contentAlignment = Alignment.CenterEnd
+                                        ) {
+                                            if (showRed) {
+                                                Icon(
+                                                    Icons.Filled.Delete,
+                                                    contentDescription = "删除",
+                                                    tint = Color.White
+                                                )
+                                            } else {
+                                                Log.d(
+                                                    "HomeScreen",
+                                                    "[SwipeToDismiss-background] 显示透明 name=$name"
+                                                )
+                                            }
+                                        }
+                                    },
+                                    dismissContent = {
+                                        Row(
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .padding(horizontal = 12.dp, vertical = 11.dp)
+                                                .background(
+                                                    if (selectedFileName.value == name) {
+                                                        Color(0xFFBBDEFB)
+                                                    } else {
+                                                        MaterialTheme.colorScheme.surface
+                                                    }
+                                                )
+                                                .pointerInput(name) {
+                                                    detectTapGestures(
+                                                        onTap = {
+                                                            selectedFileName.value = name
+                                                        },
+                                                        onDoubleTap = {
+                                                            selectedFileName.value = name
+                                                            onViewQuestionDetail(name)
+                                                        }
+                                                    )
+                                                },
+                                            verticalAlignment = Alignment.CenterVertically
+                                        ) {
+                                            Text(
+                                                text = buildAnnotatedString {
+                                                    append("$name ")
+                                                    withStyle(SpanStyle(color = Color.Blue)) {
+                                                        append("(${questionCounts[name] ?: 0})")
+                                                    }
+                                                },
+                                                maxLines = 1,
+                                                modifier = Modifier
+                                                    .weight(1f)
+                                                    .basicMarquee(),
+                                                fontSize = LocalFontSize.current,
+                                                fontFamily = LocalFontFamily.current
+                                            )
+                                        }
+                                    }
+                                )
+                            }
                         }
                     }
+                } else {
+                    Spacer(modifier = Modifier.weight(1f))
                 }
-            } else {
-                Spacer(modifier = Modifier.weight(1f))
-            }
-            if (questions.isEmpty()) {
-                Text(
-                    text = "加载中...",
-                    fontSize = LocalFontSize.current,
-                    fontFamily = LocalFontFamily.current
-                )
-            }
-            Spacer(modifier = Modifier.height(32.dp))
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(16.dp)
-            ) {
-                Button(
-                    onClick = {
-                        if (selectedFileName.value.isNotEmpty() && fileNames.contains(selectedFileName.value)) {
-                            onStartQuiz(selectedFileName.value)
-                        }
-                    },
-                    enabled = selectedFileName.value.isNotEmpty() && fileNames.contains(selectedFileName.value),
-                    modifier = Modifier
-                        .weight(1f)
-                        .height(56.dp)
-                ) {
+                if (questions.isEmpty()) {
                     Text(
-                        "开始练习",
+                        text = "加载中...",
                         fontSize = LocalFontSize.current,
                         fontFamily = LocalFontFamily.current
                     )
                 }
-                Button(
-                    onClick = {
-                        if (selectedFileName.value.isNotEmpty() && fileNames.contains(selectedFileName.value)) {
-                            onStartExam(selectedFileName.value)
-                        }
-                    },
-                    enabled = selectedFileName.value.isNotEmpty() && fileNames.contains(selectedFileName.value),
-                    modifier = Modifier
-                        .weight(1f)
-                        .height(56.dp)
+                Spacer(modifier = Modifier.height(32.dp))
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
-                    Text(
-                        "开始考试",
-                        fontSize = LocalFontSize.current,
-                        fontFamily = LocalFontFamily.current
-                    )
+                    Button(
+                        onClick = {
+                            if (selectedFileName.value.isNotEmpty() && fileNames.contains(
+                                    selectedFileName.value
+                                )
+                            ) {
+                                onStartQuiz(selectedFileName.value)
+                            }
+                        },
+                        enabled = selectedFileName.value.isNotEmpty() && fileNames.contains(
+                            selectedFileName.value
+                        ),
+                        modifier = Modifier
+                            .weight(1f)
+                            .height(56.dp)
+                    ) {
+                        Text(
+                            "开始练习",
+                            fontSize = LocalFontSize.current,
+                            fontFamily = LocalFontFamily.current
+                        )
+                    }
+                    Button(
+                        onClick = {
+                            if (selectedFileName.value.isNotEmpty() && fileNames.contains(
+                                    selectedFileName.value
+                                )
+                            ) {
+                                onStartExam(selectedFileName.value)
+                            }
+                        },
+                        enabled = selectedFileName.value.isNotEmpty() && fileNames.contains(
+                            selectedFileName.value
+                        ),
+                        modifier = Modifier
+                            .weight(1f)
+                            .height(56.dp)
+                    ) {
+                        Text(
+                            "开始考试",
+                            fontSize = LocalFontSize.current,
+                            fontFamily = LocalFontFamily.current
+                        )
+                    }
                 }
-            }
                 if (isLoading) {
                     Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                         Column(horizontalAlignment = Alignment.CenterHorizontally) {
@@ -322,7 +357,7 @@ fun HomeScreen(
                         }
                     }
                 }
+            }
         }
     }
-
 }

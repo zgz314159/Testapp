@@ -2,46 +2,38 @@ package com.example.testapp.presentation.screen
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.grid.GridCells
-import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.ui.input.pointer.pointerInput
-import androidx.compose.ui.graphics.Color
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.Lightbulb
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.outlined.StarBorder
-import androidx.compose.material.icons.filled.Lightbulb
-import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material3.*
-import androidx.compose.material3.LocalContentColor
-import androidx.compose.material.ExperimentalMaterialApi
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
-import com.example.testapp.util.rememberSoundEffects
 import androidx.compose.ui.unit.dp
-import androidx.activity.compose.BackHandler
-import androidx.hilt.navigation.compose.hiltViewModel
-import com.example.testapp.presentation.screen.PracticeViewModel
-import com.example.testapp.presentation.screen.SettingsViewModel
-import com.example.testapp.presentation.screen.DeepSeekViewModel
-import com.example.testapp.presentation.component.AnswerCardGrid
-import com.example.testapp.presentation.component.LocalFontSize
-import com.example.testapp.presentation.component.LocalFontFamily
 import androidx.compose.ui.unit.sp
+import androidx.activity.compose.BackHandler
+import androidx.compose.ui.graphics.Color
+import androidx.hilt.navigation.compose.hiltViewModel
+import com.example.testapp.data.datastore.FontSettingsDataStore
+import com.example.testapp.presentation.component.AnswerCardGrid
+import com.example.testapp.presentation.component.LocalFontFamily
+import com.example.testapp.presentation.component.LocalFontSize
+import com.example.testapp.util.answerLetterToIndex
+import com.example.testapp.util.rememberSoundEffects
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
-import com.example.testapp.util.answerLetterToIndex
-import com.example.testapp.data.datastore.FontSettingsDataStore
 
-
-@OptIn(ExperimentalMaterialApi::class)
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PracticeScreen(
     quizId: String = "default",
@@ -57,12 +49,12 @@ fun PracticeScreen(
     onExitWithoutAnswer: () -> Unit = {},
     onViewDeepSeek: (String, Int, Int) -> Unit = { _, _, _ -> }
 ) {
+    // --- 各种状态和依赖 ---
     val randomPractice by settingsViewModel.randomPractice.collectAsState()
     val practiceCount by settingsViewModel.practiceQuestionCount.collectAsState()
     LaunchedEffect(quizId, isWrongBookMode, wrongBookFileName, isFavoriteMode, favoriteFileName, randomPractice, practiceCount) {
         viewModel.setRandomPractice(randomPractice)
         if (isWrongBookMode && wrongBookFileName != null) {
-            // 使用独立的进度 id，避免与普通练习冲突，并跳过题库加载
             viewModel.setProgressId(
                 id = "wrongbook_${wrongBookFileName}",
                 questionsId = wrongBookFileName,
@@ -77,16 +69,13 @@ fun PracticeScreen(
             )
             viewModel.loadFavoriteQuestions(favoriteFileName)
         } else {
-            // 普通练习模式使用 "practice_" 前缀，避免与其他模式的进度混淆
             viewModel.setProgressId(id = quizId, questionsId = quizId, questionCount = practiceCount)
         }
     }
-
     val coroutineScope = rememberCoroutineScope()
     val wrongBookViewModel: WrongBookViewModel = hiltViewModel()
     val questions by viewModel.questions.collectAsState()
     val fontSize by settingsViewModel.fontSize.collectAsState()
-    val fontStyle by settingsViewModel.fontStyle.collectAsState()
     val correctDelay by settingsViewModel.correctDelay.collectAsState()
     val wrongDelay by settingsViewModel.wrongDelay.collectAsState()
     val context = LocalContext.current
@@ -107,10 +96,6 @@ fun PracticeScreen(
     val hasNote = noteList.getOrNull(currentIndex).orEmpty().isNotBlank()
     val selectedOption = selectedOptions.getOrNull(currentIndex) ?: emptyList<Int>()
     val showResult = showResultList.getOrNull(currentIndex) ?: false
-    android.util.Log.d(
-        "PracticeScreen-selected",
-        "currentIndex=$currentIndex, selectedOption=$selectedOption, showResult=$showResult"
-    )
     val isFavorite = remember(question, favoriteQuestions) {
         question != null && favoriteQuestions.any { it.question.id == question.id }
     }
@@ -123,8 +108,6 @@ fun PracticeScreen(
             elapsed += 1
         }
     }
-    // When results are shown, display any cached AI analysis if available.
-    // Users must tap the bulb icon to trigger new analysis generation.
     var showList by remember { mutableStateOf(false) }
     var showNoteDialog by remember { mutableStateOf(false) }
     var noteText by remember { mutableStateOf("") }
@@ -133,28 +116,16 @@ fun PracticeScreen(
     val storedPracticeFontSize by FontSettingsDataStore
         .getPracticeFontSize(context, Float.NaN)
         .collectAsState(initial = Float.NaN)
-    android.util.Log.d(
-        "PracticeScreen-font",
-        "storedPracticeFontSize=$storedPracticeFontSize globalFontSize=$fontSize"
-    )
     var questionFontSize by remember { mutableStateOf(fontSize) }
     var fontLoaded by remember { mutableStateOf(false) }
     LaunchedEffect(storedPracticeFontSize) {
         if (!storedPracticeFontSize.isNaN()) {
-            android.util.Log.d(
-                "PracticeScreen-font",
-                "loaded storedPracticeFontSize=$storedPracticeFontSize"
-            )
             questionFontSize = storedPracticeFontSize
             fontLoaded = true
         }
     }
     LaunchedEffect(questionFontSize, fontLoaded) {
         if (fontLoaded) {
-            android.util.Log.d(
-                "PracticeScreen-font",
-                "save practice questionFontSize=$questionFontSize"
-            )
             FontSettingsDataStore.setPracticeFontSize(context, questionFontSize)
         }
     }
@@ -165,19 +136,11 @@ fun PracticeScreen(
     LaunchedEffect(progressLoaded) {
         if (progressLoaded) answeredThisSession = false
     }
-
     LaunchedEffect(analysisPair) {
         val pair = analysisPair
         if (pair != null && pair.second != "解析中...") {
             viewModel.updateAnalysis(pair.first, pair.second)
         }
-    }
-
-    LaunchedEffect(selectedOption, showResult, currentIndex, answeredList, selectedOptions, showResultList, progressLoaded) {
-        android.util.Log.d(
-            "PracticeScreen-LaunchedEffect",
-            "currentIndex=$currentIndex, selectedOption=$selectedOption, showResult=$showResult, answeredList=$answeredList, selectedOptions=$selectedOptions, showResultList=$showResultList, progressLoaded=$progressLoaded"
-        )
     }
     BackHandler {
         when {
@@ -216,11 +179,9 @@ fun PracticeScreen(
                     onDragEnd = {
                         if (dragAmount > 100f && currentIndex > 0) {
                             autoJob?.cancel()
-                           // viewModel.updateShowResult(currentIndex, showResult)
                             viewModel.prevQuestion()
                         } else if (dragAmount < -100f) {
                             autoJob?.cancel()
-                           // viewModel.updateShowResult(currentIndex, showResult)
                             if (currentIndex < questions.size - 1) {
                                 viewModel.nextQuestion()
                             } else {
@@ -244,7 +205,7 @@ fun PracticeScreen(
                 )
             }
     ) {
-        // Layer 1: timer, question list card and settings menu
+        // Top bar
         Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
             Text(
                 "%02d:%02d".format(elapsed / 60, elapsed % 60),
@@ -260,7 +221,6 @@ fun PracticeScreen(
                 }
             }) {
                 Icon(
-                    modifier = Modifier.size(24.dp),
                     imageVector = if (isFavorite) Icons.Filled.Star else Icons.Outlined.StarBorder,
                     contentDescription = if (isFavorite) "取消收藏" else "收藏"
                 )
@@ -280,7 +240,6 @@ fun PracticeScreen(
                     tint = if (hasDeepSeekAnalysis) MaterialTheme.colorScheme.primary else LocalContentColor.current
                 )
             }
-
             IconButton(onClick = {
                 coroutineScope.launch {
                     noteText = viewModel.getNote(question.id) ?: ""
@@ -326,7 +285,6 @@ fun PracticeScreen(
                 })
             }
         }
-
         if (showList) {
             AlertDialog(onDismissRequest = { showList = false }, confirmButton = {}, text = {
                 val singleIndices = remember(questions) { questions.mapIndexedNotNull { i, q -> if (q.type == "单选题") i else null } }
@@ -381,7 +339,6 @@ fun PracticeScreen(
 
         Spacer(modifier = Modifier.height(8.dp))
 
-        // Layer 2: type and progress
         Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
             Text(
                 "题型：${question.type}",
@@ -400,193 +357,184 @@ fun PracticeScreen(
             modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp)
         )
 
-        // 2. 计算正确答案下标列表
+        // 题干
+        Text(
+            text = question.content,
+            style = MaterialTheme.typography.titleMedium.copy(
+                fontSize = questionFontSize.sp,
+                lineHeight = (questionFontSize * 1.3f).sp,
+                fontFamily = LocalFontFamily.current
+            )
+        )
+        Spacer(modifier = Modifier.height(16.dp))
+
+        // 正确答案下标列表
         val correctIndices: List<Int> = question.answer
             .filter { it.isLetter() }
             .mapNotNull { answerLetterToIndex(it.toString()) }
 
-        // Layer 3: question and options
-        Column(modifier = Modifier.weight(1f)) {
-            // 题干
-            Text(
-                text = question.content,
-                style = MaterialTheme.typography.titleMedium.copy(
+        // 选项
+        question.options.forEachIndexed { idx, option ->
+            val isSelected = selectedOption.contains(idx)
+            val isCorrect = showResult && correctIndices.contains(idx)
+            val isWrong = showResult && isSelected && !isCorrect
+            val bgColor = when {
+                isCorrect -> MaterialTheme.colorScheme.primary.copy(alpha = 0.2f)
+                isWrong -> MaterialTheme.colorScheme.error.copy(alpha = 0.2f)
+                isSelected -> MaterialTheme.colorScheme.secondary.copy(alpha = 0.1f)
+                else -> MaterialTheme.colorScheme.surface
+            }
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 4.dp)
+                    .background(bgColor)
+                    .clickable(enabled = !showResult) {
+                        answeredThisSession = true
+                        if (question.type == "单选题" || question.type == "判断题") {
+                            viewModel.answerQuestion(idx)
+                            val correctIdx = answerLetterToIndex(question.answer)
+                            val correct = idx == correctIdx
+                            if (correct) soundEffects.playCorrect() else soundEffects.playWrong()
+                            if (!correct) {
+                                coroutineScope.launch {
+                                    wrongBookViewModel.addWrongQuestion(
+                                        com.example.testapp.domain.model.WrongQuestion(
+                                            question, listOf(idx)
+                                        )
+                                    )
+                                }
+                            }
+                            onSubmit(correct)
+                            autoJob?.cancel()
+                            autoJob = coroutineScope.launch {
+                                val d = if (correct) correctDelay else wrongDelay
+                                if (d > 0) kotlinx.coroutines.delay(d * 1000L)
+                                viewModel.updateShowResult(currentIndex, true)
+                                if (currentIndex < questions.size - 1) viewModel.nextQuestion()
+                                else if (answeredList.isEmpty()) onExitWithoutAnswer()
+                                else if (answeredList.size >= questions.size) {
+                                    viewModel.addHistoryRecord(score, questions.size)
+                                    onQuizEnd(score, questions.size)
+                                }
+                                else showExitDialog = true
+                            }
+                        } else {
+                            viewModel.toggleOption(idx)
+                        }
+                    },
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                if (question.type == "多选题") {
+                    Checkbox(
+                        checked = isSelected,
+                        onCheckedChange = {
+                            answeredThisSession = true
+                            viewModel.toggleOption(idx)
+                        },
+                        enabled = !showResult
+                    )
+                } else {
+                    RadioButton(
+                        selected = isSelected,
+                        onClick = null,
+                        enabled = !showResult
+                    )
+                }
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(
+                    text = option,
+                    modifier = Modifier.weight(1f),
                     fontSize = questionFontSize.sp,
                     lineHeight = (questionFontSize * 1.3f).sp,
                     fontFamily = LocalFontFamily.current
                 )
-            )
-            Spacer(modifier = Modifier.height(16.dp))
-
-            // 1. 声明 handleSelect
-            val handleSelect: (Int) -> Unit = { idx ->
-                answeredThisSession = true
-                if (question.type == "单选题" || question.type == "判断题") {
-                    // 单选/判断题逻辑不变
-                    viewModel.answerQuestion(idx)
-                    val correctIdx = answerLetterToIndex(question.answer)
-                    val correct = idx == correctIdx
-                    if (correct) soundEffects.playCorrect() else soundEffects.playWrong()
-                    if (!correct) {
-                        coroutineScope.launch {
-                            wrongBookViewModel.addWrongQuestion(
-                                com.example.testapp.domain.model.WrongQuestion(
-                                    question,
-                                    listOf(idx)
-                                )
-                            )
-                        }
-                    }
-                    onSubmit(correct)
-                    autoJob?.cancel()
-                    autoJob = coroutineScope.launch {
-                        val d = if (correct) correctDelay else wrongDelay
-                        if (d > 0) kotlinx.coroutines.delay(d * 1000L)
-                        viewModel.updateShowResult(currentIndex, true)
-                        if (currentIndex < questions.size - 1) viewModel.nextQuestion()
-                        else if (answeredList.isEmpty()) onExitWithoutAnswer()
-                        else if (answeredList.size >= questions.size) {
-                            viewModel.addHistoryRecord(score, questions.size)
-                            onQuizEnd(
-                                score,
-                                questions.size
-                            )
-                        }
-                        else showExitDialog = true
-                    }
-                } else {
-                    // 多选题：切换选项状态
-                    viewModel.toggleOption(idx)
-                }
-            }
-
-
-            // 3. 渲染所有选项（单次循环）
-            question.options.forEachIndexed { idx, option ->
-                val isSelected = selectedOption.contains(idx)
-                val isCorrect = showResult && correctIndices.contains(idx)
-                val isWrong = showResult && isSelected && !isCorrect
-                val bgColor = when {
-                    isCorrect -> MaterialTheme.colorScheme.primary.copy(alpha = 0.2f)
-                    isWrong -> MaterialTheme.colorScheme.error.copy(alpha = 0.2f)
-                    isSelected -> MaterialTheme.colorScheme.secondary.copy(alpha = 0.1f)
-                    else -> MaterialTheme.colorScheme.surface
-                }
-
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(vertical = 4.dp)
-                        .background(bgColor)
-                        .clickable(enabled = !showResult) { handleSelect(idx) },
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    if (question.type == "多选题") {
-                        Checkbox(
-                            checked = isSelected,
-                            onCheckedChange = { handleSelect(idx) },
-                            enabled = !showResult
-                        )
-                    } else {
-                        RadioButton(
-                            selected = isSelected,
-                            onClick = { handleSelect(idx) },
-                            enabled = !showResult
-                        )
-                    }
-                    Text(
-                        text = option,
-                        fontSize = questionFontSize.sp,
-                        lineHeight = (questionFontSize * 1.3f).sp,
-                        fontFamily = LocalFontFamily.current
-                    )
-                }
-            }
-
-            // 4. 解析区
-            if (showResult) {
-                val correctText = correctIndices.joinToString("、") { question.options[it] }
-                val allCorrect = selectedOption.toSet() == correctIndices.toSet()
-                // ---- 答题结果显示（用 primaryContainer，偏蓝/主色调）
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .background(Color(0xFFD0E8FF)) // 明显蓝色
-                        .padding(8.dp)
-                ) {
-                    Text(
-                        text = if (allCorrect) "回答正确！" else "回答错误，正确答案：$correctText",
-                        color = if (allCorrect) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error,
-                        fontSize = questionFontSize.sp,
-                        fontFamily = LocalFontFamily.current
-                    )
-                }
-                if (question.explanation.isNotBlank()) {
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .background(Color(0xFFFFF5C0)) // 明显黄色
-                            .padding(8.dp)
-                    ) {
-                        Text(
-                            text = "解析：" + if (question.explanation.isNotBlank()) question.explanation else "本题暂无解析",
-                            color = Color(0xFF835C00), // 深点的黄棕色，看着和底色区分开
-                            fontSize = questionFontSize.sp,
-                            fontFamily = LocalFontFamily.current
-                        )
-                    }
-                }
-
-                val note = noteList.getOrNull(currentIndex)
-                if (!note.isNullOrBlank()) {
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .background(Color(0xFFE0FFE0))
-                            .padding(8.dp)
-                    ) {
-                        Text(
-                            text = "笔记：$note",
-                            color = Color(0xFF004B00),
-                            fontSize = questionFontSize.sp,
-                            fontFamily = LocalFontFamily.current
-                        )
-                    }
-                }
-                Spacer(modifier = Modifier.height(16.dp))
-
-                if (!analysisText.isNullOrBlank()) {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .weight(1f, fill = true)
-                            .verticalScroll(rememberScrollState())
-                            .background(Color(0xFFE8F6FF))
-                            .padding(8.dp)
-                            .pointerInput(analysisText) {
-                                detectTapGestures(
-                                    onDoubleTap = {
-                                        question?.let { q ->
-                                            onViewDeepSeek(analysisText!!, q.id, currentIndex)
-                                        }
-                                    },
-                                    onLongPress = { showDeleteDialog = true }
-                                )
-                            }
-                    ) {
-                        Text(
-                            text = analysisText ?: "",
-                            color = Color(0xFF004B6B),
-                            fontSize = questionFontSize.sp,
-                            fontFamily = LocalFontFamily.current
-                        )
-                    }
-                }
-
             }
         }
 
-        // Layer 4: 多选题的提交按钮
+        // 解析/结果区
+        if (showResult) {
+            val correctText = correctIndices.joinToString("、") { question.options[it] }
+            val allCorrect = selectedOption.toSet() == correctIndices.toSet()
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .background(Color(0xFFD0E8FF))
+                    .padding(8.dp)
+            ) {
+                Text(
+                    text = if (allCorrect) "回答正确！" else "回答错误，正确答案：$correctText",
+                    color = if (allCorrect) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error,
+                    fontSize = questionFontSize.sp,
+                    fontFamily = LocalFontFamily.current
+                )
+            }
+            if (question.explanation.isNotBlank()) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .background(Color(0xFFFFF5C0))
+                        .padding(8.dp)
+                ) {
+                    Text(
+                        text = "解析：" + question.explanation,
+                        color = Color(0xFF835C00),
+                        fontSize = questionFontSize.sp,
+                        fontFamily = LocalFontFamily.current
+                    )
+                }
+            }
+            val note = noteList.getOrNull(currentIndex)
+            if (!note.isNullOrBlank()) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .background(Color(0xFFE0FFE0))
+                        .padding(8.dp)
+                ) {
+                    Text(
+                        text = "笔记：$note",
+                        color = Color(0xFF004B00),
+                        fontSize = questionFontSize.sp,
+                        fontFamily = LocalFontFamily.current
+                    )
+                }
+            }
+            Spacer(modifier = Modifier.height(16.dp))
+            if (!analysisText.isNullOrBlank()) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .weight(1f, fill = true)
+                        .verticalScroll(rememberScrollState())
+                        .background(Color(0xFFE8F6FF))
+                        .padding(8.dp)
+                        .pointerInput(analysisText) {
+                            detectTapGestures(
+                                onDoubleTap = {
+                                    question?.let { q ->
+                                        onViewDeepSeek(analysisText!!, q.id, currentIndex)
+                                    }
+                                },
+                                onLongPress = { showDeleteDialog = true }
+                            )
+                        }
+                ) {
+                    Text(
+                        text = analysisText ?: "",
+                        color = Color(0xFF004B6B),
+                        fontSize = questionFontSize.sp,
+                        fontFamily = LocalFontFamily.current
+                    )
+                }
+            } else {
+                Spacer(modifier = Modifier.weight(1f, fill = true))
+            }
+        } else {
+            Spacer(modifier = Modifier.weight(1f, fill = true))
+        }
+
+        // “提交答案”按钮（多选题且未提交才显示）
         if (question.type == "多选题" && !showResult) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -607,20 +555,14 @@ fun PracticeScreen(
                                 )
                             }
                         }
-
                         if (allCorrect) score++
                         onSubmit(allCorrect)
                         autoJob = coroutineScope.launch {
                             val d = if (allCorrect) correctDelay else wrongDelay
                             if (d > 0) kotlinx.coroutines.delay(d * 1000L)
                             if (currentIndex < questions.size - 1) viewModel.nextQuestion()
-
                             else if (answeredList.isEmpty()) onExitWithoutAnswer()
-
-                            else if (answeredList.size >= questions.size) onQuizEnd(
-                                score,
-                                questions.size
-                            )
+                            else if (answeredList.size >= questions.size) onQuizEnd(score, questions.size)
                             else showExitDialog = true
                         }
                     },
@@ -634,7 +576,10 @@ fun PracticeScreen(
                 }
             }
         }
+
+        Spacer(modifier = Modifier.height(8.dp))
     }
+
     if (showNoteDialog) {
         AlertDialog(
             onDismissRequest = {
@@ -648,17 +593,11 @@ fun PracticeScreen(
                 }) { Text("完成") }
             },
             dismissButton = {
-                TextButton(onClick = {
-                    showNoteDialog = false
-                }) { Text("取消") }
+                TextButton(onClick = { showNoteDialog = false }) { Text("取消") }
             },
-            text = {
-                TextField(value = noteText, onValueChange = { noteText = it })
-            }
+            text = { TextField(value = noteText, onValueChange = { noteText = it }) }
         )
     }
-
-
     if (showDeleteDialog) {
         AlertDialog(
             onDismissRequest = { showDeleteDialog = false },
