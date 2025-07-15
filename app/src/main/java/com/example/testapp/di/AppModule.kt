@@ -44,6 +44,7 @@ import com.example.testapp.domain.usecase.GetExamProgressFlowUseCase
 import com.example.testapp.domain.usecase.ClearExamProgressUseCase
 import com.example.testapp.domain.usecase.ClearPracticeProgressUseCase
 import com.example.testapp.domain.usecase.GetHistoryListByFileUseCase
+import com.example.testapp.domain.usecase.GetHistoryListByFileNamesUseCase
 import com.example.testapp.domain.usecase.GetQuestionAnalysisUseCase
 import com.example.testapp.domain.usecase.SaveQuestionAnalysisUseCase
 import com.example.testapp.domain.usecase.GetQuestionNoteUseCase
@@ -124,6 +125,12 @@ object AppModule {
     @Singleton
     fun provideGetHistoryListByFileUseCase(repo: HistoryRepository): GetHistoryListByFileUseCase =
         GetHistoryListByFileUseCase(repo)
+
+    @Provides
+    @Singleton
+    fun provideGetHistoryListByFileNamesUseCase(repo: HistoryRepository): GetHistoryListByFileNamesUseCase =
+        GetHistoryListByFileNamesUseCase(repo)
+
 
     @Provides
     @Singleton

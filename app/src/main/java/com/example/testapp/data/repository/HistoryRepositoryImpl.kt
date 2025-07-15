@@ -33,6 +33,10 @@ class HistoryRepositoryImpl @Inject constructor(
     override fun getByFileName(fileName: String): Flow<List<HistoryRecord>> =
         dao.getByFileName(fileName).map { list -> list.map { it.toDomain() } }
 
+    override fun getByFileNames(fileNames: List<String>): Flow<List<HistoryRecord>> =
+        dao.getByFileNames(fileNames).map { list -> list.map { it.toDomain() } }
+
+
     override suspend fun add(record: HistoryRecord) {
         dao.add(record.toEntity())
     }
