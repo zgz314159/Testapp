@@ -3,7 +3,7 @@ package com.example.testapp.presentation.screen
 import android.util.Log
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -48,6 +48,7 @@ import androidx.compose.material.SwipeToDismiss
 import androidx.compose.material.rememberDismissState
 import androidx.compose.ui.text.withStyle
 import androidx.compose.material.icons.filled.FactCheck
+import androidx.compose.ui.input.pointer.pointerInput
 
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterialApi::class)
@@ -215,9 +216,16 @@ fun HomeScreen(
                                                     MaterialTheme.colorScheme.surface
                                                 }
                                             )
-                                            .clickable {
-                                                selectedFileName.value = name
-                                                onViewQuestionDetail(name)
+                                            .pointerInput(name) {
+                                                detectTapGestures(
+                                                    onTap = {
+                                                        selectedFileName.value = name
+                                                    },
+                                                    onDoubleTap = {
+                                                        selectedFileName.value = name
+                                                        onViewQuestionDetail(name)
+                                                    }
+                                                )
                                             },
                                         verticalAlignment = Alignment.CenterVertically
                                     ) {

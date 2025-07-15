@@ -570,6 +570,7 @@ fun ExamScreen(
                         Box(
                             modifier = Modifier
                                 .fillMaxWidth()
+                                .heightIn(max = 200.dp)
                                 .verticalScroll(rememberScrollState())
                                 .background(Color(0xFFE8F6FF))
                                 .padding(8.dp)
