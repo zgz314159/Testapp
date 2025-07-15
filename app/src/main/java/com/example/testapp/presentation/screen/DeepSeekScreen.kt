@@ -91,9 +91,7 @@ fun DeepSeekScreen(
             BasicTextField(
                 value = editableText,
                 onValueChange = { editableText = it },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .weight(1f, fill = true),
+                modifier = Modifier.fillMaxWidth(),
                 textStyle = TextStyle(fontSize = screenFontSize.sp, fontFamily = LocalFontFamily.current)
             )
 
