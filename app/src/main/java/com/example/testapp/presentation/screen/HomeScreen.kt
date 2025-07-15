@@ -136,6 +136,7 @@ fun HomeScreen(
                         bottomNavIndex = 2
                         onViewResult(selectedFileName.value)
                     },
+                    enabled = fileNames.isNotEmpty() && selectedFileName.value.isNotBlank(), // ★ 只需加这一行！
                     icon = { Icon(Icons.Filled.FactCheck, contentDescription = "答题记录") },
                     label = {
                         Text(
