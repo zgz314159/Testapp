@@ -19,6 +19,7 @@ import androidx.compose.ui.unit.dp
 import com.example.testapp.presentation.component.LocalFontFamily
 import com.example.testapp.presentation.component.LocalFontSize
 import androidx.hilt.navigation.compose.hiltViewModel
+import java.time.format.DateTimeFormatter
 
 @Composable
 fun ResultScreen(
@@ -34,9 +35,13 @@ fun ResultScreen(
         viewModel.load(quizId)
     }
     val historyList = viewModel.history.collectAsState()
-    val wrongCount = total - score
-    val accuracyRate = if (total > 0) score.toFloat() / total else 0f
+    val latest = historyList.value.lastOrNull()
+    val displayScore = if (score == 0 && total == 0) latest?.score ?: 0 else score
+    val displayTotal = if (score == 0 && total == 0) latest?.total ?: 0 else total
+    val wrongCount = displayTotal - displayScore
+    val accuracyRate = if (displayTotal > 0) displayScore.toFloat() / displayTotal else 0f
     val accuracyText = String.format("%.2f", accuracyRate * 100)
+    val formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")
     Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
@@ -67,7 +72,7 @@ fun ResultScreen(
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
                     Text(
-                        text = "$score / $total",
+                        text = "$displayScore / $displayTotal",
                         style = MaterialTheme.typography.displaySmall.copy(
                             fontSize = LocalFontSize.current * 1.2f,
                             fontFamily = LocalFontFamily.current
@@ -92,7 +97,7 @@ fun ResultScreen(
                                 fontFamily = LocalFontFamily.current
                             )
                             Text(
-                                text = "$score",
+                                text = "$displayScore",
                                 fontSize = LocalFontSize.current,
                                 fontFamily = LocalFontFamily.current
                             )
@@ -152,7 +157,7 @@ fun ResultScreen(
                     val wrong = h.total - h.score
                     val rate = if (h.total > 0) h.score * 100f / h.total else 0f
                     Text(
-                        text = "${idx + 1}. 正确:${h.score} 错误:${wrong} 正确率:${"%.2f".format(rate)}%",
+                        text = "${idx + 1}. 正确:${h.score} 错误:${wrong} 正确率:${"%.2f".format(rate)}% 时间:${h.time.format(formatter)}",
                         fontSize = LocalFontSize.current,
                         fontFamily = LocalFontFamily.current
                     )

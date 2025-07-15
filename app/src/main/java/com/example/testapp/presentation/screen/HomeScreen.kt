@@ -59,7 +59,7 @@ fun HomeScreen(
     onViewQuestionDetail: (quizId: String) -> Unit = {},
     onWrongBook: (fileName: String) -> Unit = {},
     onFavoriteBook: (fileName: String) -> Unit = {},
-    onViewResult: () -> Unit = {}
+    onViewResult: (fileName: String) -> Unit = {}
 ) {
     val viewModel: HomeViewModel = hiltViewModel()
     val questions by viewModel.questions.collectAsState()
@@ -131,7 +131,7 @@ fun HomeScreen(
                     selected = bottomNavIndex == 2,
                     onClick = {
                         bottomNavIndex = 2
-                        onViewResult()
+                        onViewResult(selectedFileName.value)
                     },
                     icon = { Icon(Icons.Filled.FactCheck, contentDescription = "答题记录") },
                     label = {

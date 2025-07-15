@@ -46,7 +46,7 @@ fun DeepSeekScreen(
     questionId: Int,
     index: Int,
     navController: NavController? = null,
-    practiceViewModel: PracticeViewModel = hiltViewModel(),
+    onSave: (String) -> Unit = {},
     aiViewModel: DeepSeekViewModel = hiltViewModel(),
     settingsViewModel: SettingsViewModel = hiltViewModel()
 ) {
@@ -127,7 +127,7 @@ fun DeepSeekScreen(
                 onDismissRequest = { showSaveDialog = false },
                 confirmButton = {
                     TextButton(onClick = {
-                        practiceViewModel.updateAnalysis(index, editableText)
+                        onSave(editableText)
                         aiViewModel.save(questionId, editableText)
                         Toast.makeText(context, "保存成功", Toast.LENGTH_SHORT).show()
                         showSaveDialog = false

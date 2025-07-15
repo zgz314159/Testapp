@@ -4,6 +4,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.example.testapp.presentation.screen.PracticeViewModel
+import com.example.testapp.presentation.screen.ExamViewModel
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -55,8 +56,9 @@ fun AppNavHost(navController: NavHostController = rememberNavController(), setti
                         navController.navigate("favorite/$encoded")
                     }
                 },
-                onViewResult = {
-                    navController.navigate("history")
+                onViewResult = { fileName ->
+                    val encoded = java.net.URLEncoder.encode(fileName, "UTF-8")
+                    navController.navigate("result/0/0/$encoded")
 
                 }
             )
@@ -212,13 +214,22 @@ fun AppNavHost(navController: NavHostController = rememberNavController(), setti
             val id = backStackEntry.arguments?.getInt("id") ?: 0
             val index = backStackEntry.arguments?.getInt("index") ?: 0
             val parentEntry = remember(backStackEntry) { navController.previousBackStackEntry }
-            val practiceViewModel: PracticeViewModel = parentEntry?.let { hiltViewModel(it) } ?: hiltViewModel()
+            val parentRoute = parentEntry?.destination?.route.orEmpty()
+            val examViewModel: ExamViewModel? = if (parentRoute.startsWith("exam")) {
+                parentEntry?.let { hiltViewModel(it) }
+            } else null
+            val practiceViewModel: PracticeViewModel? = if (!parentRoute.startsWith("exam")) {
+                parentEntry?.let { hiltViewModel(it) }
+            } else null
             DeepSeekScreen(
                 text = text,
                 questionId = id,
                 index = index,
                 navController = navController,
-                practiceViewModel = practiceViewModel,
+                onSave = {
+                    examViewModel?.updateAnalysis(index, it)
+                    practiceViewModel?.updateAnalysis(index, it)
+                },
                 settingsViewModel = settingsViewModel
             )
         }
