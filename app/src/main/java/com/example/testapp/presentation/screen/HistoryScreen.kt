@@ -2,6 +2,7 @@ package com.example.testapp.presentation.screen
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.Text
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.ui.Alignment
@@ -22,12 +23,22 @@ fun HistoryScreen(viewModel: HistoryViewModel = hiltViewModel()) {
         if (historyList.value.isEmpty()) {
             Text(
                 "暂无历史记录",
-                fontSize = LocalFontSize.current,
-                fontFamily = LocalFontFamily.current
+                style = MaterialTheme.typography.bodyMedium.copy(
+                    fontSize = LocalFontSize.current,
+                    fontFamily = LocalFontFamily.current
+                ),
+                color = MaterialTheme.colorScheme.primary
             )
         } else {
             historyList.value.forEachIndexed { idx, record ->
-                Text("${idx + 1}. ${record.score}/${record.total}  时间：${record.time.format(formatter)}", fontSize = LocalFontSize.current, fontFamily = LocalFontFamily.current)
+                Text(
+                    "${idx + 1}. ${record.score}/${record.total}  时间：${record.time.format(formatter)}",
+                    style = MaterialTheme.typography.bodyMedium.copy(
+                        fontSize = LocalFontSize.current,
+                        fontFamily = LocalFontFamily.current
+                    ),
+                    color = MaterialTheme.colorScheme.primary
+                )
             }
         }
     }
