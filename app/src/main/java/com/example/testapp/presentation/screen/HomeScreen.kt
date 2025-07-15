@@ -1,58 +1,29 @@
 package com.example.testapp.presentation.screen
 
-import android.util.Log
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.foundation.background
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.FactCheck
+import androidx.compose.material.icons.filled.Favorite
+import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.Warning
+
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.basicMarquee
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.List
-import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.filled.Favorite
-import androidx.compose.material.icons.filled.Settings
-import androidx.compose.material.icons.filled.Warning
-import androidx.compose.material3.Button
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.*
+import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.NavigationBar
-import androidx.compose.material3.NavigationBarItem
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.text.SpanStyle
-import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.example.testapp.presentation.component.LocalFontFamily
 import com.example.testapp.presentation.component.LocalFontSize
-import com.example.testapp.presentation.screen.SettingsViewModel
-import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material.DismissDirection
-import androidx.compose.material.DismissValue
-import androidx.compose.material.ExperimentalMaterialApi
-import androidx.compose.material.FractionalThreshold
-import androidx.compose.material.SwipeToDismiss
-import androidx.compose.material.rememberDismissState
-import androidx.compose.ui.text.withStyle
-import androidx.compose.material.icons.filled.FactCheck
-import androidx.compose.ui.input.pointer.pointerInput
 
-@OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterialApi::class)
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HomeScreen(
     onStartQuiz: (quizId: String) -> Unit = {},
@@ -70,7 +41,6 @@ fun HomeScreen(
     val selectedFileName = remember { mutableStateOf("") }
     val isLoading by settingsViewModel.isLoading.collectAsState()
     val importProgress by settingsViewModel.progress.collectAsState()
-    // 题目数量按文件统计
     val questionCounts = remember(questions) {
         questions.groupBy { it.fileName ?: "" }.mapValues { it.value.size }
     }
@@ -79,7 +49,11 @@ fun HomeScreen(
             selectedFileName.value = fileNames.first()
         }
     }
-    var bottomNavIndex by remember { mutableStateOf(0) }
+    var bottomNavIndex by remember { mutableStateOf(3) } // 3: 主界面
+
+    // BottomSheet 控制变量
+    var showSheet by remember { mutableStateOf(false) }
+    var pendingFileName by remember { mutableStateOf("") }
 
     Scaffold(
         topBar = {
@@ -102,10 +76,7 @@ fun HomeScreen(
             NavigationBar {
                 NavigationBarItem(
                     selected = bottomNavIndex == 0,
-                    onClick = {
-                        bottomNavIndex = 0
-                        onWrongBook("")
-                    },
+                    onClick = { bottomNavIndex = 0 },
                     icon = { Icon(Icons.Filled.Warning, contentDescription = "错题库") },
                     label = {
                         Text(
@@ -117,10 +88,7 @@ fun HomeScreen(
                 )
                 NavigationBarItem(
                     selected = bottomNavIndex == 1,
-                    onClick = {
-                        bottomNavIndex = 1
-                        onFavoriteBook("")
-                    },
+                    onClick = { bottomNavIndex = 1 },
                     icon = { Icon(Icons.Filled.Favorite, contentDescription = "收藏库") },
                     label = {
                         Text(
@@ -132,11 +100,7 @@ fun HomeScreen(
                 )
                 NavigationBarItem(
                     selected = bottomNavIndex == 2,
-                    onClick = {
-                        bottomNavIndex = 2
-                        onViewResult(selectedFileName.value)
-                    },
-                    enabled = fileNames.isNotEmpty() && selectedFileName.value.isNotBlank(), // ★ 只需加这一行！
+                    onClick = { bottomNavIndex = 2 },
                     icon = { Icon(Icons.Filled.FactCheck, contentDescription = "答题记录") },
                     label = {
                         Text(
@@ -146,13 +110,21 @@ fun HomeScreen(
                         )
                     }
                 )
+                NavigationBarItem(
+                    selected = bottomNavIndex == 3,
+                    onClick = { bottomNavIndex = 3 },
+                    icon = { Icon(Icons.Filled.Settings, contentDescription = "题库主页") },
+                    label = {
+                        Text(
+                            "题库主页",
+                            fontSize = LocalFontSize.current,
+                            fontFamily = LocalFontFamily.current
+                        )
+                    }
+                )
             }
         }
     ) { innerPadding ->
-        Log.d(
-            "HomeScreen",
-            "[Compose] fileNames=$fileNames, selectedFileName=${selectedFileName.value}, questions.size=${questions.size}"
-        )
         Box(
             modifier = Modifier
                 .fillMaxSize()
@@ -160,181 +132,79 @@ fun HomeScreen(
         ) {
             Column(
                 modifier = Modifier
-                    .fillMaxSize()
-                    .padding(5.dp),
+                    .fillMaxSize(),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                android.util.Log.d(
-                    "HomeScreen",
-                    "fontSize=${LocalFontSize.current}, fontFamily=${LocalFontFamily.current}, recomposed!"
-                )
-                // 文件名列表
-                if (fileNames.isNotEmpty()) {
-                    val screenHeight =
-                        LocalContext.current.resources.displayMetrics.heightPixels / LocalContext.current.resources.displayMetrics.density
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .weight(1f) // 让列表撑满剩余空间
-                    ) {
-                        LazyColumn(
+                // ========== 文件列表 ==========
+                LazyColumn(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .weight(1f)
+                        .padding(bottom = 8.dp)
+                ) {
+                    items(fileNames, key = { it }) { name ->
+                        Card(
                             modifier = Modifier
-                                .fillMaxSize()
-                                .padding(vertical = 8.dp)
-                        ) {
-                            items(fileNames, key = { it }) { name ->
-                                val dismissState = rememberDismissState()
-                                if (dismissState.currentValue == DismissValue.DismissedToStart) {
-                                    Log.d(
-                                        "HomeScreen",
-                                        "[Delete] 删除文件: $name, 当��fileNames=$fileNames, 当前选中=${selectedFileName.value}"
-                                    )
-                                    viewModel.deleteFileAndData(name) {
-                                        // 删除后回调，自动切换选中项
-                                        val newList = fileNames.filter { it != name }
-                                        selectedFileName.value = newList.firstOrNull() ?: ""
-                                        Log.d(
-                                            "HomeScreen",
-                                            "[Delete] 更新选中: ${selectedFileName.value}"
-                                        )
-                                    }
-                                }
-                                SwipeToDismiss(
-                                    state = dismissState,
-                                    directions = setOf(DismissDirection.EndToStart),
-                                    dismissThresholds = { direction ->
-                                        FractionalThreshold(0.2f)
-                                    },
-                                    background = {
-                                        val showRed =
-                                            dismissState.dismissDirection != null && dismissState.targetValue != DismissValue.Default
-                                        Box(
-                                            modifier = Modifier
-                                                .fillMaxSize()
-                                                .background(
-                                                    if (showRed) MaterialTheme.colorScheme.error else Color.Transparent
-                                                )
-                                                .padding(horizontal = 20.dp),
-                                            contentAlignment = Alignment.CenterEnd
-                                        ) {
-                                            if (showRed) {
-                                                Icon(
-                                                    Icons.Filled.Delete,
-                                                    contentDescription = "删除",
-                                                    tint = Color.White
-                                                )
+                                .fillMaxWidth()
+                                .padding(horizontal = 16.dp, vertical = 6.dp)
+                                .pointerInput(name) {
+                                    detectTapGestures(
+                                        onTap = {
+                                            selectedFileName.value = name
+                                            when (bottomNavIndex) {
+                                                0 -> onWrongBook(name)
+                                                1 -> onFavoriteBook(name)
+                                                2 -> onViewResult(name)
+                                                else -> {
+                                                    pendingFileName = name
+                                                    showSheet = true
+                                                }
                                             }
+                                        },
+                                        onDoubleTap = {
+                                            selectedFileName.value = name
+                                            onViewQuestionDetail(name)
                                         }
-                                    },
-                                    dismissContent = {
-                                        Row(
-                                            modifier = Modifier
-                                                .fillMaxWidth()
-                                                .padding(horizontal = 12.dp, vertical = 11.dp)
-                                                .background(
-                                                    if (selectedFileName.value == name) {
-                                                        Color(0xFFBBDEFB)
-                                                    } else {
-                                                        MaterialTheme.colorScheme.surface
-                                                    }
-                                                )
-                                                .pointerInput(name) {
-                                                    detectTapGestures(
-                                                        onTap = {
-                                                            selectedFileName.value = name
-                                                        },
-                                                        onDoubleTap = {
-                                                            selectedFileName.value = name
-                                                            onViewQuestionDetail(name)
-                                                        }
-                                                    )
-                                                },
-                                            verticalAlignment = Alignment.CenterVertically
-                                        ) {
-                                            Text(
-                                                text = buildAnnotatedString {
-                                                    append("$name ")
-                                                    withStyle(SpanStyle(color = Color.Blue)) {
-                                                        append("(${questionCounts[name] ?: 0})")
-                                                    }
-                                                },
-                                                maxLines = 1,
-                                                modifier = Modifier
-                                                    .weight(1f)
-                                                    .basicMarquee(),
-                                                fontSize = LocalFontSize.current,
-                                                fontFamily = LocalFontFamily.current
-                                            )
-                                        }
-                                    }
+                                    )
+                                },
+                            shape = RoundedCornerShape(16.dp),
+                            colors = if (selectedFileName.value == name)
+                                CardDefaults.cardColors(
+                                    containerColor = MaterialTheme.colorScheme.primaryContainer
+                                )
+                            else
+                                CardDefaults.cardColors(),
+                            elevation = CardDefaults.cardElevation(defaultElevation = if (selectedFileName.value == name) 6.dp else 2.dp)
+                        ) {
+                            Row(
+                                Modifier
+                                    .fillMaxWidth()
+                                    .padding(horizontal = 16.dp, vertical = 16.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text(
+                                    text = name,
+                                    fontSize = LocalFontSize.current,
+                                    fontFamily = LocalFontFamily.current,
+                                    modifier = Modifier.weight(1f)
+                                )
+                                Text(
+                                    text = "${questionCounts[name] ?: 0}题",
+                                    fontSize = LocalFontSize.current * 0.95f,
+                                    color = MaterialTheme.colorScheme.primary
                                 )
                             }
                         }
                     }
-                } else {
-                    Spacer(modifier = Modifier.weight(1f))
                 }
-                if (questions.isEmpty()) {
-                    Text(
-                        text = "加载中...",
-                        fontSize = LocalFontSize.current,
-                        fontFamily = LocalFontFamily.current
-                    )
-                }
-                Spacer(modifier = Modifier.height(12.dp)) // 缩小按钮和上方内容间距
 
-                // 紧凑按钮区
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    Button(
-                        onClick = {
-                            if (selectedFileName.value.isNotEmpty() && fileNames.contains(
-                                    selectedFileName.value
-                                )
-                            ) {
-                                onStartQuiz(selectedFileName.value)
-                            }
-                        },
-                        enabled = selectedFileName.value.isNotEmpty() && fileNames.contains(
-                            selectedFileName.value
-                        ),
-                        modifier = Modifier
-                            .weight(1f)
-                            .height(40.dp) // 紧凑主流高度
-                    ) {
-                        Text(
-                            "开始练习",
-                            fontSize = LocalFontSize.current * 0.95f,
-                            fontFamily = LocalFontFamily.current
-                        )
-                    }
-                    Button(
-                        onClick = {
-                            if (selectedFileName.value.isNotEmpty() && fileNames.contains(
-                                    selectedFileName.value
-                                )
-                            ) {
-                                onStartExam(selectedFileName.value)
-                            }
-                        },
-                        enabled = selectedFileName.value.isNotEmpty() && fileNames.contains(
-                            selectedFileName.value
-                        ),
-                        modifier = Modifier
-                            .weight(1f)
-                            .height(40.dp)
-                    ) {
-                        Text(
-                            "开始考试",
-                            fontSize = LocalFontSize.current * 0.95f,
-                            fontFamily = LocalFontFamily.current
-                        )
-                    }
-                }
+                // ========== 加载中 ==========
                 if (isLoading) {
-                    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize(),
+                        contentAlignment = Alignment.Center
+                    ) {
                         Column(horizontalAlignment = Alignment.CenterHorizontally) {
                             CircularProgressIndicator(progress = importProgress)
                             Spacer(modifier = Modifier.height(8.dp))
@@ -343,6 +213,57 @@ fun HomeScreen(
                                 fontSize = LocalFontSize.current,
                                 fontFamily = LocalFontFamily.current
                             )
+                        }
+                    }
+                }
+            }
+
+            // ========== BottomSheet 弹出菜单 ==========
+            if (showSheet) {
+                ModalBottomSheet(
+                    onDismissRequest = { showSheet = false }
+                ) {
+                    Column(
+                        Modifier
+                            .padding(top = 16.dp, bottom = 28.dp, start = 24.dp, end = 24.dp)
+                            .fillMaxWidth(),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        Text(
+                            pendingFileName,
+                            fontSize = LocalFontSize.current,
+                            fontFamily = LocalFontFamily.current,
+                            modifier = Modifier.padding(bottom = 20.dp)
+                        )
+                        Button(
+                            onClick = {
+                                showSheet = false
+                                onStartQuiz(pendingFileName)
+                            },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(44.dp)
+                        ) {
+                            Text("开始练习")
+                        }
+                        Spacer(Modifier.height(14.dp))
+                        Button(
+                            onClick = {
+                                showSheet = false
+                                onStartExam(pendingFileName)
+                            },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(44.dp)
+                        ) {
+                            Text("开始考试")
+                        }
+                        Spacer(Modifier.height(12.dp))
+                        TextButton(
+                            onClick = { showSheet = false },
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Text("取消")
                         }
                     }
                 }

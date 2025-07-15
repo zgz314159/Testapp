@@ -239,32 +239,34 @@ fun ExamScreen(
                     contentDescription = if (isFavorite) "取消收藏" else "收藏"
                 )
             }
-            if (selectedOption.isNotEmpty()) {
-                IconButton(onClick = {
-                    if (hasDeepSeekAnalysis) {
-                        onViewDeepSeek(analysisText ?: "", question.id, currentIndex)
-                    } else {
-                        aiViewModel.analyze(currentIndex, question)
-                    }
-                }) {
-                    Icon(
-                        imageVector = Icons.Filled.Lightbulb,
-                        contentDescription = "AI 解析",
-                        tint = if (hasDeepSeekAnalysis) MaterialTheme.colorScheme.primary else LocalContentColor.current
-                    )
+            IconButton(onClick = {
+                if (!showResult) {
+                    answeredThisSession = true
+                    viewModel.updateShowResult(currentIndex, true)
                 }
-                IconButton(onClick = {
-                    coroutineScope.launch {
-                        noteText = viewModel.getNote(question.id) ?: ""
-                        showNoteDialog = true
-                    }
-                }) {
-                    Icon(
-                        imageVector = Icons.Filled.Edit,
-                        contentDescription = "笔记",
-                        tint = if (hasNote) MaterialTheme.colorScheme.primary else LocalContentColor.current
-                    )
+                if (hasDeepSeekAnalysis) {
+                    onViewDeepSeek(analysisText ?: "", question.id, currentIndex)
+                } else {
+                    aiViewModel.analyze(currentIndex, question)
                 }
+            }) {
+                Icon(
+                    imageVector = Icons.Filled.Lightbulb,
+                    contentDescription = "AI 解析",
+                    tint = if (hasDeepSeekAnalysis) MaterialTheme.colorScheme.primary else LocalContentColor.current
+                )
+            }
+            IconButton(onClick = {
+                coroutineScope.launch {
+                    noteText = viewModel.getNote(question.id) ?: ""
+                    showNoteDialog = true
+                }
+            }) {
+                Icon(
+                    imageVector = Icons.Filled.Edit,
+                    contentDescription = "笔记",
+                    tint = if (hasNote) MaterialTheme.colorScheme.primary else LocalContentColor.current
+                )
             }
             Spacer(modifier = Modifier.weight(1f))
             Card(onClick = { showList = true }) {

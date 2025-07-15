@@ -227,6 +227,10 @@ fun PracticeScreen(
             }
             IconButton(onClick = {
                 if (question != null) {
+                    if (!showResult) {
+                        answeredThisSession = true
+                        viewModel.updateShowResult(currentIndex, true)
+                    }
                     if (hasDeepSeekAnalysis) {
                         onViewDeepSeek(analysisText ?: "", question.id, currentIndex)
                     } else {
