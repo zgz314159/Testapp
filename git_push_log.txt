@@ -1,10 +1,17 @@
-[2025-07-14_21-09] ? ³É¹¦Ìá½»²¢ÍÆËÍ£º¸üĞÂÓÚ 2025-07-14 21-09 
-[2025-07-14_21-15] ? ³É¹¦Ìá½»²¢ÍÆËÍ£º¸üĞÂÓÚ 2025-07-14 21-15 
-[2025-07-14_21-34] ? ³É¹¦Ìá½»²¢ÍÆËÍ£º¸üĞÂÓÚ 2025-07-14 21-34 
-[2025-07-14_21-52] ? ³É¹¦Ìá½»²¢ÍÆËÍ£º¸üĞÂÓÚ 2025-07-14 21-52 
-[2025-07-14_22-00] ? ³É¹¦Ìá½»²¢ÍÆËÍ£º¸üĞÂÓÚ 2025-07-14 22-00 
-[2025-07-14_22-34] ? ³É¹¦Ìá½»²¢ÍÆËÍ£º¸üĞÂÓÚ 2025-07-14 22-34 
-[2025-07-14_23-02] ? ³É¹¦Ìá½»²¢ÍÆËÍ£º¸üĞÂÓÚ 2025-07-14 23-02 
-[2025-07-14_23-23] ? ³É¹¦Ìá½»²¢ÍÆËÍ£º¸üĞÂÓÚ 2025-07-14 23-23 
-[2025-07-14_23-37] ? ³É¹¦Ìá½»²¢ÍÆËÍ£º¸üĞÂÓÚ 2025-07-14 23-37 
-[2025-07-14_23-42] ? ³É¹¦Ìá½»²¢ÍÆËÍ£º¸üĞÂÓÚ 2025-07-14 23-42 
+On branch master
+Your branch is up to date with 'origin/master'.
+
+Changes not staged for commit:
+  (use "git add <file>..." to update what will be committed)
+  (use "git restore <file>..." to discard changes in working directory)
+	modified:   .idea/misc.xml
+	modified:   app/src/main/java/com/example/testapp/presentation/navigation/AppNavHost.kt
+	modified:   app/src/main/java/com/example/testapp/presentation/screen/ResultScreen.kt
+	modified:   git_push_log.txt
+
+Untracked files:
+  (use "git add <file>..." to include in what will be committed)
+	git_push.bat
+
+no changes added to commit (use "git add" and/or "git commit -a")
+[ï¿½ï¿½ï¿½ï¿½] ï¿½ï¿½È¡Ô¶ï¿½Ì·ï¿½Ö§Ê§ï¿½Ü£ï¿½ï¿½ï¿½ï¿½È½ï¿½ï¿½ï¿½ï¿½Í»ï¿½ï¿½

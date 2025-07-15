@@ -137,6 +137,10 @@ fun ResultScreen(
                     val points = accuracyList.mapIndexed { idx, v ->
                         Offset(idx * step, size.height - v.coerceIn(0f,1f) * size.height)
                     }
+                    // Draw axis lines for 2D effect
+                    drawLine(Color.DarkGray, Offset(0f, size.height), Offset(size.width, size.height), strokeWidth = 2f)
+                    drawLine(Color.DarkGray, Offset(0f, size.height), Offset(0f, 0f), strokeWidth = 2f)
+
                     for (i in 0 until points.size - 1) {
                         drawLine(Color.Blue, points[i], points[i + 1], strokeWidth = 4f)
                     }

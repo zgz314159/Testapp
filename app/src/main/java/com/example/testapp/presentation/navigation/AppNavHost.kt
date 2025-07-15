@@ -127,7 +127,14 @@ fun AppNavHost(navController: NavHostController = rememberNavController(), setti
                 onBackHome = { navController.popBackStack("home", false) },
                 onViewDetail = {
                     if (encodedQuiz.isNotBlank()) {
-                        navController.navigate("exam/$encodedQuiz")
+                        val decoded = java.net.URLDecoder.decode(encodedQuiz, "UTF-8")
+                        val original = when {
+                            decoded.startsWith("exam_") -> decoded.removePrefix("exam_")
+                            decoded.startsWith("practice_") -> decoded.removePrefix("practice_")
+                            else -> decoded
+                        }
+                        val encodedOriginal = java.net.URLEncoder.encode(original, "UTF-8")
+                        navController.navigate("exam/$encodedOriginal")
                     }
                 },
                 onBack = { navController.popBackStack("home", false) }
