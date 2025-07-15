@@ -124,34 +124,45 @@ class ExamViewModel @Inject constructor(
             getExamProgressFlowUseCase(progressId).collect { progress ->
                 android.util.Log.d("ExamDebug", "loadProgress: progress=$progress id=$progressId")
                 if (progress != null && !_progressLoaded.value) {
+                    val size = _questions.value.size
+                    var changed = false
                     progressSeed = progress.timestamp
-                    _currentIndex.value =
-                        progress.currentIndex.coerceAtMost(_questions.value.size - 1)
-                    _selectedOptions.value =
-                        if (progress.selectedOptions.size >= _questions.value.size) {
-                            progress.selectedOptions.take(_questions.value.size)
-                        } else {
-                            progress.selectedOptions + List(_questions.value.size - progress.selectedOptions.size) { emptyList() }
-                        }
-                    _showResultList.value =
-                        if (progress.showResultList.size >= _questions.value.size) {
-                            progress.showResultList
-                        } else {
-                            progress.showResultList + List(_questions.value.size - progress.showResultList.size) { false }
-                        }
-                    _analysisList.value =
-                        if (progress.analysisList.size >= _questions.value.size) {
-                            progress.analysisList.take(_questions.value.size)
-                        } else {
-                            progress.analysisList + List(_questions.value.size - progress.analysisList.size) { "" }
-                        }
-                    _noteList.value =
-                        if (progress.noteList.size >= _questions.value.size) {
-                            progress.noteList.take(_questions.value.size)
-                        } else {
-                            progress.noteList + List(_questions.value.size - progress.noteList.size) { "" }
-                        }
+                    _currentIndex.value = progress.currentIndex.coerceAtMost(size - 1)
+
+                    val selected = if (progress.selectedOptions.size >= size) {
+                        progress.selectedOptions.take(size)
+                    } else {
+                        changed = true
+                        progress.selectedOptions + List(size - progress.selectedOptions.size) { emptyList() }
+                    }
+                    _selectedOptions.value = selected
+
+                    val showRes = if (progress.showResultList.size >= size) {
+                        progress.showResultList.take(size)
+                    } else {
+                        changed = true
+                        progress.showResultList + List(size - progress.showResultList.size) { false }
+                    }
+                    _showResultList.value = showRes
+
+                    val analysis = if (progress.analysisList.size >= size) {
+                        progress.analysisList.take(size)
+                    } else {
+                        changed = true
+                        progress.analysisList + List(size - progress.analysisList.size) { "" }
+                    }
+                    _analysisList.value = analysis
+
+                    val notes = if (progress.noteList.size >= size) {
+                        progress.noteList.take(size)
+                    } else {
+                        changed = true
+                        progress.noteList + List(size - progress.noteList.size) { "" }
+                    }
+                    _noteList.value = notes
+
                     _finished.value = progress.finished
+                    if (changed) saveProgressInternal()
                 } else if (progress == null && !_progressLoaded.value) {
                     // 初始化进度
                     saveProgress()
