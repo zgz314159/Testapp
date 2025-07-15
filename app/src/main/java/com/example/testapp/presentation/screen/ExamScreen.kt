@@ -432,6 +432,11 @@ fun ExamScreen(
                     },
                 verticalAlignment = Alignment.CenterVertically
             ) {
+                // 给左右按钮都用Box，保证空间一致
+                Box(
+                    modifier = Modifier.size(40.dp), // 与Checkbox高度/宽度一致
+                    contentAlignment = Alignment.Center
+                ) {
                 if (question.type == "多选题") {
                     Checkbox(
                         checked = isSelected,
@@ -447,7 +452,7 @@ fun ExamScreen(
                         onClick = null,
                         enabled = !showResult
                     )
-                }
+                }}
                 Spacer(modifier = Modifier.width(8.dp))
                 Text(
                     text = option,
@@ -515,7 +520,7 @@ fun ExamScreen(
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .heightIn(max = 300.dp)
+                        .weight(1f, fill = true)
                         .verticalScroll(rememberScrollState())
                         .background(Color(0xFFE8F6FF))
                         .padding(8.dp)

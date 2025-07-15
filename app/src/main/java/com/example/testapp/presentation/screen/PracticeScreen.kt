@@ -425,6 +425,11 @@ fun PracticeScreen(
                     },
                 verticalAlignment = Alignment.CenterVertically
             ) {
+                // 给左右按钮都用Box，保证空间一致
+                Box(
+                    modifier = Modifier.size(40.dp), // 与Checkbox高度/宽度一致
+                    contentAlignment = Alignment.Center
+                ) {
                 if (question.type == "多选题") {
                     Checkbox(
                         checked = isSelected,
@@ -440,7 +445,7 @@ fun PracticeScreen(
                         onClick = null,
                         enabled = !showResult
                     )
-                }
+                }}
                 Spacer(modifier = Modifier.width(8.dp))
                 Text(
                     text = option,
