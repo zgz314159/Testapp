@@ -41,6 +41,11 @@ class HistoryRepositoryImpl @Inject constructor(
         dao.add(record.toEntity())
     }
     override suspend fun clear() = dao.clear()
+
+    override suspend fun removeByFileName(fileName: String) {
+        dao.deleteByFileName(fileName)
+    }
+
     // txt/Excel 文件解析，建议字段：分数|总题数|时间戳
     override suspend fun importFromFile(file: java.io.File): Int {
         return try {

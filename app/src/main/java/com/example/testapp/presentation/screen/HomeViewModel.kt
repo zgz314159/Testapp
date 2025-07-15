@@ -9,6 +9,7 @@ import com.example.testapp.domain.usecase.ClearExamProgressUseCase
 import com.example.testapp.domain.usecase.GetQuestionsUseCase
 import com.example.testapp.domain.usecase.RemoveFavoriteQuestionsByFileNameUseCase
 import com.example.testapp.domain.usecase.RemoveWrongQuestionsByFileNameUseCase
+import com.example.testapp.domain.usecase.RemoveHistoryRecordsByFileNameUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -24,6 +25,7 @@ class HomeViewModel @Inject constructor(
     private val clearExamProgressUseCase: ClearExamProgressUseCase,
     private val removeFavoriteQuestionsByFileNameUseCase: RemoveFavoriteQuestionsByFileNameUseCase,
     private val removeWrongQuestionsByFileNameUseCase: RemoveWrongQuestionsByFileNameUseCase,
+    private val removeHistoryRecordsByFileNameUseCase: RemoveHistoryRecordsByFileNameUseCase,
 ) : ViewModel() {
     private val _questions = MutableStateFlow<List<Question>>(emptyList())
     val questions: StateFlow<List<Question>> = _questions.asStateFlow()
@@ -50,6 +52,8 @@ class HomeViewModel @Inject constructor(
             clearExamProgressUseCase("exam_${fileName}")
             removeFavoriteQuestionsByFileNameUseCase(fileName) // 一行，批量删收藏
             removeWrongQuestionsByFileNameUseCase(fileName) // 新增，删除对应错题
+            removeHistoryRecordsByFileNameUseCase("practice_${fileName}")
+            removeHistoryRecordsByFileNameUseCase("exam_${fileName}")
             // 等待数据库变更后再 collect 一次，确保刷新
             val list = getQuestionsUseCase().first()
             _questions.value = list

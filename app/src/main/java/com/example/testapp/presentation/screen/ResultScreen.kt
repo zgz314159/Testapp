@@ -40,6 +40,13 @@ fun ResultScreen(
     val accuracyText = String.format("%.2f", accuracyRate * 100)
     val formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")
 
+    val (modeText, fileName) = when {
+        quizId.startsWith("exam_") -> "考试" to quizId.removePrefix("exam_")
+        quizId.startsWith("practice_") -> "练习" to quizId.removePrefix("practice_")
+        else -> "练习" to quizId
+    }
+
+
     Box(modifier = Modifier.fillMaxSize()) {
         // 主内容区
         Column(
@@ -49,8 +56,18 @@ fun ResultScreen(
                 .align(Alignment.TopCenter)
                 .padding(horizontal = 24.dp, vertical = 24.dp)
         ) {
+            if (fileName.isNotBlank()) {
+                Text(
+                    text = fileName,
+                    style = MaterialTheme.typography.titleLarge.copy(
+                        fontSize = LocalFontSize.current,
+                        fontFamily = LocalFontFamily.current
+                    )
+                )
+                Spacer(modifier = Modifier.height(4.dp))
+            }
             Text(
-                text = "答题结束！",
+                text = "${modeText}结束！",
                 style = MaterialTheme.typography.headlineMedium.copy(
                     fontSize = LocalFontSize.current,
                     fontFamily = LocalFontFamily.current

@@ -21,4 +21,8 @@ interface HistoryRecordDao {
 
     @Query("DELETE FROM history_records")
     suspend fun clear()
+
+    // 新增：按文件名删除答题记录
+    @Query("DELETE FROM history_records WHERE fileName = :fileName")
+    suspend fun deleteByFileName(fileName: String)
 }

@@ -23,7 +23,10 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import kotlin.math.roundToInt
 
 @Composable
-fun SettingsScreen(viewModel: SettingsViewModel = hiltViewModel()) {
+fun SettingsScreen(
+    viewModel: SettingsViewModel = hiltViewModel(),
+    onNavigateHome: () -> Unit = {}
+) {
     val fontSize by viewModel.fontSize.collectAsState()
     val fontStyle by viewModel.fontStyle.collectAsState()
     val examCount by viewModel.examQuestionCount.collectAsState()
@@ -33,8 +36,6 @@ fun SettingsScreen(viewModel: SettingsViewModel = hiltViewModel()) {
     val correctDelay by viewModel.correctDelay.collectAsState()
     val wrongDelay by viewModel.wrongDelay.collectAsState()
     val examDelay by viewModel.examDelay.collectAsState()
-    val isLoading by viewModel.isLoading.collectAsState()
-    val progress by viewModel.progress.collectAsState()
     val context = LocalContext.current
 
     // 折叠状态
@@ -54,6 +55,7 @@ fun SettingsScreen(viewModel: SettingsViewModel = hiltViewModel()) {
         ActivityResultContracts.OpenMultipleDocuments()
     ) { uris ->
         if (!uris.isNullOrEmpty()) {
+            onNavigateHome()
             viewModel.importQuestionsFromUris(context, uris) { success, duplicateFiles ->
                 snackbarMessage = when {
                     success && duplicateFiles.isNullOrEmpty() ->
@@ -473,20 +475,6 @@ fun SettingsScreen(viewModel: SettingsViewModel = hiltViewModel()) {
             hostState = snackbarHostState,
             modifier = Modifier.align(Alignment.BottomCenter)
         )
-        if (isLoading) {
-            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    CircularProgressIndicator()
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Text(
-                        "正在处理，请稍候…",
-                        style = MaterialTheme.typography.bodyLarge.copy(
-                            fontSize = fontSize.sp,
-                            fontFamily = LocalFontFamily.current
-                        )
-                    )
-                }
-            }
-        }
+
     }
 }

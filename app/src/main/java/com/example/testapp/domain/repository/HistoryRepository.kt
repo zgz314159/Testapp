@@ -10,6 +10,7 @@ interface HistoryRepository {
     fun getByFileNames(fileNames: List<String>): Flow<List<HistoryRecord>>
     suspend fun add(record: HistoryRecord)
     suspend fun clear()
+    suspend fun removeByFileName(fileName: String)
     suspend fun importFromFile(file: java.io.File): Int
     suspend fun exportToFile(file: java.io.File): Boolean
 }

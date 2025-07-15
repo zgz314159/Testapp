@@ -52,7 +52,6 @@ import androidx.compose.ui.text.withStyle
 import androidx.compose.material.icons.filled.FactCheck
 import androidx.compose.ui.input.pointer.pointerInput
 
-
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterialApi::class)
 @Composable
 fun HomeScreen(
@@ -116,7 +115,6 @@ fun HomeScreen(
                         )
                     }
                 )
-
                 NavigationBarItem(
                     selected = bottomNavIndex == 1,
                     onClick = {
@@ -132,7 +130,6 @@ fun HomeScreen(
                         )
                     }
                 )
-
                 NavigationBarItem(
                     selected = bottomNavIndex == 2,
                     onClick = {
@@ -159,7 +156,6 @@ fun HomeScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(innerPadding)
-
         ) {
             Column(
                 modifier = Modifier
@@ -209,11 +205,6 @@ fun HomeScreen(
                                         FractionalThreshold(0.2f)
                                     },
                                     background = {
-
-                                        Log.d(
-                                            "HomeScreen",
-                                            "[SwipeToDismiss-background] name=$name, dismissDirection=${dismissState.dismissDirection}, targetValue=${dismissState.targetValue}, currentValue=${dismissState.currentValue}"
-                                        )
                                         val showRed =
                                             dismissState.dismissDirection != null && dismissState.targetValue != DismissValue.Default
                                         Box(
@@ -230,11 +221,6 @@ fun HomeScreen(
                                                     Icons.Filled.Delete,
                                                     contentDescription = "删除",
                                                     tint = Color.White
-                                                )
-                                            } else {
-                                                Log.d(
-                                                    "HomeScreen",
-                                                    "[SwipeToDismiss-background] 显示透明 name=$name"
                                                 )
                                             }
                                         }
@@ -294,10 +280,12 @@ fun HomeScreen(
                         fontFamily = LocalFontFamily.current
                     )
                 }
-                Spacer(modifier = Modifier.height(32.dp))
+                Spacer(modifier = Modifier.height(12.dp)) // 缩小按钮和上方内容间距
+
+                // 紧凑按钮区
                 Row(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(16.dp)
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
                     Button(
                         onClick = {
@@ -313,11 +301,11 @@ fun HomeScreen(
                         ),
                         modifier = Modifier
                             .weight(1f)
-                            .height(56.dp)
+                            .height(40.dp) // 紧凑主流高度
                     ) {
                         Text(
                             "开始练习",
-                            fontSize = LocalFontSize.current,
+                            fontSize = LocalFontSize.current * 0.95f,
                             fontFamily = LocalFontFamily.current
                         )
                     }
@@ -335,11 +323,11 @@ fun HomeScreen(
                         ),
                         modifier = Modifier
                             .weight(1f)
-                            .height(56.dp)
+                            .height(40.dp)
                     ) {
                         Text(
                             "开始考试",
-                            fontSize = LocalFontSize.current,
+                            fontSize = LocalFontSize.current * 0.95f,
                             fontFamily = LocalFontFamily.current
                         )
                     }

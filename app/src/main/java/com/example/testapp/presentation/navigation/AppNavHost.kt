@@ -176,8 +176,8 @@ fun AppNavHost(navController: NavHostController = rememberNavController(), setti
         composable("history") { HistoryScreen() }
         composable("settings") {
             SettingsScreen(
-                viewModel = settingsViewModel
-
+                viewModel = settingsViewModel,
+                onNavigateHome = { navController.popBackStack() }
             )
         }
         composable("favorite") { FavoriteScreen(navController = navController) }
