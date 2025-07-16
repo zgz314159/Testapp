@@ -8,10 +8,7 @@ import com.example.testapp.domain.usecase.GetQuestionAnalysisUseCase
 import com.example.testapp.domain.usecase.SaveQuestionAnalysisUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.flowOn
+import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Semaphore
 import kotlinx.coroutines.sync.withPermit
@@ -25,10 +22,12 @@ class DeepSeekViewModel @Inject constructor(
 ) : ViewModel() {
 
     private val _analysis = MutableStateFlow<Pair<Int, String>?>(null)
-    val analysis: StateFlow<Pair<Int, String>?> = _analysis.asStateFlow()
+    val analysis: StateFlow<Pair<Int, String>?> = _analysis
 
-    private val semaphore = Semaphore(permits = 2)
+    /** 限流，最多两个并发 */
+    private val semaphore = Semaphore(2)
 
+    /** 重新暴露给外面查缓存的接口 */
     suspend fun getSavedAnalysis(questionId: Int): String? = getAnalysis(questionId)
 
     fun analyze(index: Int, question: Question) {
@@ -40,22 +39,25 @@ class DeepSeekViewModel @Inject constructor(
                 return@launch
             }
 
-            // 开始流式请求
-            _analysis.value = index to "解析中..."
-            var finalResult = ""
-            try {
-                semaphore.withPermit {
-                    api.analyze(question)
-                        .flowOn(Dispatchers.IO)
-                        .collect { partial ->
-                            finalResult = partial
-                            _analysis.value = index to partial
-                        }
-                }
-                // 保存完整结果
-                saveAnalysisUseCase(question.id, finalResult)
-            } catch (e: Exception) {
-                _analysis.value = index to "解析失败: ${e.message}"
+            // 流式调用
+            semaphore.withPermit {
+                api.analyze(question)
+                    .flowOn(Dispatchers.IO)
+                    .onStart {
+                        _analysis.value = index to ""          // 清空
+                    }
+                    .onEach { partial ->
+                        _analysis.value = index to partial     // 每次片段更新
+                    }
+                    .onCompletion {
+                        // 完成后存一次最终结果
+                        val final = _analysis.value?.second ?: ""
+                        saveAnalysisUseCase(question.id, final)
+                    }
+                    .catch { e ->
+                        _analysis.value = index to "解析失败: ${e.message}"
+                    }
+                    .launchIn(this@launch)  // 用当前 coroutineScope
             }
         }
     }
