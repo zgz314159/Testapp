@@ -54,6 +54,8 @@ class SettingsViewModel @Inject constructor(
     val wrongDelay: StateFlow<Int> = _wrongDelay.asStateFlow()
     private val _examDelay = MutableStateFlow(1)
     val examDelay: StateFlow<Int> = _examDelay.asStateFlow()
+    private val _soundEnabled = MutableStateFlow(true)
+    val soundEnabled: StateFlow<Boolean> = _soundEnabled.asStateFlow()
     private var currentJob: Job? = null
 
     fun setFontSize(context: Context, size: Float) {
@@ -115,6 +117,14 @@ class SettingsViewModel @Inject constructor(
             FontSettingsDataStore.setExamDelay(context, delay)
         }
     }
+
+    fun setSoundEnabled(context: Context, enabled: Boolean) {
+        _soundEnabled.value = enabled
+        viewModelScope.launch {
+            FontSettingsDataStore.setSoundEnabled(context, enabled)
+        }
+    }
+
     fun loadFontSettings(context: Context) {
         viewModelScope.launch {
             val size = FontSettingsDataStore.getFontSize(context).first()
@@ -126,9 +136,10 @@ class SettingsViewModel @Inject constructor(
             val correct = FontSettingsDataStore.getCorrectDelay(context).first()
             val wrong = FontSettingsDataStore.getWrongDelay(context).first()
             val examDelay = FontSettingsDataStore.getExamDelay(context).first()
+            val sound = FontSettingsDataStore.getSoundEnabled(context).first()
             android.util.Log.d(
                 "SettingsVM",
-                "loadFontSettings size=$size style=$style examCount=$examCount practiceCount=$practiceCount random=$random randomExam=$randomExam"
+                "loadFontSettings size=$size style=$style examCount=$examCount practiceCount=$practiceCount random=$random randomExam=$randomExam sound=$sound"
             )
             _fontSize.value = size
             _fontStyle.value = style
@@ -139,6 +150,7 @@ class SettingsViewModel @Inject constructor(
             _correctDelay.value = correct
             _wrongDelay.value = wrong
             _examDelay.value = examDelay
+            _soundEnabled.value = sound
         }
     }
 

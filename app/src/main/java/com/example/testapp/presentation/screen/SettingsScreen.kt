@@ -36,6 +36,7 @@ fun SettingsScreen(
     val correctDelay by viewModel.correctDelay.collectAsState()
     val wrongDelay by viewModel.wrongDelay.collectAsState()
     val examDelay by viewModel.examDelay.collectAsState()
+    val soundEnabled by viewModel.soundEnabled.collectAsState()
     val context = LocalContext.current
 
     // 折叠状态
@@ -211,6 +212,24 @@ fun SettingsScreen(
             )
         }
         Spacer(modifier = Modifier.height(24.dp))
+
+        // 音效开关
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Text(
+                "音效：",
+                style = MaterialTheme.typography.bodyLarge.copy(
+                    fontSize = fontSize.sp,
+                    fontFamily = LocalFontFamily.current
+                )
+            )
+            Spacer(modifier = Modifier.width(8.dp))
+            Switch(
+                checked = soundEnabled,
+                onCheckedChange = { viewModel.setSoundEnabled(context, it) }
+            )
+        }
+        Spacer(modifier = Modifier.height(24.dp))
+
 
         // 考试 可折叠标题
         Row(

@@ -80,6 +80,7 @@ fun PracticeScreen(
     val wrongDelay by settingsViewModel.wrongDelay.collectAsState()
     val context = LocalContext.current
     val soundEffects = rememberSoundEffects()
+    val soundEnabled by settingsViewModel.soundEnabled.collectAsState()
     val currentIndex by viewModel.currentIndex.collectAsState()
     val answeredList by viewModel.answeredList.collectAsState()
     val selectedOptions by viewModel.selectedOptions.collectAsState()
@@ -399,7 +400,9 @@ fun PracticeScreen(
                             viewModel.answerQuestion(idx)
                             val correctIdx = answerLetterToIndex(question.answer)
                             val correct = idx == correctIdx
-                            if (correct) soundEffects.playCorrect() else soundEffects.playWrong()
+                            if (soundEnabled) {
+                                if (correct) soundEffects.playCorrect() else soundEffects.playWrong()
+                            }
                             if (!correct) {
                                 coroutineScope.launch {
                                     wrongBookViewModel.addWrongQuestion(
@@ -554,7 +557,9 @@ fun PracticeScreen(
                         autoJob?.cancel()
                         viewModel.updateShowResult(currentIndex, true)
                         val allCorrect = selectedOption.toSet() == correctIndices.toSet()
-                        if (allCorrect) soundEffects.playCorrect() else soundEffects.playWrong()
+                        if (soundEnabled) {
+                            if (allCorrect) soundEffects.playCorrect() else soundEffects.playWrong()
+                        }
                         if (!allCorrect && selectedOption.isNotEmpty()) {
                             coroutineScope.launch {
                                 wrongBookViewModel.addWrongQuestion(

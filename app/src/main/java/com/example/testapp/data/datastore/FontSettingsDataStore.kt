@@ -23,6 +23,7 @@ object FontSettingsDataStore {
     private val CORRECT_DELAY_KEY = intPreferencesKey("correct_delay")
     private val WRONG_DELAY_KEY = intPreferencesKey("wrong_delay")
     private val EXAM_DELAY_KEY = intPreferencesKey("exam_delay")
+    private val SOUND_ENABLED_KEY = intPreferencesKey("sound_enabled")
     private val PRACTICE_FONT_SIZE_KEY = floatPreferencesKey("practice_font_size")
     private val EXAM_FONT_SIZE_KEY = floatPreferencesKey("exam_font_size")
     private val DEEPSEEK_FONT_SIZE_KEY = floatPreferencesKey("deepseek_font_size")
@@ -91,6 +92,16 @@ object FontSettingsDataStore {
     suspend fun setExamDelay(context: Context, delay: Int) {
         context.dataStore.edit { preferences -> preferences[EXAM_DELAY_KEY] = delay }
     }
+
+    fun getSoundEnabled(context: Context, default: Boolean = true): Flow<Boolean> =
+        context.dataStore.data.map { preferences ->
+            (preferences[SOUND_ENABLED_KEY] ?: if (default) 1 else 0) != 0
+        }
+
+    suspend fun setSoundEnabled(context: Context, enabled: Boolean) {
+        context.dataStore.edit { preferences -> preferences[SOUND_ENABLED_KEY] = if (enabled) 1 else 0 }
+    }
+
     fun getPracticeFontSize(context: Context, default: Float = 18f): Flow<Float> =
         context.dataStore.data.map { preferences ->
             val value = preferences[PRACTICE_FONT_SIZE_KEY] ?: default
