@@ -32,7 +32,7 @@ class MainActivity : ComponentActivity() {
             LaunchedEffect(Unit) {
                 settingsViewModel.loadFontSettings(context)
             }
-            MyApplicationTheme(darkTheme = darkTheme) {
+            MyApplicationTheme(darkTheme = darkTheme, dynamicColor = false) {
                 CompositionLocalProvider(
                     LocalFontSize provides fontSize.sp
                 ) {
