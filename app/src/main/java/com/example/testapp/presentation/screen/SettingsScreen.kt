@@ -37,6 +37,7 @@ fun SettingsScreen(
     val wrongDelay by viewModel.wrongDelay.collectAsState()
     val examDelay by viewModel.examDelay.collectAsState()
     val soundEnabled by viewModel.soundEnabled.collectAsState()
+    val darkTheme by viewModel.darkTheme.collectAsState()
     val context = LocalContext.current
 
     // 折叠状态
@@ -226,6 +227,22 @@ fun SettingsScreen(
             Switch(
                 checked = soundEnabled,
                 onCheckedChange = { viewModel.setSoundEnabled(context, it) }
+            )
+        }
+        Spacer(modifier = Modifier.height(24.dp))
+
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Text(
+                "夜间模式：",
+                style = MaterialTheme.typography.bodyLarge.copy(
+                    fontSize = fontSize.sp,
+                    fontFamily = LocalFontFamily.current
+                )
+            )
+            Spacer(modifier = Modifier.width(8.dp))
+            Switch(
+                checked = darkTheme,
+                onCheckedChange = { viewModel.setDarkTheme(context, it) }
             )
         }
         Spacer(modifier = Modifier.height(24.dp))

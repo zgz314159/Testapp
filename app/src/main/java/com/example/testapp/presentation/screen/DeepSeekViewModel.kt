@@ -32,6 +32,7 @@ class DeepSeekViewModel @Inject constructor(
     private val semaphore = Semaphore(permits = 2)
 
     suspend fun getSavedAnalysis(questionId: Int): String? = getAnalysis(questionId)
+
     fun analyze(index: Int, question: Question) {
 
         viewModelScope.launch {
@@ -52,24 +53,26 @@ class DeepSeekViewModel @Inject constructor(
 
             _analysis.value = index to "解析中..."
             val apiStart = System.currentTimeMillis()
-            runCatching {
+            var finalResult = ""
+            try {
                 semaphore.withPermit {
-                    withContext(Dispatchers.IO) { api.analyze(question) }
+                    withContext(Dispatchers.IO) {
+                        api.analyze(question).collect { partial ->
+                            finalResult = partial
+                            _analysis.value = index to partial
+                        }
+                    }
                 }
+                val apiDuration = System.currentTimeMillis() - apiStart
+                android.util.Log.d("DeepSeekViewModel", "API call duration=${apiDuration} ms")
+                saveAnalysisUseCase(question.id, finalResult)
+            } catch (e: Exception) {
+                val apiDuration = System.currentTimeMillis() - apiStart
+                android.util.Log.d("DeepSeekViewModel", "API call duration=${apiDuration} ms")
+                android.util.Log.e("DeepSeekViewModel", "Analysis failed", e)
+                _analysis.value = index to "解析失败: ${e.message}"
             }
-                .onSuccess {
-                    val apiDuration = System.currentTimeMillis() - apiStart
-                    android.util.Log.d("DeepSeekViewModel", "API call duration=${apiDuration} ms")
-                    android.util.Log.d("DeepSeekViewModel", "Analysis success: $it")
-                    _analysis.value = index to it
-                    saveAnalysisUseCase(question.id, it)
-                }
-                .onFailure {
-                    val apiDuration = System.currentTimeMillis() - apiStart
-                    android.util.Log.d("DeepSeekViewModel", "API call duration=${apiDuration} ms")
-                    android.util.Log.e("DeepSeekViewModel", "Analysis failed", it)
-                    _analysis.value = index to "解析失败: ${it.message}"
-                }
+
         }
     }
 

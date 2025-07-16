@@ -56,6 +56,8 @@ class SettingsViewModel @Inject constructor(
     val examDelay: StateFlow<Int> = _examDelay.asStateFlow()
     private val _soundEnabled = MutableStateFlow(true)
     val soundEnabled: StateFlow<Boolean> = _soundEnabled.asStateFlow()
+    private val _darkTheme = MutableStateFlow(false)
+    val darkTheme: StateFlow<Boolean> = _darkTheme.asStateFlow()
     private var currentJob: Job? = null
 
     fun setFontSize(context: Context, size: Float) {
@@ -125,6 +127,13 @@ class SettingsViewModel @Inject constructor(
         }
     }
 
+    fun setDarkTheme(context: Context, enabled: Boolean) {
+        _darkTheme.value = enabled
+        viewModelScope.launch {
+            FontSettingsDataStore.setDarkTheme(context, enabled)
+        }
+    }
+
     fun loadFontSettings(context: Context) {
         viewModelScope.launch {
             val size = FontSettingsDataStore.getFontSize(context).first()
@@ -137,9 +146,10 @@ class SettingsViewModel @Inject constructor(
             val wrong = FontSettingsDataStore.getWrongDelay(context).first()
             val examDelay = FontSettingsDataStore.getExamDelay(context).first()
             val sound = FontSettingsDataStore.getSoundEnabled(context).first()
+            val dark = FontSettingsDataStore.getDarkTheme(context).first()
             android.util.Log.d(
                 "SettingsVM",
-                "loadFontSettings size=$size style=$style examCount=$examCount practiceCount=$practiceCount random=$random randomExam=$randomExam sound=$sound"
+                "loadFontSettings size=$size style=$style examCount=$examCount practiceCount=$practiceCount random=$random randomExam=$randomExam sound=$sound dark=$dark"
             )
             _fontSize.value = size
             _fontStyle.value = style
@@ -151,6 +161,7 @@ class SettingsViewModel @Inject constructor(
             _wrongDelay.value = wrong
             _examDelay.value = examDelay
             _soundEnabled.value = sound
+            _darkTheme.value = dark
         }
     }
 
