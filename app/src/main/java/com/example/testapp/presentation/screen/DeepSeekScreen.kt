@@ -1,22 +1,23 @@
 package com.example.testapp.presentation.screen
 
+import android.widget.Toast
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import android.widget.Toast
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
-import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material3.Text
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -32,32 +33,32 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.activity.compose.BackHandler
-import androidx.navigation.NavController
-import com.example.testapp.presentation.component.LocalFontFamily
-import com.example.testapp.presentation.component.LocalFontSize
-import com.example.testapp.data.datastore.FontSettingsDataStore
-import kotlinx.coroutines.launch
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.example.testapp.data.datastore.FontSettingsDataStore
+import com.example.testapp.presentation.component.LocalFontFamily
+import kotlinx.coroutines.launch
 
 @Composable
 fun DeepSeekScreen(
     text: String,
     questionId: Int,
     index: Int,
-    navController: NavController? = null,
+    navController: androidx.navigation.NavController? = null,
     onSave: (String) -> Unit = {},
     aiViewModel: DeepSeekViewModel = hiltViewModel(),
     settingsViewModel: SettingsViewModel = hiltViewModel()
 ) {
-    val globalFontSize by settingsViewModel.fontSize.collectAsState()
     val context = LocalContext.current
     val coroutineScope = rememberCoroutineScope()
+
+    // 字体设置
+    val globalFontSize by settingsViewModel.fontSize.collectAsState()
     val storedSize by FontSettingsDataStore
         .getDeepSeekFontSize(context, Float.NaN)
         .collectAsState(initial = Float.NaN)
     var screenFontSize by remember { mutableStateOf(globalFontSize) }
     var fontLoaded by remember { mutableStateOf(false) }
+
     LaunchedEffect(storedSize) {
         if (!storedSize.isNaN()) {
             screenFontSize = storedSize
@@ -69,9 +70,20 @@ fun DeepSeekScreen(
             FontSettingsDataStore.setDeepSeekFontSize(context, screenFontSize)
         }
     }
+
+    // 菜单 & 编辑内容
     var menuExpanded by remember { mutableStateOf(false) }
     var editableText by remember { mutableStateOf(text) }
     var showSaveDialog by remember { mutableStateOf(false) }
+
+    // 监听 AI 流式输出
+    val analysisPairState by aiViewModel.analysis.collectAsState()
+    val pairVal = analysisPairState
+    val analysis = if (pairVal != null && pairVal.first == index) {
+        pairVal.second
+    } else {
+        ""
+    }
 
     BackHandler {
         if (editableText != text) {
@@ -80,23 +92,44 @@ fun DeepSeekScreen(
             navController?.popBackStack()
         }
     }
-    Box(modifier = Modifier.fillMaxSize()) {
 
+    Box(Modifier.fillMaxSize()) {
         Column(
-            modifier = Modifier
+            Modifier
                 .fillMaxSize()
                 .verticalScroll(rememberScrollState())
                 .padding(16.dp)
         ) {
+            // 流式 AI 内容
+            Text(
+                text = when {
+                    analysis.startsWith("解析失败") -> analysis
+                    analysis.isEmpty()            -> "AI 解析中…"
+                    else                          -> analysis
+                },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(bottom = 18.dp),
+                style = TextStyle(
+                    fontSize = screenFontSize.sp,
+                    fontFamily = LocalFontFamily.current
+                )
+            )
+
+            // 用户可编辑区域
             BasicTextField(
                 value = editableText,
                 onValueChange = { editableText = it },
                 modifier = Modifier.fillMaxWidth(),
-                textStyle = TextStyle(fontSize = screenFontSize.sp, fontFamily = LocalFontFamily.current)
+                textStyle = TextStyle(
+                    fontSize = screenFontSize.sp,
+                    fontFamily = LocalFontFamily.current
+                )
             )
-
         }
-        Box(modifier = Modifier.align(Alignment.TopEnd)) {
+
+        // 右上设置按钮
+        Box(Modifier.align(Alignment.TopEnd)) {
             IconButton(onClick = { menuExpanded = true }) {
                 Icon(Icons.Filled.MoreVert, contentDescription = "设置")
             }
@@ -104,22 +137,30 @@ fun DeepSeekScreen(
                 expanded = menuExpanded,
                 onDismissRequest = { menuExpanded = false }
             ) {
-                DropdownMenuItem(text = { Text("放大字体") }, onClick = {
-                    screenFontSize = (screenFontSize + 2).coerceAtMost(32f)
-                    coroutineScope.launch {
-                        FontSettingsDataStore.setDeepSeekFontSize(context, screenFontSize)
+                DropdownMenuItem(
+                    text = { Text("放大字体") },
+                    onClick = {
+                        screenFontSize = (screenFontSize + 2).coerceAtMost(32f)
+                        coroutineScope.launch {
+                            FontSettingsDataStore.setDeepSeekFontSize(context, screenFontSize)
+                        }
+                        menuExpanded = false
                     }
-                    menuExpanded = false
-                })
-                DropdownMenuItem(text = { Text("缩小字体") }, onClick = {
-                    screenFontSize = (screenFontSize - 2).coerceAtLeast(14f)
-                    coroutineScope.launch {
-                        FontSettingsDataStore.setDeepSeekFontSize(context, screenFontSize)
+                )
+                DropdownMenuItem(
+                    text = { Text("缩小字体") },
+                    onClick = {
+                        screenFontSize = (screenFontSize - 2).coerceAtLeast(14f)
+                        coroutineScope.launch {
+                            FontSettingsDataStore.setDeepSeekFontSize(context, screenFontSize)
+                        }
+                        menuExpanded = false
                     }
-                    menuExpanded = false
-                })
+                )
             }
         }
+
+        // 离开前是否保存
         if (showSaveDialog) {
             AlertDialog(
                 onDismissRequest = { showSaveDialog = false },
@@ -130,13 +171,17 @@ fun DeepSeekScreen(
                         Toast.makeText(context, "保存成功", Toast.LENGTH_SHORT).show()
                         showSaveDialog = false
                         navController?.popBackStack()
-                    }) { Text("保存") }
+                    }) {
+                        Text("保存")
+                    }
                 },
                 dismissButton = {
                     TextButton(onClick = {
                         showSaveDialog = false
                         navController?.popBackStack()
-                    }) { Text("取消") }
+                    }) {
+                        Text("取消")
+                    }
                 },
                 text = { Text("是否保存修改？") }
             )
