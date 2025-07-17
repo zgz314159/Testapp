@@ -36,6 +36,10 @@ class SparkViewModel @Inject constructor(
         }
     }
 
+    fun save(questionId: Int, analysis: String) {
+        viewModelScope.launch { saveSparkAnalysisUseCase(questionId, analysis) }
+    }
+
     fun clear() {
         _analysis.value = null
     }

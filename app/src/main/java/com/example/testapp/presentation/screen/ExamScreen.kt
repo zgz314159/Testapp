@@ -10,7 +10,8 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Edit
-import androidx.compose.material.icons.filled.Lightbulb
+import androidx.compose.material.icons.filled.AutoAwesome
+import androidx.compose.material.icons.filled.SmartToy
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.outlined.StarBorder
@@ -42,7 +43,8 @@ fun ExamScreen(
     sparkViewModel: SparkViewModel = hiltViewModel(),
     onExamEnd: (score: Int, total: Int) -> Unit = { _, _ -> },
     onExitWithoutAnswer: () -> Unit = {},
-    onViewDeepSeek: (String, Int, Int) -> Unit = { _, _, _ -> }
+    onViewDeepSeek: (String, Int, Int) -> Unit = { _, _, _ -> },
+    onViewSpark: (String, Int, Int) -> Unit = { _, _, _ -> }
 ) {
     val examCount by settingsViewModel.examQuestionCount.collectAsState()
     val randomExam by settingsViewModel.randomExam.collectAsState()
@@ -267,7 +269,7 @@ fun ExamScreen(
                 }
             }) {
                 Icon(
-                    imageVector = Icons.Filled.Lightbulb,
+                    imageVector = Icons.Filled.AutoAwesome,
                     contentDescription = "AI 解析",
                     tint = if (hasDeepSeekAnalysis) MaterialTheme.colorScheme.primary else LocalContentColor.current
                 )
@@ -280,7 +282,7 @@ fun ExamScreen(
                 sparkViewModel.analyze(currentIndex, question)
             }) {
                 Icon(
-                    imageVector = Icons.Filled.Lightbulb,
+                    imageVector = Icons.Filled.SmartToy,
                     contentDescription = "Spark AI",
                     tint = MaterialTheme.colorScheme.secondary
                 )
@@ -582,6 +584,14 @@ fun ExamScreen(
                             .verticalScroll(rememberScrollState())
                             .background(Color(0xFFEDE7FF))
                             .padding(8.dp)
+                            .pointerInput(sparkText) {
+                                detectTapGestures(
+                                    onDoubleTap = {
+                                        onViewSpark(sparkText!!, question.id, currentIndex)
+                                    },
+                                    onLongPress = { showDeleteDialog = true }
+                                )
+                            }
                     ) {
                         Text(
                             text = sparkText ?: "",
@@ -650,6 +660,7 @@ fun ExamScreen(
                     aiViewModel.clear()
                     sparkViewModel.clear()
                     viewModel.updateAnalysis(currentIndex, "")
+                    viewModel.updateSparkAnalysis(currentIndex, "")
                     showDeleteDialog = false
                 }) { Text("确定") }
             },

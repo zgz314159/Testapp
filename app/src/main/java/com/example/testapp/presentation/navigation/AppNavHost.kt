@@ -21,6 +21,7 @@ import com.example.testapp.presentation.screen.FavoriteScreen
 import com.example.testapp.presentation.screen.PracticeScreen
 import com.example.testapp.presentation.screen.ExamScreen
 import com.example.testapp.presentation.screen.DeepSeekScreen
+import com.example.testapp.presentation.screen.SparkScreen
 
 @Composable
 fun AppNavHost(navController: NavHostController = rememberNavController(), settingsViewModel: com.example.testapp.presentation.screen.SettingsViewModel) {
@@ -84,6 +85,10 @@ fun AppNavHost(navController: NavHostController = rememberNavController(), setti
                 onViewDeepSeek = { text, id, index ->
                     val encodedText = java.net.URLEncoder.encode(text, "UTF-8")
                     navController.navigate("deepseek/$id/$index/$encodedText")
+                },
+                onViewSpark = { text, id, index ->
+                    val encodedText = java.net.URLEncoder.encode(text, "UTF-8")
+                    navController.navigate("spark/$id/$index/$encodedText")
                 }
             )
         }
@@ -107,6 +112,10 @@ fun AppNavHost(navController: NavHostController = rememberNavController(), setti
                 onViewDeepSeek = { text, id, index ->
                     val encodedText = java.net.URLEncoder.encode(text, "UTF-8")
                     navController.navigate("deepseek/$id/$index/$encodedText")
+                },
+                onViewSpark = { text, id, index ->
+                    val encodedText = java.net.URLEncoder.encode(text, "UTF-8")
+                    navController.navigate("spark/$id/$index/$encodedText")
                 }
             )
         }
@@ -167,6 +176,10 @@ fun AppNavHost(navController: NavHostController = rememberNavController(), setti
                 onViewDeepSeek = { text, id, index ->
                     val encodedText = java.net.URLEncoder.encode(text, "UTF-8")
                     navController.navigate("deepseek/$id/$index/$encodedText")
+                },
+                onViewSpark = { text, id, index ->
+                    val encodedText = java.net.URLEncoder.encode(text, "UTF-8")
+                    navController.navigate("spark/$id/$index/$encodedText")
                 }
             )
 
@@ -204,6 +217,10 @@ fun AppNavHost(navController: NavHostController = rememberNavController(), setti
                 onViewDeepSeek = { text, id, index ->
                     val encodedText = java.net.URLEncoder.encode(text, "UTF-8")
                     navController.navigate("deepseek/$id/$index/$encodedText")
+                },
+                onViewSpark = { text, id, index ->
+                    val encodedText = java.net.URLEncoder.encode(text, "UTF-8")
+                    navController.navigate("spark/$id/$index/$encodedText")
                 }
             )
         }
@@ -239,6 +256,38 @@ fun AppNavHost(navController: NavHostController = rememberNavController(), setti
                 settingsViewModel = settingsViewModel
             )
         }
-        // TODO: 添加更多页面
+        composable(
+            "spark/{id}/{index}/{text}",
+            arguments = listOf(
+                navArgument("id") { type = NavType.IntType },
+                navArgument("index") { type = NavType.IntType },
+                navArgument("text") { type = NavType.StringType }
+            )
+        ) { backStackEntry ->
+            val encoded = backStackEntry.arguments?.getString("text") ?: ""
+            val text = java.net.URLDecoder.decode(encoded, "UTF-8")
+            val id = backStackEntry.arguments?.getInt("id") ?: 0
+            val index = backStackEntry.arguments?.getInt("index") ?: 0
+            val parentEntry = remember(backStackEntry) { navController.previousBackStackEntry }
+            val parentRoute = parentEntry?.destination?.route.orEmpty()
+            val examViewModel: ExamViewModel? = if (parentRoute.startsWith("exam")) {
+                parentEntry?.let { hiltViewModel(it) }
+            } else null
+            val practiceViewModel: PracticeViewModel? = if (!parentRoute.startsWith("exam")) {
+                parentEntry?.let { hiltViewModel(it) }
+            } else null
+            SparkScreen(
+                text = text,
+                questionId = id,
+                index = index,
+                navController = navController,
+                onSave = {
+                    examViewModel?.updateSparkAnalysis(index, it)
+                    practiceViewModel?.updateSparkAnalysis(index, it)
+                },
+                settingsViewModel = settingsViewModel
+            )
+        }
+    // TODO: 添加更多页面
     }
 }
