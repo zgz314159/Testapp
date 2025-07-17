@@ -549,28 +549,29 @@ fun ExamScreen(
             }
             if (!analysisText.isNullOrBlank() || !sparkText.isNullOrBlank()) {
                 if (!analysisText.isNullOrBlank()) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .weight(1f, fill = true)
-                        .verticalScroll(rememberScrollState())
-                        .background(Color(0xFFE8F6FF))
-                        .padding(8.dp)
-                        .pointerInput(analysisText) {
-                            detectTapGestures(
-                                onDoubleTap = {
-                                    onViewDeepSeek(analysisText!!, question.id, currentIndex)
-                                },
-                                onLongPress = { showDeleteDialog = true }
-                            )
-                        }
-                ) {
-                    Text(
-                        text = analysisText ?: "",
-                        color = Color(0xFF004B6B),
-                        fontSize = questionFontSize.sp,
-                        fontFamily = LocalFontFamily.current
-                    )
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .weight(1f, fill = true)
+                            .verticalScroll(rememberScrollState())
+                            .background(Color(0xFFE8F6FF))
+                            .padding(8.dp)
+                            .pointerInput(analysisText) {
+                                detectTapGestures(
+                                    onDoubleTap = {
+                                        onViewDeepSeek(analysisText!!, question.id, currentIndex)
+                                    },
+                                    onLongPress = { showDeleteDialog = true }
+                                )
+                            }
+                    ) {
+                        Text(
+                            text = analysisText ?: "",
+                            color = Color(0xFF004B6B),
+                            fontSize = questionFontSize.sp,
+                            fontFamily = LocalFontFamily.current
+                        )
+                    }
                 }
                 if (!sparkText.isNullOrBlank()) {
                     Spacer(modifier = Modifier.height(8.dp))
@@ -675,4 +676,4 @@ fun ExamScreen(
             text = { Text(if (selectedOptions.any { it.isEmpty() }) "还未答完题，是否交卷？" else "确定交卷？") }
         )
     }
-}}
+}
