@@ -43,6 +43,7 @@ private data class ResponseData(
 )
 
 class SparkApiService(private val client: HttpClient) {
+    private val json = Json { ignoreUnknownKeys = true }
 
     private fun stripMarkdown(text: String): String {
         return text.replace("*", "").replace("_", "")
@@ -66,7 +67,7 @@ class SparkApiService(private val client: HttpClient) {
             maxTokens = 512
         )
 
-        Log.d("SparkApiService", "RequestBodyJson=${Json.encodeToString(requestBody)}")
+        Log.d("SparkApiService", "RequestBodyJson=${json.encodeToString(requestBody)}")
 
         val requestStart = System.currentTimeMillis()
         Log.d("SparkApiService", "Sending request...")
@@ -95,7 +96,7 @@ class SparkApiService(private val client: HttpClient) {
 
         val parseStart = System.currentTimeMillis()
         val response = try {
-            Json.decodeFromString<ResponseData>(raw)
+            json.decodeFromString<ResponseData>(raw)
         } catch (e: Exception) {
             Log.e("SparkApiService", "Parse response failed", e)
             throw e
