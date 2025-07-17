@@ -76,12 +76,19 @@ class QuestionRepositoryImpl @Inject constructor(
             } catch (e: Exception) {
                 android.util.Log.e("ImportDebug", "解析Excel失败，尝试解析TXT", e)
                 try {
-                    parseTxtQuestions(file, originFileName)
+                    val txtQuestions = parseTxtQuestions(file, originFileName)
+                    if (txtQuestions.isNotEmpty()) {
+                        txtQuestions
+                    } else {
+                        android.util.Log.d("ImportDebug", "TXT解析结果为空，尝试解析DOCX")
+                        parseDocxQuestions(file, originFileName)
+                    }
                 } catch (e2: Exception) {
                     android.util.Log.e("ImportDebug", "解析TXT失败，尝试解析DOCX", e2)
                     try {
                         parseDocxQuestions(file, originFileName)
                     } catch (e3: Exception) {
+                        android.util.Log.e("ImportDebug", "解析DOCX失败", e3)
                         emptyList()
                     }
                 }
@@ -138,11 +145,13 @@ class QuestionRepositoryImpl @Inject constructor(
         val questions = mutableListOf<Question>()
         XWPFDocument(file.inputStream()).use { doc ->
             val lines = doc.paragraphs.map { it.text.trim() }.filter { it.isNotBlank() }
+            android.util.Log.d("ImportDebug", "DOCX文件${file.name} 行数: ${lines.size}")
             var i = 0
             while (i < lines.size) {
                 val questionMatch = Regex("^\\d+[.．]?\\s*(.+)").find(lines[i])
                 if (questionMatch != null) {
                     val content = questionMatch.groupValues[1]
+                    android.util.Log.d("ImportDebug", "DOCX解析题目: $content")
                     i++
                     val options = mutableListOf<String>()
                     while (i < lines.size && lines[i].matches(Regex("^[A-H]\\..+"))) {
@@ -178,12 +187,20 @@ class QuestionRepositoryImpl @Inject constructor(
                                 fileName = originFileName
                             )
                         )
+                        android.util.Log.d(
+                            "ImportDebug",
+                            "DOCX题目解析成功: $content, 选项数: ${options.size}, 答案: $answer"
+                        )
                     }
                 } else {
                     i++
                 }
             }
         }
+        android.util.Log.d(
+            "ImportDebug",
+            "DOCX文件${file.name} 解析完成，共${questions.size}题"
+        )
         return questions
     }
 
