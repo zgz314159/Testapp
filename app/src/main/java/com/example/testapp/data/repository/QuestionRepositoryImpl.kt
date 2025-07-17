@@ -7,34 +7,33 @@ import com.example.testapp.data.mapper.toEntity
 import com.example.testapp.domain.model.Question
 import com.example.testapp.domain.repository.QuestionRepository
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.firstOrNull
-import javax.inject.Inject
-import kotlinx.serialization.decodeFromString
+import kotlinx.coroutines.flow.map
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
+import org.apache.poi.ss.usermodel.DataFormatter
+import org.apache.poi.ss.usermodel.Row
 import org.apache.poi.ss.usermodel.WorkbookFactory
 import org.apache.poi.xssf.usermodel.XSSFWorkbook
-import org.apache.poi.ss.usermodel.Row
-import org.apache.poi.ss.usermodel.DataFormatter
 import org.apache.poi.xwpf.usermodel.XWPFDocument
 import java.io.File
+import javax.inject.Inject
 
 class QuestionRepositoryImpl @Inject constructor(
     private val dao: QuestionDao,
     private val favoriteDao: FavoriteQuestionDao
 ) : QuestionRepository {
+
     override fun getQuestions(): Flow<List<Question>> =
         dao.getAll().map { list -> list.map { it.toDomain() } }
 
     override fun getFavoriteQuestions(): Flow<List<Question>> =
         favoriteDao.getAll().map { favList ->
             val favIds = favList.map { it.questionId }
-            runCatching {
-                dao.getAll().firstOrNull()
-                    ?.filter { q -> favIds.contains(q.id) }
-                    ?.map { it.toDomain() }
-            }.getOrDefault(emptyList()) ?: emptyList()
+            dao.getAll().firstOrNull()
+                ?.filter { q -> favIds.contains(q.id) }
+                ?.map { it.toDomain() }
+                ?: emptyList()
         }
 
     override fun getQuestionsByFileName(fileName: String): Flow<List<Question>> =
@@ -45,78 +44,58 @@ class QuestionRepositoryImpl @Inject constructor(
     suspend fun insertAll(questions: List<Question>) {
         dao.insertAll(questions.map { it.toEntity() })
     }
+
     suspend fun clear() = dao.clear()
 
     override suspend fun importQuestions(list: List<Question>) {
         insertAll(list)
     }
+
     override suspend fun exportQuestions(): List<Question> {
         return getQuestions().firstOrNull() ?: emptyList()
     }
 
-    /**
-     * 批量导入题库文件，支持 xls、xlsx、txt、docx 多文件
-     * 需集成 Apache POI、JExcelApi 等库解析 Excel/Word，txt 可自定义格式
-     */
-    // 新增：支持传入原始文件名
-    override suspend fun importFromFilesWithOrigin(files: List<Pair<java.io.File, String>>): Int {
-        // 先查出数据库已有的 fileName 列表，避免重复导入
-        val existingFileNames = dao.getAll().firstOrNull()?.map { it.fileName }?.distinct() ?: emptyList()
+    override suspend fun importFromFilesWithOrigin(files: List<Pair<File, String>>): Int {
+        val existingFileNames = dao.getAll().firstOrNull()
+            ?.map { it.fileName }?.distinct() ?: emptyList()
         var total = 0
         val duplicateFiles = mutableListOf<String>()
+
         for ((file, originFileName) in files) {
             if (existingFileNames.contains(originFileName)) {
                 android.util.Log.d("ImportDebug", "文件已存在，跳过导入: $originFileName")
                 duplicateFiles.add(originFileName)
                 continue
             }
-            android.util.Log.d("ImportDebug", "开始导入文件: ${file.name}, 原始名: $originFileName")
+            android.util.Log.d("ImportDebug", "开始导入文件: ${file.name}")
             val questions: List<Question> = try {
                 parseExcelQuestions(file, originFileName)
             } catch (e: Exception) {
-                android.util.Log.e("ImportDebug", "解析Excel失败，尝试解析TXT", e)
-                try {
-                    val txtQuestions = parseTxtQuestions(file, originFileName)
-                    if (txtQuestions.isNotEmpty()) {
-                        txtQuestions
-                    } else {
-                        android.util.Log.d("ImportDebug", "TXT解析结果为空，尝试解析DOCX")
-                        parseDocxQuestions(file, originFileName)
-                    }
-                } catch (e2: Exception) {
-                    android.util.Log.e("ImportDebug", "解析TXT失败，尝试解析DOCX", e2)
-                    try {
-                        parseDocxQuestions(file, originFileName)
-                    } catch (e3: Exception) {
-                        android.util.Log.e("ImportDebug", "解析DOCX失败", e3)
-                        emptyList()
-                    }
+                android.util.Log.e("ImportDebug", "解析Excel失败，尝试TXT/DOCX", e)
+                parseTxtQuestions(file, originFileName).ifEmpty {
+                    parseDocxQuestions(file, originFileName)
                 }
             }
             insertAll(questions)
             total += questions.size
         }
+
         if (duplicateFiles.isNotEmpty()) {
             throw DuplicateFileImportException(duplicateFiles)
         }
         return total
     }
 
+    override suspend fun importFromFiles(files: List<File>): Int =
+        importFromFilesWithOrigin(files.map { it to it.name })
+
     class DuplicateFileImportException(val duplicates: List<String>) : Exception()
 
-    // 兼容老接口，自动用 file.name 作为原始名
-    override suspend fun importFromFiles(files: List<java.io.File>): Int {
-        return importFromFilesWithOrigin(files.map { it to it.name })
-    }
-
-    // txt 文件解析，适配新版 Question 字段
-    private fun parseTxtQuestions(file: java.io.File, originFileName: String): List<Question> {
+    private fun parseTxtQuestions(file: File, originFileName: String): List<Question> {
         val lines = file.readLines()
-        android.util.Log.d("ImportDebug", "TXT文件${file.name} 行数: ${lines.size}")
         return lines.mapNotNull { line ->
             val parts = line.split("|")
             if (parts.size >= 11) {
-                android.util.Log.d("ImportDebug", "TXT题目解析成功: ${parts[0]}")
                 Question(
                     id = 0,
                     content = parts[0],
@@ -128,68 +107,86 @@ class QuestionRepositoryImpl @Inject constructor(
                     isWrong = false,
                     fileName = originFileName
                 )
-            } else {
-                android.util.Log.w("ImportDebug", "TXT题目格式错误: $line")
-                null
-            }
+            } else null
         }
     }
 
-    // docx 文件解析，题库样式为：
-    // 1.题干
-    // A.选项1
-    // B.选项2
-    // 参考答案：A
-    // 解析：
+    /**
+     * docx 文件解析：
+     * 题干示例：“1.微型无人机(空机质量≤7千克)               [1分]”
+     * 选项示例：A.选项文本、B.选项文本……
+     * 答案示例：参考答案：A
+     * 解析示例：解析：……
+     */
     private fun parseDocxQuestions(file: File, originFileName: String): List<Question> {
         val questions = mutableListOf<Question>()
+        // 新的题干识别：凡是带 “[n分]” 就当新题起点
+        val QUESTION_REGEX = Regex("(.+?)\\[\\d+分]")
+
         XWPFDocument(file.inputStream()).use { doc ->
-            val lines = doc.paragraphs.map { it.text.trim() }.filter { it.isNotBlank() }
-            android.util.Log.d("ImportDebug", "DOCX文件${file.name} 行数: ${lines.size}")
+            val lines = doc.paragraphs
+                .map { it.text.trim() }
+                .filter { it.isNotBlank() }
+
             var i = 0
             while (i < lines.size) {
-                val questionMatch = Regex("^\\d+[.．]?\\s*(.+)").find(lines[i])
-                if (questionMatch != null) {
-                    val content = questionMatch.groupValues[1]
-                    android.util.Log.d("ImportDebug", "DOCX解析题目: $content")
+                val qm = QUESTION_REGEX.find(lines[i])
+                if (qm != null) {
+                    // 1) 题干
+                    val content = qm.groupValues[1].trim()
                     i++
+
+                    // 2) 收集选项
                     val options = mutableListOf<String>()
-                    while (i < lines.size && lines[i].matches(Regex("^[A-H]\\..+"))) {
-                        options.add(lines[i].substringAfter(".").trim())
+                    while (i < lines.size && lines[i].matches(Regex("^[A-H][\\.．、]\\s*.+"))) {
+                        options.add(lines[i].substring(2).trim())
                         i++
                     }
-                    var answer = ""
-                    if (i < lines.size && lines[i].startsWith("参考答案")) {
-                        answer = lines[i].substringAfter("：").trim()
+
+                    // 3) 提取原始答案字母
+                    var rawAns = ""
+                    if (i < lines.size && lines[i].contains(Regex("参考答案|Answer"))) {
+                        rawAns = lines[i]
+                            .substringAfter("：")
+                            .substringAfter(":")
+                            .trim()
                         i++
                     }
+
+                    // 4) 收集解析内容
                     var explanation = ""
                     if (i < lines.size && lines[i].startsWith("解析")) {
                         i++
-                        val expLines = mutableListOf<String>()
-                        while (i < lines.size && !lines[i].matches(Regex("^\\d+"))) {
-                            expLines.add(lines[i])
+                        val expBuf = mutableListOf<String>()
+                        while (i < lines.size && !QUESTION_REGEX.containsMatchIn(lines[i])) {
+                            expBuf.add(lines[i])
                             i++
                         }
-                        explanation = expLines.joinToString("\n")
+                        explanation = expBuf.joinToString("\n")
                     }
-                    if (content.isNotBlank() && options.isNotEmpty() && answer.isNotBlank()) {
+
+                    // 5) 把字母答案映射为选项文字
+                    val answerText = rawAns
+                        .takeIf { it.isNotEmpty() && options.isNotEmpty() }
+                        ?.let {
+                            val idx = it.first().uppercaseChar() - 'A'
+                            options.getOrNull(idx) ?: it
+                        } ?: rawAns
+
+                    // 6) 构造 Question 对象
+                    if (content.isNotBlank() && options.isNotEmpty() && answerText.isNotBlank()) {
                         questions.add(
                             Question(
                                 id = 0,
                                 content = content,
-                                type = "",
+                                type = "single",
                                 options = options,
-                                answer = answer,
+                                answer = answerText,
                                 explanation = explanation,
                                 isFavorite = false,
                                 isWrong = false,
                                 fileName = originFileName
                             )
-                        )
-                        android.util.Log.d(
-                            "ImportDebug",
-                            "DOCX题目解析成功: $content, 选项数: ${options.size}, 答案: $answer"
                         )
                     }
                 } else {
@@ -197,29 +194,29 @@ class QuestionRepositoryImpl @Inject constructor(
                 }
             }
         }
+
         android.util.Log.d(
             "ImportDebug",
-            "DOCX文件${file.name} 解析完成，共${questions.size}题"
+            "DOCX解析完成，共导入${questions.size}题"
         )
         return questions
     }
 
-    // Excel 文件解析，适配新版 Question 字段
     private fun parseExcelQuestions(file: File, originFileName: String): List<Question> {
         val questions = mutableListOf<Question>()
         val dataFormatter = DataFormatter()
+
         WorkbookFactory.create(file).use { workbook ->
             val sheet = workbook.getSheetAt(0)
-            android.util.Log.d("ImportDebug", "Excel文件${file.name} 行数: ${sheet.physicalNumberOfRows}")
             for (row in sheet.drop(1)) {
                 val content = row.getCell(0)?.let { dataFormatter.formatCellValue(it) } ?: ""
                 val type = row.getCell(1)?.let { dataFormatter.formatCellValue(it) } ?: ""
-                val options = (2..8).mapNotNull { row.getCell(it)?.let { cell -> dataFormatter.formatCellValue(cell) } }
+                val options = (2..8)
+                    .mapNotNull { row.getCell(it)?.let(dataFormatter::formatCellValue) }
                     .filter { it.isNotBlank() }
                 val explanation = row.getCell(9)?.let { dataFormatter.formatCellValue(it) } ?: ""
                 val answer = row.getCell(10)?.let { dataFormatter.formatCellValue(it) } ?: ""
                 if (content.isNotBlank() && options.isNotEmpty() && answer.isNotBlank()) {
-                    android.util.Log.d("ImportDebug", "Excel题目解析成功: $content, 选项数: ${options.size}, 答案: $answer")
                     questions.add(
                         Question(
                             id = 0,
@@ -233,29 +230,36 @@ class QuestionRepositoryImpl @Inject constructor(
                             fileName = originFileName
                         )
                     )
-                } else {
-                    android.util.Log.w(
-                        "ImportDebug",
-                        "Excel题目格式错误: content='$content', options='${options}', answer='$answer'"
-                    )
                 }
             }
         }
         return questions
     }
 
+    override suspend fun saveQuestionsToJson(fileName: String, questions: List<Question>) {
+        val dir = File("/data/data/com.example.testapp/files/quiz/").apply { if (!exists()) mkdirs() }
+        val file = File(dir, fileName)
+        file.writeText(Json.encodeToString(questions))
+        // 同步更新 DB
+        dao.deleteByFileName(fileName)
+        insertAll(questions)
+    }
+
+    override suspend fun deleteQuestionsByFileName(fileName: String) {
+        dao.deleteByFileName(fileName)
+    }
+
     fun exportQuestionsToExcel(questions: List<Question>, file: File): Boolean {
         return try {
             val workbook = XSSFWorkbook()
             val sheet = workbook.createSheet("题库")
-            // 表头
             val header = sheet.createRow(0)
             header.createCell(0).setCellValue("题干")
             header.createCell(1).setCellValue("题型")
-            (2..8).forEach { header.createCell(it).setCellValue("选项${it-1}") }
+            (2..8).forEach { header.createCell(it).setCellValue("选项${it - 1}") }
             header.createCell(9).setCellValue("解析")
             header.createCell(10).setCellValue("答案")
-            // 数据
+
             questions.forEachIndexed { idx, q ->
                 val row: Row = sheet.createRow(idx + 1)
                 row.createCell(0).setCellValue(q.content)
@@ -266,32 +270,12 @@ class QuestionRepositoryImpl @Inject constructor(
                 row.createCell(9).setCellValue(q.explanation)
                 row.createCell(10).setCellValue(q.answer)
             }
+
             file.outputStream().use { workbook.write(it) }
             workbook.close()
             true
         } catch (e: Exception) {
             false
         }
-    }
-
-    // 批量更新数据库内容：先删除该 fileName 下所有题目，再插入新题目
-    private suspend fun updateQuestionsInDb(fileName: String, questions: List<Question>) {
-        dao.deleteByFileName(fileName)
-        insertAll(questions)
-    }
-
-    override suspend fun saveQuestionsToJson(fileName: String, questions: List<Question>) {
-        // 保存到 JSON 文件
-        val dir = File("/data/data/com.example.testapp/files/quiz/")
-        if (!dir.exists()) dir.mkdirs()
-        val file = File(dir, fileName)
-        val json = Json.encodeToString(questions)
-        file.writeText(json)
-        // 同步更新数据库内容，保证所有界面都能实时看到最新题库
-        updateQuestionsInDb(fileName, questions)
-    }
-
-    override suspend fun deleteQuestionsByFileName(fileName: String) {
-        dao.deleteByFileName(fileName)
     }
 }

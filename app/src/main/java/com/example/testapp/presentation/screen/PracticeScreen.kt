@@ -288,7 +288,7 @@ fun PracticeScreen(
                 Icon(
                     imageVector = Icons.Filled.SmartToy,
                     contentDescription = "Spark AI",
-                    tint = if (hasSparkAnalysis) MaterialTheme.colorScheme.secondary else LocalContentColor.current
+                    tint = if (hasSparkAnalysis) MaterialTheme.colorScheme.primary else LocalContentColor.current
                 )
             }
             IconButton(onClick = {
