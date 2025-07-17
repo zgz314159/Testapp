@@ -30,6 +30,7 @@ import com.example.testapp.presentation.component.LocalFontFamily
 import com.example.testapp.presentation.component.LocalFontSize
 import com.example.testapp.util.answerLetterToIndex
 import com.example.testapp.util.rememberSoundEffects
+import com.example.testapp.presentation.screen.SparkViewModel
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 
@@ -44,6 +45,7 @@ fun PracticeScreen(
     viewModel: PracticeViewModel = hiltViewModel(),
     settingsViewModel: SettingsViewModel = hiltViewModel(),
     aiViewModel: DeepSeekViewModel = hiltViewModel(),
+    sparkViewModel: SparkViewModel = hiltViewModel(),
     onQuizEnd: (score: Int, total: Int) -> Unit = { _, _ -> },
     onSubmit: (Boolean) -> Unit = {},
     onExitWithoutAnswer: () -> Unit = {},
@@ -90,8 +92,10 @@ fun PracticeScreen(
     val favoriteQuestions by favoriteViewModel.favoriteQuestions.collectAsState()
     val question = questions.getOrNull(currentIndex)
     val analysisPair by aiViewModel.analysis.collectAsState()
+    val sparkPair by sparkViewModel.analysis.collectAsState()
     val analysisList by viewModel.analysisList.collectAsState()
     val analysisText = if (analysisPair?.first == currentIndex) analysisPair?.second else analysisList.getOrNull(currentIndex)
+    val sparkText = if (sparkPair?.first == currentIndex) sparkPair?.second else null
     val noteList by viewModel.noteList.collectAsState()
     val hasDeepSeekAnalysis = analysisList.getOrNull(currentIndex).orEmpty().isNotBlank()
     val hasNote = noteList.getOrNull(currentIndex).orEmpty().isNotBlank()
@@ -103,6 +107,7 @@ fun PracticeScreen(
     var elapsed by remember { mutableStateOf(0) }
     LaunchedEffect(currentIndex) {
         aiViewModel.clear()
+        sparkViewModel.clear()
         elapsed = 0
         while (true) {
             kotlinx.coroutines.delay(1000)
@@ -243,6 +248,21 @@ fun PracticeScreen(
                     imageVector = Icons.Filled.Lightbulb,
                     contentDescription = "AI 解析",
                     tint = if (hasDeepSeekAnalysis) MaterialTheme.colorScheme.primary else LocalContentColor.current
+                )
+            }
+            IconButton(onClick = {
+                if (question != null) {
+                    if (!showResult) {
+                        answeredThisSession = true
+                        viewModel.updateShowResult(currentIndex, true)
+                    }
+                    sparkViewModel.analyze(currentIndex, question)
+                }
+            }) {
+                Icon(
+                    imageVector = Icons.Filled.Lightbulb,
+                    contentDescription = "Spark AI",
+                    tint = MaterialTheme.colorScheme.secondary
                 )
             }
             IconButton(onClick = {
@@ -539,6 +559,24 @@ fun PracticeScreen(
                         fontFamily = LocalFontFamily.current
                     )
                 }
+                if (!sparkText.isNullOrBlank()) {
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .weight(1f, fill = true)
+                            .verticalScroll(rememberScrollState())
+                            .background(Color(0xFFEDE7FF))
+                            .padding(8.dp)
+                    ) {
+                        Text(
+                            text = sparkText ?: "",
+                            color = Color(0xFF3A006A),
+                            fontSize = questionFontSize.sp,
+                            fontFamily = LocalFontFamily.current
+                        )
+                    }
+                }
             } else {
                 Spacer(modifier = Modifier.weight(1f, fill = true))
             }
@@ -618,6 +656,7 @@ fun PracticeScreen(
             confirmButton = {
                 TextButton(onClick = {
                     aiViewModel.clear()
+                    sparkViewModel.clear()
                     viewModel.updateAnalysis(currentIndex, "")
                     showDeleteDialog = false
                 }) { Text("确定") }

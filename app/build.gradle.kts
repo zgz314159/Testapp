@@ -21,6 +21,7 @@ android {
         versionName       = "1.0"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         buildConfigField("String", "DEEPSEEK_API_KEY", "\"sk-23ec89dfe2484c17ba5f9329aae3d102\"")
+        buildConfigField("String", "SPARK_API_KEY", "\"MpymMjycdNmPsFhnrmnp:oPLkyTLZcOtVPvEIgXch\"")
     }
 
     buildTypes {

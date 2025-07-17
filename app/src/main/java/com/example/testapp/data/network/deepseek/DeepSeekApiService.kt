@@ -1,4 +1,4 @@
-package com.example.testapp.data.network
+package com.example.testapp.data.network.deepseek
 
 import com.example.testapp.BuildConfig
 import com.example.testapp.domain.model.Question

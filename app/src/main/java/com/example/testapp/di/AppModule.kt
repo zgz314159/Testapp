@@ -19,7 +19,8 @@ import com.example.testapp.data.repository.PracticeProgressRepositoryImpl
 import com.example.testapp.data.repository.ExamProgressRepositoryImpl
 import com.example.testapp.data.repository.QuestionAnalysisRepositoryImpl
 import com.example.testapp.data.repository.QuestionNoteRepositoryImpl
-import com.example.testapp.data.network.DeepSeekApiService
+import com.example.testapp.data.network.deepseek.DeepSeekApiService
+import com.example.testapp.data.network.spark.SparkApiService
 import com.example.testapp.domain.repository.FavoriteQuestionRepository
 import com.example.testapp.domain.repository.HistoryRepository
 import com.example.testapp.domain.repository.QuestionRepository
@@ -273,4 +274,7 @@ object AppModule {
     @Provides
     @Singleton
     fun provideDeepSeekApiService(client: HttpClient): DeepSeekApiService = DeepSeekApiService(client)
+    @Provides
+    @Singleton
+    fun provideSparkApiService(client: HttpClient): SparkApiService = SparkApiService(client)
 }
