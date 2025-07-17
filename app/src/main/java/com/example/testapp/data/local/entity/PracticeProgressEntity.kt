@@ -21,6 +21,8 @@ data class PracticeProgressEntity(
     @TypeConverters(StringListConverter::class)
     val analysisList: List<String>,
     @TypeConverters(StringListConverter::class)
+    val sparkAnalysisList: List<String> = emptyList(),
+    @TypeConverters(StringListConverter::class)
     val noteList: List<String>, // 每题的笔记内容
     val timestamp: Long // 保存时间戳
 )

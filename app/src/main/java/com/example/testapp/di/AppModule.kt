@@ -49,6 +49,8 @@ import com.example.testapp.domain.usecase.GetHistoryListByFileNamesUseCase
 import com.example.testapp.domain.usecase.RemoveHistoryRecordsByFileNameUseCase
 import com.example.testapp.domain.usecase.GetQuestionAnalysisUseCase
 import com.example.testapp.domain.usecase.SaveQuestionAnalysisUseCase
+import com.example.testapp.domain.usecase.GetSparkAnalysisUseCase
+import com.example.testapp.domain.usecase.SaveSparkAnalysisUseCase
 import com.example.testapp.domain.usecase.GetQuestionNoteUseCase
 import com.example.testapp.domain.usecase.SaveQuestionNoteUseCase
 import dagger.Module
@@ -241,6 +243,14 @@ object AppModule {
     @Singleton
     fun provideSaveQuestionAnalysisUseCase(repo: QuestionAnalysisRepository): SaveQuestionAnalysisUseCase = SaveQuestionAnalysisUseCase(repo)
 
+    @Provides
+    @Singleton
+    fun provideGetSparkAnalysisUseCase(repo: QuestionAnalysisRepository): GetSparkAnalysisUseCase = GetSparkAnalysisUseCase(repo)
+
+    @Provides
+    @Singleton
+    fun provideSaveSparkAnalysisUseCase(repo: QuestionAnalysisRepository): SaveSparkAnalysisUseCase = SaveSparkAnalysisUseCase(repo)
+
 
     @Provides
     @Singleton
@@ -254,7 +264,7 @@ object AppModule {
     @Singleton
     fun provideHttpClient(): HttpClient = HttpClient(CIO) {
         engine {
-            requestTimeout = 20_000
+            requestTimeout = 60_000
         }
         install(ContentNegotiation) {
 
@@ -267,7 +277,9 @@ object AppModule {
         }
         install(Logging) { level = LogLevel.NONE }
         install(HttpTimeout) {
-            requestTimeoutMillis = 20_000
+            requestTimeoutMillis = 60_000
+            connectTimeoutMillis = 60_000
+            socketTimeoutMillis = 60_000
         }
     }
 

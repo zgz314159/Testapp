@@ -6,6 +6,7 @@ data class ExamProgress(
     val selectedOptions: List<List<Int>>,
     val showResultList: List<Boolean>,
     val analysisList: List<String>,
+    val sparkAnalysisList: List<String> = emptyList(),
     val noteList: List<String>,
     val finished: Boolean,
     val timestamp: Long

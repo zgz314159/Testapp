@@ -7,5 +7,8 @@ import androidx.room.PrimaryKey
 data class QuestionAnalysisEntity(
     @PrimaryKey(autoGenerate = true) val id: Int = 0,
     val questionId: Int,
-    val analysis: String
+    /** DeepSeek 分析结果 */
+    val analysis: String,
+    /** Spark 分析结果，可为空 */
+    val sparkAnalysis: String? = null
 )

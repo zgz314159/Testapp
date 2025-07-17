@@ -77,9 +77,10 @@ fun ExamScreen(
     val analysisPair by aiViewModel.analysis.collectAsState()
     val sparkPair by sparkViewModel.analysis.collectAsState()
     val analysisList by viewModel.analysisList.collectAsState()
+    val sparkAnalysisList by viewModel.sparkAnalysisList.collectAsState()
     val analysisText = if (analysisPair?.first == currentIndex) analysisPair?.second else analysisList.getOrNull(currentIndex)
     val hasDeepSeekAnalysis = analysisList.getOrNull(currentIndex).orEmpty().isNotBlank()
-    val sparkText = if (sparkPair?.first == currentIndex) sparkPair?.second else null
+    val sparkText = if (sparkPair?.first == currentIndex) sparkPair?.second else sparkAnalysisList.getOrNull(currentIndex)
     val hasNote = noteList.getOrNull(currentIndex).orEmpty().isNotBlank()
     val favoriteViewModel: FavoriteViewModel = hiltViewModel()
     val favoriteQuestions by favoriteViewModel.favoriteQuestions.collectAsState()
@@ -101,12 +102,22 @@ fun ExamScreen(
             if (saved.isNotBlank()) {
                 viewModel.updateAnalysis(currentIndex, saved)
             }
+            val sparkSaved = sparkViewModel.getSavedAnalysis(question.id) ?: ""
+            if (sparkSaved.isNotBlank()) {
+                viewModel.updateSparkAnalysis(currentIndex, sparkSaved)
+            }
         }
     }
     LaunchedEffect(analysisPair) {
         val pair = analysisPair
         if (pair != null && pair.second != "解析中...") {
             viewModel.updateAnalysis(pair.first, pair.second)
+        }
+    }
+    LaunchedEffect(sparkPair) {
+        val pair = sparkPair
+        if (pair != null && pair.second != "解析中...") {
+            viewModel.updateSparkAnalysis(pair.first, pair.second)
         }
     }
     LaunchedEffect(quizId, examCount, randomExam, progressLoaded) {
@@ -536,7 +547,8 @@ fun ExamScreen(
                     )
                 }
             }
-            if (!analysisText.isNullOrBlank()) {
+            if (!analysisText.isNullOrBlank() || !sparkText.isNullOrBlank()) {
+                if (!analysisText.isNullOrBlank()) {
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -663,4 +675,4 @@ fun ExamScreen(
             text = { Text(if (selectedOptions.any { it.isEmpty() }) "还未答完题，是否交卷？" else "确定交卷？") }
         )
     }
-}
+}}

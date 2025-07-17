@@ -20,6 +20,8 @@ data class ExamProgressEntity(
     @TypeConverters(StringListConverter::class)
     val analysisList: List<String>,
     @TypeConverters(StringListConverter::class)
+    val sparkAnalysisList: List<String> = emptyList(),
+    @TypeConverters(StringListConverter::class)
     val noteList: List<String>,
     val finished: Boolean,
     val timestamp: Long

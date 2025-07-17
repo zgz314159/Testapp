@@ -94,8 +94,9 @@ fun PracticeScreen(
     val analysisPair by aiViewModel.analysis.collectAsState()
     val sparkPair by sparkViewModel.analysis.collectAsState()
     val analysisList by viewModel.analysisList.collectAsState()
+    val sparkAnalysisList by viewModel.sparkAnalysisList.collectAsState()
     val analysisText = if (analysisPair?.first == currentIndex) analysisPair?.second else analysisList.getOrNull(currentIndex)
-    val sparkText = if (sparkPair?.first == currentIndex) sparkPair?.second else null
+    val sparkText = if (sparkPair?.first == currentIndex) sparkPair?.second else sparkAnalysisList.getOrNull(currentIndex)
     val noteList by viewModel.noteList.collectAsState()
     val hasDeepSeekAnalysis = analysisList.getOrNull(currentIndex).orEmpty().isNotBlank()
     val hasNote = noteList.getOrNull(currentIndex).orEmpty().isNotBlank()
@@ -112,6 +113,18 @@ fun PracticeScreen(
         while (true) {
             kotlinx.coroutines.delay(1000)
             elapsed += 1
+        }
+    }
+    LaunchedEffect(question) {
+        question?.let {
+            val saved = aiViewModel.getSavedAnalysis(it.id) ?: ""
+            if (saved.isNotBlank()) {
+                viewModel.updateAnalysis(currentIndex, saved)
+            }
+            val sparkSaved = sparkViewModel.getSavedAnalysis(it.id) ?: ""
+            if (sparkSaved.isNotBlank()) {
+                viewModel.updateSparkAnalysis(currentIndex, sparkSaved)
+            }
         }
     }
     var showList by remember { mutableStateOf(false) }
@@ -146,6 +159,12 @@ fun PracticeScreen(
         val pair = analysisPair
         if (pair != null && pair.second != "解析中...") {
             viewModel.updateAnalysis(pair.first, pair.second)
+        }
+    }
+    LaunchedEffect(sparkPair) {
+        val pair = sparkPair
+        if (pair != null && pair.second != "解析中...") {
+            viewModel.updateSparkAnalysis(pair.first, pair.second)
         }
     }
     BackHandler {
@@ -533,7 +552,8 @@ fun PracticeScreen(
                 }
             }
             Spacer(modifier = Modifier.height(16.dp))
-            if (!analysisText.isNullOrBlank()) {
+            if (!analysisText.isNullOrBlank() || !sparkText.isNullOrBlank()) {
+                if (!analysisText.isNullOrBlank()) {
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -686,4 +706,4 @@ fun PracticeScreen(
             }
         )
     }
-}
+}}

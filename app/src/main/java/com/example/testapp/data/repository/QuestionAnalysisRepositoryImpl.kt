@@ -10,7 +10,7 @@ class QuestionAnalysisRepositoryImpl @Inject constructor(
 ) : QuestionAnalysisRepository {
     /** In-memory cache to avoid hitting the database repeatedly. */
     private val cache = mutableMapOf<Int, String>()
-
+    private val sparkCache = mutableMapOf<Int, String>()
     override suspend fun getAnalysis(questionId: Int): String? {
         val start = System.currentTimeMillis()
         cache[questionId]?.let {
@@ -37,12 +37,41 @@ class QuestionAnalysisRepositoryImpl @Inject constructor(
 
     override suspend fun saveAnalysis(questionId: Int, analysis: String) {
         val dbStart = System.currentTimeMillis()
-        dao.upsert(QuestionAnalysisEntity(questionId = questionId, analysis = analysis))
+        val entity = dao.getEntity(questionId)
+            ?.copy(analysis = analysis)
+            ?: QuestionAnalysisEntity(questionId = questionId, analysis = analysis)
+        dao.upsert(entity)
         val dbDuration = System.currentTimeMillis() - dbStart
         android.util.Log.d(
             "QuestionAnalysisRepo",
             "db save duration=${dbDuration} ms"
         )
         cache[questionId] = analysis
+    }
+    override suspend fun getSparkAnalysis(questionId: Int): String? {
+        sparkCache[questionId]?.let { return it }
+        val start = System.currentTimeMillis()
+        val result = dao.getSparkAnalysis(questionId)
+        val duration = System.currentTimeMillis() - start
+        android.util.Log.d(
+            "QuestionAnalysisRepo",
+            "getSparkAnalysis duration=${duration} ms resultLength=${result?.length}"
+        )
+        if (result != null) sparkCache[questionId] = result
+        return result
+    }
+
+    override suspend fun saveSparkAnalysis(questionId: Int, analysis: String) {
+        val dbStart = System.currentTimeMillis()
+        val entity = dao.getEntity(questionId)
+            ?.copy(sparkAnalysis = analysis)
+            ?: QuestionAnalysisEntity(questionId = questionId, analysis = "", sparkAnalysis = analysis)
+        dao.upsert(entity)
+        val dbDuration = System.currentTimeMillis() - dbStart
+        android.util.Log.d(
+            "QuestionAnalysisRepo",
+            "db save spark duration=${dbDuration} ms"
+        )
+        sparkCache[questionId] = analysis
     }
 }

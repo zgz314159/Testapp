@@ -14,3 +14,15 @@ class SaveQuestionAnalysisUseCase @Inject constructor(
 ) {
     suspend operator fun invoke(questionId: Int, analysis: String) = repository.saveAnalysis(questionId, analysis)
 }
+
+class GetSparkAnalysisUseCase @Inject constructor(
+    private val repository: QuestionAnalysisRepository
+) {
+    suspend operator fun invoke(questionId: Int): String? = repository.getSparkAnalysis(questionId)
+}
+
+class SaveSparkAnalysisUseCase @Inject constructor(
+    private val repository: QuestionAnalysisRepository
+) {
+    suspend operator fun invoke(questionId: Int, analysis: String) = repository.saveSparkAnalysis(questionId, analysis)
+}

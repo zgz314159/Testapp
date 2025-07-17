@@ -23,6 +23,7 @@ import com.example.testapp.util.answerLettersToIndices
 import com.example.testapp.domain.usecase.GetQuestionNoteUseCase
 import com.example.testapp.domain.usecase.SaveQuestionNoteUseCase
 import com.example.testapp.domain.usecase.GetQuestionAnalysisUseCase
+import com.example.testapp.domain.usecase.GetSparkAnalysisUseCase
 
 @HiltViewModel
 class ExamViewModel @Inject constructor(
@@ -34,7 +35,8 @@ class ExamViewModel @Inject constructor(
     private val clearExamProgressUseCase: ClearExamProgressUseCase,
     private val getQuestionNoteUseCase: GetQuestionNoteUseCase,
     private val saveQuestionNoteUseCase: SaveQuestionNoteUseCase,
-    private val getQuestionAnalysisUseCase: GetQuestionAnalysisUseCase
+    private val getQuestionAnalysisUseCase: GetQuestionAnalysisUseCase,
+    private val getSparkAnalysisUseCase: GetSparkAnalysisUseCase
 ) : ViewModel() {
     private val _questions = MutableStateFlow<List<Question>>(emptyList())
     val questions: StateFlow<List<Question>> = _questions.asStateFlow()
@@ -50,6 +52,9 @@ class ExamViewModel @Inject constructor(
 
     private val _analysisList = MutableStateFlow<List<String>>(emptyList())
     val analysisList: StateFlow<List<String>> = _analysisList.asStateFlow()
+
+    private val _sparkAnalysisList = MutableStateFlow<List<String>>(emptyList())
+    val sparkAnalysisList: StateFlow<List<String>> = _sparkAnalysisList.asStateFlow()
 
     private val _noteList = MutableStateFlow<List<String>>(emptyList())
     val noteList: StateFlow<List<String>> = _noteList.asStateFlow()
@@ -67,6 +72,7 @@ class ExamViewModel @Inject constructor(
 
     private var notesLoaded: Boolean = false
     private var analysisLoaded: Boolean = false
+    private var sparkAnalysisLoaded: Boolean = false
 
     fun loadQuestions(quizId: String, count: Int, random: Boolean) {
         // 考试模式也使用前缀区分进度
@@ -153,6 +159,14 @@ class ExamViewModel @Inject constructor(
                     }
                     _analysisList.value = analysis
 
+                    val sparkAna = if (progress.sparkAnalysisList.size >= size) {
+                        progress.sparkAnalysisList.take(size)
+                    } else {
+                        changed = true
+                        progress.sparkAnalysisList + List(size - progress.sparkAnalysisList.size) { "" }
+                    }
+                    _sparkAnalysisList.value = sparkAna
+
                     val notes = if (progress.noteList.size >= size) {
                         progress.noteList.take(size)
                     } else {
@@ -172,6 +186,10 @@ class ExamViewModel @Inject constructor(
             if (!analysisLoaded) {
                 loadAnalysisFromRepository()
                 analysisLoaded = true
+            }
+            if (!sparkAnalysisLoaded) {
+                loadSparkAnalysisFromRepository()
+                sparkAnalysisLoaded = true
             }
             if (!notesLoaded) {
                 loadNotesFromRepository()
@@ -251,6 +269,26 @@ class ExamViewModel @Inject constructor(
         }
     }
 
+    private suspend fun loadSparkAnalysisFromRepository() {
+        val qs = _questions.value
+        val list = _sparkAnalysisList.value.toMutableList()
+        var changed = false
+        qs.forEachIndexed { idx, q ->
+            if (idx >= list.size) list.add("")
+            if (list[idx].isBlank()) {
+                val text = getSparkAnalysisUseCase(q.id)
+                if (!text.isNullOrBlank()) {
+                    list[idx] = text
+                    changed = true
+                }
+            }
+        }
+        if (changed) {
+            _sparkAnalysisList.value = list
+        }
+    }
+
+
     fun saveNote(questionId: Int, index: Int, text: String) {
         viewModelScope.launch { saveQuestionNoteUseCase(questionId, text) }
         val list = _noteList.value.toMutableList()
@@ -286,6 +324,13 @@ class ExamViewModel @Inject constructor(
         saveProgress()
     }
 
+    fun updateSparkAnalysis(index: Int, text: String) {
+        val list = _sparkAnalysisList.value.toMutableList()
+        while (list.size <= index) list.add("")
+        list[index] = text
+        _sparkAnalysisList.value = list
+        saveProgress()
+    }
 
 
     suspend fun gradeExam(): Int {
@@ -335,11 +380,13 @@ class ExamViewModel @Inject constructor(
             _selectedOptions.value = List(_questions.value.size) { emptyList() }
             _showResultList.value = List(_questions.value.size) { false }
             _analysisList.value = List(_questions.value.size) { "" }
+            _sparkAnalysisList.value = List(_questions.value.size) { "" }
             _noteList.value = List(_questions.value.size) { "" }
             _finished.value = false
             _progressLoaded.value = false
             progressSeed = System.currentTimeMillis()
             analysisLoaded = false
+            sparkAnalysisLoaded = false
             notesLoaded = false
             loadProgress()
         }
@@ -352,6 +399,7 @@ class ExamViewModel @Inject constructor(
         _selectedOptions.value = List(qs.size) { emptyList() }
         _showResultList.value = List(qs.size) { false }
         _analysisList.value = List(qs.size) { "" }
+        _sparkAnalysisList.value = List(qs.size) { "" }
         _noteList.value = List(qs.size) { "" }
         _finished.value = false
         _progressLoaded.value = true
@@ -366,11 +414,13 @@ class ExamViewModel @Inject constructor(
             _selectedOptions.value = emptyList()
             _showResultList.value = emptyList()
             _analysisList.value = emptyList()
+            _sparkAnalysisList.value = emptyList()
             _noteList.value = emptyList()
             _finished.value = false
             _progressLoaded.value = false
             progressSeed = System.currentTimeMillis()
             analysisLoaded = false
+            sparkAnalysisLoaded = false
             notesLoaded = false
         }
     }
@@ -387,6 +437,7 @@ class ExamViewModel @Inject constructor(
                 selectedOptions = _selectedOptions.value,
                 showResultList = _showResultList.value,
                 analysisList = _analysisList.value,
+                sparkAnalysisList = _sparkAnalysisList.value,
                 noteList = _noteList.value,
                 finished = _finished.value,
                 timestamp = progressSeed

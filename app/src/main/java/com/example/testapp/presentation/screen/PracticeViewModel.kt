@@ -12,6 +12,8 @@ import com.example.testapp.domain.usecase.SaveQuestionsUseCase
 import com.example.testapp.domain.usecase.GetWrongBookUseCase
 import com.example.testapp.domain.usecase.GetFavoriteQuestionsUseCase
 import com.example.testapp.domain.usecase.GetQuestionAnalysisUseCase
+import com.example.testapp.domain.usecase.GetSparkAnalysisUseCase
+import com.example.testapp.domain.usecase.SaveSparkAnalysisUseCase
 import com.example.testapp.domain.usecase.GetQuestionNoteUseCase
 import com.example.testapp.domain.usecase.SaveQuestionNoteUseCase
 import com.example.testapp.domain.usecase.AddHistoryRecordUseCase
@@ -31,6 +33,8 @@ class PracticeViewModel @Inject constructor(
     private val getWrongBookUseCase: GetWrongBookUseCase,
     private val getFavoriteQuestionsUseCase: GetFavoriteQuestionsUseCase,
     private val getQuestionAnalysisUseCase: GetQuestionAnalysisUseCase,
+    private val getSparkAnalysisUseCase: GetSparkAnalysisUseCase,
+    private val saveSparkAnalysisUseCase: SaveSparkAnalysisUseCase,
     private val getQuestionNoteUseCase: GetQuestionNoteUseCase,
     private val saveQuestionNoteUseCase: SaveQuestionNoteUseCase,
     private val addHistoryRecordUseCase: AddHistoryRecordUseCase
@@ -56,6 +60,10 @@ class PracticeViewModel @Inject constructor(
     private val _analysisList = MutableStateFlow<List<String>>(emptyList())
     val analysisList: StateFlow<List<String>> = _analysisList.asStateFlow()
 
+    private val _sparkAnalysisList = MutableStateFlow<List<String>>(emptyList())
+    val sparkAnalysisList: StateFlow<List<String>> = _sparkAnalysisList.asStateFlow()
+
+
     private val _noteList = MutableStateFlow<List<String>>(emptyList())
     val noteList: StateFlow<List<String>> = _noteList.asStateFlow()
 
@@ -67,6 +75,7 @@ class PracticeViewModel @Inject constructor(
     private var questionSourceId: String = ""
     private var randomPracticeEnabled: Boolean = false
     private var analysisLoaded: Boolean = false
+    private var sparkAnalysisLoaded: Boolean = false
     private var notesLoaded: Boolean = false
 
     init {
@@ -96,6 +105,7 @@ class PracticeViewModel @Inject constructor(
         questionSourceId = questionsId
         _progressLoaded.value = false
         analysisLoaded = false
+        sparkAnalysisLoaded = false
         notesLoaded = false
         if (loadQuestions) {
             viewModelScope.launch {
@@ -154,6 +164,14 @@ class PracticeViewModel @Inject constructor(
                             (progress.analysisList +
                                     List(_questions.value.size - progress.analysisList.size) { "" }).toList()
                         }
+                    _sparkAnalysisList.value = emptyList()
+                    _sparkAnalysisList.value =
+                        if (progress.sparkAnalysisList.size >= _questions.value.size) {
+                            progress.sparkAnalysisList.take(_questions.value.size).toList()
+                        } else {
+                            (progress.sparkAnalysisList +
+                                    List(_questions.value.size - progress.sparkAnalysisList.size) { "" }).toList()
+                        }
                 } else if (progress == null && !_progressLoaded.value) {
                     android.util.Log.d("PracticeDebug", "no existing progress, initializing")
                     _currentIndex.value = 0
@@ -161,12 +179,17 @@ class PracticeViewModel @Inject constructor(
                     _selectedOptions.value = List(_questions.value.size) { emptyList() }
                     _showResultList.value = List(_questions.value.size) { false }
                     _analysisList.value = List(_questions.value.size) { "" }
+                    _sparkAnalysisList.value = List(_questions.value.size) { "" }
                     saveProgress()
                 }
                 _progressLoaded.value = true
                 if (!analysisLoaded) {
                     loadAnalysisFromRepository()
                     analysisLoaded = true
+                }
+                if (!sparkAnalysisLoaded) {
+                    loadSparkAnalysisFromRepository()
+                    sparkAnalysisLoaded = true
                 }
                 if (!notesLoaded) {
                     loadNotesFromRepository()
@@ -192,6 +215,25 @@ class PracticeViewModel @Inject constructor(
         }
         if (changed) {
             _analysisList.value = list
+            saveProgress()
+        }
+    }
+    private suspend fun loadSparkAnalysisFromRepository() {
+        val qs = _questions.value
+        val list = _sparkAnalysisList.value.toMutableList()
+        var changed = false
+        qs.forEachIndexed { idx, q ->
+            if (idx >= list.size) list.add("")
+            if (list[idx].isBlank()) {
+                val text = getSparkAnalysisUseCase(q.id)
+                if (!text.isNullOrBlank()) {
+                    list[idx] = text
+                    changed = true
+                }
+            }
+        }
+        if (changed) {
+            _sparkAnalysisList.value = list
             saveProgress()
         }
     }
@@ -278,6 +320,7 @@ class PracticeViewModel @Inject constructor(
                     selectedOptions = _selectedOptions.value,
                     showResultList = _showResultList.value,
                     analysisList = _analysisList.value,
+                    sparkAnalysisList = _sparkAnalysisList.value,
                     noteList = _noteList.value,
                     timestamp = System.currentTimeMillis()
                 )
@@ -292,6 +335,7 @@ class PracticeViewModel @Inject constructor(
             resetLocalState()
             _progressLoaded.value = false
             analysisLoaded = false
+            sparkAnalysisLoaded = false
             notesLoaded = false
         }
     }
@@ -303,6 +347,7 @@ class PracticeViewModel @Inject constructor(
         _selectedOptions.value = List(count) { emptyList() }
         _showResultList.value = List(count) { false }
         _analysisList.value = List(count) { "" }
+        _sparkAnalysisList.value = List(count) { "" }
     }
 
     fun updateShowResult(index: Int, value: Boolean) {
@@ -321,6 +366,15 @@ class PracticeViewModel @Inject constructor(
         _analysisList.value = list
         saveProgress()
     }
+
+    fun updateSparkAnalysis(index: Int, text: String) {
+        val list = _sparkAnalysisList.value.toMutableList()
+        while (list.size <= index) list.add("")
+        list[index] = text
+        _sparkAnalysisList.value = list
+        saveProgress()
+    }
+
 
     fun addHistoryRecord(score: Int, total: Int) {
         viewModelScope.launch {
