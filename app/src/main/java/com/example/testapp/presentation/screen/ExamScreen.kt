@@ -83,6 +83,7 @@ fun ExamScreen(
     val analysisText = if (analysisPair?.first == currentIndex) analysisPair?.second else analysisList.getOrNull(currentIndex)
     val hasDeepSeekAnalysis = analysisList.getOrNull(currentIndex).orEmpty().isNotBlank()
     val sparkText = if (sparkPair?.first == currentIndex) sparkPair?.second else sparkAnalysisList.getOrNull(currentIndex)
+    val hasSparkAnalysis = sparkAnalysisList.getOrNull(currentIndex).orEmpty().isNotBlank()
     val hasNote = noteList.getOrNull(currentIndex).orEmpty().isNotBlank()
     val favoriteViewModel: FavoriteViewModel = hiltViewModel()
     val favoriteQuestions by favoriteViewModel.favoriteQuestions.collectAsState()
@@ -279,12 +280,16 @@ fun ExamScreen(
                     answeredThisSession = true
                     viewModel.updateShowResult(currentIndex, true)
                 }
-                sparkViewModel.analyze(currentIndex, question)
+                if (hasSparkAnalysis) {
+                    onViewSpark(sparkText ?: "", question.id, currentIndex)
+                } else {
+                    sparkViewModel.analyze(currentIndex, question)
+                }
             }) {
                 Icon(
                     imageVector = Icons.Filled.SmartToy,
                     contentDescription = "Spark AI",
-                    tint = MaterialTheme.colorScheme.secondary
+                    tint = if (hasSparkAnalysis) MaterialTheme.colorScheme.secondary else LocalContentColor.current
                 )
             }
             IconButton(onClick = {

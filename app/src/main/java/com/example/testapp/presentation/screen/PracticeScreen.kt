@@ -101,6 +101,7 @@ fun PracticeScreen(
     val sparkText = if (sparkPair?.first == currentIndex) sparkPair?.second else sparkAnalysisList.getOrNull(currentIndex)
     val noteList by viewModel.noteList.collectAsState()
     val hasDeepSeekAnalysis = analysisList.getOrNull(currentIndex).orEmpty().isNotBlank()
+    val hasSparkAnalysis = sparkAnalysisList.getOrNull(currentIndex).orEmpty().isNotBlank()
     val hasNote = noteList.getOrNull(currentIndex).orEmpty().isNotBlank()
     val selectedOption = selectedOptions.getOrNull(currentIndex) ?: emptyList<Int>()
     val showResult = showResultList.getOrNull(currentIndex) ?: false
@@ -277,13 +278,17 @@ fun PracticeScreen(
                         answeredThisSession = true
                         viewModel.updateShowResult(currentIndex, true)
                     }
-                    sparkViewModel.analyze(currentIndex, question)
+                    if (hasSparkAnalysis) {
+                        onViewSpark(sparkText ?: "", question.id, currentIndex)
+                    } else {
+                        sparkViewModel.analyze(currentIndex, question)
+                    }
                 }
             }) {
                 Icon(
                     imageVector = Icons.Filled.SmartToy,
                     contentDescription = "Spark AI",
-                    tint = MaterialTheme.colorScheme.secondary
+                    tint = if (hasSparkAnalysis) MaterialTheme.colorScheme.secondary else LocalContentColor.current
                 )
             }
             IconButton(onClick = {
