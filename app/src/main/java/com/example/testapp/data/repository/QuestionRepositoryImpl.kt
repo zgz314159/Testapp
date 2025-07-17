@@ -17,6 +17,7 @@ import org.apache.poi.ss.usermodel.WorkbookFactory
 import org.apache.poi.xssf.usermodel.XSSFWorkbook
 import org.apache.poi.ss.usermodel.Row
 import org.apache.poi.ss.usermodel.DataFormatter
+import org.apache.poi.xwpf.usermodel.XWPFDocument
 import java.io.File
 
 class QuestionRepositoryImpl @Inject constructor(
@@ -54,8 +55,8 @@ class QuestionRepositoryImpl @Inject constructor(
     }
 
     /**
-     * 批量导入题库文件，支持 xls、xlsx、txt 多文件
-     * 需集成 Apache POI、JExcelApi 等库解析 Excel，txt 可自定义格式
+     * 批量导入题库文件，支持 xls、xlsx、txt、docx 多文件
+     * 需集成 Apache POI、JExcelApi 等库解析 Excel/Word，txt 可自定义格式
      */
     // 新增：支持传入原始文件名
     override suspend fun importFromFilesWithOrigin(files: List<Pair<java.io.File, String>>): Int {
@@ -77,7 +78,12 @@ class QuestionRepositoryImpl @Inject constructor(
                 try {
                     parseTxtQuestions(file, originFileName)
                 } catch (e2: Exception) {
-                    emptyList()
+                    android.util.Log.e("ImportDebug", "解析TXT失败，尝试解析DOCX", e2)
+                    try {
+                        parseDocxQuestions(file, originFileName)
+                    } catch (e3: Exception) {
+                        emptyList()
+                    }
                 }
             }
             insertAll(questions)
@@ -120,6 +126,65 @@ class QuestionRepositoryImpl @Inject constructor(
                 null
             }
         }
+    }
+
+    // docx 文件解析，题库样式为：
+    // 1.题干
+    // A.选项1
+    // B.选项2
+    // 参考答案：A
+    // 解析：
+    private fun parseDocxQuestions(file: File, originFileName: String): List<Question> {
+        val questions = mutableListOf<Question>()
+        XWPFDocument(file.inputStream()).use { doc ->
+            val lines = doc.paragraphs.map { it.text.trim() }.filter { it.isNotBlank() }
+            var i = 0
+            while (i < lines.size) {
+                val questionMatch = Regex("^\\d+[.．]?\\s*(.+)").find(lines[i])
+                if (questionMatch != null) {
+                    val content = questionMatch.groupValues[1]
+                    i++
+                    val options = mutableListOf<String>()
+                    while (i < lines.size && lines[i].matches(Regex("^[A-H]\\..+"))) {
+                        options.add(lines[i].substringAfter(".").trim())
+                        i++
+                    }
+                    var answer = ""
+                    if (i < lines.size && lines[i].startsWith("参考答案")) {
+                        answer = lines[i].substringAfter("：").trim()
+                        i++
+                    }
+                    var explanation = ""
+                    if (i < lines.size && lines[i].startsWith("解析")) {
+                        i++
+                        val expLines = mutableListOf<String>()
+                        while (i < lines.size && !lines[i].matches(Regex("^\\d+"))) {
+                            expLines.add(lines[i])
+                            i++
+                        }
+                        explanation = expLines.joinToString("\n")
+                    }
+                    if (content.isNotBlank() && options.isNotEmpty() && answer.isNotBlank()) {
+                        questions.add(
+                            Question(
+                                id = 0,
+                                content = content,
+                                type = "",
+                                options = options,
+                                answer = answer,
+                                explanation = explanation,
+                                isFavorite = false,
+                                isWrong = false,
+                                fileName = originFileName
+                            )
+                        )
+                    }
+                } else {
+                    i++
+                }
+            }
+        }
+        return questions
     }
 
     // Excel 文件解析，适配新版 Question 字段
