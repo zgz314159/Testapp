@@ -2,17 +2,22 @@ package com.example.testapp.presentation.screen
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
+import kotlinx.coroutines.sync.Semaphore
+import kotlinx.coroutines.sync.withPermit
 import com.example.testapp.data.network.DeepSeekApiService
 import com.example.testapp.domain.model.Question
 import com.example.testapp.domain.usecase.GetQuestionAnalysisUseCase
 import com.example.testapp.domain.usecase.SaveQuestionAnalysisUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.flow.*
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.sync.Semaphore
-import kotlinx.coroutines.sync.withPermit
 import javax.inject.Inject
+import kotlinx.serialization.encodeToString
+import kotlinx.serialization.json.Json
 
 @HiltViewModel
 class DeepSeekViewModel @Inject constructor(
@@ -20,45 +25,51 @@ class DeepSeekViewModel @Inject constructor(
     private val getAnalysis: GetQuestionAnalysisUseCase,
     private val saveAnalysisUseCase: SaveQuestionAnalysisUseCase
 ) : ViewModel() {
-
     private val _analysis = MutableStateFlow<Pair<Int, String>?>(null)
-    val analysis: StateFlow<Pair<Int, String>?> = _analysis
+    val analysis: StateFlow<Pair<Int, String>?> = _analysis.asStateFlow()
 
-    /** 限流，最多两个并发 */
-    private val semaphore = Semaphore(2)
+    /** Limit concurrent API calls to avoid saturating bandwidth */
+    private val semaphore = Semaphore(permits = 2)
 
-    /** 重新暴露给外面查缓存的接口 */
     suspend fun getSavedAnalysis(questionId: Int): String? = getAnalysis(questionId)
-
     fun analyze(index: Int, question: Question) {
+
         viewModelScope.launch {
-            // 先查缓存
+            android.util.Log.d("DeepSeekViewModel", "Analyze question id=${question.id}")
+            android.util.Log.d(
+                "DeepSeekViewModel",
+                "QuestionJson=${Json.encodeToString(question)}"
+            )
+            val cacheStart = System.currentTimeMillis()
             val cached = getAnalysis(question.id)
+            val cacheDuration = System.currentTimeMillis() - cacheStart
+            android.util.Log.d("DeepSeekViewModel", "Check cache duration=${cacheDuration} ms")
             if (!cached.isNullOrBlank()) {
+                android.util.Log.d("DeepSeekViewModel", "Use cached analysis")
                 _analysis.value = index to cached
                 return@launch
             }
 
-            // 流式调用
-            semaphore.withPermit {
-                api.analyze(question)
-                    .flowOn(Dispatchers.IO)
-                    .onStart {
-                        _analysis.value = index to ""          // 清空
-                    }
-                    .onEach { partial ->
-                        _analysis.value = index to partial     // 每次片段更新
-                    }
-                    .onCompletion {
-                        // 完成后存一次最终结果
-                        val final = _analysis.value?.second ?: ""
-                        saveAnalysisUseCase(question.id, final)
-                    }
-                    .catch { e ->
-                        _analysis.value = index to "解析失败: ${e.message}"
-                    }
-                    .launchIn(this@launch)  // 用当前 coroutineScope
+            _analysis.value = index to "解析中..."
+            val apiStart = System.currentTimeMillis()
+            runCatching {
+                semaphore.withPermit {
+                    withContext(Dispatchers.IO) { api.analyze(question) }
+                }
             }
+                .onSuccess {
+                    val apiDuration = System.currentTimeMillis() - apiStart
+                    android.util.Log.d("DeepSeekViewModel", "API call duration=${apiDuration} ms")
+                    android.util.Log.d("DeepSeekViewModel", "Analysis success: $it")
+                    _analysis.value = index to it
+                    saveAnalysisUseCase(question.id, it)
+                }
+                .onFailure {
+                    val apiDuration = System.currentTimeMillis() - apiStart
+                    android.util.Log.d("DeepSeekViewModel", "API call duration=${apiDuration} ms")
+                    android.util.Log.e("DeepSeekViewModel", "Analysis failed", it)
+                    _analysis.value = index to "解析失败: ${it.message}"
+                }
         }
     }
 
@@ -67,7 +78,6 @@ class DeepSeekViewModel @Inject constructor(
             saveAnalysisUseCase(questionId, analysis)
         }
     }
-
     fun clear() {
         _analysis.value = null
     }

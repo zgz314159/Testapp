@@ -427,12 +427,14 @@ fun SettingsScreen(
             arrayOf(
                 "application/vnd.ms-excel",
                 "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-                "text/plain"
+                "text/plain",
+                "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+                "application/msword"
             )
         )
         }) {
             Text(
-                "导入题库文件（支持xls/xlsx/txt）",
+                "导入题库文件（支持xls/xlsx/txt/docx）",
                 style = MaterialTheme.typography.bodyLarge.copy(
                     fontSize = fontSize.sp,
                     fontFamily = LocalFontFamily.current
