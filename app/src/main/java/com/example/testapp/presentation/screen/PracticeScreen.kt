@@ -157,6 +157,7 @@ fun PracticeScreen(
     var showExitDialog by remember { mutableStateOf(false) }
     var answeredThisSession by remember { mutableStateOf(false) }
     var showDeleteDialog by remember { mutableStateOf(false) }
+    var showDeleteNoteDialog by remember { mutableStateOf(false) }
     LaunchedEffect(progressLoaded) {
         if (progressLoaded) answeredThisSession = false
     }
@@ -530,9 +531,11 @@ fun PracticeScreen(
                 )
             }
             if (question.explanation.isNotBlank()) {
-                Row(
+                Box(
                     modifier = Modifier
                         .fillMaxWidth()
+                        .heightIn(max = 200.dp)
+                        .verticalScroll(rememberScrollState())
                         .background(Color(0xFFFFF5C0))
                         .padding(8.dp)
                 ) {
@@ -553,6 +556,15 @@ fun PracticeScreen(
                         .verticalScroll(rememberScrollState())
                         .background(Color(0xFFE0FFE0))
                         .padding(8.dp)
+                        .pointerInput(note) {
+                            detectTapGestures(
+                                onDoubleTap = {
+                                    noteText = note
+                                    showNoteDialog = true
+                                },
+                                onLongPress = { showDeleteNoteDialog = true }
+                            )
+                        }
                 ) {
                     Text(
                         text = "笔记：$note",
@@ -690,6 +702,21 @@ fun PracticeScreen(
                 TextButton(onClick = { showNoteDialog = false }) { Text("取消") }
             },
             text = { TextField(value = noteText, onValueChange = { noteText = it }) }
+        )
+    }
+    if (showDeleteNoteDialog) {
+        AlertDialog(
+            onDismissRequest = { showDeleteNoteDialog = false },
+            confirmButton = {
+                TextButton(onClick = {
+                    viewModel.saveNote(question.id, currentIndex, "")
+                    showDeleteNoteDialog = false
+                }) { Text("确定") }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDeleteNoteDialog = false }) { Text("取消") }
+            },
+            text = { Text("确定删除笔记吗？") }
         )
     }
     if (showDeleteDialog) {
