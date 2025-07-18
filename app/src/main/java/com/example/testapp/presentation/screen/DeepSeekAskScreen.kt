@@ -134,13 +134,7 @@ fun DeepSeekAskScreen(
                 modifier = Modifier.fillMaxWidth(),
                 textStyle = TextStyle(fontSize = LocalFontSize.current, fontFamily = LocalFontFamily.current)
             )
-            Button(
-                onClick = {
-                    answer = TextFieldValue("解析中...")
-                    viewModel.ask(question.text)
-                },
-                modifier = Modifier.padding(top = 8.dp)
-            ) { Text("提问") }
+
             Spacer(modifier = Modifier.height(16.dp))
             CompositionLocalProvider(LocalTextToolbar provides toolbar) {
                 BasicTextField(
@@ -149,6 +143,18 @@ fun DeepSeekAskScreen(
                     modifier = Modifier.fillMaxWidth(),
                     textStyle = TextStyle(fontSize = screenFontSize.sp, fontFamily = LocalFontFamily.current)
                 )
+            }
+        }
+        if (answer.text.isBlank()) {
+            Box(
+                modifier = Modifier
+                    .align(Alignment.BottomCenter)
+                    .padding(16.dp)
+            ) {
+                Button(onClick = {
+                    answer = TextFieldValue("解析中...")
+                    viewModel.ask(question.text)
+                }) { Text("提问") }
             }
         }
         Box(modifier = Modifier.align(Alignment.TopEnd)) {

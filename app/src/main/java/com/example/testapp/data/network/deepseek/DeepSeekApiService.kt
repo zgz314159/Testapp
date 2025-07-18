@@ -28,7 +28,7 @@ private data class Message(
 private data class RequestBody(
     val model: String = "deepseek-chat",
     val messages: List<Message>,
-    @SerialName("max_tokens") val maxTokens: Int = 512
+    @SerialName("max_tokens") val maxTokens: Int = 4096
 )
 
 @Serializable
@@ -65,7 +65,7 @@ class DeepSeekApiService(private val client: HttpClient) {
 
         val requestBody = RequestBody(
             messages = listOf(Message("user", prompt)),
-            maxTokens = 512
+            maxTokens = 4096
         )
         android.util.Log.d(
             "DeepSeekApiService",
@@ -121,7 +121,7 @@ class DeepSeekApiService(private val client: HttpClient) {
     suspend fun ask(text: String): String {
         val requestBody = RequestBody(
             messages = listOf(Message("user", text)),
-            maxTokens = 512
+            maxTokens = 4096
         )
         val httpResponse = client.post {
             url("https://api.deepseek.com/v1/chat/completions")

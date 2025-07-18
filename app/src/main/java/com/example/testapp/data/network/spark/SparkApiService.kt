@@ -29,7 +29,7 @@ private data class Message(
 private data class RequestBody(
     val model: String = "x1",
     val messages: List<Message>,
-    @SerialName("max_tokens") val maxTokens: Int = 512
+    @SerialName("max_tokens") val maxTokens: Int = 4096
 )
 
 @Serializable
@@ -64,7 +64,7 @@ class SparkApiService(private val client: HttpClient) {
 
         val requestBody = RequestBody(
             messages = listOf(Message("user", prompt)),
-            maxTokens = 512
+            maxTokens = 4096
         )
 
         Log.d("SparkApiService", "RequestBodyJson=${json.encodeToString(requestBody)}")

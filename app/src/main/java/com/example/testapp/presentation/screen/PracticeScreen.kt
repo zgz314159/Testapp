@@ -546,9 +546,11 @@ fun PracticeScreen(
             }
             val note = noteList.getOrNull(currentIndex)
             if (!note.isNullOrBlank()) {
-                Row(
+                Box(
                     modifier = Modifier
                         .fillMaxWidth()
+                        .heightIn(max = 200.dp)
+                        .verticalScroll(rememberScrollState())
                         .background(Color(0xFFE0FFE0))
                         .padding(8.dp)
                 ) {
