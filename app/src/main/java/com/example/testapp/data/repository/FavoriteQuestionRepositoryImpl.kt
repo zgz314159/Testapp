@@ -116,33 +116,59 @@ class FavoriteQuestionRepositoryImpl @Inject constructor(
 
     private fun parseExcelFavorites(file: File): List<FavoriteQuestion> {
         val favorites = mutableListOf<FavoriteQuestion>()
-        val formatter = DataFormatter()
+        val f = DataFormatter()
+
+        fun parseRowStyle1(row: Row): FavoriteQuestion? {
+            val content = row.getCell(0)?.let { f.formatCellValue(it) } ?: ""
+            if (content.isBlank()) return null
+            val type = row.getCell(1)?.let { f.formatCellValue(it) } ?: ""
+            val options = (2..8).mapNotNull { idx ->
+                row.getCell(idx)?.let { f.formatCellValue(it) }.takeIf { !it.isNullOrBlank() }
+            }
+            val explanation = row.getCell(9)?.let { f.formatCellValue(it) } ?: ""
+            val answer = row.getCell(10)?.let { f.formatCellValue(it) } ?: ""
+            return FavoriteQuestion(
+                question = Question(
+                    id = 0,
+                    content = content,
+                    type = type,
+                    options = options,
+                    answer = answer,
+                    explanation = explanation,
+                    isFavorite = true,
+                    isWrong = false,
+                    fileName = file.name
+                )
+            )
+        }
+
+        fun parseRowStyle2(row: Row): FavoriteQuestion? {
+            val content = row.getCell(0)?.let { f.formatCellValue(it) } ?: ""
+            if (content.isBlank()) return null
+            val options = (1..3).mapNotNull { idx ->
+                row.getCell(idx)?.let { f.formatCellValue(it) }.takeIf { !it.isNullOrBlank() }
+            }
+            val explanation = row.getCell(4)?.let { f.formatCellValue(it) } ?: ""
+            val answer = row.getCell(5)?.let { f.formatCellValue(it) } ?: ""
+            return FavoriteQuestion(
+                question = Question(
+                    id = 0,
+                    content = content,
+                    type = "",
+                    options = options,
+                    answer = answer,
+                    explanation = explanation,
+                    isFavorite = true,
+                    isWrong = false,
+                    fileName = file.name
+                )
+            )
+        }
         WorkbookFactory.create(file).use { workbook ->
             val sheet = workbook.getSheetAt(0)
             for (row in sheet.drop(1)) {
-                val content = row.getCell(0)?.let { formatter.formatCellValue(it) } ?: ""
-                if (content.isBlank()) continue
-                val type = row.getCell(1)?.let { formatter.formatCellValue(it) } ?: ""
-                val options = (2..8).mapNotNull { idx ->
-                    row.getCell(idx)?.let { formatter.formatCellValue(it) }.takeIf { !it.isNullOrBlank() }
-                }
-                val explanation = row.getCell(9)?.let { formatter.formatCellValue(it) } ?: ""
-                val answer = row.getCell(10)?.let { formatter.formatCellValue(it) } ?: ""
-                favorites.add(
-                    FavoriteQuestion(
-                        question = Question(
-                            id = 0,
-                            content = content,
-                            type = type,
-                            options = options,
-                            answer = answer,
-                            explanation = explanation,
-                            isFavorite = true,
-                            isWrong = false,
-                            fileName = file.name
-                        )
-                    )
-                )
+                val q = parseRowStyle1(row) ?: parseRowStyle2(row)
+                if (q != null) favorites.add(q)
             }
         }
         return favorites

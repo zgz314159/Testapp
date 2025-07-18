@@ -204,33 +204,58 @@ class QuestionRepositoryImpl @Inject constructor(
 
     private fun parseExcelQuestions(file: File, originFileName: String): List<Question> {
         val questions = mutableListOf<Question>()
-        val dataFormatter = DataFormatter()
+        val f = DataFormatter()
+
+        fun parseRowStyle1(row: Row): Question? {
+            val content = row.getCell(0)?.let { f.formatCellValue(it) } ?: ""
+            val type = row.getCell(1)?.let { f.formatCellValue(it) } ?: ""
+            val options = (2..8)
+                .mapNotNull { row.getCell(it)?.let(f::formatCellValue) }
+                .filter { it.isNotBlank() }
+            val explanation = row.getCell(9)?.let { f.formatCellValue(it) } ?: ""
+            val answer = row.getCell(10)?.let { f.formatCellValue(it) } ?: ""
+            return if (content.isNotBlank() && options.isNotEmpty() && answer.isNotBlank()) {
+                Question(
+                    id = 0,
+                    content = content,
+                    type = type,
+                    options = options,
+                    answer = answer,
+                    explanation = explanation,
+                    isFavorite = false,
+                    isWrong = false,
+                    fileName = originFileName
+                )
+            } else null
+        }
+
+        fun parseRowStyle2(row: Row): Question? {
+            val content = row.getCell(0)?.let { f.formatCellValue(it) } ?: ""
+            val options = (1..3)
+                .mapNotNull { row.getCell(it)?.let(f::formatCellValue) }
+                .filter { it.isNotBlank() }
+            val explanation = row.getCell(4)?.let { f.formatCellValue(it) } ?: ""
+            val answer = row.getCell(5)?.let { f.formatCellValue(it) } ?: ""
+            return if (content.isNotBlank() && options.isNotEmpty() && answer.isNotBlank()) {
+                Question(
+                    id = 0,
+                    content = content,
+                    type = "",
+                    options = options,
+                    answer = answer,
+                    explanation = explanation,
+                    isFavorite = false,
+                    isWrong = false,
+                    fileName = originFileName
+                )
+            } else null
+        }
 
         WorkbookFactory.create(file).use { workbook ->
             val sheet = workbook.getSheetAt(0)
             for (row in sheet.drop(1)) {
-                val content = row.getCell(0)?.let { dataFormatter.formatCellValue(it) } ?: ""
-                val type = row.getCell(1)?.let { dataFormatter.formatCellValue(it) } ?: ""
-                val options = (2..8)
-                    .mapNotNull { row.getCell(it)?.let(dataFormatter::formatCellValue) }
-                    .filter { it.isNotBlank() }
-                val explanation = row.getCell(9)?.let { dataFormatter.formatCellValue(it) } ?: ""
-                val answer = row.getCell(10)?.let { dataFormatter.formatCellValue(it) } ?: ""
-                if (content.isNotBlank() && options.isNotEmpty() && answer.isNotBlank()) {
-                    questions.add(
-                        Question(
-                            id = 0,
-                            content = content,
-                            type = type,
-                            options = options,
-                            answer = answer,
-                            explanation = explanation,
-                            isFavorite = false,
-                            isWrong = false,
-                            fileName = originFileName
-                        )
-                    )
-                }
+                val q = parseRowStyle1(row) ?: parseRowStyle2(row)
+                if (q != null) questions.add(q)
             }
         }
         return questions
