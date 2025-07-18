@@ -5,6 +5,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.*
+import androidx.compose.animation.animateContentSize
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -25,6 +26,8 @@ import androidx.compose.ui.unit.sp
 import androidx.activity.compose.BackHandler
 import androidx.compose.ui.graphics.Color
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.text.style.TextOverflow
 import com.example.testapp.data.datastore.FontSettingsDataStore
 import com.example.testapp.presentation.component.AnswerCardGrid
 import com.example.testapp.presentation.component.LocalFontFamily
@@ -158,6 +161,24 @@ fun PracticeScreen(
     var answeredThisSession by remember { mutableStateOf(false) }
     var showDeleteDialog by remember { mutableStateOf(false) }
     var showDeleteNoteDialog by remember { mutableStateOf(false) }
+    var expandedSection by remember(currentIndex) { mutableStateOf(-1) }
+    val explanationScroll = rememberScrollState()
+    val noteScroll = rememberScrollState()
+    val deepSeekScroll = rememberScrollState()
+    val sparkScroll = rememberScrollState()
+    LaunchedEffect(currentIndex) { expandedSection = -1 }
+    LaunchedEffect(explanationScroll.isScrollInProgress) {
+        if (explanationScroll.isScrollInProgress) expandedSection = 0
+    }
+    LaunchedEffect(noteScroll.isScrollInProgress) {
+        if (noteScroll.isScrollInProgress) expandedSection = 1
+    }
+    LaunchedEffect(deepSeekScroll.isScrollInProgress) {
+        if (deepSeekScroll.isScrollInProgress) expandedSection = 2
+    }
+    LaunchedEffect(sparkScroll.isScrollInProgress) {
+        if (sparkScroll.isScrollInProgress) expandedSection = 3
+    }
     LaunchedEffect(progressLoaded) {
         if (progressLoaded) answeredThisSession = false
     }
@@ -531,31 +552,43 @@ fun PracticeScreen(
                 )
             }
             if (question.explanation.isNotBlank()) {
+                val collapsed = expandedSection != -1 && expandedSection != 0
+                val lineHeight = with(LocalDensity.current) { (questionFontSize * 1.3f).sp.toDp() }
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .weight(1f, fill = false)
-                        .verticalScroll(rememberScrollState())
+                        .then(
+                            if (!collapsed) Modifier.weight(1f, fill = false).verticalScroll(explanationScroll)
+                            else Modifier.heightIn(max = lineHeight + 16.dp)
+                        )
                         .background(Color(0xFFFFF5C0))
                         .padding(8.dp)
+                        .animateContentSize()
                 ) {
                     Text(
                         text = "解析：" + question.explanation,
                         color = Color(0xFF835C00),
                         fontSize = questionFontSize.sp,
-                        fontFamily = LocalFontFamily.current
+                        fontFamily = LocalFontFamily.current,
+                        maxLines = if (collapsed) 1 else Int.MAX_VALUE,
+                        overflow = TextOverflow.Ellipsis
                     )
                 }
             }
             val note = noteList.getOrNull(currentIndex)
             if (!note.isNullOrBlank()) {
+                val collapsed = expandedSection != -1 && expandedSection != 1
+                val lineHeight = with(LocalDensity.current) { (questionFontSize * 1.3f).sp.toDp() }
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .weight(1f, fill = false)
-                        .verticalScroll(rememberScrollState())
+                        .then(
+                            if (!collapsed) Modifier.weight(1f, fill = false).verticalScroll(noteScroll)
+                            else Modifier.heightIn(max = lineHeight + 16.dp)
+                        )
                         .background(Color(0xFFE0FFE0))
                         .padding(8.dp)
+                        .animateContentSize()
                         .pointerInput(note) {
                             detectTapGestures(
                                 onDoubleTap = {
@@ -570,20 +603,27 @@ fun PracticeScreen(
                         text = "笔记：$note",
                         color = Color(0xFF004B00),
                         fontSize = questionFontSize.sp,
-                        fontFamily = LocalFontFamily.current
+                        fontFamily = LocalFontFamily.current,
+                        maxLines = if (collapsed) 1 else Int.MAX_VALUE,
+                        overflow = TextOverflow.Ellipsis
                     )
                 }
             }
 
             if (!analysisText.isNullOrBlank() || !sparkText.isNullOrBlank()) {
                 if (!analysisText.isNullOrBlank()) {
+                    val collapsed = expandedSection != -1 && expandedSection != 2
+                    val lineHeight = with(LocalDensity.current) { (questionFontSize * 1.3f).sp.toDp() }
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .weight(1f, fill = false)
-                            .verticalScroll(rememberScrollState())
+                            .then(
+                                if (!collapsed) Modifier.weight(1f, fill = false).verticalScroll(deepSeekScroll)
+                                else Modifier.heightIn(max = lineHeight + 16.dp)
+                            )
                             .background(Color(0xFFE8F6FF))
                             .padding(8.dp)
+                            .animateContentSize()
                             .pointerInput(analysisText) {
                                 detectTapGestures(
                                     onDoubleTap = {
@@ -599,19 +639,25 @@ fun PracticeScreen(
                             text = analysisText ?: "",
                             color = Color(0xFF004B6B),
                             fontSize = questionFontSize.sp,
-                            fontFamily = LocalFontFamily.current
+                            fontFamily = LocalFontFamily.current,
+                            maxLines = if (collapsed) 1 else Int.MAX_VALUE,
+                            overflow = TextOverflow.Ellipsis
                         )
                     }
                 }
                 if (!sparkText.isNullOrBlank()) {
-
+                    val collapsed = expandedSection != -1 && expandedSection != 3
+                    val lineHeight = with(LocalDensity.current) { (questionFontSize * 1.3f).sp.toDp() }
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .weight(1f, fill = false)
-                            .verticalScroll(rememberScrollState())
+                            .then(
+                                if (!collapsed) Modifier.weight(1f, fill = false).verticalScroll(sparkScroll)
+                                else Modifier.heightIn(max = lineHeight + 16.dp)
+                            )
                             .background(Color(0xFFEDE7FF))
                             .padding(8.dp)
+                            .animateContentSize()
                             .pointerInput(sparkText) {
                                 detectTapGestures(
                                     onDoubleTap = {
@@ -627,7 +673,9 @@ fun PracticeScreen(
                             text = sparkText ?: "",
                             color = Color(0xFF3A006A),
                             fontSize = questionFontSize.sp,
-                            fontFamily = LocalFontFamily.current
+                            fontFamily = LocalFontFamily.current,
+                            maxLines = if (collapsed) 1 else Int.MAX_VALUE,
+                            overflow = TextOverflow.Ellipsis
                         )
                     }
                 }
