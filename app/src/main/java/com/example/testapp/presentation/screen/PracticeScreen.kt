@@ -604,7 +604,7 @@ fun PracticeScreen(
                     }
                 }
                 if (!sparkText.isNullOrBlank()) {
-                    
+
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
