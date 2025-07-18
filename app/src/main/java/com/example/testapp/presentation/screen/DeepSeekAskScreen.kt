@@ -3,8 +3,10 @@ package com.example.testapp.presentation.screen
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.BasicTextField
@@ -12,6 +14,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
@@ -76,15 +79,17 @@ fun DeepSeekAskScreen(
         }
     }
     var menuExpanded by remember { mutableStateOf(false) }
-    val editableTextState = remember { mutableStateOf(TextFieldValue("")) }
-    var editableText by editableTextState
-    var initialLoaded by remember { mutableStateOf(false) }
+    val questionState = remember { mutableStateOf(TextFieldValue(text)) }
+    var question by questionState
+    val answerState = remember { mutableStateOf(TextFieldValue("")) }
+    var answer by answerState
+    var originalAnswer by remember { mutableStateOf("") }
     var showSaveDialog by remember { mutableStateOf(false) }
     val view = LocalView.current
     val toolbar = remember(view, navController) {
         ActionModeTextToolbar(view) {
-            val sel = editableTextState.value.selection
-            val selected = if (sel.min < sel.max) editableTextState.value.text.substring(sel.min, sel.max) else ""
+            val sel = answerState.value.selection
+            val selected = if (sel.min < sel.max) answerState.value.text.substring(sel.min, sel.max) else ""
             if (selected.isNotBlank()) {
                 val encoded = java.net.URLEncoder.encode(selected, "UTF-8")
                 navController?.navigate("deepseek_ask/$questionId/$index/$encoded")
@@ -95,22 +100,21 @@ fun DeepSeekAskScreen(
     LaunchedEffect(Unit) {
         val saved = viewModel.getSavedNote(questionId)
         if (!saved.isNullOrBlank()) {
-            editableText = TextFieldValue(saved)
-            initialLoaded = true
+            answer = TextFieldValue(saved)
+            originalAnswer = saved
         }
     }
 
-    LaunchedEffect(text) { viewModel.ask(text) }
 
     LaunchedEffect(result) {
-        if (!initialLoaded && result.isNotBlank() && result != "解析中...") {
-            editableText = TextFieldValue(result)
-            initialLoaded = true
+        if (result.isNotBlank() && result != "解析中...") {
+            answer = TextFieldValue(result)
+            originalAnswer = result
         }
     }
 
     BackHandler {
-        if (editableText.text != result && editableText.text.isNotBlank()) {
+        if (answer.text != originalAnswer && answer.text.isNotBlank()) {
             showSaveDialog = true
         } else {
             navController?.popBackStack()
@@ -124,18 +128,25 @@ fun DeepSeekAskScreen(
                 .verticalScroll(rememberScrollState())
                 .padding(16.dp)
         ) {
-            Text(
-                text = text,
-                fontSize = LocalFontSize.current,
-                fontFamily = LocalFontFamily.current
+            BasicTextField(
+                value = question,
+                onValueChange = { question = it },
+                modifier = Modifier.fillMaxWidth(),
+                textStyle = TextStyle(fontSize = LocalFontSize.current, fontFamily = LocalFontFamily.current)
             )
+            Button(
+                onClick = {
+                    answer = TextFieldValue("解析中...")
+                    viewModel.ask(question.text)
+                },
+                modifier = Modifier.padding(top = 8.dp)
+            ) { Text("提问") }
+            Spacer(modifier = Modifier.height(16.dp))
             CompositionLocalProvider(LocalTextToolbar provides toolbar) {
                 BasicTextField(
-                    value = editableText,
-                    onValueChange = { editableText = it },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(top = 8.dp),
+                    value = answer,
+                    onValueChange = { answer = it },
+                    modifier = Modifier.fillMaxWidth(),
                     textStyle = TextStyle(fontSize = screenFontSize.sp, fontFamily = LocalFontFamily.current)
                 )
             }
@@ -169,8 +180,8 @@ fun DeepSeekAskScreen(
                 onDismissRequest = { showSaveDialog = false },
                 confirmButton = {
                     TextButton(onClick = {
-                        onSave(editableText.text)
-                        viewModel.save(questionId, editableText.text)
+                        onSave(answer.text)
+                        viewModel.save(questionId, answer.text)
                         showSaveDialog = false
                         navController?.popBackStack()
                     }) { Text("保存") }
