@@ -30,6 +30,8 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import com.example.testapp.presentation.component.LocalFontFamily
 import com.example.testapp.presentation.component.LocalFontSize
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
+import com.example.testapp.data.datastore.FontSettingsDataStore
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterialApi::class)
 @Composable
@@ -46,15 +48,34 @@ fun HomeScreen(
     val viewModel: HomeViewModel = hiltViewModel()
     val questions by viewModel.questions.collectAsState()
     val fileNames by viewModel.fileNames.collectAsState()
+    val context = LocalContext.current
+    val storedFileName by FontSettingsDataStore
+        .getLastSelectedFile(context)
+        .collectAsState(initial = "")
     val selectedFileName = remember { mutableStateOf("") }
     val isLoading by settingsViewModel.isLoading.collectAsState()
     val importProgress by settingsViewModel.progress.collectAsState()
     val questionCounts = remember(questions) {
         questions.groupBy { it.fileName ?: "" }.mapValues { it.value.size }
     }
-    LaunchedEffect(fileNames) {
-        if (fileNames.isNotEmpty() && selectedFileName.value !in fileNames) {
-            selectedFileName.value = fileNames.first()
+    LaunchedEffect(storedFileName, fileNames) {
+        val fromPrefs = storedFileName
+        when {
+            selectedFileName.value.isEmpty() -> {
+                selectedFileName.value = when {
+                    fromPrefs.isNotBlank() && fromPrefs in fileNames -> fromPrefs
+                    fileNames.isNotEmpty() -> fileNames.first()
+                    else -> ""
+                }
+            }
+            fileNames.isNotEmpty() && selectedFileName.value !in fileNames -> {
+                selectedFileName.value = if (fromPrefs.isNotBlank() && fromPrefs in fileNames) fromPrefs else fileNames.first()
+            }
+        }
+    }
+    LaunchedEffect(selectedFileName.value) {
+        if (selectedFileName.value.isNotBlank()) {
+            FontSettingsDataStore.setLastSelectedFile(context, selectedFileName.value)
         }
     }
     var bottomNavIndex by remember { mutableStateOf(3) } // 3: 主界面
