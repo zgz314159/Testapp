@@ -534,7 +534,7 @@ fun PracticeScreen(
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .heightIn(max = 200.dp)
+                        .weight(1f, fill = false)
                         .verticalScroll(rememberScrollState())
                         .background(Color(0xFFFFF5C0))
                         .padding(8.dp)
@@ -552,7 +552,7 @@ fun PracticeScreen(
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .heightIn(max = 200.dp)
+                        .weight(1f, fill = false)
                         .verticalScroll(rememberScrollState())
                         .background(Color(0xFFE0FFE0))
                         .padding(8.dp)
@@ -574,13 +574,13 @@ fun PracticeScreen(
                     )
                 }
             }
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(4.dp))
             if (!analysisText.isNullOrBlank() || !sparkText.isNullOrBlank()) {
                 if (!analysisText.isNullOrBlank()) {
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .weight(1f, fill = true)
+                            .weight(1f, fill = false)
                             .verticalScroll(rememberScrollState())
                             .background(Color(0xFFE8F6FF))
                             .padding(8.dp)
@@ -604,11 +604,11 @@ fun PracticeScreen(
                     }
                 }
                 if (!sparkText.isNullOrBlank()) {
-                    Spacer(modifier = Modifier.height(8.dp))
+                    Spacer(modifier = Modifier.height(4.dp))
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .weight(1f, fill = true)
+                            .weight(1f, fill = false)
                             .verticalScroll(rememberScrollState())
                             .background(Color(0xFFEDE7FF))
                             .padding(8.dp)
