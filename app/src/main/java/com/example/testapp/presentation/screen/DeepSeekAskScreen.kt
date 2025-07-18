@@ -103,7 +103,7 @@ fun DeepSeekAskScreen(
     LaunchedEffect(text) { viewModel.ask(text) }
 
     LaunchedEffect(result) {
-        if (!initialLoaded && result.isNotBlank()) {
+        if (!initialLoaded && result.isNotBlank() && result != "解析中...") {
             editableText = TextFieldValue(result)
             initialLoaded = true
         }
