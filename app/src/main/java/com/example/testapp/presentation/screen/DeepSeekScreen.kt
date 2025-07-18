@@ -22,6 +22,7 @@ import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.TextToolbar
 import androidx.compose.ui.platform.TextToolbarStatus
 import androidx.compose.ui.geometry.Rect
+import androidx.compose.ui.platform.LocalView
 import androidx.compose.material3.Text
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.TextButton
@@ -45,7 +46,7 @@ import androidx.navigation.NavController
 import com.example.testapp.presentation.component.LocalFontFamily
 import com.example.testapp.presentation.component.LocalFontSize
 import com.example.testapp.data.datastore.FontSettingsDataStore
-import com.example.testapp.presentation.component.CustomTextToolbar
+import com.example.testapp.presentation.component.ActionModeTextToolbar
 import kotlinx.coroutines.launch
 import androidx.hilt.navigation.compose.hiltViewModel
 
@@ -79,14 +80,18 @@ fun DeepSeekScreen(
         }
     }
     var menuExpanded by remember { mutableStateOf(false) }
-    var editableText by remember { mutableStateOf(TextFieldValue(text)) }
+    val editableTextState = remember { mutableStateOf(TextFieldValue(text)) }
+    var editableText by editableTextState
     var showSaveDialog by remember { mutableStateOf(false) }
-    var toolbarCallbacks by remember { mutableStateOf<CustomTextToolbar.Callbacks?>(null) }
-    var showToolbar by remember { mutableStateOf(false) }
-    val customToolbar = remember {
-        CustomTextToolbar {
-            toolbarCallbacks = it
-            showToolbar = true
+    val view = LocalView.current
+    val toolbar = remember(view, navController) {
+        ActionModeTextToolbar(view) {
+            val sel = editableTextState.value.selection
+            val selected = if (sel.min < sel.max) editableTextState.value.text.substring(sel.min, sel.max) else ""
+            if (selected.isNotBlank()) {
+                val encoded = java.net.URLEncoder.encode(selected, "UTF-8")
+                navController?.navigate("deepseek_ask/$encoded")
+            }
         }
     }
 
@@ -105,7 +110,7 @@ fun DeepSeekScreen(
                 .verticalScroll(rememberScrollState())
                 .padding(16.dp)
         ) {
-            CompositionLocalProvider(LocalTextToolbar provides customToolbar) {
+            CompositionLocalProvider(LocalTextToolbar provides toolbar) {
                 BasicTextField(
                     value = editableText,
                     onValueChange = { editableText = it },
@@ -160,35 +165,6 @@ fun DeepSeekScreen(
                 text = { Text("是否保存修改？") }
             )
         }
-        DropdownMenu(expanded = showToolbar, onDismissRequest = {
-            showToolbar = false
-            customToolbar.hide()
-        }) {
-            DropdownMenuItem(text = { Text("复制") }, onClick = {
-                toolbarCallbacks?.onCopy?.invoke()
-                showToolbar = false
-                customToolbar.hide()
-            })
-            DropdownMenuItem(text = { Text("剪切") }, onClick = {
-                toolbarCallbacks?.onCut?.invoke()
-                showToolbar = false
-                customToolbar.hide()
-            })
-            DropdownMenuItem(text = { Text("全选") }, onClick = {
-                toolbarCallbacks?.onSelectAll?.invoke()
-                showToolbar = false
-                customToolbar.hide()
-            })
-            val sel = editableText.selection
-            val selected = if (sel.min < sel.max) editableText.text.substring(sel.min, sel.max) else ""
-            DropdownMenuItem(text = { Text("DeepSeek提问") }, onClick = {
-                if (selected.isNotBlank()) {
-                    val encoded = java.net.URLEncoder.encode(selected, "UTF-8")
-                    navController?.navigate("deepseek_ask/$encoded")
-                }
-                showToolbar = false
-                customToolbar.hide()
-            })
-        }
+      
     }
 }

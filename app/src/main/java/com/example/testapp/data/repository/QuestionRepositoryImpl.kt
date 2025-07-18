@@ -17,6 +17,7 @@ import org.apache.poi.ss.usermodel.WorkbookFactory
 import org.apache.poi.xssf.usermodel.XSSFWorkbook
 import org.apache.poi.xwpf.usermodel.XWPFDocument
 import java.io.File
+import com.example.testapp.util.guessQuestionType
 import javax.inject.Inject
 
 class QuestionRepositoryImpl @Inject constructor(
@@ -240,7 +241,30 @@ class QuestionRepositoryImpl @Inject constructor(
                 Question(
                     id = 0,
                     content = content,
-                    type = "",
+                    type = guessQuestionType(answer),
+                    options = options,
+                    answer = answer,
+                    explanation = explanation,
+                    isFavorite = false,
+                    isWrong = false,
+                    fileName = originFileName
+                )
+            } else null
+        }
+
+        fun parseRowStyle3(row: Row): Question? {
+            val content = row.getCell(0)?.let { f.formatCellValue(it) } ?: ""
+            val type = row.getCell(1)?.let { f.formatCellValue(it) } ?: ""
+            val options = (2..4)
+                .mapNotNull { row.getCell(it)?.let(f::formatCellValue) }
+                .filter { it.isNotBlank() }
+            val explanation = row.getCell(5)?.let { f.formatCellValue(it) } ?: ""
+            val answer = row.getCell(6)?.let { f.formatCellValue(it) } ?: ""
+            return if (content.isNotBlank() && options.isNotEmpty() && answer.isNotBlank()) {
+                Question(
+                    id = 0,
+                    content = content,
+                    type = type,
                     options = options,
                     answer = answer,
                     explanation = explanation,
@@ -254,7 +278,7 @@ class QuestionRepositoryImpl @Inject constructor(
         WorkbookFactory.create(file).use { workbook ->
             val sheet = workbook.getSheetAt(0)
             for (row in sheet.drop(1)) {
-                val q = parseRowStyle1(row) ?: parseRowStyle2(row)
+                val q = parseRowStyle1(row) ?: parseRowStyle3(row) ?: parseRowStyle2(row)
                 if (q != null) questions.add(q)
             }
         }
