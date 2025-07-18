@@ -90,7 +90,7 @@ fun DeepSeekScreen(
             val selected = if (sel.min < sel.max) editableTextState.value.text.substring(sel.min, sel.max) else ""
             if (selected.isNotBlank()) {
                 val encoded = java.net.URLEncoder.encode(selected, "UTF-8")
-                navController?.navigate("deepseek_ask/$encoded")
+                navController?.navigate("deepseek_ask/$questionId/$index/$encoded")
             }
         }
     }
@@ -165,6 +165,6 @@ fun DeepSeekScreen(
                 text = { Text("是否保存修改？") }
             )
         }
-      
+
     }
 }

@@ -1,10 +1,12 @@
 package com.example.testapp.presentation.screen
 
+import androidx.compose.foundation.background
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.FactCheck
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Warning
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -13,6 +15,12 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material.SwipeToDismiss
+import androidx.compose.material.DismissDirection
+import androidx.compose.material.DismissValue
+import androidx.compose.material.rememberDismissState
+import androidx.compose.material.FractionalThreshold
+import androidx.compose.material.ExperimentalMaterialApi
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -21,8 +29,9 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.example.testapp.presentation.component.LocalFontFamily
 import com.example.testapp.presentation.component.LocalFontSize
+import androidx.compose.ui.graphics.Color
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterialApi::class)
 @Composable
 fun HomeScreen(
     onStartQuiz: (quizId: String) -> Unit = {},
@@ -53,7 +62,8 @@ fun HomeScreen(
     // BottomSheet 控制变量
     var showSheet by remember { mutableStateOf(false) }
     var pendingFileName by remember { mutableStateOf("") }
-
+    var showDeleteDialog by remember { mutableStateOf(false) }
+    var fileToDelete by remember { mutableStateOf("") }
     Scaffold(
         topBar = {
             TopAppBar(
@@ -142,58 +152,89 @@ fun HomeScreen(
                         .padding(bottom = 8.dp)
                 ) {
                     items(fileNames, key = { it }) { name ->
-                        Card(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(horizontal = 16.dp, vertical = 6.dp)
-                                .pointerInput(name) {
-                                    detectTapGestures(
-                                        onTap = {
-                                            selectedFileName.value = name
-                                            when (bottomNavIndex) {
-                                                0 -> onWrongBook(name)
-                                                1 -> onFavoriteBook(name)
-                                                2 -> onViewResult(name)
-                                                else -> {
-                                                    pendingFileName = name
-                                                    showSheet = true
-                                                }
-                                            }
-                                        },
-                                        onDoubleTap = {
-                                            selectedFileName.value = name
-                                            onViewQuestionDetail(name)
-                                        }
-                                    )
-                                },
-                            shape = RoundedCornerShape(16.dp),
-                            colors = if (selectedFileName.value == name)
-                                CardDefaults.cardColors(
-                                    containerColor = MaterialTheme.colorScheme.primaryContainer
-                                )
-                            else
-                                CardDefaults.cardColors(),
-                            elevation = CardDefaults.cardElevation(defaultElevation = if (selectedFileName.value == name) 6.dp else 2.dp)
-                        ) {
-                            Row(
-                                Modifier
-                                    .fillMaxWidth()
-                                    .padding(horizontal = 16.dp, vertical = 16.dp),
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Text(
-                                    text = name,
-                                    fontSize = LocalFontSize.current,
-                                    fontFamily = LocalFontFamily.current,
-                                    modifier = Modifier.weight(1f)
-                                )
-                                Text(
-                                    text = "${questionCounts[name] ?: 0}题",
-                                    fontSize = LocalFontSize.current * 0.95f,
-                                    color = MaterialTheme.colorScheme.primary
-                                )
+                        val dismissState = rememberDismissState(confirmStateChange = {
+                            if (it == DismissValue.DismissedToStart) {
+                                fileToDelete = name
+                                showDeleteDialog = true
+                                false
+                            } else {
+                                true
                             }
-                        }
+                        })
+                        SwipeToDismiss(
+                            state = dismissState,
+                            directions = setOf(DismissDirection.EndToStart),
+                            dismissThresholds = { FractionalThreshold(0.2f) },
+                            background = {
+                                val showRed = dismissState.dismissDirection != null &&
+                                        dismissState.targetValue != DismissValue.Default
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxSize()
+                                        .background(if (showRed) MaterialTheme.colorScheme.error else Color.Transparent)
+                                        .padding(horizontal = 20.dp),
+                                    contentAlignment = Alignment.CenterEnd
+                                ) {
+                                    if (showRed) {
+                                        Icon(Icons.Filled.Delete, contentDescription = "删除", tint = Color.White)
+                                    }
+                                }
+                            },
+                            dismissContent = {
+                                Card(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(horizontal = 16.dp, vertical = 6.dp)
+                                        .pointerInput(name) {
+                                            detectTapGestures(
+                                                onTap = {
+                                                    selectedFileName.value = name
+                                                    when (bottomNavIndex) {
+                                                        0 -> onWrongBook(name)
+                                                        1 -> onFavoriteBook(name)
+                                                        2 -> onViewResult(name)
+                                                        else -> {
+                                                            pendingFileName = name
+                                                            showSheet = true
+                                                        }
+                                                    }
+                                                },
+                                                onDoubleTap = {
+                                                    selectedFileName.value = name
+                                                    onViewQuestionDetail(name)
+                                                }
+                                            )
+                                        },
+                                    shape = RoundedCornerShape(16.dp),
+                                    colors = if (selectedFileName.value == name)
+                                        CardDefaults.cardColors(
+                                            containerColor = MaterialTheme.colorScheme.primaryContainer
+                                        )
+                                    else
+                                        CardDefaults.cardColors(),
+                                    elevation = CardDefaults.cardElevation(defaultElevation = if (selectedFileName.value == name) 6.dp else 2.dp)
+                                ) {
+                                    Row(
+                                        Modifier
+                                            .fillMaxWidth()
+                                            .padding(horizontal = 16.dp, vertical = 16.dp),
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Text(
+                                            text = name,
+                                            fontSize = LocalFontSize.current,
+                                            fontFamily = LocalFontFamily.current,
+                                            modifier = Modifier.weight(1f)
+                                        )
+                                        Text(
+                                            text = "${questionCounts[name] ?: 0}题",
+                                            fontSize = LocalFontSize.current * 0.95f,
+                                            color = MaterialTheme.colorScheme.primary
+                                        )
+                                    }
+                                }
+                            }
+                        )
                     }
                 }
 
@@ -266,6 +307,21 @@ fun HomeScreen(
                         }
                     }
                 }
+            }
+            if (showDeleteDialog) {
+                AlertDialog(
+                    onDismissRequest = { showDeleteDialog = false },
+                    confirmButton = {
+                        TextButton(onClick = {
+                            showDeleteDialog = false
+                            viewModel.deleteFileAndData(fileToDelete)
+                        }) { Text("确定") }
+                    },
+                    dismissButton = {
+                        TextButton(onClick = { showDeleteDialog = false }) { Text("取消") }
+                    },
+                    text = { Text("确定删除 $fileToDelete 及其相关数据吗？") }
+                )
             }
         }
     }

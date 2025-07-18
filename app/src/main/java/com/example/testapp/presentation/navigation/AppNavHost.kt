@@ -258,12 +258,36 @@ fun AppNavHost(navController: NavHostController = rememberNavController(), setti
             )
         }
         composable(
-            "deepseek_ask/{text}",
-            arguments = listOf(navArgument("text") { type = NavType.StringType })
+            "deepseek_ask/{id}/{index}/{text}",
+            arguments = listOf(
+                navArgument("id") { type = NavType.IntType },
+                navArgument("index") { type = NavType.IntType },
+                navArgument("text") { type = NavType.StringType }
+            )
         ) { backStackEntry ->
             val encoded = backStackEntry.arguments?.getString("text") ?: ""
             val text = java.net.URLDecoder.decode(encoded, "UTF-8")
-            DeepSeekAskScreen(text = text, navController = navController, settingsViewModel = settingsViewModel)
+            val id = backStackEntry.arguments?.getInt("id") ?: 0
+            val index = backStackEntry.arguments?.getInt("index") ?: 0
+            val parentEntry = remember(backStackEntry) { navController.previousBackStackEntry }
+            val parentRoute = parentEntry?.destination?.route.orEmpty()
+            val examViewModel: ExamViewModel? = if (parentRoute.startsWith("exam")) {
+                parentEntry?.let { hiltViewModel(it) }
+            } else null
+            val practiceViewModel: PracticeViewModel? = if (!parentRoute.startsWith("exam")) {
+                parentEntry?.let { hiltViewModel(it) }
+            } else null
+            DeepSeekAskScreen(
+                text = text,
+                questionId = id,
+                index = index,
+                navController = navController,
+                onSave = {
+                    examViewModel?.saveNote(id, index, it)
+                    practiceViewModel?.saveNote(id, index, it)
+                },
+                settingsViewModel = settingsViewModel
+            )
         }
         composable(
             "spark/{id}/{index}/{text}",
