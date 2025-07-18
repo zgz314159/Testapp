@@ -109,14 +109,16 @@ fun PracticeScreen(
         question != null && favoriteQuestions.any { it.question.id == question.id }
     }
     var elapsed by remember { mutableStateOf(0) }
-    LaunchedEffect(currentIndex) {
-        aiViewModel.clear()
-        sparkViewModel.clear()
-        elapsed = 0
+    // Timer should accumulate across questions
+    LaunchedEffect(Unit) {
         while (true) {
             kotlinx.coroutines.delay(1000)
             elapsed += 1
         }
+    }
+    LaunchedEffect(currentIndex) {
+        aiViewModel.clear()
+        sparkViewModel.clear()
     }
     LaunchedEffect(question) {
         question?.let {

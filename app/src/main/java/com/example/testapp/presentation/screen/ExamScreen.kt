@@ -91,13 +91,15 @@ fun ExamScreen(
         question != null && favoriteQuestions.any { it.question.id == question.id }
     }
     var elapsed by remember { mutableStateOf(0) }
-    LaunchedEffect(currentIndex) {
-        elapsed = 0
-        sparkViewModel.clear()
+    // Accumulate elapsed time across all questions
+    LaunchedEffect(Unit) {
         while (true) {
             kotlinx.coroutines.delay(1000)
             elapsed += 1
         }
+    }
+    LaunchedEffect(currentIndex) {
+        sparkViewModel.clear()
     }
     LaunchedEffect(question) {
         if (question != null) {
