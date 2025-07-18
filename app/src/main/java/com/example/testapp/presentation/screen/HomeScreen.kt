@@ -188,14 +188,19 @@ fun HomeScreen(
                                         .pointerInput(name) {
                                             detectTapGestures(
                                                 onTap = {
-                                                    selectedFileName.value = name
-                                                    when (bottomNavIndex) {
-                                                        0 -> onWrongBook(name)
-                                                        1 -> onFavoriteBook(name)
-                                                        2 -> onViewResult(name)
-                                                        else -> {
+                                                    if (bottomNavIndex == 3) {
+                                                        if (selectedFileName.value == name) {
                                                             pendingFileName = name
                                                             showSheet = true
+                                                        } else {
+                                                            selectedFileName.value = name
+                                                        }
+                                                    } else {
+                                                        selectedFileName.value = name
+                                                        when (bottomNavIndex) {
+                                                            0 -> onWrongBook(name)
+                                                            1 -> onFavoriteBook(name)
+                                                            2 -> onViewResult(name)
                                                         }
                                                     }
                                                 },

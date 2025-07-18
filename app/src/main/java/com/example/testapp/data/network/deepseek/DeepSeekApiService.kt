@@ -4,6 +4,7 @@ import com.example.testapp.BuildConfig
 import com.example.testapp.domain.model.Question
 import io.ktor.client.HttpClient
 import io.ktor.client.call.body
+import io.ktor.client.statement.bodyAsText
 import io.ktor.client.request.post
 import io.ktor.client.request.setBody
 import io.ktor.client.request.header
@@ -41,6 +42,7 @@ private data class ResponseData(
 )
 
 class DeepSeekApiService(private val client: HttpClient) {
+    private val json = Json { ignoreUnknownKeys = true }
 
     private fun stripMarkdown(text: String): String {
         return text.replace("*", "").replace("_", "")
@@ -93,14 +95,14 @@ class DeepSeekApiService(private val client: HttpClient) {
             "DeepSeekApiService",
             "Status=${httpResponse.status.value}, Headers=${httpResponse.headers}"
         )
-        val raw: String = httpResponse.body()
+        val raw: String = httpResponse.bodyAsText()
         android.util.Log.d("DeepSeekApiService", "RawResponse=$raw")
         if (!httpResponse.status.isSuccess()) {
             throw RuntimeException("HTTP ${httpResponse.status.value}: $raw")
         }
         val parseStart = System.currentTimeMillis()
         val response = try {
-            httpResponse.body<ResponseData>()
+            json.decodeFromString<ResponseData>(raw)
         } catch (e: Exception) {
             android.util.Log.e("DeepSeekApiService", "Parse response failed", e)
             throw e
@@ -127,10 +129,11 @@ class DeepSeekApiService(private val client: HttpClient) {
             header(HttpHeaders.ContentType, ContentType.Application.Json)
             setBody(requestBody)
         }
+        val raw = httpResponse.bodyAsText()
         if (!httpResponse.status.isSuccess()) {
-            throw RuntimeException("HTTP ${'$'}{httpResponse.status.value}: ${'$'}{httpResponse.body<String>()}")
+            throw RuntimeException("HTTP ${'$'}{httpResponse.status.value}: $raw")
         }
-        val response = httpResponse.body<ResponseData>()
+        val response = json.decodeFromString<ResponseData>(raw)
         val result = response.choices.firstOrNull()?.message?.content ?: ""
         return stripMarkdown(result)
     }
