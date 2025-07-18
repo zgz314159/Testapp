@@ -574,7 +574,7 @@ fun PracticeScreen(
                     )
                 }
             }
-            Spacer(modifier = Modifier.height(4.dp))
+
             if (!analysisText.isNullOrBlank() || !sparkText.isNullOrBlank()) {
                 if (!analysisText.isNullOrBlank()) {
                     Box(
@@ -604,7 +604,7 @@ fun PracticeScreen(
                     }
                 }
                 if (!sparkText.isNullOrBlank()) {
-                    Spacer(modifier = Modifier.height(4.dp))
+                    
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()

@@ -597,7 +597,7 @@ fun ExamScreen(
                     }
                 }
                 if (!sparkText.isNullOrBlank()) {
-                    Spacer(modifier = Modifier.height(4.dp))
+
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
