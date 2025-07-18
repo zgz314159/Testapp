@@ -116,4 +116,22 @@ class DeepSeekApiService(private val client: HttpClient) {
         val result = response.choices.firstOrNull()?.message?.content ?: ""
         return stripMarkdown(result)
     }
+    suspend fun ask(text: String): String {
+        val requestBody = RequestBody(
+            messages = listOf(Message("user", text)),
+            maxTokens = 512
+        )
+        val httpResponse = client.post {
+            url("https://api.deepseek.com/v1/chat/completions")
+            header("Authorization", "Bearer ${BuildConfig.DEEPSEEK_API_KEY}")
+            header(HttpHeaders.ContentType, ContentType.Application.Json)
+            setBody(requestBody)
+        }
+        if (!httpResponse.status.isSuccess()) {
+            throw RuntimeException("HTTP ${'$'}{httpResponse.status.value}: ${'$'}{httpResponse.body<String>()}")
+        }
+        val response = httpResponse.body<ResponseData>()
+        val result = response.choices.firstOrNull()?.message?.content ?: ""
+        return stripMarkdown(result)
+    }
 }

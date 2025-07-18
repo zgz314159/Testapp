@@ -51,6 +51,11 @@ android {
 
 dependencies {
 
+    // Compose BOM
+    implementation(platform(libs.androidx.compose.bom))
+    // Foundation 模块 —— 包含 LocalTextToolbar、BasicTextField、selection API 等
+    implementation("androidx.compose.foundation:foundation")
+
     implementation(libs.compose.material.icons.extended)
 
 

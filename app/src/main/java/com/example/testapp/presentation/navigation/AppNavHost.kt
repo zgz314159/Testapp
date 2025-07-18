@@ -21,6 +21,7 @@ import com.example.testapp.presentation.screen.FavoriteScreen
 import com.example.testapp.presentation.screen.PracticeScreen
 import com.example.testapp.presentation.screen.ExamScreen
 import com.example.testapp.presentation.screen.DeepSeekScreen
+import com.example.testapp.presentation.screen.DeepSeekAskScreen
 import com.example.testapp.presentation.screen.SparkScreen
 
 @Composable
@@ -255,6 +256,14 @@ fun AppNavHost(navController: NavHostController = rememberNavController(), setti
                 },
                 settingsViewModel = settingsViewModel
             )
+        }
+        composable(
+            "deepseek_ask/{text}",
+            arguments = listOf(navArgument("text") { type = NavType.StringType })
+        ) { backStackEntry ->
+            val encoded = backStackEntry.arguments?.getString("text") ?: ""
+            val text = java.net.URLDecoder.decode(encoded, "UTF-8")
+            DeepSeekAskScreen(text = text, navController = navController, settingsViewModel = settingsViewModel)
         }
         composable(
             "spark/{id}/{index}/{text}",
