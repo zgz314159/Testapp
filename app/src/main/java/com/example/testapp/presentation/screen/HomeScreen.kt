@@ -8,6 +8,7 @@ import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.outlined.Folder
+import androidx.compose.material.icons.filled.Folder
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -64,6 +65,7 @@ fun HomeScreen(
 ) {
     val viewModel: HomeViewModel = hiltViewModel()
     val folderViewModel: FileFolderViewModel = hiltViewModel()
+    val dragViewModel: DragDropViewModel = hiltViewModel()
     val questions by viewModel.questions.collectAsState()
     val fileNames by viewModel.fileNames.collectAsState()
     val folders by folderViewModel.folders.collectAsState()
@@ -113,9 +115,10 @@ fun HomeScreen(
     var showAddFolderDialog by remember { mutableStateOf(false) }
     var newFolderName by remember { mutableStateOf("") }
     val folderBounds = remember { mutableStateMapOf<String, Rect>() }
-    var dragPosition by remember { mutableStateOf(Offset.Zero) }
-    var draggingFile by remember { mutableStateOf<String?>(null) }
-    var dragItemSize by remember { mutableStateOf(IntSize.Zero) }
+    val dragPosition by dragViewModel.dragPosition.collectAsState()
+    val draggingFile by dragViewModel.draggingFile.collectAsState()
+    val dragItemSize by dragViewModel.dragItemSize.collectAsState()
+    val hoverFolder by dragViewModel.hoverFolder.collectAsState()
     Scaffold(
         topBar = {
             TopAppBar(
@@ -206,12 +209,16 @@ fun HomeScreen(
                                     .onGloballyPositioned { coords ->
                                         folderBounds[folder] = coords.boundsInRoot()
                                     }
-                                    .background(MaterialTheme.colorScheme.primaryContainer, RoundedCornerShape(8.dp))
+                                    .background(
+                                        if (hoverFolder == folder) MaterialTheme.colorScheme.secondaryContainer
+                                        else MaterialTheme.colorScheme.primaryContainer,
+                                        RoundedCornerShape(8.dp)
+                                    )
                                     .padding(horizontal = 8.dp, vertical = 4.dp)
                             ) {
                                 Row(verticalAlignment = Alignment.CenterVertically) {
                                     Icon(
-                                        Icons.Outlined.Folder,
+                                        if (hoverFolder == folder) Icons.Filled.Folder else Icons.Outlined.Folder,
                                         contentDescription = "文件夹",
                                         modifier = Modifier.size(24.dp),
                                         tint = MaterialTheme.colorScheme.primary
@@ -270,22 +277,31 @@ fun HomeScreen(
                                         .pointerInput(name) {
                                             detectDragGesturesAfterLongPress(
                                                 onDragStart = { offset ->
-                                                    draggingFile = name
-                                                    dragItemSize = itemCoords?.size ?: IntSize.Zero
-                                                    dragPosition = itemCoords?.localToRoot(offset) ?: Offset.Zero
+                                                    val pos = itemCoords?.localToRoot(offset) ?: Offset.Zero
+                                                    val size = itemCoords?.size ?: IntSize.Zero
+                                                    dragViewModel.startDragging(name, pos, size)
+                                                    dragViewModel.setHoverFolder(
+                                                        folderBounds.entries.find { it.value.contains(pos) }?.key
+                                                    )
                                                 },
                                                 onDrag = { change, _ ->
                                                     change.consume()
-                                                    dragPosition = itemCoords?.localToRoot(change.position) ?: dragPosition
+                                                    val pos = itemCoords?.localToRoot(change.position)
+                                                        ?: dragViewModel.dragPosition.value
+                                                    dragViewModel.updatePosition(pos)
+                                                    dragViewModel.setHoverFolder(
+                                                        folderBounds.entries.find { it.value.contains(pos) }?.key
+                                                    )
                                                 },
                                                 onDragEnd = {
-                                                    val target = folderBounds.entries.find { it.value.contains(dragPosition) }?.key
+                                                    val target = folderBounds.entries
+                                                        .find { it.value.contains(dragViewModel.dragPosition.value) }?.key
                                                     if (target != null) {
                                                         folderViewModel.moveFile(name, target)
                                                     }
-                                                    draggingFile = null
+                                                    dragViewModel.endDragging()
                                                 },
-                                                onDragCancel = { draggingFile = null }
+                                                onDragCancel = { dragViewModel.endDragging() }
                                             )
                                         }
                                         .pointerInput(Unit) {

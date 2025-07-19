@@ -13,6 +13,7 @@ import androidx.compose.material.FractionalThreshold
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.outlined.Folder
+import androidx.compose.material.icons.filled.Folder
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.ExperimentalMaterialApi
 import androidx.compose.runtime.*
@@ -37,6 +38,7 @@ import androidx.compose.ui.layout.boundsInRoot
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.ui.layout.LayoutCoordinates
 import com.example.testapp.presentation.screen.FileFolderViewModel
+import com.example.testapp.presentation.screen.DragDropViewModel
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.platform.LocalDensity
@@ -48,7 +50,8 @@ fun WrongBookScreen(
     fileName: String? = null,
     viewModel: WrongBookViewModel = hiltViewModel(),
     navController: NavController? = null,
-    folderViewModel: FileFolderViewModel = hiltViewModel()
+    folderViewModel: FileFolderViewModel = hiltViewModel(),
+    dragViewModel: DragDropViewModel = hiltViewModel()
 ) {
     val wrongList = viewModel.wrongQuestions.collectAsState()
     val fileNames = viewModel.fileNames.collectAsState()
@@ -57,9 +60,10 @@ fun WrongBookScreen(
     var showAddFolderDialog by remember { mutableStateOf(false) }
     var newFolderName by remember { mutableStateOf("") }
     val folderBounds = remember { mutableStateMapOf<String, Rect>() }
-    var dragPosition by remember { mutableStateOf(Offset.Zero) }
-    var draggingFile by remember { mutableStateOf<String?>(null) }
-    var dragItemSize by remember { mutableStateOf(IntSize.Zero) }
+    val dragPosition by dragViewModel.dragPosition.collectAsState()
+    val draggingFile by dragViewModel.draggingFile.collectAsState()
+    val dragItemSize by dragViewModel.dragItemSize.collectAsState()
+    val hoverFolder by dragViewModel.hoverFolder.collectAsState()
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -82,12 +86,16 @@ fun WrongBookScreen(
                             .onGloballyPositioned { coords ->
                                 folderBounds[folder] = coords.boundsInRoot()
                             }
-                            .background(MaterialTheme.colorScheme.primaryContainer, RoundedCornerShape(8.dp))
+                            .background(
+                                if (hoverFolder == folder) MaterialTheme.colorScheme.secondaryContainer
+                                else MaterialTheme.colorScheme.primaryContainer,
+                                RoundedCornerShape(8.dp)
+                            )
                             .padding(horizontal = 8.dp, vertical = 4.dp)
                     ) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Icon(
-                                Icons.Outlined.Folder,
+                                if (hoverFolder == folder) Icons.Filled.Folder else Icons.Outlined.Folder,
                                 contentDescription = "文件夹",
                                 modifier = Modifier.size(24.dp),
                                 tint = MaterialTheme.colorScheme.primary
@@ -147,22 +155,31 @@ fun WrongBookScreen(
                                         .pointerInput(name) {
                                             detectDragGesturesAfterLongPress(
                                                 onDragStart = { offset ->
-                                                    draggingFile = name
-                                                    dragItemSize = itemCoords?.size ?: IntSize.Zero
-                                                    dragPosition = itemCoords?.localToRoot(offset) ?: Offset.Zero
+                                                    val pos = itemCoords?.localToRoot(offset) ?: Offset.Zero
+                                                    val size = itemCoords?.size ?: IntSize.Zero
+                                                    dragViewModel.startDragging(name, pos, size)
+                                                    dragViewModel.setHoverFolder(
+                                                        folderBounds.entries.find { it.value.contains(pos) }?.key
+                                                    )
                                                 },
                                                 onDrag = { change, _ ->
                                                     change.consume()
-                                                    dragPosition = itemCoords?.localToRoot(change.position) ?: dragPosition
+                                                    val pos = itemCoords?.localToRoot(change.position)
+                                                        ?: dragViewModel.dragPosition.value
+                                                    dragViewModel.updatePosition(pos)
+                                                    dragViewModel.setHoverFolder(
+                                                        folderBounds.entries.find { it.value.contains(pos) }?.key
+                                                    )
                                                 },
                                                 onDragEnd = {
-                                                    val target = folderBounds.entries.find { it.value.contains(dragPosition) }?.key
+                                                    val target = folderBounds.entries
+                                                        .find { it.value.contains(dragViewModel.dragPosition.value) }?.key
                                                     if (target != null) {
                                                         folderViewModel.moveFile(name, target)
                                                     }
-                                                    draggingFile = null
+                                                    dragViewModel.endDragging()
                                                 },
-                                                onDragCancel = { draggingFile = null }
+                                                onDragCancel = { dragViewModel.endDragging() }
                                             )
                                         }
                                         .clickable {
