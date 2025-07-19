@@ -147,7 +147,12 @@ fun AppNavHost(navController: NavHostController = rememberNavController(), setti
                             else -> decoded
                         }
                         val encodedOriginal = java.net.URLEncoder.encode(original, "UTF-8")
-                        navController.navigate("exam/$encodedOriginal")
+                        val route = if (decoded.startsWith("exam_")) {
+                            "exam/$encodedOriginal"
+                        } else {
+                            "question/$encodedOriginal"
+                        }
+                        navController.navigate(route)
                     }
                 },
                 onBack = { navController.popBackStack("home", false) }
