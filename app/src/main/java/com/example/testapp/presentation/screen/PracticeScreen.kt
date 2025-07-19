@@ -482,6 +482,7 @@ fun PracticeScreen(
                                     )
                                 }
                             }
+                            if (correct) score++
                             onSubmit(correct)
                             autoJob?.cancel()
                             autoJob = coroutineScope.launch {
@@ -564,6 +565,11 @@ fun PracticeScreen(
                         .background(Color(0xFFFFF5C0))
                         .padding(8.dp)
                         .animateContentSize()
+                        .pointerInput(collapsed) {
+                            detectTapGestures(onTap = {
+                                expandedSection = if (collapsed) 0 else -1
+                            })
+                        }
                 ) {
                     Text(
                         text = "解析：" + question.explanation,
@@ -591,6 +597,7 @@ fun PracticeScreen(
                         .animateContentSize()
                         .pointerInput(note) {
                             detectTapGestures(
+                                onTap = { expandedSection = if (collapsed) 1 else -1 },
                                 onDoubleTap = {
                                     noteText = note
                                     showNoteDialog = true
@@ -626,6 +633,7 @@ fun PracticeScreen(
                             .animateContentSize()
                             .pointerInput(analysisText) {
                                 detectTapGestures(
+                                    onTap = { expandedSection = if (collapsed) 2 else -1 },
                                     onDoubleTap = {
                                         question?.let { q ->
                                             onViewDeepSeek(analysisText!!, q.id, currentIndex)
@@ -660,6 +668,7 @@ fun PracticeScreen(
                             .animateContentSize()
                             .pointerInput(sparkText) {
                                 detectTapGestures(
+                                    onTap = { expandedSection = if (collapsed) 3 else -1 },
                                     onDoubleTap = {
                                         question?.let { q ->
                                             onViewSpark(sparkText!!, q.id, currentIndex)
