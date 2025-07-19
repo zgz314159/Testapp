@@ -4,6 +4,7 @@ import android.util.Log
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectDragGesturesAfterLongPress
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -69,7 +70,7 @@ fun HomeScreen(
     val fileNames by viewModel.fileNames.collectAsState()
     val folders by folderViewModel.folders.collectAsState()
     val folderNames by folderViewModel.folderNames.collectAsState()
-
+    var currentFolder by remember { mutableStateOf<String?>(null) }
     val context = LocalContext.current
     val storedFileName by FontSettingsDataStore
         .getLastSelectedFile(context)
@@ -80,6 +81,13 @@ fun HomeScreen(
     val importProgress by settingsViewModel.progress.collectAsState()
     val questionCounts = remember(questions) {
         questions.groupBy { it.fileName ?: "" }.mapValues { it.value.size }
+    }
+
+    val displayFileNames = remember(fileNames, folders, currentFolder) {
+        fileNames.filter { name ->
+            val folder = folders[name]
+            if (currentFolder == null) folder == null else folder == currentFolder
+        }
     }
 
     LaunchedEffect(storedFileName, fileNames) {
@@ -166,6 +174,24 @@ fun HomeScreen(
                 modifier = Modifier.fillMaxSize(),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
+                // 当前所在文件夹
+                if (currentFolder != null) {
+                    Row(
+                        Modifier
+                            .fillMaxWidth()
+                            .padding(bottom = 8.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        IconButton(onClick = { currentFolder = null }) {
+                            Icon(Icons.Filled.ArrowBack, contentDescription = "返回")
+                        }
+                        Text(
+                            currentFolder ?: "",
+                            fontSize = LocalFontSize.current,
+                            fontFamily = LocalFontFamily.current
+                        )
+                    }
+                }
                 // 文件夹展示行
                 if (folderNames.isNotEmpty()) {
                     Row(
@@ -182,15 +208,17 @@ fun HomeScreen(
                                         folderBounds[folder] = coords.boundsInRoot()
                                     }
                                     .background(
-                                        if (hoverFolder == folder) MaterialTheme.colorScheme.secondaryContainer
+                                        if (hoverFolder == folder || currentFolder == folder)
+                                            MaterialTheme.colorScheme.secondaryContainer
                                         else MaterialTheme.colorScheme.primaryContainer,
                                         RoundedCornerShape(8.dp)
                                     )
+                                    .clickable { currentFolder = folder }
                                     .padding(horizontal = 8.dp, vertical = 4.dp)
                             ) {
                                 Row(verticalAlignment = Alignment.CenterVertically) {
                                     Icon(
-                                        if (hoverFolder == folder) Icons.Filled.Folder else Icons.Outlined.Folder,
+                                        if (hoverFolder == folder || currentFolder == folder) Icons.Filled.Folder else Icons.Outlined.Folder,
                                         contentDescription = "文件夹",
                                         modifier = Modifier.size(24.dp),
                                         tint = MaterialTheme.colorScheme.primary
@@ -213,7 +241,7 @@ fun HomeScreen(
                         .weight(1f)
                         .padding(bottom = 8.dp)
                 ) {
-                    items(fileNames, key = { it }) { name ->
+                    items(displayFileNames, key = { it }) { name ->
                         val dismissState = rememberDismissState(
                             confirmStateChange = {
                                 if (it == DismissValue.DismissedToStart) {

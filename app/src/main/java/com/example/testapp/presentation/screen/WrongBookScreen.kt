@@ -5,6 +5,7 @@ import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.basicMarquee
 import androidx.compose.material3.*
 import androidx.compose.material.SwipeToDismiss
@@ -17,6 +18,7 @@ import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.outlined.Folder
 import androidx.compose.material.icons.filled.Folder
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.ExperimentalMaterialApi
 import androidx.compose.runtime.*
@@ -60,6 +62,7 @@ fun WrongBookScreen(
     val fileNames = viewModel.fileNames.collectAsState()
     val folders = folderViewModel.folders.collectAsState()
     val folderNames = folderViewModel.folderNames.collectAsState()
+    var currentFolder by remember { mutableStateOf<String?>(null) }
     var showAddFolderDialog by remember { mutableStateOf(false) }
     var newFolderName by remember { mutableStateOf("") }
     val folderBounds = remember { mutableStateMapOf<String, Rect>() }
@@ -68,6 +71,12 @@ fun WrongBookScreen(
     val dragItemSize by dragViewModel.dragItemSize.collectAsState()
     val dragOffset by dragViewModel.offsetWithinItem.collectAsState()
     val hoverFolder by dragViewModel.hoverFolder.collectAsState()
+    val displayFileNames = remember(fileNames.value, folders.value, currentFolder) {
+        fileNames.value.filter { name ->
+            val folder = folders.value[name]
+            if (currentFolder == null) folder == null else folder == currentFolder
+        }
+    }
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -81,6 +90,22 @@ fun WrongBookScreen(
             fontFamily = LocalFontFamily.current
         )
         Spacer(modifier = Modifier.height(16.dp))
+        if (currentFolder != null) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                IconButton(onClick = { currentFolder = null }) {
+                    Icon(Icons.Filled.ArrowBack, contentDescription = "返回")
+                }
+                Text(
+                    currentFolder ?: "",
+                    fontSize = LocalFontSize.current,
+                    fontFamily = LocalFontFamily.current
+                )
+            }
+            Spacer(modifier = Modifier.height(8.dp))
+        }
         if (folderNames.value.isNotEmpty()) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -94,15 +119,16 @@ fun WrongBookScreen(
                                 folderBounds[folder] = coords.boundsInRoot()
                             }
                             .background(
-                                if (hoverFolder == folder) MaterialTheme.colorScheme.secondaryContainer
+                                if (hoverFolder == folder || currentFolder == folder) MaterialTheme.colorScheme.secondaryContainer
                                 else MaterialTheme.colorScheme.primaryContainer,
                                 RoundedCornerShape(8.dp)
                             )
+                            .clickable { currentFolder = folder }
                             .padding(horizontal = 8.dp, vertical = 4.dp)
                     ) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Icon(
-                                if (hoverFolder == folder) Icons.Filled.Folder else Icons.Outlined.Folder,
+                                if (hoverFolder == folder || currentFolder == folder) Icons.Filled.Folder else Icons.Outlined.Folder,
                                 contentDescription = "文件夹",
                                 modifier = Modifier.size(24.dp),
                                 tint = MaterialTheme.colorScheme.primary
@@ -120,7 +146,7 @@ fun WrongBookScreen(
         }
         if (fileName.isNullOrEmpty()) {
             // 显示错题按文件分类
-            if (fileNames.value.isEmpty()) {
+            if (displayFileNames.isEmpty()) {
                 Text(
                     "暂无错题",
                     fontSize = LocalFontSize.current,
@@ -130,7 +156,7 @@ fun WrongBookScreen(
                 androidx.compose.foundation.lazy.LazyColumn(
                     modifier = Modifier.fillMaxWidth()
                 ) {
-                    items(fileNames.value, key = { it }) { name ->
+                    items(displayFileNames, key = { it }) { name ->
                         val count = wrongList.value.count { it.question.fileName == name }
                         val dismissState = rememberDismissState()
                         if (dismissState.currentValue == DismissValue.DismissedToStart) {
