@@ -1,5 +1,6 @@
 package com.example.testapp.presentation.screen
 
+import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.testapp.domain.model.FileFolder
@@ -21,6 +22,7 @@ class FileFolderViewModel @Inject constructor(
     private val getFoldersUseCase: GetFoldersUseCase,
     private val addFolderUseCase: AddFolderUseCase
 ) : ViewModel() {
+    private val tag = "FileFolderVM"
     private val _folders = MutableStateFlow<Map<String, String>>(emptyMap())
     val folders: StateFlow<Map<String, String>> = _folders.asStateFlow()
 
@@ -31,21 +33,25 @@ class FileFolderViewModel @Inject constructor(
     init {
         viewModelScope.launch {
             getFileFoldersUseCase().collect { list ->
+                Log.d(tag, "fileFolders loaded: $list")
                 _folders.value = list.associate { it.fileName to it.folderName }
             }
         }
         viewModelScope.launch {
             getFoldersUseCase().collect { names ->
+                Log.d(tag, "folder names loaded: $names")
                 _folderNames.value = names
             }
         }
     }
 
     fun moveFile(fileName: String, folderName: String) {
+        Log.d(tag, "moveFile $fileName -> $folderName")
         viewModelScope.launch { moveFileToFolderUseCase(fileName, folderName) }
     }
 
     fun addFolder(name: String) {
+        Log.d(tag, "addFolder $name")
         viewModelScope.launch { addFolderUseCase(name) }
     }
 }

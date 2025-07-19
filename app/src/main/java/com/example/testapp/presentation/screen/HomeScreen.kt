@@ -48,6 +48,7 @@ import androidx.compose.ui.layout.boundsInRoot
 import androidx.compose.ui.layout.LayoutCoordinates
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.graphics.graphicsLayer
 import kotlin.math.roundToInt
 
 
@@ -269,8 +270,15 @@ fun HomeScreen(
                             },
                             dismissContent = {
                                 var itemCoords by remember { mutableStateOf<LayoutCoordinates?>(null) }
+                                val isDraggingItem = draggingFile == name
                                 Card(
                                     modifier = Modifier
+                                        .graphicsLayer {
+                                            if (isDraggingItem) {
+                                                scaleX = 0.9f
+                                                scaleY = 0.9f
+                                            }
+                                        }
                                         .fillMaxWidth()
                                         .padding(horizontal = 16.dp, vertical = 6.dp)
                                         .onGloballyPositioned { itemCoords = it }
@@ -279,6 +287,7 @@ fun HomeScreen(
                                                 onDragStart = { offset ->
                                                     val pos = itemCoords?.localToRoot(offset) ?: Offset.Zero
                                                     val size = itemCoords?.size ?: IntSize.Zero
+                                                    android.util.Log.d("HomeScreen", "start drag $name at $pos size=$size")
                                                     dragViewModel.startDragging(name, pos, size)
                                                     dragViewModel.setHoverFolder(
                                                         folderBounds.entries.find { it.value.contains(pos) }?.key
@@ -296,12 +305,16 @@ fun HomeScreen(
                                                 onDragEnd = {
                                                     val target = folderBounds.entries
                                                         .find { it.value.contains(dragViewModel.dragPosition.value) }?.key
+                                                    android.util.Log.d("HomeScreen", "end drag $name -> $target")
                                                     if (target != null) {
                                                         folderViewModel.moveFile(name, target)
                                                     }
                                                     dragViewModel.endDragging()
                                                 },
-                                                onDragCancel = { dragViewModel.endDragging() }
+                                                onDragCancel = {
+                                                    android.util.Log.d("HomeScreen", "drag cancel $name")
+                                                    dragViewModel.endDragging()
+                                                }
                                             )
                                         }
                                         .pointerInput(Unit) {
@@ -391,7 +404,11 @@ fun HomeScreen(
                     modifier = Modifier
                         .offset { IntOffset(dragPosition.x.roundToInt(), dragPosition.y.roundToInt()) }
                         .width(widthDp)
-                        .height(heightDp),
+                        .height(heightDp)
+                        .graphicsLayer {
+                            scaleX = 0.9f
+                            scaleY = 0.9f
+                        },
                     shape = RoundedCornerShape(16.dp),
                     elevation = CardDefaults.cardElevation(defaultElevation = 6.dp)
                 ) {

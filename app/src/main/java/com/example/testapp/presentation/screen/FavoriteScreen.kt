@@ -1,5 +1,6 @@
 package com.example.testapp.presentation.screen
 
+import android.util.Log
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.clickable
@@ -42,6 +43,7 @@ import androidx.compose.ui.layout.LayoutCoordinates
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.graphics.graphicsLayer
 import kotlin.math.roundToInt
 
 @OptIn(ExperimentalMaterialApi::class)
@@ -152,12 +154,14 @@ fun FavoriteScreen(
                                     verticalAlignment = Alignment.CenterVertically,
                                     modifier = Modifier
                                         .fillMaxWidth()
+                                        .graphicsLayer { if (draggingFile == name) { scaleX = 0.9f; scaleY = 0.9f } }
                                         .onGloballyPositioned { itemCoords = it }
                                         .pointerInput(name) {
                                             detectDragGesturesAfterLongPress(
                                                 onDragStart = { offset ->
                                                     val pos = itemCoords?.localToRoot(offset) ?: Offset.Zero
                                                     val size = itemCoords?.size ?: IntSize.Zero
+                                                    Log.d("FavoriteScreen", "start drag $name at $pos size=$size")
                                                     dragViewModel.startDragging(name, pos, size)
                                                     dragViewModel.setHoverFolder(
                                                         folderBounds.entries.find { it.value.contains(pos) }?.key
@@ -175,12 +179,16 @@ fun FavoriteScreen(
                                                 onDragEnd = {
                                                     val target = folderBounds.entries
                                                         .find { it.value.contains(dragViewModel.dragPosition.value) }?.key
+                                                    Log.d("FavoriteScreen", "end drag $name -> $target")
                                                     if (target != null) {
                                                         folderViewModel.moveFile(name, target)
                                                     }
                                                     dragViewModel.endDragging()
                                                 },
-                                                onDragCancel = { dragViewModel.endDragging() }
+                                                onDragCancel = {
+                                                    Log.d("FavoriteScreen", "drag cancel $name")
+                                                    dragViewModel.endDragging()
+                                                }
                                             )
                                         }
                                         .clickable {
@@ -264,7 +272,8 @@ fun FavoriteScreen(
                 modifier = Modifier
                     .offset { IntOffset(dragPosition.x.roundToInt(), dragPosition.y.roundToInt()) }
                     .width(widthDp)
-                    .height(heightDp),
+                    .height(heightDp)
+                    .graphicsLayer { scaleX = 0.9f; scaleY = 0.9f },
                 shape = RoundedCornerShape(16.dp),
                 elevation = CardDefaults.cardElevation(defaultElevation = 6.dp)
             ) {
