@@ -22,7 +22,11 @@ import java.time.format.DateTimeFormatter
 
 // 1. 先写Composabe子组件
 @Composable
-private fun ResultStatBlock(label: String, value: String) {
+private fun ResultStatBlock(
+    label: String,
+    value: String,
+    valueColor: Color = MaterialTheme.colorScheme.primary
+) {
     Column(horizontalAlignment = Alignment.CenterHorizontally) {
         Text(
             text = label,
@@ -36,7 +40,7 @@ private fun ResultStatBlock(label: String, value: String) {
             style = MaterialTheme.typography.titleLarge.copy(
                 fontFamily = LocalFontFamily.current
             ),
-            color = MaterialTheme.colorScheme.primary
+            color = valueColor
         )
     }
 }
@@ -61,7 +65,11 @@ fun ResultScreen(
     val latest = historyList.firstOrNull()
     val displayScore = if (score == 0 && total == 0) latest?.score ?: 0 else score
     val displayTotal = if (score == 0 && total == 0) latest?.total ?: 0 else total
-    val wrongCount = displayTotal - displayScore
+    val wrongCount = if (score == 0 && total == 0) {
+        latest?.let { it.total - it.score } ?: 0
+    } else {
+        total - score
+    }
     val accuracyRate = if (displayTotal > 0) displayScore.toFloat() / displayTotal else 0f
     val accuracyText = String.format("%.2f", accuracyRate * 100)
     val formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")
@@ -136,14 +144,7 @@ fun ResultScreen(
                     modifier = Modifier.padding(bottom = 4.dp)
                 )
             }
-            Text(
-                text = "${modeText}已完成",
-                style = MaterialTheme.typography.headlineMedium.copy(
-                    fontSize = LocalFontSize.current * 1.05f,
-                    fontFamily = LocalFontFamily.current
-                ),
-                modifier = Modifier.padding(bottom = 18.dp)
-            )
+            Spacer(modifier = Modifier.height(18.dp))
 
             // 统计卡片
             Card(
@@ -194,8 +195,16 @@ fun ResultScreen(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceEvenly
                     ) {
-                        ResultStatBlock(label = "答对", value = "$displayScore")
-                        ResultStatBlock(label = "答错", value = "$wrongCount")
+                        ResultStatBlock(
+                            label = "答对",
+                            value = "$displayScore",
+                            valueColor = Color.Green
+                        )
+                        ResultStatBlock(
+                            label = "答错",
+                            value = "$wrongCount",
+                            valueColor = Color.Red
+                        )
                         ResultStatBlock(label = "正确率", value = "$accuracyText%")
                     }
                 }
@@ -204,26 +213,9 @@ fun ResultScreen(
 
             // ===== 整个题库的答题情况 =====
             val allHistoryList by viewModel.allHistory.collectAsState()
-            val allLatest = allHistoryList.lastOrNull()
+
             if (allHistoryList.isNotEmpty()) {
                 Spacer(modifier = Modifier.height(24.dp))
-                Text(
-                    text = "全部题库",
-                    style = MaterialTheme.typography.titleLarge.copy(
-                        fontSize = LocalFontSize.current * 1.05f,
-                        fontFamily = LocalFontFamily.current
-                    ),
-                    color = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.padding(bottom = 4.dp)
-                )
-                Text(
-                    text = "整体答题情况",
-                    style = MaterialTheme.typography.headlineMedium.copy(
-                        fontSize = LocalFontSize.current * 1.05f,
-                        fontFamily = LocalFontFamily.current
-                    ),
-                    modifier = Modifier.padding(bottom = 18.dp)
-                )
 
                 // 汇总所有历史记录中的答题数和总题数
                 val gScore = allHistoryList.sumOf { it.score }
@@ -280,8 +272,16 @@ fun ResultScreen(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.SpaceEvenly
                         ) {
-                            ResultStatBlock(label = "答对", value = "$gScore")
-                            ResultStatBlock(label = "答错", value = "$gWrong")
+                            ResultStatBlock(
+                                label = "答对",
+                                value = "$gScore",
+                                valueColor = Color.Green
+                            )
+                            ResultStatBlock(
+                                label = "答错",
+                                value = "$gWrong",
+                                valueColor = Color.Red
+                            )
                             ResultStatBlock(label = "正确率", value = "$gRateText%")
                         }
                     }
