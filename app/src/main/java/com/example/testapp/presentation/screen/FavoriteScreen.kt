@@ -1,9 +1,10 @@
 package com.example.testapp.presentation.screen
 
 import android.util.Log
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.basicMarquee
 import androidx.compose.material.SwipeToDismiss
 import androidx.compose.material.DismissDirection
@@ -14,6 +15,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.outlined.Folder
 import androidx.compose.material.icons.filled.Folder
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material3.*
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.ExperimentalMaterialApi
@@ -33,7 +35,6 @@ import com.example.testapp.presentation.component.LocalFontFamily
 import com.example.testapp.presentation.component.LocalFontSize
 import com.example.testapp.presentation.screen.FileFolderViewModel
 import com.example.testapp.presentation.screen.DragDropViewModel
-import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.gestures.detectDragGesturesAfterLongPress
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.onGloballyPositioned
@@ -46,7 +47,7 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.graphics.graphicsLayer
 import kotlin.math.roundToInt
 
-@OptIn(ExperimentalMaterialApi::class)
+@OptIn(ExperimentalMaterialApi::class, ExperimentalFoundationApi::class)
 @Composable
 fun FavoriteScreen(
     fileName: String? = null,
@@ -72,7 +73,6 @@ fun FavoriteScreen(
         modifier = Modifier
             .fillMaxSize()
             .padding(16.dp)
-            .pointerInput(Unit) { detectTapGestures(onLongPress = { showAddFolderDialog = true }) }
     ) {
         Text(
             "收藏夹",
@@ -83,7 +83,10 @@ fun FavoriteScreen(
         )
         Spacer(modifier = Modifier.height(16.dp))
         if (folderNames.value.isNotEmpty()) {
-            Row(modifier = Modifier.fillMaxWidth()) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
                 folderNames.value.forEach { folder ->
                     Box(
                         modifier = Modifier
@@ -110,6 +113,9 @@ fun FavoriteScreen(
                         }
                     }
                 }
+            }
+            IconButton(onClick = { showAddFolderDialog = true }) {
+                Icon(Icons.Filled.Add, contentDescription = "新增文件夹")
             }
             Spacer(modifier = Modifier.height(16.dp))
         }
@@ -192,10 +198,12 @@ fun FavoriteScreen(
                                                 }
                                             )
                                         }
-                                        .clickable {
-                                            val encoded = java.net.URLEncoder.encode(name, "UTF-8")
-                                            navController?.navigate("practice_favorite/$encoded")
-                                        }
+                                        .combinedClickable(
+                                            onClick = {
+                                                val encoded = java.net.URLEncoder.encode(name, "UTF-8")
+                                                navController?.navigate("practice_favorite/$encoded")
+                                            }
+                                        )
                                         .padding(vertical = 4.dp)
                                 ) {
                                     val displayName = folders.value[name]?.let { "$it/$name" } ?: name
