@@ -38,6 +38,7 @@ import com.example.testapp.presentation.component.LocalFontSize
 import com.example.testapp.presentation.screen.FileFolderViewModel
 import com.example.testapp.presentation.screen.DragDropViewModel
 import androidx.compose.foundation.gestures.detectDragGesturesAfterLongPress
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.layout.boundsInRoot
@@ -86,6 +87,7 @@ fun FavoriteScreen(
         modifier = Modifier
             .fillMaxSize()
             .padding(16.dp)
+            .pointerInput(Unit) { detectTapGestures(onLongPress = { showAddFolderDialog = true }) }
     ) {
         Text(
             "收藏夹",

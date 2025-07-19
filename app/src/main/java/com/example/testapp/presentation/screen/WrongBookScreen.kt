@@ -37,6 +37,7 @@ import com.example.testapp.presentation.component.LocalFontFamily
 import androidx.navigation.NavController
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.foundation.gestures.detectDragGesturesAfterLongPress
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.layout.boundsInRoot
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -85,6 +86,7 @@ fun WrongBookScreen(
         modifier = Modifier
             .fillMaxSize()
             .padding(16.dp)
+            .pointerInput(Unit) { detectTapGestures(onLongPress = { showAddFolderDialog = true }) }
 
     ) {
         Text(
