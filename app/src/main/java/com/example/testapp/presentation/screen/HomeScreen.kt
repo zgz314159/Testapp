@@ -48,6 +48,26 @@ import kotlin.math.roundToInt
 import com.example.testapp.presentation.screen.WrongBookViewModel
 import com.example.testapp.presentation.screen.FavoriteViewModel
 
+@Composable
+private fun FileStatBlock(label: String, value: String, valueColor: Color) {
+    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+        Text(
+            text = label,
+            style = MaterialTheme.typography.labelLarge.copy(
+                fontFamily = LocalFontFamily.current
+            ),
+            color = MaterialTheme.colorScheme.onSurface
+        )
+        Text(
+            text = value,
+            style = MaterialTheme.typography.titleLarge.copy(
+                fontFamily = LocalFontFamily.current
+            ),
+            color = valueColor
+        )
+    }
+}
+
 @OptIn(
     ExperimentalMaterial3Api::class,
     ExperimentalMaterialApi::class,
@@ -412,24 +432,38 @@ fun HomeScreen(
                                         defaultElevation = if (selectedFileName.value == name) 6.dp else 2.dp
                                     )
                                 ) {
-                                    Row(
+                                    Column(
                                         Modifier
                                             .fillMaxWidth()
-                                            .padding(horizontal = 16.dp, vertical = 16.dp),
-                                        verticalAlignment = Alignment.CenterVertically
+                                            .padding(horizontal = 16.dp, vertical = 16.dp)
                                     ) {
                                         val displayName = folders[name]?.let { "$it/$name" } ?: name
                                         Text(
                                             text = displayName,
                                             fontSize = LocalFontSize.current,
-                                            fontFamily = LocalFontFamily.current,
-                                            modifier = Modifier.weight(1f)
+                                            fontFamily = LocalFontFamily.current
                                         )
-                                        Text(
-                                            text = "${questionCounts[name] ?: 0}题 错${wrongCounts[name] ?: 0} 藏${favoriteCounts[name] ?: 0}",
-                                            fontSize = LocalFontSize.current * 0.95f,
-                                            color = MaterialTheme.colorScheme.primary
-                                        )
+                                        Spacer(modifier = Modifier.height(8.dp))
+                                        Row(
+                                            modifier = Modifier.fillMaxWidth(),
+                                            horizontalArrangement = Arrangement.SpaceEvenly
+                                        ) {
+                                            FileStatBlock(
+                                                label = "总题数",
+                                                value = "${questionCounts[name] ?: 0}",
+                                                valueColor = MaterialTheme.colorScheme.primary
+                                            )
+                                            FileStatBlock(
+                                                label = "错题数",
+                                                value = "${wrongCounts[name] ?: 0}",
+                                                valueColor = Color.Red
+                                            )
+                                            FileStatBlock(
+                                                label = "收藏数",
+                                                value = "${favoriteCounts[name] ?: 0}",
+                                                valueColor = Color.Cyan
+                                            )
+                                        }
                                     }
                                 }
                             }
@@ -471,23 +505,37 @@ fun HomeScreen(
                     shape = RoundedCornerShape(16.dp),
                     elevation = CardDefaults.cardElevation(defaultElevation = 6.dp)
                 ) {
-                    Row(
+                    Column(
                         Modifier
                             .fillMaxSize()
-                            .padding(horizontal = 16.dp, vertical = 16.dp),
-                        verticalAlignment = Alignment.CenterVertically
+                            .padding(horizontal = 16.dp, vertical = 16.dp)
                     ) {
                         Text(
                             text = displayName,
                             fontSize = LocalFontSize.current,
-                            fontFamily = LocalFontFamily.current,
-                            modifier = Modifier.weight(1f)
+                            fontFamily = LocalFontFamily.current
                         )
-                        Text(
-                            text = "${questionCounts[file] ?: 0}题 错${wrongCounts[file] ?: 0} 藏${favoriteCounts[file] ?: 0}",
-                            fontSize = LocalFontSize.current * 0.95f,
-                            color = MaterialTheme.colorScheme.primary
-                        )
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceEvenly
+                        ) {
+                            FileStatBlock(
+                                label = "总题数",
+                                value = "${questionCounts[file] ?: 0}",
+                                valueColor = MaterialTheme.colorScheme.primary
+                            )
+                            FileStatBlock(
+                                label = "错题数",
+                                value = "${wrongCounts[file] ?: 0}",
+                                valueColor = Color.Red
+                            )
+                            FileStatBlock(
+                                label = "收藏数",
+                                value = "${favoriteCounts[file] ?: 0}",
+                                valueColor = Color.Cyan
+                            )
+                        }
                     }
                 }
             }
