@@ -31,7 +31,6 @@ import com.example.testapp.presentation.component.LocalFontFamily
 import com.example.testapp.presentation.component.LocalFontSize
 import com.example.testapp.presentation.screen.FileFolderViewModel
 import androidx.compose.foundation.gestures.detectTapGestures
-import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.gestures.detectDragGesturesAfterLongPress
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.onGloballyPositioned
@@ -51,12 +50,9 @@ fun FavoriteScreen(
     val fileNames = viewModel.fileNames.collectAsState()
     val folders = folderViewModel.folders.collectAsState()
     val folderNames = folderViewModel.folderNames.collectAsState()
-    var showMoveDialog by remember { mutableStateOf(false) }
-    var moveTargetFile by remember { mutableStateOf("") }
-    var moveFolder by remember { mutableStateOf("") }
     var showAddFolderDialog by remember { mutableStateOf(false) }
     var newFolderName by remember { mutableStateOf("") }
-    val folderBounds = remember { mutableMapOf<String, Rect>() }
+    val folderBounds = remember { mutableStateMapOf<String, Rect>() }
     var dragPosition by remember { mutableStateOf(Offset.Zero) }
     var draggingFile by remember { mutableStateOf<String?>(null) }
     val filteredFavorites = if (fileName.isNullOrEmpty()) favorites.value else favorites.value.filter { it.question.fileName == fileName }
@@ -90,7 +86,7 @@ fun FavoriteScreen(
                             Icon(
                                 Icons.Outlined.Folder,
                                 contentDescription = "文件夹",
-                                modifier = Modifier.size(18.dp)
+                                modifier = Modifier.size(24.dp)
                             )
                             Spacer(Modifier.width(4.dp))
                             Text(folder, fontSize = LocalFontSize.current, fontFamily = LocalFontFamily.current)
@@ -181,11 +177,7 @@ fun FavoriteScreen(
                                         fontSize = LocalFontSize.current,
                                         fontFamily = LocalFontFamily.current
                                     )
-                                    IconButton(onClick = {
-                                        moveTargetFile = name
-                                        moveFolder = folders.value[name] ?: ""
-                                        showMoveDialog = true
-                                    }) { Icon(Icons.Outlined.Folder, contentDescription = "移动") }
+
                                 }
                             }
                         )
@@ -240,30 +232,7 @@ fun FavoriteScreen(
                 }
             }
         }
-        if (showMoveDialog) {
-            AlertDialog(
-                onDismissRequest = { showMoveDialog = false },
-                confirmButton = {
-                    TextButton(onClick = {
-                        folderViewModel.moveFile(moveTargetFile, moveFolder)
-                        showMoveDialog = false
-                    }) { Text("确定") }
-                },
-                dismissButton = {
-                    TextButton(onClick = { showMoveDialog = false }) { Text("取消") }
-                },
-                text = {
-                    Column {
-                        Text("移动 \$moveTargetFile 到文件夹")
-                        OutlinedTextField(
-                            value = moveFolder,
-                            onValueChange = { moveFolder = it },
-                            label = { Text("文件夹名") }
-                        )
-                    }
-                }
-            )
-        }
+
         if (showAddFolderDialog) {
             AlertDialog(
                 onDismissRequest = { showAddFolderDialog = false },

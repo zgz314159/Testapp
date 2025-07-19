@@ -106,12 +106,9 @@ fun HomeScreen(
     var pendingFileName by remember { mutableStateOf("") }
     var showDeleteDialog by remember { mutableStateOf(false) }
     var fileToDelete by remember { mutableStateOf("") }
-    var showMoveDialog by remember { mutableStateOf(false) }
-    var moveTargetFile by remember { mutableStateOf("") }
-    var moveFolder by remember { mutableStateOf("") }
     var showAddFolderDialog by remember { mutableStateOf(false) }
     var newFolderName by remember { mutableStateOf("") }
-    val folderBounds = remember { mutableMapOf<String, Rect>() }
+    val folderBounds = remember { mutableStateMapOf<String, Rect>() }
     var dragPosition by remember { mutableStateOf(Offset.Zero) }
     var draggingFile by remember { mutableStateOf<String?>(null) }
     Scaffold(
@@ -211,7 +208,7 @@ fun HomeScreen(
                                     Icon(
                                         Icons.Outlined.Folder,
                                         contentDescription = "文件夹",
-                                        modifier = Modifier.size(18.dp)
+                                        modifier = Modifier.size(24.dp)
                                     )
                                     Spacer(Modifier.width(4.dp))
                                     Text(folder, fontSize = LocalFontSize.current, fontFamily = LocalFontFamily.current)
@@ -403,20 +400,7 @@ fun HomeScreen(
                         ) {
                             Text("开始考试")
                         }
-                        Spacer(Modifier.height(14.dp))
-                        Button(
-                            onClick = {
-                                moveTargetFile = pendingFileName
-                                showSheet = false
-                                moveFolder = folders[pendingFileName] ?: ""
-                                showMoveDialog = true
-                            },
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(44.dp)
-                        ) {
-                            Text("移动到文件夹")
-                        }
+
                         Spacer(Modifier.height(12.dp))
                         TextButton(
                             onClick = { showSheet = false },
@@ -442,30 +426,7 @@ fun HomeScreen(
                     text = { Text("确定删除 $fileToDelete 及其相关数据吗？") }
                 )
             }
-            if (showMoveDialog) {
-                AlertDialog(
-                    onDismissRequest = { showMoveDialog = false },
-                    confirmButton = {
-                        TextButton(onClick = {
-                            folderViewModel.moveFile(moveTargetFile, moveFolder)
-                            showMoveDialog = false
-                        }) { Text("确定") }
-                    },
-                    dismissButton = {
-                        TextButton(onClick = { showMoveDialog = false }) { Text("取消") }
-                    },
-                    text = {
-                        Column {
-                            Text("移动 \$moveTargetFile 到文件夹")
-                            OutlinedTextField(
-                                value = moveFolder,
-                                onValueChange = { moveFolder = it },
-                                label = { Text("文件夹名") }
-                            )
-                        }
-                    }
-                )
-            }
+
             if (showAddFolderDialog) {
                 AlertDialog(
                     onDismissRequest = { showAddFolderDialog = false },
