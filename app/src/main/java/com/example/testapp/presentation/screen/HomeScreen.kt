@@ -272,52 +272,54 @@ fun HomeScreen(
                             dismissContent = {
                                 var itemCoords by remember { mutableStateOf<LayoutCoordinates?>(null) }
                                 val isDraggingItem = draggingFile == name
-                                Card(
-                                    modifier = Modifier
-                                        .graphicsLayer {
-                                            if (isDraggingItem) {
-                                                scaleX = 0.9f
-                                                scaleY = 0.9f
-                                            }
-                                        }
-                                        .fillMaxWidth()
-                                        .padding(horizontal = 16.dp, vertical = 6.dp)
-                                        .onGloballyPositioned { itemCoords = it }
-                                        .pointerInput(name) {
-                                            detectDragGesturesAfterLongPress(
-                                                onDragStart = { offset ->
-                                                    val pos = itemCoords?.localToRoot(offset) ?: Offset.Zero
-                                                    val size = itemCoords?.size ?: IntSize.Zero
-                                                    android.util.Log.d("HomeScreen", "start drag $name at $pos size=$size")
-                                                    dragViewModel.startDragging(name, pos, size, offset)
-                                                    dragViewModel.setHoverFolder(
-                                                        folderBounds.entries.find { it.value.contains(pos) }?.key
-                                                    )
-                                                },
-                                                onDrag = { change, _ ->
-                                                    change.consume()
-                                                    val pos = itemCoords?.localToRoot(change.position)
-                                                        ?: dragViewModel.dragPosition.value
-                                                    dragViewModel.updatePosition(pos)
-                                                    dragViewModel.setHoverFolder(
-                                                        folderBounds.entries.find { it.value.contains(pos) }?.key
-                                                    )
-                                                },
-                                                onDragEnd = {
-                                                    val target = folderBounds.entries
-                                                        .find { it.value.contains(dragViewModel.dragPosition.value) }?.key
-                                                    android.util.Log.d("HomeScreen", "end drag $name -> $target")
-                                                    if (target != null) {
-                                                        folderViewModel.moveFile(name, target)
+                                val itemModifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(horizontal = 16.dp, vertical = 6.dp)
+                                    .onGloballyPositioned { itemCoords = it }
+                                if (isDraggingItem) {
+                                    Spacer(
+                                        modifier = itemModifier
+                                            .height(with(LocalDensity.current) { dragItemSize.height.toDp() })
+                                    )
+                                } else {
+                                    Card(
+                                        modifier = itemModifier
+                                            .pointerInput(name) {
+                                                detectDragGesturesAfterLongPress(
+                                                    onDragStart = { offset ->
+                                                        val pos = itemCoords?.localToRoot(offset) ?: Offset.Zero
+                                                        val size = itemCoords?.size ?: IntSize.Zero
+                                                        android.util.Log.d("HomeScreen", "start drag $name at $pos size=$size")
+                                                        dragViewModel.startDragging(name, pos, size, offset)
+                                                        dragViewModel.setHoverFolder(
+                                                            folderBounds.entries.find { it.value.contains(pos) }?.key
+                                                        )
+                                                    },
+                                                    onDrag = { change, _ ->
+                                                        change.consume()
+                                                        val pos = itemCoords?.localToRoot(change.position)
+                                                            ?: dragViewModel.dragPosition.value
+                                                        dragViewModel.updatePosition(pos)
+                                                        dragViewModel.setHoverFolder(
+                                                            folderBounds.entries.find { it.value.contains(pos) }?.key
+                                                        )
+                                                    },
+                                                    onDragEnd = {
+                                                        val target = folderBounds.entries
+                                                            .find { it.value.contains(dragViewModel.dragPosition.value) }?.key
+                                                        android.util.Log.d("HomeScreen", "end drag $name -> $target")
+                                                        if (target != null) {
+                                                            folderViewModel.moveFile(name, target)
+                                                        }
+                                                        dragViewModel.endDragging()
+                                                    },
+                                                    onDragCancel = {
+                                                        android.util.Log.d("HomeScreen", "drag cancel $name")
+                                                        dragViewModel.endDragging()
                                                     }
-                                                    dragViewModel.endDragging()
-                                                },
-                                                onDragCancel = {
-                                                    android.util.Log.d("HomeScreen", "drag cancel $name")
-                                                    dragViewModel.endDragging()
-                                                }
-                                            )
-                                        }
+                                                )
+                                            }
+
                                         .pointerInput(Unit) {
                                             detectTapGestures(
                                                 onTap = {
@@ -372,7 +374,7 @@ fun HomeScreen(
                                         )
                                     }
                                 }
-                            }
+                            }}
                         )
                     }
                 }
@@ -412,8 +414,8 @@ fun HomeScreen(
                         .width(widthDp)
                         .height(heightDp)
                         .graphicsLayer {
-                            scaleX = 0.9f
-                            scaleY = 0.9f
+                            scaleX = 0.75f
+                            scaleY = 0.75f
                         },
                     shape = RoundedCornerShape(16.dp),
                     elevation = CardDefaults.cardElevation(defaultElevation = 6.dp)
