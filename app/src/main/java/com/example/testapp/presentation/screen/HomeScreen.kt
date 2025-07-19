@@ -21,6 +21,7 @@ import androidx.compose.material.DismissValue
 import androidx.compose.material.rememberDismissState
 import androidx.compose.material.FractionalThreshold
 import androidx.compose.material.ExperimentalMaterialApi
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -35,6 +36,7 @@ import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import com.example.testapp.data.datastore.FontSettingsDataStore
+import com.example.testapp.presentation.screen.FileFolderViewModel
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterialApi::class)
 @Composable
@@ -49,8 +51,10 @@ fun HomeScreen(
     settingsViewModel: SettingsViewModel
 ) {
     val viewModel: HomeViewModel = hiltViewModel()
+    val folderViewModel: FileFolderViewModel = hiltViewModel()
     val questions by viewModel.questions.collectAsState()
     val fileNames by viewModel.fileNames.collectAsState()
+    val folders by folderViewModel.folders.collectAsState()
     val context = LocalContext.current
     val storedFileName by FontSettingsDataStore
         .getLastSelectedFile(context)
@@ -93,6 +97,9 @@ fun HomeScreen(
     var pendingFileName by remember { mutableStateOf("") }
     var showDeleteDialog by remember { mutableStateOf(false) }
     var fileToDelete by remember { mutableStateOf("") }
+    var showMoveDialog by remember { mutableStateOf(false) }
+    var moveTargetFile by remember { mutableStateOf("") }
+    var moveFolder by remember { mutableStateOf("") }
     Scaffold(
         topBar = {
             TopAppBar(
@@ -254,8 +261,9 @@ fun HomeScreen(
                                             .padding(horizontal = 16.dp, vertical = 16.dp),
                                         verticalAlignment = Alignment.CenterVertically
                                     ) {
+                                        val displayName = folders[name]?.let { "$it/$name" } ?: name
                                         Text(
-                                            text = name,
+                                            text = displayName,
                                             fontSize = LocalFontSize.current,
                                             fontFamily = LocalFontFamily.current,
                                             modifier = Modifier.weight(1f)
@@ -332,6 +340,20 @@ fun HomeScreen(
                         ) {
                             Text("开始考试")
                         }
+                        Spacer(Modifier.height(14.dp))
+                        Button(
+                            onClick = {
+                                moveTargetFile = pendingFileName
+                                showSheet = false
+                                moveFolder = folders[pendingFileName] ?: ""
+                                showMoveDialog = true
+                            },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(44.dp)
+                        ) {
+                            Text("移动到文件夹")
+                        }
                         Spacer(Modifier.height(12.dp))
                         TextButton(
                             onClick = { showSheet = false },
@@ -355,6 +377,30 @@ fun HomeScreen(
                         TextButton(onClick = { showDeleteDialog = false }) { Text("取消") }
                     },
                     text = { Text("确定删除 $fileToDelete 及其相关数据吗？") }
+                )
+            }
+            if (showMoveDialog) {
+                AlertDialog(
+                    onDismissRequest = { showMoveDialog = false },
+                    confirmButton = {
+                        TextButton(onClick = {
+                            folderViewModel.moveFile(moveTargetFile, moveFolder)
+                            showMoveDialog = false
+                        }) { Text("确定") }
+                    },
+                    dismissButton = {
+                        TextButton(onClick = { showMoveDialog = false }) { Text("取消") }
+                    },
+                    text = {
+                        Column {
+                            Text("移动 \$moveTargetFile 到文件夹")
+                            OutlinedTextField(
+                                value = moveFolder,
+                                onValueChange = { moveFolder = it },
+                                label = { Text("文件夹名") }
+                            )
+                        }
+                    }
                 )
             }
         }

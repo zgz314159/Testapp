@@ -72,7 +72,9 @@ fun ResultScreen(
         quizId.startsWith("practice_") -> "练习" to quizId.removePrefix("practice_")
         else -> "练习" to quizId
     }
-
+    val isExam = modeText == "考试"
+    val currentLabel = if (isExam) "当前考试：" else "当前练习："
+    val overallLabel = if (isExam) "整张考试：" else "整张练习："
     Scaffold(
         bottomBar = {
             Surface(shadowElevation = 8.dp) {
@@ -160,6 +162,17 @@ fun ResultScreen(
                         .padding(22.dp),
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
+                    Box(modifier = Modifier.fillMaxWidth()) {
+                        Text(
+                            text = currentLabel,
+                            style = MaterialTheme.typography.titleSmall.copy(
+                                fontSize = LocalFontSize.current * 0.9f,
+                                fontFamily = LocalFontFamily.current
+                            ),
+                            color = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.align(Alignment.CenterStart)
+                        )
+                    }
                     Text(
                         text = "$displayScore / $displayTotal",
                         style = MaterialTheme.typography.displaySmall.copy(
@@ -235,6 +248,17 @@ fun ResultScreen(
                             .padding(22.dp),
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
+                        Box(modifier = Modifier.fillMaxWidth()) {
+                            Text(
+                                text = overallLabel,
+                                style = MaterialTheme.typography.titleSmall.copy(
+                                    fontSize = LocalFontSize.current * 0.9f,
+                                    fontFamily = LocalFontFamily.current
+                                ),
+                                color = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.align(Alignment.CenterStart)
+                            )
+                        }
                         Text(
                             text = "$gScore / $gTotal",
                             style = MaterialTheme.typography.displaySmall.copy(

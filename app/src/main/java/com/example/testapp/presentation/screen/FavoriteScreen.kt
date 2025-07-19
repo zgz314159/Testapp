@@ -11,11 +11,11 @@ import androidx.compose.material.rememberDismissState
 import androidx.compose.material.FractionalThreshold
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Folder
 import androidx.compose.material3.*
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.ExperimentalMaterialApi
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -27,16 +27,22 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import com.example.testapp.presentation.component.LocalFontFamily
 import com.example.testapp.presentation.component.LocalFontSize
+import com.example.testapp.presentation.screen.FileFolderViewModel
 
 @OptIn(ExperimentalMaterialApi::class)
 @Composable
 fun FavoriteScreen(
     fileName: String? = null,
     navController: NavController? = null,
-    viewModel: FavoriteViewModel = hiltViewModel()
+    viewModel: FavoriteViewModel = hiltViewModel(),
+    folderViewModel: FileFolderViewModel = hiltViewModel()
 ) {
     val favorites = viewModel.favoriteQuestions.collectAsState()
     val fileNames = viewModel.fileNames.collectAsState()
+    val folders = folderViewModel.folders.collectAsState()
+    var showMoveDialog by remember { mutableStateOf(false) }
+    var moveTargetFile by remember { mutableStateOf("") }
+    var moveFolder by remember { mutableStateOf("") }
     val filteredFavorites = if (fileName.isNullOrEmpty()) favorites.value else favorites.value.filter { it.question.fileName == fileName }
     Column(modifier = Modifier.fillMaxSize().padding(16.dp)) {
         Text(
@@ -94,9 +100,10 @@ fun FavoriteScreen(
                                         }
                                         .padding(vertical = 4.dp)
                                 ) {
+                                    val displayName = folders.value[name]?.let { "$it/$name" } ?: name
                                     Text(
                                         buildAnnotatedString {
-                                            append("$name ")
+                                            append("$displayName ")
                                             withStyle(SpanStyle(color = Color.Blue)) { append("(${count})") }
                                         },
                                         modifier = Modifier
@@ -105,6 +112,11 @@ fun FavoriteScreen(
                                         fontSize = LocalFontSize.current,
                                         fontFamily = LocalFontFamily.current
                                     )
+                                    IconButton(onClick = {
+                                        moveTargetFile = name
+                                        moveFolder = folders.value[name] ?: ""
+                                        showMoveDialog = true
+                                    }) { Icon(Icons.Filled.Folder, contentDescription = "移动") }
                                 }
                             }
                         )
@@ -159,6 +171,29 @@ fun FavoriteScreen(
                 }
             }
         }
-
+        if (showMoveDialog) {
+            AlertDialog(
+                onDismissRequest = { showMoveDialog = false },
+                confirmButton = {
+                    TextButton(onClick = {
+                        folderViewModel.moveFile(moveTargetFile, moveFolder)
+                        showMoveDialog = false
+                    }) { Text("确定") }
+                },
+                dismissButton = {
+                    TextButton(onClick = { showMoveDialog = false }) { Text("取消") }
+                },
+                text = {
+                    Column {
+                        Text("移动 \$moveTargetFile 到文件夹")
+                        OutlinedTextField(
+                            value = moveFolder,
+                            onValueChange = { moveFolder = it },
+                            label = { Text("文件夹名") }
+                        )
+                    }
+                }
+            )
+        }
     }
 }

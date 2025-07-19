@@ -19,6 +19,7 @@ import com.example.testapp.data.repository.PracticeProgressRepositoryImpl
 import com.example.testapp.data.repository.ExamProgressRepositoryImpl
 import com.example.testapp.data.repository.QuestionAnalysisRepositoryImpl
 import com.example.testapp.data.repository.QuestionNoteRepositoryImpl
+import com.example.testapp.data.repository.FileFolderRepositoryImpl
 import com.example.testapp.data.network.deepseek.DeepSeekApiService
 import com.example.testapp.data.network.spark.SparkApiService
 import com.example.testapp.domain.repository.FavoriteQuestionRepository
@@ -29,6 +30,7 @@ import com.example.testapp.domain.repository.PracticeProgressRepository
 import com.example.testapp.domain.repository.ExamProgressRepository
 import com.example.testapp.domain.repository.QuestionAnalysisRepository
 import com.example.testapp.domain.repository.QuestionNoteRepository
+import com.example.testapp.domain.repository.FileFolderRepository
 import com.example.testapp.domain.usecase.AddFavoriteQuestionUseCase
 import com.example.testapp.domain.usecase.AddHistoryRecordUseCase
 import com.example.testapp.domain.usecase.AddWrongQuestionUseCase
@@ -53,6 +55,8 @@ import com.example.testapp.domain.usecase.GetSparkAnalysisUseCase
 import com.example.testapp.domain.usecase.SaveSparkAnalysisUseCase
 import com.example.testapp.domain.usecase.GetQuestionNoteUseCase
 import com.example.testapp.domain.usecase.SaveQuestionNoteUseCase
+import com.example.testapp.domain.usecase.MoveFileToFolderUseCase
+import com.example.testapp.domain.usecase.GetFileFoldersUseCase
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -173,6 +177,23 @@ object AppModule {
 
     @Provides
     fun provideQuestionNoteDao(db: AppDatabase): QuestionNoteDao = db.questionNoteDao()
+
+    @Provides
+    fun provideFileFolderDao(db: AppDatabase): com.example.testapp.data.local.dao.FileFolderDao = db.fileFolderDao()
+
+    @Provides
+    @Singleton
+    fun provideFileFolderRepository(dao: com.example.testapp.data.local.dao.FileFolderDao): FileFolderRepository =
+        FileFolderRepositoryImpl(dao)
+
+    @Provides
+    @Singleton
+    fun provideMoveFileToFolderUseCase(repo: FileFolderRepository): MoveFileToFolderUseCase = MoveFileToFolderUseCase(repo)
+
+    @Provides
+    @Singleton
+    fun provideGetFileFoldersUseCase(repo: FileFolderRepository): GetFileFoldersUseCase = GetFileFoldersUseCase(repo)
+
 
     @Provides
     @Singleton
