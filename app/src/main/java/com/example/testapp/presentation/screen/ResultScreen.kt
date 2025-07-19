@@ -245,8 +245,139 @@ fun ResultScreen(
                         }
                     }
                 }
-            } else {
-                Spacer(Modifier.weight(1f))
+            }
+
+            // ===== 整个题库的答题情况 =====
+            val allHistoryList by viewModel.allHistory.collectAsState()
+            val allLatest = allHistoryList.lastOrNull()
+            if (allLatest != null) {
+                Spacer(modifier = Modifier.height(24.dp))
+                Text(
+                    text = "全部题库",
+                    style = MaterialTheme.typography.titleLarge.copy(
+                        fontSize = LocalFontSize.current * 1.05f,
+                        fontFamily = LocalFontFamily.current
+                    ),
+                    color = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.padding(bottom = 4.dp)
+                )
+                Text(
+                    text = "整体答题情况",
+                    style = MaterialTheme.typography.headlineMedium.copy(
+                        fontSize = LocalFontSize.current * 1.05f,
+                        fontFamily = LocalFontFamily.current
+                    ),
+                    modifier = Modifier.padding(bottom = 18.dp)
+                )
+
+                val gScore = allLatest.score
+                val gTotal = allLatest.total
+                val gWrong = gTotal - gScore
+                val gRate = if (gTotal > 0) gScore.toFloat() / gTotal else 0f
+                val gRateText = String.format("%.2f", gRate * 100)
+
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(bottom = 20.dp),
+                    shape = RoundedCornerShape(18.dp),
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.surfaceContainer
+                    ),
+                    elevation = CardDefaults.cardElevation(defaultElevation = 6.dp)
+                ) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(22.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        Text(
+                            text = "$gScore / $gTotal",
+                            style = MaterialTheme.typography.displaySmall.copy(
+                                fontSize = LocalFontSize.current * 1.2f,
+                                fontFamily = LocalFontFamily.current
+                            ),
+                            color = MaterialTheme.colorScheme.primary
+                        )
+                        Spacer(modifier = Modifier.height(10.dp))
+                        LinearProgressIndicator(
+                            progress = gRate,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(8.dp),
+                            color = MaterialTheme.colorScheme.primary
+                        )
+                        Spacer(modifier = Modifier.height(14.dp))
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceEvenly
+                        ) {
+                            ResultStatBlock(label = "答对", value = "$gScore")
+                            ResultStatBlock(label = "答错", value = "$gWrong")
+                            ResultStatBlock(label = "正确率", value = "$gRateText%")
+                        }
+                    }
+                }
+
+                val allAccList = allHistoryList.map { it.score.toFloat() / it.total }
+                if (allAccList.isNotEmpty()) {
+                    Text(
+                        "题库整体成绩走势",
+                        style = MaterialTheme.typography.titleMedium.copy(
+                            fontSize = LocalFontSize.current * 0.98f,
+                            fontFamily = LocalFontFamily.current
+                        ),
+                        color = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier
+                            .align(Alignment.Start)
+                            .padding(bottom = 6.dp)
+                    )
+                    val primary = MaterialTheme.colorScheme.primary
+                    val secondary = MaterialTheme.colorScheme.secondary
+
+                    Canvas(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(100.dp)
+                    ) {
+                        val step = if (allAccList.size > 1) size.width / (allAccList.size - 1) else 0f
+                        val points = allAccList.mapIndexed { idx, v ->
+                            Offset(idx * step, size.height - v.coerceIn(0f, 1f) * size.height)
+                        }
+                        drawLine(Color.DarkGray, Offset(0f, size.height), Offset(size.width, size.height), strokeWidth = 2f)
+                        drawLine(Color.DarkGray, Offset(0f, size.height), Offset(0f, 0f), strokeWidth = 2f)
+                        for (i in 0 until points.size - 1) {
+                            drawLine(primary, points[i], points[i + 1], strokeWidth = 4f)
+                        }
+                        points.forEach { drawCircle(secondary, 6f, it) }
+                    }
+
+                    Spacer(modifier = Modifier.height(8.dp))
+
+                    LazyColumn(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .heightIn(max = 200.dp)
+                    ) {
+                        items(allHistoryList) { h ->
+                            val idx = allHistoryList.indexOf(h)
+                            val wrong = h.total - h.score
+                            val rate = if (h.total > 0) h.score * 100f / h.total else 0f
+                            Column(Modifier.padding(vertical = 3.dp)) {
+                                Text(
+                                    text = "${idx + 1}. 正确:${h.score} 错误:${wrong} 正确率:${"%.2f".format(rate)}% 时间:${h.time.format(formatter)}",
+                                    style = MaterialTheme.typography.bodyMedium.copy(
+                                        fontSize = LocalFontSize.current * 0.98f,
+                                        fontFamily = LocalFontFamily.current
+                                    ),
+                                    color = MaterialTheme.colorScheme.onSurface
+                                )
+                                Divider(Modifier.padding(vertical = 2.dp))
+                            }
+                        }
+                    }
+                }
             }
         }
     }
