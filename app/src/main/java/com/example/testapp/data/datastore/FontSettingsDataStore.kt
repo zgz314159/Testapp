@@ -26,6 +26,7 @@ object FontSettingsDataStore {
     private val SOUND_ENABLED_KEY = intPreferencesKey("sound_enabled")
     private val DARK_THEME_KEY = intPreferencesKey("dark_theme")
     private val LAST_SELECTED_FILE_KEY = stringPreferencesKey("last_selected_file")
+    private val LAST_SELECTED_NAV_KEY = intPreferencesKey("last_selected_nav")
     private val PRACTICE_FONT_SIZE_KEY = floatPreferencesKey("practice_font_size")
     private val EXAM_FONT_SIZE_KEY = floatPreferencesKey("exam_font_size")
     private val DEEPSEEK_FONT_SIZE_KEY = floatPreferencesKey("deepseek_font_size")
@@ -121,6 +122,15 @@ object FontSettingsDataStore {
 
     suspend fun setLastSelectedFile(context: Context, fileName: String) {
         context.dataStore.edit { preferences -> preferences[LAST_SELECTED_FILE_KEY] = fileName }
+    }
+
+    fun getLastSelectedNav(context: Context, default: Int = 3): Flow<Int> =
+        context.dataStore.data.map { preferences ->
+            preferences[LAST_SELECTED_NAV_KEY] ?: default
+        }
+
+    suspend fun setLastSelectedNav(context: Context, index: Int) {
+        context.dataStore.edit { preferences -> preferences[LAST_SELECTED_NAV_KEY] = index }
     }
 
     fun getPracticeFontSize(context: Context, default: Float = 18f): Flow<Float> =

@@ -37,7 +37,6 @@ import androidx.compose.ui.layout.boundsInRoot
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
@@ -46,6 +45,8 @@ import com.example.testapp.data.datastore.FontSettingsDataStore
 import com.example.testapp.presentation.component.LocalFontFamily
 import com.example.testapp.presentation.component.LocalFontSize
 import kotlin.math.roundToInt
+import com.example.testapp.presentation.screen.WrongBookViewModel
+import com.example.testapp.presentation.screen.FavoriteViewModel
 
 @OptIn(
     ExperimentalMaterial3Api::class,
@@ -70,7 +71,8 @@ fun HomeScreen(
     val viewModel: HomeViewModel = hiltViewModel()
     val folderViewModel: FileFolderViewModel = hiltViewModel()
     val dragViewModel: DragDropViewModel = hiltViewModel()
-
+    val wrongBookViewModel: WrongBookViewModel = hiltViewModel()
+    val favoriteViewModel: FavoriteViewModel = hiltViewModel()
     val questions by viewModel.questions.collectAsState()
     val fileNames by viewModel.fileNames.collectAsState()
     val folders by folderViewModel.folders.collectAsState()
@@ -87,7 +89,14 @@ fun HomeScreen(
     val questionCounts = remember(questions) {
         questions.groupBy { it.fileName ?: "" }.mapValues { it.value.size }
     }
-
+    val wrongQuestions by wrongBookViewModel.wrongQuestions.collectAsState()
+    val wrongCounts = remember(wrongQuestions) {
+        wrongQuestions.groupBy { it.question.fileName ?: "" }.mapValues { it.value.size }
+    }
+    val favoriteQuestions by favoriteViewModel.favoriteQuestions.collectAsState()
+    val favoriteCounts = remember(favoriteQuestions) {
+        favoriteQuestions.groupBy { it.question.fileName ?: "" }.mapValues { it.value.size }
+    }
     val displayFileNames = remember(fileNames, folders, currentFolder) {
         fileNames.filter { name ->
             val folder = folders[name]
@@ -108,16 +117,17 @@ fun HomeScreen(
         }
     }
 
-    var bottomNavIndex by remember { mutableStateOf(3) }
-    val lifecycleOwner = LocalLifecycleOwner.current
-    DisposableEffect(lifecycleOwner) {
-        val obs = androidx.lifecycle.LifecycleEventObserver { _, event ->
-            if (event == androidx.lifecycle.Lifecycle.Event.ON_RESUME) {
-                bottomNavIndex = 3
-            }
-        }
-        lifecycleOwner.lifecycle.addObserver(obs)
-        onDispose { lifecycleOwner.lifecycle.removeObserver(obs) }
+    val storedNavIndex by FontSettingsDataStore
+        .getLastSelectedNav(context)
+        .collectAsState(initial = 3)
+    var bottomNavIndex by remember { mutableStateOf(storedNavIndex) }
+
+    LaunchedEffect(storedNavIndex) {
+        bottomNavIndex = storedNavIndex
+    }
+
+    LaunchedEffect(bottomNavIndex) {
+        FontSettingsDataStore.setLastSelectedNav(context, bottomNavIndex)
     }
 
     var showSheet by remember { mutableStateOf(false) }
@@ -416,7 +426,7 @@ fun HomeScreen(
                                             modifier = Modifier.weight(1f)
                                         )
                                         Text(
-                                            text = "${questionCounts[name] ?: 0}题",
+                                            text = "${questionCounts[name] ?: 0}题 错${wrongCounts[name] ?: 0} 藏${favoriteCounts[name] ?: 0}",
                                             fontSize = LocalFontSize.current * 0.95f,
                                             color = MaterialTheme.colorScheme.primary
                                         )
@@ -474,7 +484,7 @@ fun HomeScreen(
                             modifier = Modifier.weight(1f)
                         )
                         Text(
-                            text = "${questionCounts[file] ?: 0}题",
+                            text = "${questionCounts[file] ?: 0}题 错${wrongCounts[file] ?: 0} 藏${favoriteCounts[file] ?: 0}",
                             fontSize = LocalFontSize.current * 0.95f,
                             color = MaterialTheme.colorScheme.primary
                         )
