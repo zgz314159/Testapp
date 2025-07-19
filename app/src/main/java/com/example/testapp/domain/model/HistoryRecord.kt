@@ -10,6 +10,7 @@ import kotlinx.serialization.Serializable
 data class HistoryRecord(
     val score: Int,
     val total: Int,
+    val unanswered: Int = 0,
     val fileName: String? = null,
     @Contextual
     val time: LocalDateTime = LocalDateTime.now()

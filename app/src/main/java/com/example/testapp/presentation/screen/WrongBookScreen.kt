@@ -12,7 +12,7 @@ import androidx.compose.material.rememberDismissState
 import androidx.compose.material.FractionalThreshold
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.filled.Folder
+import androidx.compose.material.icons.outlined.Folder
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.ExperimentalMaterialApi
 import androidx.compose.runtime.*
@@ -83,7 +83,17 @@ fun WrongBookScreen(
                             }
                             .background(MaterialTheme.colorScheme.primaryContainer, RoundedCornerShape(8.dp))
                             .padding(horizontal = 8.dp, vertical = 4.dp)
-                    ) { Text(folder, fontSize = LocalFontSize.current, fontFamily = LocalFontFamily.current) }
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(
+                                Icons.Outlined.Folder,
+                                contentDescription = "文件夹",
+                                modifier = Modifier.size(18.dp)
+                            )
+                            Spacer(Modifier.width(4.dp))
+                            Text(folder, fontSize = LocalFontSize.current, fontFamily = LocalFontFamily.current)
+                        }
+                    }
                 }
             }
             Spacer(modifier = Modifier.height(16.dp))
@@ -138,9 +148,9 @@ fun WrongBookScreen(
                                                     draggingFile = name
                                                     dragPosition = itemCoords?.localToRoot(offset) ?: Offset.Zero
                                                 },
-                                                onDrag = { change, dragAmount ->
+                                                onDrag = { change, _ ->
                                                     change.consume()
-                                                    dragPosition += dragAmount
+                                                    dragPosition = itemCoords?.localToRoot(change.position) ?: dragPosition
                                                 },
                                                 onDragEnd = {
                                                     val target = folderBounds.entries.find { it.value.contains(dragPosition) }?.key
@@ -175,7 +185,7 @@ fun WrongBookScreen(
                                         moveFolder = folders.value[name] ?: ""
                                         showMoveDialog = true
                                     }) {
-                                        Icon(Icons.Filled.Folder, contentDescription = "移动")
+                                        Icon(Icons.Outlined.Folder, contentDescription = "移动")
                                     }
                                 }
                             }

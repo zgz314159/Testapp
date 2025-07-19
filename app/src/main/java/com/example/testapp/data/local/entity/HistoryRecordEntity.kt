@@ -8,6 +8,7 @@ data class HistoryRecordEntity(
     @PrimaryKey(autoGenerate = true) val id: Int = 0,
     val score: Int,
     val total: Int,
+    val unanswered: Int,
     val fileName: String?,
     val time: Long // 时间戳
 )

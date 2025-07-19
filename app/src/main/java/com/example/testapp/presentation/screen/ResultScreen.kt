@@ -51,6 +51,7 @@ private fun ResultStatBlock(
 fun ResultScreen(
     score: Int,
     total: Int,
+    unanswered: Int,
     quizId: String,
     onBackHome: () -> Unit,
     onViewDetail: () -> Unit = {},
@@ -65,10 +66,11 @@ fun ResultScreen(
     val latest = historyList.firstOrNull()
     val displayScore = if (score == 0 && total == 0) latest?.score ?: 0 else score
     val displayTotal = if (score == 0 && total == 0) latest?.total ?: 0 else total
+    val displayUnanswered = if (score == 0 && total == 0) latest?.unanswered ?: 0 else unanswered
     val wrongCount = if (score == 0 && total == 0) {
-        latest?.let { it.total - it.score } ?: 0
+        latest?.let { it.total - it.score - it.unanswered } ?: 0
     } else {
-        total - score
+        total - score - unanswered
     }
     val accuracyRate = if (displayTotal > 0) displayScore.toFloat() / displayTotal else 0f
     val accuracyText = String.format("%.2f", accuracyRate * 100)
@@ -205,6 +207,11 @@ fun ResultScreen(
                             value = "$wrongCount",
                             valueColor = Color.Red
                         )
+                        ResultStatBlock(
+                            label = "未答",
+                            value = "$displayUnanswered",
+                            valueColor = Color.Yellow
+                        )
                         ResultStatBlock(label = "正确率", value = "$accuracyText%")
                     }
                 }
@@ -221,6 +228,7 @@ fun ResultScreen(
                 // 汇总所有历史记录中的答题数和总题数
                 val gScore = allHistoryList.sumOf { it.score }
                 val gTotal = allHistoryList.sumOf { it.total }
+                val gUnanswered = allHistoryList.sumOf { it.unanswered }
                 val gWrong = wrongBook.size
                 val gRate = if (gTotal > 0) gScore.toFloat() / gTotal else 0f
                 val gRateText = String.format("%.2f", gRate * 100)
@@ -283,6 +291,11 @@ fun ResultScreen(
                                 value = "$gWrong",
                                 valueColor = Color.Red
                             )
+                            ResultStatBlock(
+                                label = "未答",
+                                value = "$gUnanswered",
+                                valueColor = Color.Yellow
+                            )
                             ResultStatBlock(label = "正确率", value = "$gRateText%")
                         }
                     }
@@ -330,7 +343,7 @@ fun ResultScreen(
                     ) {
                         items(allHistoryList) { h ->
                             val idx = allHistoryList.indexOf(h)
-                            val wrong = h.total - h.score
+                            val wrong = h.total - h.score - h.unanswered
                             val rate = if (h.total > 0) h.score * 100f / h.total else 0f
                             Column(Modifier.padding(vertical = 3.dp)) {
                                 Text(
@@ -394,7 +407,7 @@ fun ResultScreen(
                 ) {
                     items(historyList) { h ->
                         val idx = historyList.indexOf(h)
-                        val wrong = h.total - h.score
+                        val wrong = h.total - h.score - h.unanswered
                         val rate = if (h.total > 0) h.score * 100f / h.total else 0f
                         Column(Modifier.padding(vertical = 3.dp)) {
                             Text(

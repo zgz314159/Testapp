@@ -344,6 +344,7 @@ class ExamViewModel @Inject constructor(
         }
 
         var score = 0
+        var unanswered = 0
         val newShowResultList = _showResultList.value.toMutableList()
 
         for (i in qs.indices) {
@@ -361,10 +362,11 @@ class ExamViewModel @Inject constructor(
                 newShowResultList[i] = true    // 标记已批改
             } else {
                 newShowResultList[i] = false
+                unanswered++
             }
 
         }
-        addHistoryRecordUseCase(HistoryRecord(score, qs.size, "exam_${quizIdInternal}"))
+        addHistoryRecordUseCase(HistoryRecord(score, qs.size, unanswered, "exam_${quizIdInternal}"))
         _showResultList.value = newShowResultList
         _finished.value = newShowResultList.all { it }
         android.util.Log.d("ExamDebug", "gradeExam score=$score total=${qs.size}")

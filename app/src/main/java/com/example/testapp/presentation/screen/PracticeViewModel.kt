@@ -376,10 +376,10 @@ class PracticeViewModel @Inject constructor(
     }
 
 
-    fun addHistoryRecord(score: Int, total: Int) {
+    fun addHistoryRecord(score: Int, total: Int, unanswered: Int) {
         viewModelScope.launch {
             val id = "practice_${questionSourceId}"
-            addHistoryRecordUseCase(HistoryRecord(score, total, id))
+            addHistoryRecordUseCase(HistoryRecord(score, total, unanswered, id))
         }
     }
 

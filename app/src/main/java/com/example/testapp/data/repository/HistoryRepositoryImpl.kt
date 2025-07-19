@@ -81,12 +81,14 @@ class HistoryRepositoryImpl @Inject constructor(
             val header = sheet.createRow(0)
             header.createCell(0).setCellValue("分数")
             header.createCell(1).setCellValue("总题数")
-            header.createCell(2).setCellValue("时间戳")
+            header.createCell(2).setCellValue("未答")
+            header.createCell(3).setCellValue("时间戳")
             history.forEachIndexed { idx, h ->
                 val row: Row = sheet.createRow(idx + 1)
                 row.createCell(0).setCellValue(h.score.toDouble())
                 row.createCell(1).setCellValue(h.total.toDouble())
-                row.createCell(2).setCellValue(h.time.toString())
+                row.createCell(2).setCellValue(h.unanswered.toDouble())
+                row.createCell(3).setCellValue(h.time.toString())
             }
             file.outputStream().use { workbook.write(it) }
             workbook.close()
@@ -104,11 +106,13 @@ class HistoryRepositoryImpl @Inject constructor(
             for (row in sheet.drop(1)) {
                 val scoreStr = row.getCell(0)?.let { formatter.formatCellValue(it) } ?: ""
                 val totalStr = row.getCell(1)?.let { formatter.formatCellValue(it) } ?: ""
-                val timeStr = row.getCell(2)?.let { formatter.formatCellValue(it) } ?: ""
+                val unansweredStr = row.getCell(2)?.let { formatter.formatCellValue(it) } ?: ""
+                val timeStr = row.getCell(3)?.let { formatter.formatCellValue(it) } ?: ""
                 val score = scoreStr.toIntOrNull() ?: continue
                 val total = totalStr.toIntOrNull() ?: continue
+                val unanswered = unansweredStr.toIntOrNull() ?: 0
                 val time = try { LocalDateTime.parse(timeStr) } catch (_: Exception) { LocalDateTime.now() }
-                records.add(HistoryRecord(score = score, total = total, time = time))
+                records.add(HistoryRecord(score = score, total = total, unanswered = unanswered, time = time))
             }
         }
         return records

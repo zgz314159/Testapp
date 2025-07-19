@@ -44,7 +44,7 @@ fun ExamScreen(
     settingsViewModel: SettingsViewModel = hiltViewModel(),
     aiViewModel: DeepSeekViewModel = hiltViewModel(),
     sparkViewModel: SparkViewModel = hiltViewModel(),
-    onExamEnd: (score: Int, total: Int) -> Unit = { _, _ -> },
+    onExamEnd: (score: Int, total: Int, unanswered: Int) -> Unit = { _, _, _ -> },
     onExitWithoutAnswer: () -> Unit = {},
     onViewDeepSeek: (String, Int, Int) -> Unit = { _, _, _ -> },
     onViewSpark: (String, Int, Int) -> Unit = { _, _, _ -> }
@@ -193,8 +193,9 @@ fun ExamScreen(
             hasUnanswered -> showExitDialog = true
             else -> {
                 coroutineScope.launch {
+                    val unanswered = selectedOptions.count { it.isEmpty() }
                     val score = viewModel.gradeExam()
-                    onExamEnd(score, questions.size)
+                    onExamEnd(score, questions.size, unanswered)
                 }
             }
         }
@@ -233,8 +234,9 @@ fun ExamScreen(
                                 selectedOptions.any { it.isEmpty() } -> showExitDialog = true
                                 else -> {
                                     coroutineScope.launch {
+                                        val unanswered = selectedOptions.count { it.isEmpty() }
                                         val score = viewModel.gradeExam()
-                                        onExamEnd(score, questions.size)
+                                        onExamEnd(score, questions.size, unanswered)
                                     }
                                 }
                             }
@@ -249,8 +251,9 @@ fun ExamScreen(
                                     selectedOptions.any { it.isEmpty() } -> showExitDialog = true
                                     else -> {
                                         coroutineScope.launch {
+                                            val unanswered = selectedOptions.count { it.isEmpty() }
                                             val score = viewModel.gradeExam()
-                                            onExamEnd(score, questions.size)
+                                            onExamEnd(score, questions.size, unanswered)
                                         }
                                     }
                                 }
@@ -483,8 +486,9 @@ fun ExamScreen(
                                         selectedOptions.any { it.isEmpty() } -> showExitDialog = true
                                         else -> {
                                             coroutineScope.launch {
+                                                val unanswered = selectedOptions.count { it.isEmpty() }
                                                 val score = viewModel.gradeExam()
-                                                onExamEnd(score, questions.size)
+                                                onExamEnd(score, questions.size, unanswered)
                                             }
                                         }
                                     }
@@ -768,8 +772,9 @@ fun ExamScreen(
             confirmButton = {
                 TextButton(onClick = {
                     coroutineScope.launch {
+                        val unanswered = selectedOptions.count { it.isEmpty() }
                         val score = viewModel.gradeExam()
-                        onExamEnd(score, questions.size)
+                        onExamEnd(score, questions.size, unanswered)
                     }
                 }) { Text("确定") }
             },

@@ -50,7 +50,7 @@ fun PracticeScreen(
     settingsViewModel: SettingsViewModel = hiltViewModel(),
     aiViewModel: DeepSeekViewModel = hiltViewModel(),
     sparkViewModel: SparkViewModel = hiltViewModel(),
-    onQuizEnd: (score: Int, total: Int) -> Unit = { _, _ -> },
+    onQuizEnd: (score: Int, total: Int, unanswered: Int) -> Unit = { _, _, _ -> },
     onSubmit: (Boolean) -> Unit = {},
     onExitWithoutAnswer: () -> Unit = {},
     onViewDeepSeek: (String, Int, Int) -> Unit = { _, _, _ -> },
@@ -202,8 +202,9 @@ fun PracticeScreen(
             }
             answeredList.size >= questions.size -> {
                 autoJob?.cancel()
-                viewModel.addHistoryRecord(score, questions.size)
-                onQuizEnd(score, questions.size)
+                val unanswered = questions.size - answeredList.size
+                viewModel.addHistoryRecord(score, questions.size, unanswered)
+                onQuizEnd(score, questions.size, unanswered)
             }
             else -> showExitDialog = true
         }
@@ -244,8 +245,9 @@ fun PracticeScreen(
                                     }
                                     answeredList.size >= questions.size -> {
                                         autoJob?.cancel()
-                                        viewModel.addHistoryRecord(score, questions.size)
-                                        onQuizEnd(score, questions.size)
+                                        val unanswered = questions.size - answeredList.size
+                                        viewModel.addHistoryRecord(score, questions.size, unanswered)
+                                        onQuizEnd(score, questions.size, unanswered)
                                     }
                                     else -> showExitDialog = true
                                 }
@@ -492,8 +494,9 @@ fun PracticeScreen(
                                 if (currentIndex < questions.size - 1) viewModel.nextQuestion()
                                 else if (answeredList.isEmpty()) onExitWithoutAnswer()
                                 else if (answeredList.size >= questions.size) {
-                                    viewModel.addHistoryRecord(score, questions.size)
-                                    onQuizEnd(score, questions.size)
+                                    val unanswered = questions.size - answeredList.size
+                                    viewModel.addHistoryRecord(score, questions.size, unanswered)
+                                    onQuizEnd(score, questions.size, unanswered)
                                 }
                                 else showExitDialog = true
                             }
@@ -725,7 +728,10 @@ fun PracticeScreen(
                             if (d > 0) kotlinx.coroutines.delay(d * 1000L)
                             if (currentIndex < questions.size - 1) viewModel.nextQuestion()
                             else if (answeredList.isEmpty()) onExitWithoutAnswer()
-                            else if (answeredList.size >= questions.size) onQuizEnd(score, questions.size)
+                            else if (answeredList.size >= questions.size) {
+                                val unanswered = questions.size - answeredList.size
+                                onQuizEnd(score, questions.size, unanswered)
+                            }
                             else showExitDialog = true
                         }
                     },
@@ -801,8 +807,9 @@ fun PracticeScreen(
                 TextButton(onClick = {
                     autoJob?.cancel()
                     showExitDialog = false
-                    viewModel.addHistoryRecord(score, questions.size)
-                    onQuizEnd(score, questions.size)
+                    val unanswered = questions.size - answeredList.size
+                    viewModel.addHistoryRecord(score, questions.size, unanswered)
+                    onQuizEnd(score, questions.size, unanswered)
                 }) { Text("确定") }
             },
             dismissButton = {

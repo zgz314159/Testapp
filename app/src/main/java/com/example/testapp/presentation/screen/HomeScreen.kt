@@ -7,6 +7,7 @@ import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.outlined.Folder
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -205,7 +206,17 @@ fun HomeScreen(
                                     }
                                     .background(MaterialTheme.colorScheme.primaryContainer, RoundedCornerShape(8.dp))
                                     .padding(horizontal = 8.dp, vertical = 4.dp)
-                            ) { Text(folder, fontSize = LocalFontSize.current, fontFamily = LocalFontFamily.current) }
+                            ) {
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Icon(
+                                        Icons.Outlined.Folder,
+                                        contentDescription = "文件夹",
+                                        modifier = Modifier.size(18.dp)
+                                    )
+                                    Spacer(Modifier.width(4.dp))
+                                    Text(folder, fontSize = LocalFontSize.current, fontFamily = LocalFontFamily.current)
+                                }
+                            }
                         }
                     }
                 }
@@ -259,9 +270,9 @@ fun HomeScreen(
                                                     draggingFile = name
                                                     dragPosition = itemCoords?.localToRoot(offset) ?: Offset.Zero
                                                 },
-                                                onDrag = { change, dragAmount ->
+                                                onDrag = { change, _ ->
                                                     change.consume()
-                                                    dragPosition += dragAmount
+                                                    dragPosition = itemCoords?.localToRoot(change.position) ?: dragPosition
                                                 },
                                                 onDragEnd = {
                                                     val target = folderBounds.entries.find { it.value.contains(dragPosition) }?.key
