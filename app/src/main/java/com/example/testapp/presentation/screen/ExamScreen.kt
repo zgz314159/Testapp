@@ -154,6 +154,7 @@ fun ExamScreen(
     var showDeleteDialog by remember { mutableStateOf(false) }
     var showDeleteNoteDialog by remember { mutableStateOf(false) }
     var menuExpanded by remember { mutableStateOf(false) }
+    var aiMenuExpanded by remember { mutableStateOf(false) }
     var expandedSection by remember(currentIndex) { mutableStateOf(-1) }
     val explanationScroll = rememberScrollState()
     val noteScroll = rememberScrollState()
@@ -299,39 +300,38 @@ fun ExamScreen(
                     contentDescription = if (isFavorite) "取消收藏" else "收藏"
                 )
             }
-            IconButton(onClick = {
-                if (!showResult) {
-                    answeredThisSession = true
-                    viewModel.updateShowResult(currentIndex, true)
-                }
-                if (hasDeepSeekAnalysis) {
-                    onViewDeepSeek(analysisText ?: "", question.id, currentIndex)
-                } else {
-                    aiViewModel.analyze(currentIndex, question)
-                }
-            }) {
+            IconButton(onClick = { aiMenuExpanded = true }) {
                 Icon(
                     imageVector = Icons.Filled.AutoAwesome,
                     contentDescription = "AI 解析",
-                    tint = if (hasDeepSeekAnalysis) MaterialTheme.colorScheme.primary else LocalContentColor.current
+                    tint = if (hasDeepSeekAnalysis || hasSparkAnalysis) MaterialTheme.colorScheme.primary else LocalContentColor.current
                 )
             }
-            IconButton(onClick = {
-                if (!showResult) {
-                    answeredThisSession = true
-                    viewModel.updateShowResult(currentIndex, true)
-                }
-                if (hasSparkAnalysis) {
-                    onViewSpark(sparkText ?: "", question.id, currentIndex)
-                } else {
-                    sparkViewModel.analyze(currentIndex, question)
-                }
-            }) {
-                Icon(
-                    imageVector = Icons.Filled.SmartToy,
-                    contentDescription = "Spark AI",
-                    tint = if (hasSparkAnalysis) MaterialTheme.colorScheme.primary else LocalContentColor.current
-                )
+            DropdownMenu(expanded = aiMenuExpanded, onDismissRequest = { aiMenuExpanded = false }) {
+                DropdownMenuItem(text = { Text("DeepSeek AI") }, onClick = {
+                    aiMenuExpanded = false
+                    if (!showResult) {
+                        answeredThisSession = true
+                        viewModel.updateShowResult(currentIndex, true)
+                    }
+                    if (hasDeepSeekAnalysis) {
+                        onViewDeepSeek(analysisText ?: "", question.id, currentIndex)
+                    } else {
+                        aiViewModel.analyze(currentIndex, question)
+                    }
+                })
+                DropdownMenuItem(text = { Text("Spark AI") }, onClick = {
+                    aiMenuExpanded = false
+                    if (!showResult) {
+                        answeredThisSession = true
+                        viewModel.updateShowResult(currentIndex, true)
+                    }
+                    if (hasSparkAnalysis) {
+                        onViewSpark(sparkText ?: "", question.id, currentIndex)
+                    } else {
+                        sparkViewModel.analyze(currentIndex, question)
+                    }
+                })
             }
             IconButton(onClick = {
                 coroutineScope.launch {

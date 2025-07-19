@@ -139,6 +139,7 @@ fun PracticeScreen(
     var showNoteDialog by remember { mutableStateOf(false) }
     var noteText by remember { mutableStateOf("") }
     var menuExpanded by remember { mutableStateOf(false) }
+    var aiMenuExpanded by remember { mutableStateOf(false) }
     var score by remember { mutableStateOf(0) }
     val storedPracticeFontSize by FontSettingsDataStore
         .getPracticeFontSize(context, Float.NaN)
@@ -279,43 +280,42 @@ fun PracticeScreen(
                     contentDescription = if (isFavorite) "取消收藏" else "收藏"
                 )
             }
-            IconButton(onClick = {
-                if (question != null) {
-                    if (!showResult) {
-                        answeredThisSession = true
-                        viewModel.updateShowResult(currentIndex, true)
-                    }
-                    if (hasDeepSeekAnalysis) {
-                        onViewDeepSeek(analysisText ?: "", question.id, currentIndex)
-                    } else {
-                        aiViewModel.analyze(currentIndex, question)
-                    }
-                }
-            }) {
+            IconButton(onClick = { aiMenuExpanded = true }) {
                 Icon(
                     imageVector = Icons.Filled.AutoAwesome,
                     contentDescription = "AI 解析",
-                    tint = if (hasDeepSeekAnalysis) MaterialTheme.colorScheme.primary else LocalContentColor.current
+                    tint = if (hasDeepSeekAnalysis || hasSparkAnalysis) MaterialTheme.colorScheme.primary else LocalContentColor.current
                 )
             }
-            IconButton(onClick = {
-                if (question != null) {
-                    if (!showResult) {
-                        answeredThisSession = true
-                        viewModel.updateShowResult(currentIndex, true)
+            DropdownMenu(expanded = aiMenuExpanded, onDismissRequest = { aiMenuExpanded = false }) {
+                DropdownMenuItem(text = { Text("DeepSeek AI") }, onClick = {
+                    aiMenuExpanded = false
+                    if (question != null) {
+                        if (!showResult) {
+                            answeredThisSession = true
+                            viewModel.updateShowResult(currentIndex, true)
+                        }
+                        if (hasDeepSeekAnalysis) {
+                            onViewDeepSeek(analysisText ?: "", question.id, currentIndex)
+                        } else {
+                            aiViewModel.analyze(currentIndex, question)
+                        }
                     }
-                    if (hasSparkAnalysis) {
-                        onViewSpark(sparkText ?: "", question.id, currentIndex)
-                    } else {
-                        sparkViewModel.analyze(currentIndex, question)
+                })
+                DropdownMenuItem(text = { Text("Spark AI") }, onClick = {
+                    aiMenuExpanded = false
+                    if (question != null) {
+                        if (!showResult) {
+                            answeredThisSession = true
+                            viewModel.updateShowResult(currentIndex, true)
+                        }
+                        if (hasSparkAnalysis) {
+                            onViewSpark(sparkText ?: "", question.id, currentIndex)
+                        } else {
+                            sparkViewModel.analyze(currentIndex, question)
+                        }
                     }
-                }
-            }) {
-                Icon(
-                    imageVector = Icons.Filled.SmartToy,
-                    contentDescription = "Spark AI",
-                    tint = if (hasSparkAnalysis) MaterialTheme.colorScheme.primary else LocalContentColor.current
-                )
+                })
             }
             IconButton(onClick = {
                 coroutineScope.launch {

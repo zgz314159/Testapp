@@ -120,6 +120,7 @@ fun HomeScreen(
     val favoriteCounts = remember(favoriteQuestions) {
         favoriteQuestions.groupBy { it.question.fileName ?: "" }.mapValues { it.value.size }
     }
+    val practiceProgress by viewModel.practiceProgress.collectAsState()
     val displayFileNames = remember(fileNames, folders, currentFolder) {
         fileNames.filter { name ->
             val folder = folders[name]
@@ -505,6 +506,11 @@ fun HomeScreen(
                                                 value = "${favoriteCounts[name] ?: 0}",
                                                 valueColor = Color.Cyan
                                             )
+                                            FileStatBlock(
+                                                label = "进度数",
+                                                value = "${practiceProgress[name] ?: 0}",
+                                                valueColor = MaterialTheme.colorScheme.tertiary
+                                            )
                                         }
                                     }
                                 }
@@ -576,6 +582,11 @@ fun HomeScreen(
                                 label = "收藏数",
                                 value = "${favoriteCounts[file] ?: 0}",
                                 valueColor = Color.Cyan
+                            )
+                            FileStatBlock(
+                                label = "进度数",
+                                value = "${practiceProgress[file] ?: 0}",
+                                valueColor = MaterialTheme.colorScheme.tertiary
                             )
                         }
                     }
