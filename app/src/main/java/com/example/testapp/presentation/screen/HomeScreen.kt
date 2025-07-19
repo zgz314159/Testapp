@@ -53,7 +53,6 @@ fun HomeScreen(
         .getLastSelectedFile(context)
         .collectAsState(initial = "")
     val selectedFileName = remember { mutableStateOf("") }
-    val selectionInitialized = remember { mutableStateOf(false) }
     val isLoading by settingsViewModel.isLoading.collectAsState()
     val importProgress by settingsViewModel.progress.collectAsState()
     val questionCounts = remember(questions) {
@@ -61,17 +60,12 @@ fun HomeScreen(
     }
     LaunchedEffect(storedFileName, fileNames) {
         val fromPrefs = storedFileName
-        when {
-            !selectionInitialized.value && fromPrefs.isNotBlank() && fromPrefs in fileNames -> {
-                selectedFileName.value = fromPrefs
-                selectionInitialized.value = true
-            }
-            !selectionInitialized.value && fileNames.isNotEmpty() -> {
+        if (fromPrefs.isNotBlank() && fromPrefs in fileNames) {
+            selectedFileName.value = fromPrefs
+        } else if (fileNames.isNotEmpty()) {
+            if (selectedFileName.value.isBlank() || selectedFileName.value !in fileNames) {
                 selectedFileName.value = fileNames.first()
-                selectionInitialized.value = true
-            }
-            fileNames.isNotEmpty() && selectedFileName.value !in fileNames -> {
-                selectedFileName.value = if (fromPrefs.isNotBlank() && fromPrefs in fileNames) fromPrefs else fileNames.first()
+               
             }
         }
     }

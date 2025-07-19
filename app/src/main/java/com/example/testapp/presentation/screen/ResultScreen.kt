@@ -4,7 +4,9 @@ import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.collectAsState
@@ -63,6 +65,7 @@ fun ResultScreen(
     val accuracyText = String.format("%.2f", accuracyRate * 100)
     val formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")
 
+    val scrollState = rememberScrollState()
     val (modeText, fileName) = when {
         quizId.startsWith("exam_") -> "考试" to quizId.removePrefix("exam_")
         quizId.startsWith("practice_") -> "练习" to quizId.removePrefix("practice_")
@@ -113,6 +116,7 @@ fun ResultScreen(
         Column(
             modifier = Modifier
                 .fillMaxSize()
+                .verticalScroll(scrollState)
                 .padding(innerPadding)
                 .padding(horizontal = 18.dp, vertical = 14.dp),
             horizontalAlignment = Alignment.CenterHorizontally
@@ -183,69 +187,6 @@ fun ResultScreen(
                 }
             }
 
-            // 历史趋势线和记录
-            val accuracyList = historyList.map { it.score.toFloat() / it.total }
-            if (accuracyList.isNotEmpty()) {
-                // 小标题
-                Text(
-                    "历史成绩走势",
-                    style = MaterialTheme.typography.titleMedium.copy(
-                        fontSize = LocalFontSize.current * 0.98f,
-                        fontFamily = LocalFontFamily.current
-                    ),
-                    color = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier
-                        .align(Alignment.Start)
-                        .padding(bottom = 6.dp)
-                )
-                // 折线趋势
-                // 在 Canvas 外部获取主题色
-                val primary = MaterialTheme.colorScheme.primary
-                val secondary = MaterialTheme.colorScheme.secondary
-
-                Canvas(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(100.dp)
-                ) {
-                    val step = if (accuracyList.size > 1) size.width / (accuracyList.size - 1) else 0f
-                    val points = accuracyList.mapIndexed { idx, v ->
-                        Offset(idx * step, size.height - v.coerceIn(0f, 1f) * size.height)
-                    }
-                    drawLine(Color.DarkGray, Offset(0f, size.height), Offset(size.width, size.height), strokeWidth = 2f)
-                    drawLine(Color.DarkGray, Offset(0f, size.height), Offset(0f, 0f), strokeWidth = 2f)
-                    for (i in 0 until points.size - 1) {
-                        drawLine(primary, points[i], points[i + 1], strokeWidth = 4f)
-                    }
-                    points.forEach { drawCircle(secondary, 6f, it) }
-                }
-
-                Spacer(modifier = Modifier.height(8.dp))
-
-                // 历史记录列表（适配内容高，带分割线）
-                LazyColumn(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .heightIn(max = 200.dp)
-                ) {
-                    items(historyList) { h ->
-                        val idx = historyList.indexOf(h)
-                        val wrong = h.total - h.score
-                        val rate = if (h.total > 0) h.score * 100f / h.total else 0f
-                        Column(Modifier.padding(vertical = 3.dp)) {
-                            Text(
-                                text = "${idx + 1}. 正确:${h.score} 错误:${wrong} 正确率:${"%.2f".format(rate)}% 时间:${h.time.format(formatter)}",
-                                style = MaterialTheme.typography.bodyMedium.copy(
-                                    fontSize = LocalFontSize.current * 0.98f,
-                                    fontFamily = LocalFontFamily.current
-                                ),
-                                color = MaterialTheme.colorScheme.onSurface
-                            )
-                            Divider(Modifier.padding(vertical = 2.dp))
-                        }
-                    }
-                }
-            }
 
             // ===== 整个题库的答题情况 =====
             val allHistoryList by viewModel.allHistory.collectAsState()
@@ -375,6 +316,69 @@ fun ResultScreen(
                                 )
                                 Divider(Modifier.padding(vertical = 2.dp))
                             }
+                        }
+                    }
+                }
+            }
+            // 历史趋势线和记录
+            val accuracyList = historyList.map { it.score.toFloat() / it.total }
+            if (accuracyList.isNotEmpty()) {
+                // 小标题
+                Text(
+                    "历史成绩走势",
+                    style = MaterialTheme.typography.titleMedium.copy(
+                        fontSize = LocalFontSize.current * 0.98f,
+                        fontFamily = LocalFontFamily.current
+                    ),
+                    color = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier
+                        .align(Alignment.Start)
+                        .padding(bottom = 6.dp)
+                )
+                // 折线趋势
+                // 在 Canvas 外部获取主题色
+                val primary = MaterialTheme.colorScheme.primary
+                val secondary = MaterialTheme.colorScheme.secondary
+
+                Canvas(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(100.dp)
+                ) {
+                    val step = if (accuracyList.size > 1) size.width / (accuracyList.size - 1) else 0f
+                    val points = accuracyList.mapIndexed { idx, v ->
+                        Offset(idx * step, size.height - v.coerceIn(0f, 1f) * size.height)
+                    }
+                    drawLine(Color.DarkGray, Offset(0f, size.height), Offset(size.width, size.height), strokeWidth = 2f)
+                    drawLine(Color.DarkGray, Offset(0f, size.height), Offset(0f, 0f), strokeWidth = 2f)
+                    for (i in 0 until points.size - 1) {
+                        drawLine(primary, points[i], points[i + 1], strokeWidth = 4f)
+                    }
+                    points.forEach { drawCircle(secondary, 6f, it) }
+                }
+
+                Spacer(modifier = Modifier.height(8.dp))
+
+                // 历史记录列表（适配内容高，带分割线）
+                LazyColumn(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .heightIn(max = 200.dp)
+                ) {
+                    items(historyList) { h ->
+                        val idx = historyList.indexOf(h)
+                        val wrong = h.total - h.score
+                        val rate = if (h.total > 0) h.score * 100f / h.total else 0f
+                        Column(Modifier.padding(vertical = 3.dp)) {
+                            Text(
+                                text = "${idx + 1}. 正确:${h.score} 错误:${wrong} 正确率:${"%.2f".format(rate)}% 时间:${h.time.format(formatter)}",
+                                style = MaterialTheme.typography.bodyMedium.copy(
+                                    fontSize = LocalFontSize.current * 0.98f,
+                                    fontFamily = LocalFontFamily.current
+                                ),
+                                color = MaterialTheme.colorScheme.onSurface
+                            )
+                            Divider(Modifier.padding(vertical = 2.dp))
                         }
                     }
                 }
