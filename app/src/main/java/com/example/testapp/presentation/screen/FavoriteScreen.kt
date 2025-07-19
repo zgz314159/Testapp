@@ -38,6 +38,8 @@ import androidx.compose.ui.layout.boundsInRoot
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.ui.layout.LayoutCoordinates
 import androidx.compose.ui.unit.IntOffset
+import androidx.compose.ui.unit.IntSize
+import androidx.compose.ui.platform.LocalDensity
 import kotlin.math.roundToInt
 
 @OptIn(ExperimentalMaterialApi::class)
@@ -57,6 +59,7 @@ fun FavoriteScreen(
     val folderBounds = remember { mutableStateMapOf<String, Rect>() }
     var dragPosition by remember { mutableStateOf(Offset.Zero) }
     var draggingFile by remember { mutableStateOf<String?>(null) }
+    var dragItemSize by remember { mutableStateOf(IntSize.Zero) }
     val filteredFavorites = if (fileName.isNullOrEmpty()) favorites.value else favorites.value.filter { it.question.fileName == fileName }
     Column(
         modifier = Modifier
@@ -146,6 +149,7 @@ fun FavoriteScreen(
                                             detectDragGesturesAfterLongPress(
                                                 onDragStart = { offset ->
                                                     draggingFile = name
+                                                    dragItemSize = itemCoords?.size ?: IntSize.Zero
                                                     dragPosition = itemCoords?.localToRoot(offset) ?: Offset.Zero
                                                 },
                                                 onDrag = { change, _ ->
@@ -236,13 +240,34 @@ fun FavoriteScreen(
             }
         }
         draggingFile?.let { file ->
-            Text(
-                file,
+            val widthDp = with(LocalDensity.current) { dragItemSize.width.toDp() }
+            val heightDp = with(LocalDensity.current) { dragItemSize.height.toDp() }
+            val displayName = folders.value[file]?.let { "$it/$file" } ?: file
+            Card(
                 modifier = Modifier
                     .offset { IntOffset(dragPosition.x.roundToInt(), dragPosition.y.roundToInt()) }
-                    .background(MaterialTheme.colorScheme.primaryContainer, RoundedCornerShape(8.dp))
-                    .padding(horizontal = 8.dp, vertical = 4.dp)
-            )
+                    .width(widthDp)
+                    .height(heightDp),
+                shape = RoundedCornerShape(16.dp),
+                elevation = CardDefaults.cardElevation(defaultElevation = 6.dp)
+            ) {
+                Row(
+                    Modifier
+                        .fillMaxSize()
+                        .padding(horizontal = 16.dp, vertical = 16.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        buildAnnotatedString {
+                            append("$displayName ")
+                            withStyle(SpanStyle(color = Color.Blue)) { append("(${favorites.value.count { it.question.fileName == file }})") }
+                        },
+                        modifier = Modifier.weight(1f),
+                        fontSize = LocalFontSize.current,
+                        fontFamily = LocalFontFamily.current
+                    )
+                }
+            }
         }
 
         if (showAddFolderDialog) {
