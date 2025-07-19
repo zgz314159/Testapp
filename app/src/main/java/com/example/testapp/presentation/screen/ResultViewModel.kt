@@ -6,6 +6,8 @@ import com.example.testapp.domain.model.HistoryRecord
 import com.example.testapp.domain.usecase.GetHistoryListByFileUseCase
 import com.example.testapp.domain.usecase.GetHistoryListByFileNamesUseCase
 import com.example.testapp.domain.usecase.GetHistoryListUseCase
+import com.example.testapp.domain.usecase.GetWrongBookUseCase
+import com.example.testapp.domain.model.WrongQuestion
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -17,7 +19,8 @@ import javax.inject.Inject
 class ResultViewModel @Inject constructor(
     private val getHistoryListByFileUseCase: GetHistoryListByFileUseCase,
     private val getHistoryListByFileNamesUseCase: GetHistoryListByFileNamesUseCase,
-    private val getHistoryListUseCase: GetHistoryListUseCase
+    private val getHistoryListUseCase: GetHistoryListUseCase,
+    private val getWrongBookUseCase: GetWrongBookUseCase
 ) : ViewModel() {
     private val _history = MutableStateFlow<List<HistoryRecord>>(emptyList())
     val history: StateFlow<List<HistoryRecord>> = _history.asStateFlow()
@@ -25,6 +28,8 @@ class ResultViewModel @Inject constructor(
     private val _allHistory = MutableStateFlow<List<HistoryRecord>>(emptyList())
     val allHistory: StateFlow<List<HistoryRecord>> = _allHistory.asStateFlow()
 
+    private val _wrongBook = MutableStateFlow<List<WrongQuestion>>(emptyList())
+    val wrongBook: StateFlow<List<WrongQuestion>> = _wrongBook.asStateFlow()
 
     fun load(fileName: String) {
         viewModelScope.launch {
@@ -40,6 +45,9 @@ class ResultViewModel @Inject constructor(
         }
         viewModelScope.launch {
             getHistoryListUseCase().collect { _allHistory.value = it }
+        }
+        viewModelScope.launch {
+            getWrongBookUseCase().collect { _wrongBook.value = it }
         }
     }
 }

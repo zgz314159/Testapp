@@ -26,6 +26,8 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.example.testapp.presentation.component.LocalFontFamily
@@ -37,6 +39,11 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import com.example.testapp.data.datastore.FontSettingsDataStore
 import com.example.testapp.presentation.screen.FileFolderViewModel
+import androidx.compose.foundation.gestures.detectDragGesturesAfterLongPress
+import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.layout.boundsInRoot
+import androidx.compose.ui.layout.LayoutCoordinates
+
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterialApi::class)
 @Composable
@@ -55,6 +62,7 @@ fun HomeScreen(
     val questions by viewModel.questions.collectAsState()
     val fileNames by viewModel.fileNames.collectAsState()
     val folders by folderViewModel.folders.collectAsState()
+    val folderNames by folderViewModel.folderNames.collectAsState()
     val context = LocalContext.current
     val storedFileName by FontSettingsDataStore
         .getLastSelectedFile(context)
@@ -100,6 +108,11 @@ fun HomeScreen(
     var showMoveDialog by remember { mutableStateOf(false) }
     var moveTargetFile by remember { mutableStateOf("") }
     var moveFolder by remember { mutableStateOf("") }
+    var showAddFolderDialog by remember { mutableStateOf(false) }
+    var newFolderName by remember { mutableStateOf("") }
+    val folderBounds = remember { mutableMapOf<String, Rect>() }
+    var dragPosition by remember { mutableStateOf(Offset.Zero) }
+    var draggingFile by remember { mutableStateOf<String?>(null) }
     Scaffold(
         topBar = {
             TopAppBar(
@@ -174,12 +187,29 @@ fun HomeScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(innerPadding)
+                .pointerInput(Unit) { detectTapGestures(onLongPress = { showAddFolderDialog = true }) }
         ) {
             Column(
                 modifier = Modifier
                     .fillMaxSize(),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
+                if (folderNames.isNotEmpty()) {
+                    Row(modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp)) {
+                        folderNames.forEach { folder ->
+                            Box(
+                                modifier = Modifier
+                                    .padding(end = 8.dp)
+                                    .onGloballyPositioned { coords ->
+                                        folderBounds[folder] = coords.boundsInRoot()
+                                    }
+                                    .background(MaterialTheme.colorScheme.primaryContainer, RoundedCornerShape(8.dp))
+                                    .padding(horizontal = 8.dp, vertical = 4.dp)
+                            ) { Text(folder, fontSize = LocalFontSize.current, fontFamily = LocalFontFamily.current) }
+                        }
+                    }
+                }
+
                 // ========== 文件列表 ==========
                 LazyColumn(
                     modifier = Modifier
@@ -217,11 +247,33 @@ fun HomeScreen(
                                 }
                             },
                             dismissContent = {
+                                var itemCoords by remember { mutableStateOf<LayoutCoordinates?>(null) }
                                 Card(
                                     modifier = Modifier
                                         .fillMaxWidth()
                                         .padding(horizontal = 16.dp, vertical = 6.dp)
+                                        .onGloballyPositioned { itemCoords = it }
                                         .pointerInput(name) {
+                                            detectDragGesturesAfterLongPress(
+                                                onDragStart = { offset ->
+                                                    draggingFile = name
+                                                    dragPosition = itemCoords?.localToRoot(offset) ?: Offset.Zero
+                                                },
+                                                onDrag = { change, dragAmount ->
+                                                    change.consume()
+                                                    dragPosition += dragAmount
+                                                },
+                                                onDragEnd = {
+                                                    val target = folderBounds.entries.find { it.value.contains(dragPosition) }?.key
+                                                    if (target != null) {
+                                                        folderViewModel.moveFile(name, target)
+                                                    }
+                                                    draggingFile = null
+                                                },
+                                                onDragCancel = { draggingFile = null }
+                                            )
+                                        }
+                                        .pointerInput(Unit) {
                                             detectTapGestures(
                                                 onTap = {
                                                     if (bottomNavIndex == 3) {
@@ -400,6 +452,28 @@ fun HomeScreen(
                                 label = { Text("文件夹名") }
                             )
                         }
+                    }
+                )
+            }
+            if (showAddFolderDialog) {
+                AlertDialog(
+                    onDismissRequest = { showAddFolderDialog = false },
+                    confirmButton = {
+                        TextButton(onClick = {
+                            folderViewModel.addFolder(newFolderName)
+                            newFolderName = ""
+                            showAddFolderDialog = false
+                        }) { Text("确定") }
+                    },
+                    dismissButton = {
+                        TextButton(onClick = { showAddFolderDialog = false }) { Text("取消") }
+                    },
+                    text = {
+                        OutlinedTextField(
+                            value = newFolderName,
+                            onValueChange = { newFolderName = it },
+                            label = { Text("文件夹名") }
+                        )
                     }
                 )
             }

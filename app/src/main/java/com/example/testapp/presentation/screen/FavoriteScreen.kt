@@ -18,6 +18,8 @@ import androidx.compose.material.ExperimentalMaterialApi
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
@@ -28,6 +30,14 @@ import androidx.navigation.NavController
 import com.example.testapp.presentation.component.LocalFontFamily
 import com.example.testapp.presentation.component.LocalFontSize
 import com.example.testapp.presentation.screen.FileFolderViewModel
+import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.gestures.detectDragGestures
+import androidx.compose.foundation.gestures.detectDragGesturesAfterLongPress
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.layout.boundsInRoot
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.layout.LayoutCoordinates
 
 @OptIn(ExperimentalMaterialApi::class)
 @Composable
@@ -40,11 +50,22 @@ fun FavoriteScreen(
     val favorites = viewModel.favoriteQuestions.collectAsState()
     val fileNames = viewModel.fileNames.collectAsState()
     val folders = folderViewModel.folders.collectAsState()
+    val folderNames = folderViewModel.folderNames.collectAsState()
     var showMoveDialog by remember { mutableStateOf(false) }
     var moveTargetFile by remember { mutableStateOf("") }
     var moveFolder by remember { mutableStateOf("") }
+    var showAddFolderDialog by remember { mutableStateOf(false) }
+    var newFolderName by remember { mutableStateOf("") }
+    val folderBounds = remember { mutableMapOf<String, Rect>() }
+    var dragPosition by remember { mutableStateOf(Offset.Zero) }
+    var draggingFile by remember { mutableStateOf<String?>(null) }
     val filteredFavorites = if (fileName.isNullOrEmpty()) favorites.value else favorites.value.filter { it.question.fileName == fileName }
-    Column(modifier = Modifier.fillMaxSize().padding(16.dp)) {
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(16.dp)
+            .pointerInput(Unit) { detectTapGestures(onLongPress = { showAddFolderDialog = true }) }
+    ) {
         Text(
             "收藏夹",
             style = MaterialTheme.typography.titleLarge.copy(
@@ -53,6 +74,22 @@ fun FavoriteScreen(
             )
         )
         Spacer(modifier = Modifier.height(16.dp))
+        if (folderNames.value.isNotEmpty()) {
+            Row(modifier = Modifier.fillMaxWidth()) {
+                folderNames.value.forEach { folder ->
+                    Box(
+                        modifier = Modifier
+                            .padding(end = 8.dp)
+                            .onGloballyPositioned { coords ->
+                                folderBounds[folder] = coords.boundsInRoot()
+                            }
+                            .background(MaterialTheme.colorScheme.primaryContainer, RoundedCornerShape(8.dp))
+                            .padding(horizontal = 8.dp, vertical = 4.dp)
+                    ) { Text(folder, fontSize = LocalFontSize.current, fontFamily = LocalFontFamily.current) }
+                }
+            }
+            Spacer(modifier = Modifier.height(16.dp))
+        }
         if (fileName.isNullOrEmpty()) {
             if (fileNames.value.isEmpty()) {
                 Text(
@@ -90,10 +127,32 @@ fun FavoriteScreen(
                                 }
                             },
                             dismissContent = {
+                                var itemCoords by remember { mutableStateOf<LayoutCoordinates?>(null) }
                                 Row(
                                     verticalAlignment = Alignment.CenterVertically,
                                     modifier = Modifier
                                         .fillMaxWidth()
+                                        .onGloballyPositioned { itemCoords = it }
+                                        .pointerInput(name) {
+                                            detectDragGesturesAfterLongPress(
+                                                onDragStart = { offset ->
+                                                    draggingFile = name
+                                                    dragPosition = itemCoords?.localToRoot(offset) ?: Offset.Zero
+                                                },
+                                                onDrag = { change, dragAmount ->
+                                                    change.consume()
+                                                    dragPosition += dragAmount
+                                                },
+                                                onDragEnd = {
+                                                    val target = folderBounds.entries.find { it.value.contains(dragPosition) }?.key
+                                                    if (target != null) {
+                                                        folderViewModel.moveFile(name, target)
+                                                    }
+                                                    draggingFile = null
+                                                },
+                                                onDragCancel = { draggingFile = null }
+                                            )
+                                        }
                                         .clickable {
                                             val encoded = java.net.URLEncoder.encode(name, "UTF-8")
                                             navController?.navigate("practice_favorite/$encoded")
@@ -192,6 +251,28 @@ fun FavoriteScreen(
                             label = { Text("文件夹名") }
                         )
                     }
+                }
+            )
+        }
+        if (showAddFolderDialog) {
+            AlertDialog(
+                onDismissRequest = { showAddFolderDialog = false },
+                confirmButton = {
+                    TextButton(onClick = {
+                        folderViewModel.addFolder(newFolderName)
+                        newFolderName = ""
+                        showAddFolderDialog = false
+                    }) { Text("确定") }
+                },
+                dismissButton = {
+                    TextButton(onClick = { showAddFolderDialog = false }) { Text("取消") }
+                },
+                text = {
+                    OutlinedTextField(
+                        value = newFolderName,
+                        onValueChange = { newFolderName = it },
+                        label = { Text("文件夹名") }
+                    )
                 }
             )
         }

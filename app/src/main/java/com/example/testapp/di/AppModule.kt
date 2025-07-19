@@ -57,6 +57,8 @@ import com.example.testapp.domain.usecase.GetQuestionNoteUseCase
 import com.example.testapp.domain.usecase.SaveQuestionNoteUseCase
 import com.example.testapp.domain.usecase.MoveFileToFolderUseCase
 import com.example.testapp.domain.usecase.GetFileFoldersUseCase
+import com.example.testapp.domain.usecase.GetFoldersUseCase
+import com.example.testapp.domain.usecase.AddFolderUseCase
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -182,9 +184,15 @@ object AppModule {
     fun provideFileFolderDao(db: AppDatabase): com.example.testapp.data.local.dao.FileFolderDao = db.fileFolderDao()
 
     @Provides
+    fun provideFolderDao(db: AppDatabase): com.example.testapp.data.local.dao.FolderDao = db.folderDao()
+
+    @Provides
     @Singleton
-    fun provideFileFolderRepository(dao: com.example.testapp.data.local.dao.FileFolderDao): FileFolderRepository =
-        FileFolderRepositoryImpl(dao)
+    fun provideFileFolderRepository(
+        dao: com.example.testapp.data.local.dao.FileFolderDao,
+        folderDao: com.example.testapp.data.local.dao.FolderDao
+    ): FileFolderRepository =
+        FileFolderRepositoryImpl(dao, folderDao)
 
     @Provides
     @Singleton
@@ -193,6 +201,14 @@ object AppModule {
     @Provides
     @Singleton
     fun provideGetFileFoldersUseCase(repo: FileFolderRepository): GetFileFoldersUseCase = GetFileFoldersUseCase(repo)
+
+    @Provides
+    @Singleton
+    fun provideGetFoldersUseCase(repo: FileFolderRepository): GetFoldersUseCase = GetFoldersUseCase(repo)
+
+    @Provides
+    @Singleton
+    fun provideAddFolderUseCase(repo: FileFolderRepository): AddFolderUseCase = AddFolderUseCase(repo)
 
 
     @Provides

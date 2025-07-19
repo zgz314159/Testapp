@@ -7,4 +7,6 @@ interface FileFolderRepository {
     fun getAll(): Flow<List<FileFolder>>
     suspend fun moveFile(fileName: String, folderName: String)
     suspend fun getFolderForFile(fileName: String): String?
+    fun getFolderNames(): Flow<List<String>>
+    suspend fun addFolder(name: String)
 }

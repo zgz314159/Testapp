@@ -213,6 +213,7 @@ fun ResultScreen(
 
             // ===== 整个题库的答题情况 =====
             val allHistoryList by viewModel.allHistory.collectAsState()
+            val wrongBook by viewModel.wrongBook.collectAsState()
 
             if (allHistoryList.isNotEmpty()) {
                 Spacer(modifier = Modifier.height(24.dp))
@@ -220,7 +221,7 @@ fun ResultScreen(
                 // 汇总所有历史记录中的答题数和总题数
                 val gScore = allHistoryList.sumOf { it.score }
                 val gTotal = allHistoryList.sumOf { it.total }
-                val gWrong = gTotal - gScore
+                val gWrong = wrongBook.size
                 val gRate = if (gTotal > 0) gScore.toFloat() / gTotal else 0f
                 val gRateText = String.format("%.2f", gRate * 100)
 
