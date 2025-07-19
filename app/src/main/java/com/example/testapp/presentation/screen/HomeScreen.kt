@@ -10,6 +10,7 @@ import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.SwipeToDismiss
 import androidx.compose.material.DismissDirection
@@ -21,6 +22,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material.icons.outlined.Folder
 import androidx.compose.material3.*
+import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.runtime.*
@@ -31,6 +33,7 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.LayoutCoordinates
 import androidx.compose.ui.layout.boundsInRoot
@@ -160,6 +163,10 @@ fun HomeScreen(
     var renameFolderName by remember { mutableStateOf("") }
     var folderToDelete by remember { mutableStateOf<String?>(null) }
     var showDeleteFolderDialog by remember { mutableStateOf(false) }
+    val listState = rememberLazyListState()
+
+    // TopAppBar 随滚动隐藏显示
+    val scrollBehavior = TopAppBarDefaults.enterAlwaysScrollBehavior()
     val folderBounds = remember { mutableStateMapOf<String, Rect>() }
     val dragPosition by dragViewModel.dragPosition.collectAsState()
     val draggingFile by dragViewModel.draggingFile.collectAsState()
@@ -168,39 +175,61 @@ fun HomeScreen(
     val hoverFolder by dragViewModel.hoverFolder.collectAsState()
 
     Scaffold(
+        modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
         topBar = {
             TopAppBar(
-                title = { Text("题库主页", fontSize = LocalFontSize.current, fontFamily = LocalFontFamily.current) },
+                title = { Text("主页", fontSize = LocalFontSize.current, fontFamily = LocalFontFamily.current) },
                 actions = {
                     IconButton(onClick = onSettings) {
                         Icon(Icons.Filled.Settings, contentDescription = "设置字体")
                     }
-                }
+                },
+                scrollBehavior = scrollBehavior
             )
         },
         bottomBar = {
             NavigationBar {
                 NavigationBarItem(
                     selected = bottomNavIndex == 0,
-                    onClick = { bottomNavIndex = 0 },
+                    onClick = {
+                        bottomNavIndex = 0
+                        kotlinx.coroutines.runBlocking {
+                            FontSettingsDataStore.setLastSelectedNav(context, bottomNavIndex)
+                        }
+                    },
                     icon = { Icon(Icons.Filled.Warning, "错题库") },
                     label = { Text("错题库", fontSize = LocalFontSize.current, fontFamily = LocalFontFamily.current) }
                 )
                 NavigationBarItem(
                     selected = bottomNavIndex == 1,
-                    onClick = { bottomNavIndex = 1 },
+                    onClick = {
+                        bottomNavIndex = 1
+                        kotlinx.coroutines.runBlocking {
+                            FontSettingsDataStore.setLastSelectedNav(context, bottomNavIndex)
+                        }
+                    },
                     icon = { Icon(Icons.Filled.Favorite, "收藏库") },
                     label = { Text("收藏库", fontSize = LocalFontSize.current, fontFamily = LocalFontFamily.current) }
                 )
                 NavigationBarItem(
                     selected = bottomNavIndex == 2,
-                    onClick = { bottomNavIndex = 2 },
+                    onClick = {
+                        bottomNavIndex = 2
+                        kotlinx.coroutines.runBlocking {
+                            FontSettingsDataStore.setLastSelectedNav(context, bottomNavIndex)
+                        }
+                    },
                     icon = { Icon(Icons.Filled.FactCheck, "答题记录") },
                     label = { Text("答题记录", fontSize = LocalFontSize.current, fontFamily = LocalFontFamily.current) }
                 )
                 NavigationBarItem(
                     selected = bottomNavIndex == 3,
-                    onClick = { bottomNavIndex = 3 },
+                    onClick = {
+                        bottomNavIndex = 3
+                        kotlinx.coroutines.runBlocking {
+                            FontSettingsDataStore.setLastSelectedNav(context, bottomNavIndex)
+                        }
+                    },
                     icon = { Icon(Icons.Filled.Settings, "题库主页") },
                     label = { Text("题库主页", fontSize = LocalFontSize.current, fontFamily = LocalFontFamily.current) }
                 )
@@ -315,10 +344,11 @@ fun HomeScreen(
 
                 // 文件列表
                 LazyColumn(
-                    Modifier
+                    modifier = Modifier
                         .fillMaxWidth()
                         .weight(1f)
-                        .padding(bottom = 8.dp)
+                        .padding(bottom = 8.dp),
+                    state = listState
                 ) {
                     items(displayFileNames, key = { it }) { name ->
                         val dismissState = rememberDismissState(
@@ -363,14 +393,23 @@ fun HomeScreen(
                                                 when (bottomNavIndex) {
                                                     2 -> {
                                                         selectedFileName.value = name
+                                                        kotlinx.coroutines.runBlocking {
+                                                            FontSettingsDataStore.setLastSelectedFile(context, name)
+                                                        }
                                                         onViewResult(name)
                                                     }
                                                     else -> {
                                                         if (selectedFileName.value == name) {
                                                             pendingFileName = name
+                                                            kotlinx.coroutines.runBlocking {
+                                                                FontSettingsDataStore.setLastSelectedFile(context, name)
+                                                            }
                                                             showSheet = true
                                                         } else {
                                                             selectedFileName.value = name
+                                                            kotlinx.coroutines.runBlocking {
+                                                                FontSettingsDataStore.setLastSelectedFile(context, name)
+                                                            }
                                                         }
                                                     }
                                                 }
@@ -378,6 +417,9 @@ fun HomeScreen(
                                             onLongClick = { /* 空实现 */ },
                                             onDoubleClick = {
                                                 selectedFileName.value = name
+                                                kotlinx.coroutines.runBlocking {
+                                                    FontSettingsDataStore.setLastSelectedFile(context, name)
+                                                }
                                                 onViewQuestionDetail(name)
                                             }
                                         )
@@ -554,6 +596,10 @@ fun HomeScreen(
                         Button(
                             onClick = {
                                 showSheet = false
+                                kotlinx.coroutines.runBlocking {
+                                    FontSettingsDataStore.setLastSelectedFile(context, pendingFileName)
+                                    FontSettingsDataStore.setLastSelectedNav(context, bottomNavIndex)
+                                }
                                 when (bottomNavIndex) {
                                     0 -> onStartWrongBookQuiz(pendingFileName)
                                     1 -> onStartFavoriteQuiz(pendingFileName)
@@ -568,6 +614,10 @@ fun HomeScreen(
                         Button(
                             onClick = {
                                 showSheet = false
+                                kotlinx.coroutines.runBlocking {
+                                    FontSettingsDataStore.setLastSelectedFile(context, pendingFileName)
+                                    FontSettingsDataStore.setLastSelectedNav(context, bottomNavIndex)
+                                }
                                 when (bottomNavIndex) {
                                     0 -> onStartWrongBookExam(pendingFileName)
                                     1 -> onStartFavoriteExam(pendingFileName)
