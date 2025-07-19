@@ -61,6 +61,10 @@ fun HomeScreen(
     onWrongBook: (fileName: String) -> Unit = {},
     onFavoriteBook: (fileName: String) -> Unit = {},
     onViewResult: (fileName: String) -> Unit = {},
+    onStartWrongBookQuiz: (fileName: String) -> Unit = {},
+    onStartWrongBookExam: (fileName: String) -> Unit = {},
+    onStartFavoriteQuiz: (fileName: String) -> Unit = {},
+    onStartFavoriteExam: (fileName: String) -> Unit = {},
     settingsViewModel: SettingsViewModel
 ) {
     val viewModel: HomeViewModel = hiltViewModel()
@@ -492,7 +496,11 @@ fun HomeScreen(
                         Button(
                             onClick = {
                                 showSheet = false
-                                onStartQuiz(pendingFileName)
+                                when (bottomNavIndex) {
+                                    0 -> onStartWrongBookQuiz(pendingFileName)
+                                    1 -> onStartFavoriteQuiz(pendingFileName)
+                                    else -> onStartQuiz(pendingFileName)
+                                }
                             },
                             Modifier
                                 .fillMaxWidth()
@@ -502,7 +510,11 @@ fun HomeScreen(
                         Button(
                             onClick = {
                                 showSheet = false
-                                onStartExam(pendingFileName)
+                                when (bottomNavIndex) {
+                                    0 -> onStartWrongBookExam(pendingFileName)
+                                    1 -> onStartFavoriteExam(pendingFileName)
+                                    else -> onStartExam(pendingFileName)
+                                }
                             },
                             Modifier
                                 .fillMaxWidth()

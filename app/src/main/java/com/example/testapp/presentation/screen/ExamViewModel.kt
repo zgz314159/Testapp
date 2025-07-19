@@ -5,6 +5,8 @@ import androidx.lifecycle.viewModelScope
 import com.example.testapp.domain.model.Question
 import com.example.testapp.domain.model.WrongQuestion
 import com.example.testapp.domain.model.HistoryRecord
+import com.example.testapp.domain.usecase.GetWrongBookUseCase
+import com.example.testapp.domain.usecase.GetFavoriteQuestionsUseCase
 import com.example.testapp.domain.usecase.GetQuestionsUseCase
 import com.example.testapp.domain.usecase.AddWrongQuestionUseCase
 import com.example.testapp.domain.usecase.AddHistoryRecordUseCase
@@ -28,6 +30,8 @@ import com.example.testapp.domain.usecase.GetSparkAnalysisUseCase
 @HiltViewModel
 class ExamViewModel @Inject constructor(
     private val getQuestionsUseCase: GetQuestionsUseCase,
+    private val getWrongBookUseCase: GetWrongBookUseCase,
+    private val getFavoriteQuestionsUseCase: GetFavoriteQuestionsUseCase,
     private val addWrongQuestionUseCase: AddWrongQuestionUseCase,
     private val addHistoryRecordUseCase: AddHistoryRecordUseCase,
     private val saveExamProgressUseCase: SaveExamProgressUseCase,
@@ -120,6 +124,66 @@ class ExamViewModel @Inject constructor(
                 _noteList.value = List(finalList.size) { "" }
                 _currentIndex.value = 0
                 _finished.value = false*/
+                loadProgress()
+            }
+        }
+    }
+
+    fun loadWrongQuestions(fileName: String, count: Int, random: Boolean) {
+        progressId = "exam_${fileName}"
+        quizIdInternal = fileName
+        _progressLoaded.value = false
+        viewModelScope.launch {
+            val existing = getExamProgressFlowUseCase(progressId).firstOrNull()
+            progressSeed = existing?.timestamp ?: System.currentTimeMillis()
+            getWrongBookUseCase().collect { wrongList ->
+                val list = wrongList.filter { it.question.fileName == fileName }.map { it.question }
+                val ordered = if (random) list.shuffled(java.util.Random(progressSeed)) else list
+                val trimmed = if (count > 0) ordered.take(count.coerceAtMost(ordered.size)) else ordered
+                val finalList = if (random) {
+                    trimmed.mapIndexed { idx, q ->
+                        val correctIndex = answerLetterToIndex(q.answer)
+                        if (correctIndex == null) q else {
+                            val rand = java.util.Random(progressSeed + idx)
+                            val pairs = q.options.mapIndexed { i, opt -> i to opt }.shuffled(rand)
+                            val newOptions = pairs.map { it.second }
+                            val newCorrect = pairs.indexOfFirst { it.first == correctIndex }
+                            val newAnswer = ('A' + newCorrect).toString()
+                            q.copy(options = newOptions, answer = newAnswer)
+                        }
+                    }
+                } else trimmed
+                _questions.value = finalList
+                loadProgress()
+            }
+        }
+    }
+
+    fun loadFavoriteQuestions(fileName: String, count: Int, random: Boolean) {
+        progressId = "exam_${fileName}"
+        quizIdInternal = fileName
+        _progressLoaded.value = false
+        viewModelScope.launch {
+            val existing = getExamProgressFlowUseCase(progressId).firstOrNull()
+            progressSeed = existing?.timestamp ?: System.currentTimeMillis()
+            getFavoriteQuestionsUseCase().collect { favList ->
+                val list = favList.filter { it.question.fileName == fileName }.map { it.question }
+                val ordered = if (random) list.shuffled(java.util.Random(progressSeed)) else list
+                val trimmed = if (count > 0) ordered.take(count.coerceAtMost(ordered.size)) else ordered
+                val finalList = if (random) {
+                    trimmed.mapIndexed { idx, q ->
+                        val correctIndex = answerLetterToIndex(q.answer)
+                        if (correctIndex == null) q else {
+                            val rand = java.util.Random(progressSeed + idx)
+                            val pairs = q.options.mapIndexed { i, opt -> i to opt }.shuffled(rand)
+                            val newOptions = pairs.map { it.second }
+                            val newCorrect = pairs.indexOfFirst { it.first == correctIndex }
+                            val newAnswer = ('A' + newCorrect).toString()
+                            q.copy(options = newOptions, answer = newAnswer)
+                        }
+                    }
+                } else trimmed
+                _questions.value = finalList
                 loadProgress()
             }
         }

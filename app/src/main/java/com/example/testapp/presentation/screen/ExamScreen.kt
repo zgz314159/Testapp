@@ -40,6 +40,10 @@ import kotlinx.coroutines.launch
 @Composable
 fun ExamScreen(
     quizId: String,
+    isWrongBookMode: Boolean = false,
+    wrongBookFileName: String? = null,
+    isFavoriteMode: Boolean = false,
+    favoriteFileName: String? = null,
     viewModel: ExamViewModel = hiltViewModel(),
     settingsViewModel: SettingsViewModel = hiltViewModel(),
     aiViewModel: DeepSeekViewModel = hiltViewModel(),
@@ -51,7 +55,13 @@ fun ExamScreen(
 ) {
     val examCount by settingsViewModel.examQuestionCount.collectAsState()
     val randomExam by settingsViewModel.randomExam.collectAsState()
-    LaunchedEffect(quizId, examCount, randomExam) { viewModel.loadQuestions(quizId, examCount, randomExam) }
+    LaunchedEffect(quizId, examCount, randomExam, isWrongBookMode, wrongBookFileName, isFavoriteMode, favoriteFileName) {
+        when {
+            isWrongBookMode && wrongBookFileName != null -> viewModel.loadWrongQuestions(wrongBookFileName, examCount, randomExam)
+            isFavoriteMode && favoriteFileName != null -> viewModel.loadFavoriteQuestions(favoriteFileName, examCount, randomExam)
+            else -> viewModel.loadQuestions(quizId, examCount, randomExam)
+        }
+    }
     val questions by viewModel.questions.collectAsState()
     val currentIndex by viewModel.currentIndex.collectAsState()
     val selectedOptions by viewModel.selectedOptions.collectAsState()
@@ -128,9 +138,13 @@ fun ExamScreen(
             viewModel.updateSparkAnalysis(pair.first, pair.second)
         }
     }
-    LaunchedEffect(quizId, examCount, randomExam, progressLoaded) {
+    LaunchedEffect(quizId, examCount, randomExam, progressLoaded, isWrongBookMode, wrongBookFileName, isFavoriteMode, favoriteFileName) {
         if (!progressLoaded) {
-            viewModel.loadQuestions(quizId, examCount, randomExam)
+            when {
+                isWrongBookMode && wrongBookFileName != null -> viewModel.loadWrongQuestions(wrongBookFileName, examCount, randomExam)
+                isFavoriteMode && favoriteFileName != null -> viewModel.loadFavoriteQuestions(favoriteFileName, examCount, randomExam)
+                else -> viewModel.loadQuestions(quizId, examCount, randomExam)
+            }
         }
     }
 

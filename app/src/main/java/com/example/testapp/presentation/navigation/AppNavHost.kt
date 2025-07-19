@@ -37,6 +37,23 @@ fun AppNavHost(navController: NavHostController = rememberNavController(), setti
                     val encoded = java.net.URLEncoder.encode(quizId, "UTF-8")
                     navController.navigate("exam/$encoded")
                 },
+                onStartWrongBookQuiz = { name ->
+                    val encoded = java.net.URLEncoder.encode(name, "UTF-8")
+                    navController.navigate("practice_wrongbook/$encoded")
+                },
+                onStartWrongBookExam = { name ->
+                    val encoded = java.net.URLEncoder.encode(name, "UTF-8")
+                    navController.navigate("exam_wrongbook/$encoded")
+                },
+                onStartFavoriteQuiz = { name ->
+                    val encoded = java.net.URLEncoder.encode(name, "UTF-8")
+                    navController.navigate("practice_favorite/$encoded")
+                },
+                onStartFavoriteExam = { name ->
+                    val encoded = java.net.URLEncoder.encode(name, "UTF-8")
+                    navController.navigate("exam_favorite/$encoded")
+                },
+
                 onSettings = { navController.navigate("settings") },
                 onViewQuestionDetail = { quizId ->
                     val encoded = java.net.URLEncoder.encode(quizId, "UTF-8")
@@ -189,7 +206,32 @@ fun AppNavHost(navController: NavHostController = rememberNavController(), setti
                     navController.navigate("spark/$id/$index/$encodedText")
                 }
             )
-
+        }
+        composable("exam_wrongbook/{fileName}") { backStackEntry ->
+            val encoded = backStackEntry.arguments?.getString("fileName") ?: ""
+            val name = java.net.URLDecoder.decode(encoded, "UTF-8")
+            ExamScreen(
+                quizId = name,
+                isWrongBookMode = true,
+                wrongBookFileName = name,
+                settingsViewModel = settingsViewModel,
+                onExamEnd = { score, total, unanswered ->
+                    val id = "exam_${name}"
+                    val e = java.net.URLEncoder.encode(id, "UTF-8")
+                    navController.navigate("result/$score/$total/$unanswered/$e") {
+                        popUpTo("wrongbook") { inclusive = false }
+                    }
+                },
+                onExitWithoutAnswer = { navController.popBackStack() },
+                onViewDeepSeek = { text, id, index ->
+                    val encodedText = java.net.URLEncoder.encode(text, "UTF-8")
+                    navController.navigate("deepseek/$id/$index/$encodedText")
+                },
+                onViewSpark = { text, id, index ->
+                    val encodedText = java.net.URLEncoder.encode(text, "UTF-8")
+                    navController.navigate("spark/$id/$index/$encodedText")
+                }
+            )
 
         }
 
@@ -231,6 +273,34 @@ fun AppNavHost(navController: NavHostController = rememberNavController(), setti
                 }
             )
         }
+
+        composable("exam_favorite/{fileName}") { backStackEntry ->
+            val encoded = backStackEntry.arguments?.getString("fileName") ?: ""
+            val name = java.net.URLDecoder.decode(encoded, "UTF-8")
+            ExamScreen(
+                quizId = name,
+                isFavoriteMode = true,
+                favoriteFileName = name,
+                settingsViewModel = settingsViewModel,
+                onExamEnd = { score, total, unanswered ->
+                    val id = "exam_${name}"
+                    val e = java.net.URLEncoder.encode(id, "UTF-8")
+                    navController.navigate("result/$score/$total/$unanswered/$e") {
+                        popUpTo("favorite") { inclusive = false }
+                    }
+                },
+                onExitWithoutAnswer = { navController.popBackStack() },
+                onViewDeepSeek = { text, id, index ->
+                    val encodedText = java.net.URLEncoder.encode(text, "UTF-8")
+                    navController.navigate("deepseek/$id/$index/$encodedText")
+                },
+                onViewSpark = { text, id, index ->
+                    val encodedText = java.net.URLEncoder.encode(text, "UTF-8")
+                    navController.navigate("spark/$id/$index/$encodedText")
+                }
+            )
+        }
+
         composable(
             "deepseek/{id}/{index}/{text}",
             arguments = listOf(
