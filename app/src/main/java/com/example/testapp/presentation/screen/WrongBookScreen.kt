@@ -38,6 +38,7 @@ import androidx.navigation.NavController
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.foundation.gestures.detectDragGesturesAfterLongPress
 import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.layout.boundsInRoot
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -195,7 +196,7 @@ fun WrongBookScreen(
             Spacer(modifier = Modifier.height(16.dp))
         }
         if (fileName.isNullOrEmpty()) {
-            // 显示错题按文件分类
+
             if (displayFileNames.isEmpty()) {
                 Text(
                     "暂无错题",
@@ -206,128 +207,158 @@ fun WrongBookScreen(
                 androidx.compose.foundation.lazy.LazyColumn(
                     modifier = Modifier.fillMaxWidth()
                 ) {
-                    items(displayFileNames, key = { it }) { name ->
-                        val count = wrongList.value.count { it.question.fileName == name }
-                        val dismissState = rememberDismissState()
-                        if (dismissState.currentValue == DismissValue.DismissedToStart) {
-                            viewModel.removeByFileName(name)
-                        }
-                        SwipeToDismiss(
-                            state = dismissState,
-                            directions = setOf(DismissDirection.EndToStart),
-                            dismissThresholds = { FractionalThreshold(0.2f) },
-                            background = {
-                                val showRed = dismissState.dismissDirection != null &&
-                                        dismissState.targetValue != DismissValue.Default
-                                Box(
-                                    modifier = Modifier
-                                        .fillMaxSize()
-                                        .background(if (showRed) MaterialTheme.colorScheme.error else Color.Transparent)
-                                        .padding(horizontal = 20.dp),
-                                    contentAlignment = Alignment.CenterEnd
-                                ) {
-                                    if (showRed) {
-                                        Icon(
-                                            Icons.Filled.Delete,
-                                            contentDescription = "删除",
-                                            tint = Color.White
+                    displayFileNames.forEach { name ->
+                        val fileWrongs = wrongList.value.filter { it.question.fileName == name }
+                        item(key = "header_$name") {
+                            val count = fileWrongs.size
+                            val dismissState = rememberDismissState()
+                            if (dismissState.currentValue == DismissValue.DismissedToStart) {
+                                viewModel.removeByFileName(name)
+                            }
+                            SwipeToDismiss(
+                                state = dismissState,
+                                directions = setOf(DismissDirection.EndToStart),
+                                dismissThresholds = { FractionalThreshold(0.2f) },
+                                background = {
+                                    val showRed = dismissState.dismissDirection != null &&
+                                            dismissState.targetValue != DismissValue.Default
+                                    Box(
+                                        modifier = Modifier
+                                            .fillMaxSize()
+                                            .background(if (showRed) MaterialTheme.colorScheme.error else Color.Transparent)
+                                            .padding(horizontal = 20.dp),
+                                        contentAlignment = Alignment.CenterEnd
+                                    ) {
+                                        if (showRed) {
+                                            Icon(
+                                                Icons.Filled.Delete,
+                                                contentDescription = "删除",
+                                                tint = Color.White
+                                            )
+                                        }
+
+                                    }
+                                },
+                                dismissContent = {
+                                    var itemCoords by remember { mutableStateOf<LayoutCoordinates?>(null) }
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .graphicsLayer {
+                                                if (draggingFile == name) {
+                                                    scaleX = 0.9f; scaleY = 0.9f
+                                                }
+                                            }
+                                            .onGloballyPositioned { itemCoords = it }
+                                            .pointerInput(name) {
+                                                detectDragGesturesAfterLongPress(
+                                                    onDragStart = { offset ->
+                                                        val pos = itemCoords?.localToRoot(offset)
+                                                            ?: Offset.Zero
+                                                        val size = itemCoords?.size ?: IntSize.Zero
+                                                        Log.d(
+                                                            "WrongBookScreen",
+                                                            "start drag $name at $pos size=$size"
+                                                        )
+                                                        dragViewModel.startDragging(
+                                                            name,
+                                                            pos,
+                                                            size,
+                                                            offset
+                                                        )
+                                                        dragViewModel.setHoverFolder(
+                                                            folderBounds.entries.find {
+                                                                it.value.contains(
+                                                                    pos
+                                                                )
+                                                            }?.key
+                                                        )
+                                                    },
+                                                    onDrag = { change, _ ->
+                                                        change.consume()
+                                                        val pos =
+                                                            itemCoords?.localToRoot(change.position)
+                                                                ?: dragViewModel.dragPosition.value
+                                                        dragViewModel.updatePosition(pos)
+                                                        dragViewModel.setHoverFolder(
+                                                            folderBounds.entries.find {
+                                                                it.value.contains(
+                                                                    pos
+                                                                )
+                                                            }?.key
+                                                        )
+                                                    },
+                                                    onDragEnd = {
+                                                        val target = folderBounds.entries
+                                                            .find { it.value.contains(dragViewModel.dragPosition.value) }?.key
+                                                        Log.d(
+                                                            "WrongBookScreen",
+                                                            "end drag $name -> $target"
+                                                        )
+                                                        if (target != null) {
+                                                            folderViewModel.moveFile(name, target)
+                                                        }
+                                                        dragViewModel.endDragging()
+                                                    },
+                                                    onDragCancel = {
+                                                        Log.d("WrongBookScreen", "drag cancel $name")
+                                                        dragViewModel.endDragging()
+                                                    }
+                                                )
+                                            }
+                                            .combinedClickable(
+                                                onClick = {
+                                                    val encoded =
+                                                        java.net.URLEncoder.encode(name, "UTF-8")
+                                                    navController?.navigate("practice_wrongbook/$encoded")
+                                                }
+                                            )
+                                            .padding(vertical = 4.dp)
+                                    ) {
+                                        val displayName =
+                                            folders.value[name]?.let { "$it/$name" } ?: name
+                                        Text(
+                                            buildAnnotatedString {
+                                                append("$displayName ")
+                                                withStyle(SpanStyle(color = Color.Blue)) { append("(${count})") }
+                                            },
+                                            modifier = Modifier
+                                                .weight(1f)
+                                                .basicMarquee(),
+                                            fontSize = LocalFontSize.current,
+                                            fontFamily = LocalFontFamily.current
                                         )
                                     }
                                 }
-                            },
-                            dismissContent = {
-                                var itemCoords by remember { mutableStateOf<LayoutCoordinates?>(null) }
-                                Row(
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .graphicsLayer {
-                                            if (draggingFile == name) {
-                                                scaleX = 0.9f; scaleY = 0.9f
-                                            }
-                                        }
-                                        .onGloballyPositioned { itemCoords = it }
-                                        .pointerInput(name) {
-                                            detectDragGesturesAfterLongPress(
-                                                onDragStart = { offset ->
-                                                    val pos = itemCoords?.localToRoot(offset)
-                                                        ?: Offset.Zero
-                                                    val size = itemCoords?.size ?: IntSize.Zero
-                                                    Log.d(
-                                                        "WrongBookScreen",
-                                                        "start drag $name at $pos size=$size"
-                                                    )
-                                                    dragViewModel.startDragging(
-                                                        name,
-                                                        pos,
-                                                        size,
-                                                        offset
-                                                    )
-                                                    dragViewModel.setHoverFolder(
-                                                        folderBounds.entries.find {
-                                                            it.value.contains(
-                                                                pos
-                                                            )
-                                                        }?.key
-                                                    )
-                                                },
-                                                onDrag = { change, _ ->
-                                                    change.consume()
-                                                    val pos =
-                                                        itemCoords?.localToRoot(change.position)
-                                                            ?: dragViewModel.dragPosition.value
-                                                    dragViewModel.updatePosition(pos)
-                                                    dragViewModel.setHoverFolder(
-                                                        folderBounds.entries.find {
-                                                            it.value.contains(
-                                                                pos
-                                                            )
-                                                        }?.key
-                                                    )
-                                                },
-                                                onDragEnd = {
-                                                    val target = folderBounds.entries
-                                                        .find { it.value.contains(dragViewModel.dragPosition.value) }?.key
-                                                    Log.d(
-                                                        "WrongBookScreen",
-                                                        "end drag $name -> $target"
-                                                    )
-                                                    if (target != null) {
-                                                        folderViewModel.moveFile(name, target)
-                                                    }
-                                                    dragViewModel.endDragging()
-                                                },
-                                                onDragCancel = {
-                                                    Log.d("WrongBookScreen", "drag cancel $name")
-                                                    dragViewModel.endDragging()
-                                                }
-                                            )
-                                        }
-                                        .combinedClickable(
-                                            onClick = {
-                                                val encoded =
-                                                    java.net.URLEncoder.encode(name, "UTF-8")
-                                                navController?.navigate("practice_wrongbook/$encoded")
-                                            }
-                                        )
-                                        .padding(vertical = 4.dp)
-                                ) {
-                                    val displayName =
-                                        folders.value[name]?.let { "$it/$name" } ?: name
-                                    Text(
-                                        buildAnnotatedString {
-                                            append("$displayName ")
-                                            withStyle(SpanStyle(color = Color.Blue)) { append("(${count})") }
-                                        },
-                                        modifier = Modifier
-                                            .weight(1f)
-                                            .basicMarquee(),
-                                        fontSize = LocalFontSize.current,
-                                        fontFamily = LocalFontFamily.current
-                                    )
-                                }
+                            )
+                        }
+                        itemsIndexed(fileWrongs) { idx, wrong ->
+                            val selectedOptions = wrong.selected.joinToString("，") { i ->
+                                wrong.question.options.getOrNull(i) ?: ""
                             }
-                        )
+                            Text(
+                                "${idx + 1}. ${wrong.question.content} (你的答案：$selectedOptions)",
+                                fontSize = LocalFontSize.current,
+                                fontFamily = LocalFontFamily.current
+                            )
+                        }
+                        item(key = "practice_$name") {
+                            Spacer(modifier = Modifier.height(24.dp))
+                            Button(
+                                onClick = {
+                                    val encoded = java.net.URLEncoder.encode(name, "UTF-8")
+                                    navController?.navigate("practice_wrongbook/$encoded")
+                                },
+                                modifier = Modifier.align(Alignment.CenterHorizontally)
+                            ) {
+                                Text(
+                                    "重练错题",
+                                    fontSize = LocalFontSize.current,
+                                    fontFamily = LocalFontFamily.current
+                                )
+                            }
+                        }
                     }
                 }
             }

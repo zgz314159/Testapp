@@ -39,6 +39,7 @@ import com.example.testapp.presentation.screen.FileFolderViewModel
 import com.example.testapp.presentation.screen.DragDropViewModel
 import androidx.compose.foundation.gestures.detectDragGesturesAfterLongPress
 import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.layout.boundsInRoot
@@ -198,98 +199,144 @@ fun FavoriteScreen(
                 androidx.compose.foundation.lazy.LazyColumn(
                     modifier = Modifier.fillMaxWidth()
                 ) {
-                    items(displayFileNames, key = { it }) { name ->
-                        val count = favorites.value.count { it.question.fileName == name }
-                        val dismissState = rememberDismissState()
-                        if (dismissState.currentValue == DismissValue.DismissedToStart) {
-                            viewModel.removeByFileName(name)
-                        }
-                        SwipeToDismiss(
-                            state = dismissState,
-                            directions = setOf(DismissDirection.EndToStart),
-                            dismissThresholds = { FractionalThreshold(0.2f) },
-                            background = {
-                                val showRed = dismissState.dismissDirection != null &&
-                                        dismissState.targetValue != DismissValue.Default
-                                Box(
-                                    modifier = Modifier
-                                        .fillMaxSize()
-                                        .background(if (showRed) MaterialTheme.colorScheme.error else Color.Transparent)
-                                        .padding(horizontal = 20.dp),
-                                    contentAlignment = Alignment.CenterEnd
-                                ) {
-                                    if (showRed) {
-                                        Icon(Icons.Filled.Delete, contentDescription = "删除", tint = Color.White)
+                    displayFileNames.forEach { name ->
+                        val fileFavorites = favorites.value.filter { it.question.fileName == name }
+                        item(key = "header_$name") {
+                            val count = fileFavorites.size
+                            val dismissState = rememberDismissState()
+                            if (dismissState.currentValue == DismissValue.DismissedToStart) {
+                                viewModel.removeByFileName(name)
+                            }
+                            SwipeToDismiss(
+                                state = dismissState,
+                                directions = setOf(DismissDirection.EndToStart),
+                                dismissThresholds = { FractionalThreshold(0.2f) },
+                                background = {
+                                    val showRed = dismissState.dismissDirection != null &&
+                                            dismissState.targetValue != DismissValue.Default
+                                    Box(
+                                        modifier = Modifier
+                                            .fillMaxSize()
+                                            .background(if (showRed) MaterialTheme.colorScheme.error else Color.Transparent)
+                                            .padding(horizontal = 20.dp),
+                                        contentAlignment = Alignment.CenterEnd
+                                    ) {
+                                        if (showRed) {
+                                            Icon(Icons.Filled.Delete, contentDescription = "删除", tint = Color.White)
+                                        }
                                     }
-                                }
-                            },
-                            dismissContent = {
-                                var itemCoords by remember { mutableStateOf<LayoutCoordinates?>(null) }
-                                Row(
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .graphicsLayer { if (draggingFile == name) { scaleX = 0.9f; scaleY = 0.9f } }
-                                        .onGloballyPositioned { itemCoords = it }
-                                        .pointerInput(name) {
-                                            detectDragGesturesAfterLongPress(
-                                                onDragStart = { offset ->
-                                                    val pos = itemCoords?.localToRoot(offset) ?: Offset.Zero
-                                                    val size = itemCoords?.size ?: IntSize.Zero
-                                                    Log.d("FavoriteScreen", "start drag $name at $pos size=$size")
-                                                    dragViewModel.startDragging(name, pos, size, offset)
-                                                    dragViewModel.setHoverFolder(
-                                                        folderBounds.entries.find { it.value.contains(pos) }?.key
-                                                    )
-                                                },
-                                                onDrag = { change, _ ->
-                                                    change.consume()
-                                                    val pos = itemCoords?.localToRoot(change.position)
-                                                        ?: dragViewModel.dragPosition.value
-                                                    dragViewModel.updatePosition(pos)
-                                                    dragViewModel.setHoverFolder(
-                                                        folderBounds.entries.find { it.value.contains(pos) }?.key
-                                                    )
-                                                },
-                                                onDragEnd = {
-                                                    val target = folderBounds.entries
-                                                        .find { it.value.contains(dragViewModel.dragPosition.value) }?.key
-                                                    Log.d("FavoriteScreen", "end drag $name -> $target")
-                                                    if (target != null) {
-                                                        folderViewModel.moveFile(name, target)
+                                },
+                                dismissContent = {
+                                    var itemCoords by remember { mutableStateOf<LayoutCoordinates?>(null) }
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .graphicsLayer { if (draggingFile == name) { scaleX = 0.9f; scaleY = 0.9f } }
+                                            .onGloballyPositioned { itemCoords = it }
+                                            .pointerInput(name) {
+                                                detectDragGesturesAfterLongPress(
+                                                    onDragStart = { offset ->
+                                                        val pos = itemCoords?.localToRoot(offset) ?: Offset.Zero
+                                                        val size = itemCoords?.size ?: IntSize.Zero
+                                                        Log.d("FavoriteScreen", "start drag $name at $pos size=$size")
+                                                        dragViewModel.startDragging(name, pos, size, offset)
+                                                        dragViewModel.setHoverFolder(
+                                                            folderBounds.entries.find { it.value.contains(pos) }?.key
+                                                        )
+                                                    },
+                                                    onDrag = { change, _ ->
+                                                        change.consume()
+                                                        val pos = itemCoords?.localToRoot(change.position)
+                                                            ?: dragViewModel.dragPosition.value
+                                                        dragViewModel.updatePosition(pos)
+                                                        dragViewModel.setHoverFolder(
+                                                            folderBounds.entries.find { it.value.contains(pos) }?.key
+                                                        )
+                                                    },
+                                                    onDragEnd = {
+                                                        val target = folderBounds.entries
+                                                            .find { it.value.contains(dragViewModel.dragPosition.value) }?.key
+                                                        Log.d("FavoriteScreen", "end drag $name -> $target")
+                                                        if (target != null) {
+                                                            folderViewModel.moveFile(name, target)
+                                                        }
+                                                        dragViewModel.endDragging()
+                                                    },
+                                                    onDragCancel = {
+                                                        Log.d("FavoriteScreen", "drag cancel $name")
+                                                        dragViewModel.endDragging()
                                                     }
-                                                    dragViewModel.endDragging()
-                                                },
-                                                onDragCancel = {
-                                                    Log.d("FavoriteScreen", "drag cancel $name")
-                                                    dragViewModel.endDragging()
+                                                )
+                                            }
+                                            .combinedClickable(
+                                                onClick = {
+                                                    val encoded = java.net.URLEncoder.encode(name, "UTF-8")
+                                                    navController?.navigate("practice_favorite/$encoded")
                                                 }
                                             )
-                                        }
-                                        .combinedClickable(
-                                            onClick = {
-                                                val encoded = java.net.URLEncoder.encode(name, "UTF-8")
-                                                navController?.navigate("practice_favorite/$encoded")
-                                            }
+                                            .padding(vertical = 4.dp)
+                                    ) {
+                                        val displayName = folders.value[name]?.let { "$it/$name" } ?: name
+                                        Text(
+                                            buildAnnotatedString {
+                                                append("$displayName ")
+                                                withStyle(SpanStyle(color = Color.Blue)) { append("(${count})") }
+                                            },
+                                            modifier = Modifier
+                                                .weight(1f)
+                                                .basicMarquee(),
+                                            fontSize = LocalFontSize.current,
+                                            fontFamily = LocalFontFamily.current
                                         )
-                                        .padding(vertical = 4.dp)
+                                    }
+                                }
+                            )
+                        }
+                        itemsIndexed(fileFavorites) { idx, q ->
+                            Card(
+                                modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
+                                colors = CardDefaults.cardColors()
+                            ) {
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    modifier = Modifier.fillMaxWidth().padding(8.dp)
                                 ) {
-                                    val displayName = folders.value[name]?.let { "$it/$name" } ?: name
+
                                     Text(
-                                        buildAnnotatedString {
-                                            append("$displayName ")
-                                            withStyle(SpanStyle(color = Color.Blue)) { append("(${count})") }
-                                        },
-                                        modifier = Modifier
-                                            .weight(1f)
-                                            .basicMarquee(),
+                                        "${idx + 1}. ${q.question.content}",
+                                        modifier = Modifier.weight(1f),
                                         fontSize = LocalFontSize.current,
                                         fontFamily = LocalFontFamily.current
                                     )
-
+                                    Spacer(modifier = Modifier.width(8.dp))
+                                    Button(
+                                        onClick = { viewModel.removeFavorite(q.question.id) },
+                                        colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)
+                                    ) {
+                                        Text(
+                                            "移除",
+                                            color = MaterialTheme.colorScheme.onError,
+                                            fontSize = LocalFontSize.current,
+                                            fontFamily = LocalFontFamily.current
+                                        )
+                                    }
                                 }
                             }
-                        )
+                        }
+                        item(key = "practice_$name") {
+                            Spacer(modifier = Modifier.height(24.dp))
+                            Button(onClick = {
+                                val encoded = java.net.URLEncoder.encode(name, "UTF-8")
+                                navController?.navigate("practice_favorite/$encoded")
+                            }) {
+                                Text(
+                                    "练习本文件收藏题",
+                                    fontSize = LocalFontSize.current,
+                                    fontFamily = LocalFontFamily.current
+                                )
+                            }
+                        }
                     }
                 }
             }
