@@ -121,7 +121,10 @@ fun HomeScreen(
     var fileToDelete by remember { mutableStateOf("") }
     var showAddFolderDialog by remember { mutableStateOf(false) }
     var newFolderName by remember { mutableStateOf("") }
-
+    var renameFolderTarget by remember { mutableStateOf<String?>(null) }
+    var renameFolderName by remember { mutableStateOf("") }
+    var folderToDelete by remember { mutableStateOf<String?>(null) }
+    var showDeleteFolderDialog by remember { mutableStateOf(false) }
     val folderBounds = remember { mutableStateMapOf<String, Rect>() }
     val dragPosition by dragViewModel.dragPosition.collectAsState()
     val draggingFile by dragViewModel.draggingFile.collectAsState()
@@ -201,32 +204,68 @@ fun HomeScreen(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         folderNames.forEach { folder ->
-                            Box(
-                                modifier = Modifier
-                                    .padding(end = 8.dp)
-                                    .onGloballyPositioned { coords ->
-                                        folderBounds[folder] = coords.boundsInRoot()
-                                    }
-                                    .background(
-                                        if (hoverFolder == folder || currentFolder == folder)
-                                            MaterialTheme.colorScheme.secondaryContainer
-                                        else MaterialTheme.colorScheme.primaryContainer,
-                                        RoundedCornerShape(8.dp)
-                                    )
-                                    .clickable { currentFolder = folder }
-                                    .padding(horizontal = 8.dp, vertical = 4.dp)
-                            ) {
-                                Row(verticalAlignment = Alignment.CenterVertically) {
-                                    Icon(
-                                        if (hoverFolder == folder || currentFolder == folder) Icons.Filled.Folder else Icons.Outlined.Folder,
-                                        contentDescription = "文件夹",
-                                        modifier = Modifier.size(24.dp),
-                                        tint = MaterialTheme.colorScheme.primary
-                                    )
-                                    Spacer(Modifier.width(4.dp))
-                                    Text(folder, fontSize = LocalFontSize.current, fontFamily = LocalFontFamily.current)
+                            val dismissState = rememberDismissState(
+                                confirmStateChange = {
+                                    if (it == DismissValue.DismissedToStart) {
+                                        folderToDelete = folder
+                                        showDeleteFolderDialog = true
+                                        false
+                                    } else true
                                 }
-                            }
+                            )
+                            SwipeToDismiss(
+                                state = dismissState,
+                                directions = setOf(DismissDirection.EndToStart),
+                                dismissThresholds = { FractionalThreshold(0.2f) },
+                                background = {
+                                    val showRed = dismissState.dismissDirection != null &&
+                                            dismissState.targetValue != DismissValue.Default
+                                    Box(
+                                        Modifier
+                                            .fillMaxSize()
+                                            .background(if (showRed) MaterialTheme.colorScheme.error else Color.Transparent)
+                                            .padding(horizontal = 8.dp),
+                                        contentAlignment = Alignment.CenterEnd
+                                    ) {
+                                        if (showRed) Icon(Icons.Filled.Delete, contentDescription = "删除", tint = Color.White)
+                                    }
+                                },
+                                dismissContent = {
+                                    Box(
+                                        modifier = Modifier
+                                            .padding(end = 8.dp)
+                                            .onGloballyPositioned { coords ->
+                                                folderBounds[folder] = coords.boundsInRoot()
+                                            }
+                                            .background(
+                                                if (hoverFolder == folder || currentFolder == folder)
+                                                    MaterialTheme.colorScheme.secondaryContainer
+                                                else MaterialTheme.colorScheme.primaryContainer,
+                                                RoundedCornerShape(8.dp)
+                                            )
+                                            .combinedClickable(
+                                                onClick = { currentFolder = folder },
+                                                onLongClick = {
+                                                    renameFolderTarget = folder
+                                                    renameFolderName = folder
+                                                }
+                                            )
+                                            .padding(horizontal = 8.dp, vertical = 4.dp)
+                                    ) {
+                                        Row(verticalAlignment = Alignment.CenterVertically) {
+                                            Icon(
+                                                if (hoverFolder == folder || currentFolder == folder) Icons.Filled.Folder else Icons.Outlined.Folder,
+                                                contentDescription = "文件夹",
+                                                modifier = Modifier.size(24.dp),
+                                                tint = MaterialTheme.colorScheme.primary
+                                            )
+                                            Spacer(Modifier.width(4.dp))
+                                            Text(folder, fontSize = LocalFontSize.current, fontFamily = LocalFontFamily.current)
+                                        }
+                                    }
+
+                                }
+                            )
                         }
                         IconButton(onClick = { showAddFolderDialog = true }) {
                             Icon(Icons.Filled.Add, contentDescription = "新增文件夹")
@@ -511,6 +550,43 @@ fun HomeScreen(
                             label = { Text("文件夹名") }
                         )
                     }
+                )
+            }
+            if (renameFolderTarget != null) {
+                AlertDialog(
+                    onDismissRequest = { renameFolderTarget = null },
+                    confirmButton = {
+                        TextButton(onClick = {
+                            renameFolderTarget?.let { folderViewModel.renameFolder(it, renameFolderName) }
+                            renameFolderTarget = null
+                        }) { Text("确定") }
+                    },
+                    dismissButton = {
+                        TextButton(onClick = { renameFolderTarget = null }) { Text("取消") }
+                    },
+                    text = {
+                        OutlinedTextField(
+                            value = renameFolderName,
+                            onValueChange = { renameFolderName = it },
+                            label = { Text("重命名") }
+                        )
+                    }
+                )
+            }
+
+            if (showDeleteFolderDialog && folderToDelete != null) {
+                AlertDialog(
+                    onDismissRequest = { showDeleteFolderDialog = false },
+                    confirmButton = {
+                        TextButton(onClick = {
+                            showDeleteFolderDialog = false
+                            folderToDelete?.let { folderViewModel.deleteFolder(it) }
+                        }) { Text("确定") }
+                    },
+                    dismissButton = {
+                        TextButton(onClick = { showDeleteFolderDialog = false }) { Text("取消") }
+                    },
+                    text = { Text("确定删除 $folderToDelete 吗？") }
                 )
             }
         }

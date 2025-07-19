@@ -59,6 +59,8 @@ import com.example.testapp.domain.usecase.MoveFileToFolderUseCase
 import com.example.testapp.domain.usecase.GetFileFoldersUseCase
 import com.example.testapp.domain.usecase.GetFoldersUseCase
 import com.example.testapp.domain.usecase.AddFolderUseCase
+import com.example.testapp.domain.usecase.RenameFolderUseCase
+import com.example.testapp.domain.usecase.DeleteFolderUseCase
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -210,6 +212,13 @@ object AppModule {
     @Singleton
     fun provideAddFolderUseCase(repo: FileFolderRepository): AddFolderUseCase = AddFolderUseCase(repo)
 
+    @Provides
+    @Singleton
+    fun provideRenameFolderUseCase(repo: FileFolderRepository): RenameFolderUseCase = RenameFolderUseCase(repo)
+
+    @Provides
+    @Singleton
+    fun provideDeleteFolderUseCase(repo: FileFolderRepository): DeleteFolderUseCase = DeleteFolderUseCase(repo)
 
     @Provides
     @Singleton

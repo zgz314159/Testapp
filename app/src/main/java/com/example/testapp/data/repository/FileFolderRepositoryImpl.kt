@@ -31,4 +31,15 @@ class FileFolderRepositoryImpl @Inject constructor(
     override suspend fun addFolder(name: String) {
         folderDao.insert(FolderEntity(name))
     }
+
+    override suspend fun renameFolder(oldName: String, newName: String) {
+        folderDao.rename(oldName, newName)
+        dao.renameFolder(oldName, newName)
+    }
+
+    override suspend fun deleteFolder(name: String) {
+        folderDao.delete(name)
+        dao.deleteByFolder(name)
+    }
+
 }

@@ -65,6 +65,10 @@ fun WrongBookScreen(
     var currentFolder by remember { mutableStateOf<String?>(null) }
     var showAddFolderDialog by remember { mutableStateOf(false) }
     var newFolderName by remember { mutableStateOf("") }
+    var renameFolderTarget by remember { mutableStateOf<String?>(null) }
+    var renameFolderName by remember { mutableStateOf("") }
+    var folderToDelete by remember { mutableStateOf<String?>(null) }
+    var showDeleteFolderDialog by remember { mutableStateOf(false) }
     val folderBounds = remember { mutableStateMapOf<String, Rect>() }
     val dragPosition by dragViewModel.dragPosition.collectAsState()
     val draggingFile by dragViewModel.draggingFile.collectAsState()
@@ -112,31 +116,75 @@ fun WrongBookScreen(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 folderNames.value.forEach { folder ->
-                    Box(
-                        modifier = Modifier
-                            .padding(end = 8.dp)
-                            .onGloballyPositioned { coords ->
-                                folderBounds[folder] = coords.boundsInRoot()
-                            }
-                            .background(
-                                if (hoverFolder == folder || currentFolder == folder) MaterialTheme.colorScheme.secondaryContainer
-                                else MaterialTheme.colorScheme.primaryContainer,
-                                RoundedCornerShape(8.dp)
-                            )
-                            .clickable { currentFolder = folder }
-                            .padding(horizontal = 8.dp, vertical = 4.dp)
-                    ) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Icon(
-                                if (hoverFolder == folder || currentFolder == folder) Icons.Filled.Folder else Icons.Outlined.Folder,
-                                contentDescription = "文件夹",
-                                modifier = Modifier.size(24.dp),
-                                tint = MaterialTheme.colorScheme.primary
-                            )
-                            Spacer(Modifier.width(4.dp))
-                            Text(folder, fontSize = LocalFontSize.current, fontFamily = LocalFontFamily.current)
+                    val dismissState = rememberDismissState(
+                        confirmStateChange = {
+                            if (it == DismissValue.DismissedToStart) {
+                                folderToDelete = folder
+                                showDeleteFolderDialog = true
+                                false
+                            } else true
                         }
-                    }
+                    )
+                    SwipeToDismiss(
+                        state = dismissState,
+                        directions = setOf(DismissDirection.EndToStart),
+                        dismissThresholds = { FractionalThreshold(0.2f) },
+                        background = {
+                            val showRed = dismissState.dismissDirection != null &&
+                                    dismissState.targetValue != DismissValue.Default
+                            Box(
+                                Modifier
+                                    .fillMaxSize()
+                                    .background(if (showRed) MaterialTheme.colorScheme.error else Color.Transparent)
+                                    .padding(horizontal = 8.dp),
+                                contentAlignment = Alignment.CenterEnd
+                            ) {
+                                if (showRed) Icon(
+                                    Icons.Filled.Delete,
+                                    contentDescription = "删除",
+                                    tint = Color.White
+                                )
+                            }
+                        },
+                        dismissContent = {
+                            Box(
+                                modifier = Modifier
+                                    .padding(end = 8.dp)
+                                    .onGloballyPositioned { coords ->
+                                        folderBounds[folder] = coords.boundsInRoot()
+                                    }
+                                    .background(
+                                        if (hoverFolder == folder || currentFolder == folder) MaterialTheme.colorScheme.secondaryContainer
+                                        else MaterialTheme.colorScheme.primaryContainer,
+                                        RoundedCornerShape(8.dp)
+                                    )
+                                    .combinedClickable(
+                                        onClick = { currentFolder = folder },
+                                        onLongClick = {
+                                            renameFolderTarget = folder
+                                            renameFolderName = folder
+                                        }
+                                    )
+                                    .padding(horizontal = 8.dp, vertical = 4.dp)
+                            ) {
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Icon(
+                                        if (hoverFolder == folder || currentFolder == folder) Icons.Filled.Folder else Icons.Outlined.Folder,
+                                        contentDescription = "文件夹",
+                                        modifier = Modifier.size(24.dp),
+                                        tint = MaterialTheme.colorScheme.primary
+                                    )
+                                    Spacer(Modifier.width(4.dp))
+                                    Text(
+                                        folder,
+                                        fontSize = LocalFontSize.current,
+                                        fontFamily = LocalFontFamily.current
+                                    )
+                                }
+                            }
+
+                        }
+                    )
                 }
                 IconButton(onClick = { showAddFolderDialog = true }) {
                     Icon(Icons.Filled.Add, contentDescription = "新增文件夹")
@@ -177,7 +225,11 @@ fun WrongBookScreen(
                                     contentAlignment = Alignment.CenterEnd
                                 ) {
                                     if (showRed) {
-                                        Icon(Icons.Filled.Delete, contentDescription = "删除", tint = Color.White)
+                                        Icon(
+                                            Icons.Filled.Delete,
+                                            contentDescription = "删除",
+                                            tint = Color.White
+                                        )
                                     }
                                 }
                             },
@@ -187,32 +239,57 @@ fun WrongBookScreen(
                                     verticalAlignment = Alignment.CenterVertically,
                                     modifier = Modifier
                                         .fillMaxWidth()
-                                        .graphicsLayer { if (draggingFile == name) { scaleX = 0.9f; scaleY = 0.9f } }
+                                        .graphicsLayer {
+                                            if (draggingFile == name) {
+                                                scaleX = 0.9f; scaleY = 0.9f
+                                            }
+                                        }
                                         .onGloballyPositioned { itemCoords = it }
                                         .pointerInput(name) {
                                             detectDragGesturesAfterLongPress(
                                                 onDragStart = { offset ->
-                                                    val pos = itemCoords?.localToRoot(offset) ?: Offset.Zero
+                                                    val pos = itemCoords?.localToRoot(offset)
+                                                        ?: Offset.Zero
                                                     val size = itemCoords?.size ?: IntSize.Zero
-                                                    Log.d("WrongBookScreen", "start drag $name at $pos size=$size")
-                                                    dragViewModel.startDragging(name, pos, size, offset)
+                                                    Log.d(
+                                                        "WrongBookScreen",
+                                                        "start drag $name at $pos size=$size"
+                                                    )
+                                                    dragViewModel.startDragging(
+                                                        name,
+                                                        pos,
+                                                        size,
+                                                        offset
+                                                    )
                                                     dragViewModel.setHoverFolder(
-                                                        folderBounds.entries.find { it.value.contains(pos) }?.key
+                                                        folderBounds.entries.find {
+                                                            it.value.contains(
+                                                                pos
+                                                            )
+                                                        }?.key
                                                     )
                                                 },
                                                 onDrag = { change, _ ->
                                                     change.consume()
-                                                    val pos = itemCoords?.localToRoot(change.position)
-                                                        ?: dragViewModel.dragPosition.value
+                                                    val pos =
+                                                        itemCoords?.localToRoot(change.position)
+                                                            ?: dragViewModel.dragPosition.value
                                                     dragViewModel.updatePosition(pos)
                                                     dragViewModel.setHoverFolder(
-                                                        folderBounds.entries.find { it.value.contains(pos) }?.key
+                                                        folderBounds.entries.find {
+                                                            it.value.contains(
+                                                                pos
+                                                            )
+                                                        }?.key
                                                     )
                                                 },
                                                 onDragEnd = {
                                                     val target = folderBounds.entries
                                                         .find { it.value.contains(dragViewModel.dragPosition.value) }?.key
-                                                    Log.d("WrongBookScreen", "end drag $name -> $target")
+                                                    Log.d(
+                                                        "WrongBookScreen",
+                                                        "end drag $name -> $target"
+                                                    )
                                                     if (target != null) {
                                                         folderViewModel.moveFile(name, target)
                                                     }
@@ -226,13 +303,15 @@ fun WrongBookScreen(
                                         }
                                         .combinedClickable(
                                             onClick = {
-                                                val encoded = java.net.URLEncoder.encode(name, "UTF-8")
+                                                val encoded =
+                                                    java.net.URLEncoder.encode(name, "UTF-8")
                                                 navController?.navigate("practice_wrongbook/$encoded")
                                             }
                                         )
                                         .padding(vertical = 4.dp)
                                 ) {
-                                    val displayName = folders.value[name]?.let { "$it/$name" } ?: name
+                                    val displayName =
+                                        folders.value[name]?.let { "$it/$name" } ?: name
                                     Text(
                                         buildAnnotatedString {
                                             append("$displayName ")
@@ -249,43 +328,44 @@ fun WrongBookScreen(
                         )
                     }
                 }
-            }} else {
-                val filteredList = wrongList.value.filter { it.question.fileName == fileName }
-                if (filteredList.isEmpty()) {
+            }
+        } else {
+            val filteredList = wrongList.value.filter { it.question.fileName == fileName }
+            if (filteredList.isEmpty()) {
+                Text(
+                    "暂无错题",
+                    fontSize = LocalFontSize.current,
+                    fontFamily = LocalFontFamily.current
+                )
+            } else {
+                filteredList.forEachIndexed { idx, wrong ->
+                    val selectedOptions = wrong.selected.joinToString("，") { i ->
+                        wrong.question.options.getOrNull(i) ?: ""
+                    }
                     Text(
-                        "暂无错题",
+                        "${idx + 1}. ${wrong.question.content} (你的答案：$selectedOptions)",
                         fontSize = LocalFontSize.current,
                         fontFamily = LocalFontFamily.current
                     )
-                } else {
-                    filteredList.forEachIndexed { idx, wrong ->
-                        val selectedOptions = wrong.selected.joinToString("，") { i ->
-                            wrong.question.options.getOrNull(i) ?: ""
-                        }
-                        Text(
-                            "${idx + 1}. ${wrong.question.content} (你的答案：$selectedOptions)",
-                            fontSize = LocalFontSize.current,
-                            fontFamily = LocalFontFamily.current
-                        )
-                    }
+                }
 
-                    Spacer(modifier = Modifier.height(24.dp))
-                    Button(
-                        onClick = {
-                            val encoded = java.net.URLEncoder.encode(fileName, "UTF-8")
-                            navController?.navigate("practice_wrongbook/$encoded")
-                        },
-                        modifier = Modifier.align(Alignment.CenterHorizontally)
-                    ) {
-                        Text(
-                            "重练错题",
-                            fontSize = LocalFontSize.current,
-                            fontFamily = LocalFontFamily.current
-                        )
-                    }
+                Spacer(modifier = Modifier.height(24.dp))
+                Button(
+                    onClick = {
+                        val encoded = java.net.URLEncoder.encode(fileName, "UTF-8")
+                        navController?.navigate("practice_wrongbook/$encoded")
+                    },
+                    modifier = Modifier.align(Alignment.CenterHorizontally)
+                ) {
+                    Text(
+                        "重练错题",
+                        fontSize = LocalFontSize.current,
+                        fontFamily = LocalFontFamily.current
+                    )
                 }
             }
         }
+    }
 
     draggingFile?.let { file ->
         val widthDp = with(LocalDensity.current) { dragItemSize.width.toDp() }
@@ -346,5 +426,41 @@ fun WrongBookScreen(
             }
         )
     }
+    if (renameFolderTarget != null) {
+        AlertDialog(
+            onDismissRequest = { renameFolderTarget = null },
+            confirmButton = {
+                TextButton(onClick = {
+                    renameFolderTarget?.let { folderViewModel.renameFolder(it, renameFolderName) }
+                    renameFolderTarget = null
+                }) { Text("确定") }
+            },
+            dismissButton = {
+                TextButton(onClick = { renameFolderTarget = null }) { Text("取消") }
+            },
+            text = {
+                OutlinedTextField(
+                    value = renameFolderName,
+                    onValueChange = { renameFolderName = it },
+                    label = { Text("重命名") }
+                )
+            }
+        )
     }
 
+    if (showDeleteFolderDialog && folderToDelete != null) {
+        AlertDialog(
+            onDismissRequest = { showDeleteFolderDialog = false },
+            confirmButton = {
+                TextButton(onClick = {
+                    showDeleteFolderDialog = false
+                    folderToDelete?.let { folderViewModel.deleteFolder(it) }
+                }) { Text("确定") }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDeleteFolderDialog = false }) { Text("取消") }
+            },
+            text = { Text("确定删除 $folderToDelete 吗？") }
+        )
+    }
+}

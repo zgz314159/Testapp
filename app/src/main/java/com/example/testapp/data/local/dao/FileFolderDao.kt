@@ -17,4 +17,10 @@ interface FileFolderDao {
 
     @Query("DELETE FROM file_folders WHERE fileName = :fileName")
     suspend fun delete(fileName: String)
+
+    @Query("DELETE FROM file_folders WHERE folderName = :folderName")
+    suspend fun deleteByFolder(folderName: String)
+
+    @Query("UPDATE file_folders SET folderName = :newName WHERE folderName = :oldName")
+    suspend fun renameFolder(oldName: String, newName: String)
 }

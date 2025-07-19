@@ -8,6 +8,8 @@ import com.example.testapp.domain.usecase.GetFileFoldersUseCase
 import com.example.testapp.domain.usecase.MoveFileToFolderUseCase
 import com.example.testapp.domain.usecase.GetFoldersUseCase
 import com.example.testapp.domain.usecase.AddFolderUseCase
+import com.example.testapp.domain.usecase.RenameFolderUseCase
+import com.example.testapp.domain.usecase.DeleteFolderUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -20,7 +22,9 @@ class FileFolderViewModel @Inject constructor(
     private val getFileFoldersUseCase: GetFileFoldersUseCase,
     private val moveFileToFolderUseCase: MoveFileToFolderUseCase,
     private val getFoldersUseCase: GetFoldersUseCase,
-    private val addFolderUseCase: AddFolderUseCase
+    private val addFolderUseCase: AddFolderUseCase,
+    private val renameFolderUseCase: RenameFolderUseCase,
+    private val deleteFolderUseCase: DeleteFolderUseCase
 ) : ViewModel() {
     private val tag = "FileFolderVM"
     private val _folders = MutableStateFlow<Map<String, String>>(emptyMap())
@@ -53,5 +57,15 @@ class FileFolderViewModel @Inject constructor(
     fun addFolder(name: String) {
         Log.d(tag, "addFolder $name")
         viewModelScope.launch { addFolderUseCase(name) }
+    }
+
+    fun renameFolder(oldName: String, newName: String) {
+        Log.d(tag, "renameFolder $oldName -> $newName")
+        viewModelScope.launch { renameFolderUseCase(oldName, newName) }
+    }
+
+    fun deleteFolder(name: String) {
+        Log.d(tag, "deleteFolder $name")
+        viewModelScope.launch { deleteFolderUseCase(name) }
     }
 }

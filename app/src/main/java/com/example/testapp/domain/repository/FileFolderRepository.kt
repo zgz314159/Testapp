@@ -9,4 +9,7 @@ interface FileFolderRepository {
     suspend fun getFolderForFile(fileName: String): String?
     fun getFolderNames(): Flow<List<String>>
     suspend fun addFolder(name: String)
+    suspend fun renameFolder(oldName: String, newName: String)
+    suspend fun deleteFolder(name: String)
+
 }

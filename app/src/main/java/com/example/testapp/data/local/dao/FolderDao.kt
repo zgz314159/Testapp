@@ -14,4 +14,11 @@ interface FolderDao {
 
     @Insert(onConflict = OnConflictStrategy.IGNORE)
     suspend fun insert(entity: FolderEntity)
+
+    @Query("UPDATE folders SET name = :newName WHERE name = :oldName")
+    suspend fun rename(oldName: String, newName: String)
+
+    @Query("DELETE FROM folders WHERE name = :name")
+    suspend fun delete(name: String)
+
 }
