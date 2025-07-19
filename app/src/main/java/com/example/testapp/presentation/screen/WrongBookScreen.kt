@@ -37,6 +37,8 @@ import androidx.compose.ui.layout.boundsInRoot
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.ui.layout.LayoutCoordinates
 import com.example.testapp.presentation.screen.FileFolderViewModel
+import androidx.compose.ui.unit.IntOffset
+import kotlin.math.roundToInt
 
 @OptIn(ExperimentalMaterialApi::class)
 @Composable
@@ -84,7 +86,8 @@ fun WrongBookScreen(
                             Icon(
                                 Icons.Outlined.Folder,
                                 contentDescription = "文件夹",
-                                modifier = Modifier.size(24.dp)
+                                modifier = Modifier.size(24.dp),
+                                tint = MaterialTheme.colorScheme.primary
                             )
                             Spacer(Modifier.width(4.dp))
                             Text(folder, fontSize = LocalFontSize.current, fontFamily = LocalFontFamily.current)
@@ -218,7 +221,17 @@ fun WrongBookScreen(
                 }
             }
         }
-   
+    
+    draggingFile?.let { file ->
+        Text(
+            file,
+            modifier = Modifier
+                .offset { IntOffset(dragPosition.x.roundToInt(), dragPosition.y.roundToInt()) }
+                .background(MaterialTheme.colorScheme.primaryContainer, RoundedCornerShape(8.dp))
+                .padding(horizontal = 8.dp, vertical = 4.dp)
+        )
+    }
+
     if (showAddFolderDialog) {
         AlertDialog(
             onDismissRequest = { showAddFolderDialog = false },

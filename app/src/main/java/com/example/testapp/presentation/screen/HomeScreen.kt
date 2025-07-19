@@ -29,6 +29,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.example.testapp.presentation.component.LocalFontFamily
@@ -44,6 +45,7 @@ import androidx.compose.foundation.gestures.detectDragGesturesAfterLongPress
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.layout.boundsInRoot
 import androidx.compose.ui.layout.LayoutCoordinates
+import kotlin.math.roundToInt
 
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterialApi::class)
@@ -208,7 +210,8 @@ fun HomeScreen(
                                     Icon(
                                         Icons.Outlined.Folder,
                                         contentDescription = "文件夹",
-                                        modifier = Modifier.size(24.dp)
+                                        modifier = Modifier.size(24.dp),
+                                        tint = MaterialTheme.colorScheme.primary
                                     )
                                     Spacer(Modifier.width(4.dp))
                                     Text(folder, fontSize = LocalFontSize.current, fontFamily = LocalFontFamily.current)
@@ -358,6 +361,16 @@ fun HomeScreen(
                         }
                     }
                 }
+            }
+
+            draggingFile?.let { file ->
+                Text(
+                    file,
+                    modifier = Modifier
+                        .offset { IntOffset(dragPosition.x.roundToInt(), dragPosition.y.roundToInt()) }
+                        .background(MaterialTheme.colorScheme.primaryContainer, RoundedCornerShape(8.dp))
+                        .padding(horizontal = 8.dp, vertical = 4.dp)
+                )
             }
 
             // ========== BottomSheet 弹出菜单 ==========
