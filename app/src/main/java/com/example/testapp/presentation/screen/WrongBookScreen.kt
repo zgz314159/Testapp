@@ -65,6 +65,7 @@ fun WrongBookScreen(
     val dragPosition by dragViewModel.dragPosition.collectAsState()
     val draggingFile by dragViewModel.draggingFile.collectAsState()
     val dragItemSize by dragViewModel.dragItemSize.collectAsState()
+    val dragOffset by dragViewModel.offsetWithinItem.collectAsState()
     val hoverFolder by dragViewModel.hoverFolder.collectAsState()
     Column(
         modifier = Modifier
@@ -161,7 +162,7 @@ fun WrongBookScreen(
                                                     val pos = itemCoords?.localToRoot(offset) ?: Offset.Zero
                                                     val size = itemCoords?.size ?: IntSize.Zero
                                                     Log.d("WrongBookScreen", "start drag $name at $pos size=$size")
-                                                    dragViewModel.startDragging(name, pos, size)
+                                                    dragViewModel.startDragging(name, pos, size, offset)
                                                     dragViewModel.setHoverFolder(
                                                         folderBounds.entries.find { it.value.contains(pos) }?.key
                                                     )
@@ -257,7 +258,12 @@ fun WrongBookScreen(
         val displayName = folders.value[file]?.let { "$it/$file" } ?: file
         Card(
             modifier = Modifier
-                .offset { IntOffset(dragPosition.x.roundToInt(), dragPosition.y.roundToInt()) }
+                .offset {
+                    IntOffset(
+                        (dragPosition.x - dragOffset.x).roundToInt(),
+                        (dragPosition.y - dragOffset.y).roundToInt()
+                    )
+                }
                 .width(widthDp)
                 .height(heightDp)
                 .graphicsLayer { scaleX = 0.9f; scaleY = 0.9f },

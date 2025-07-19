@@ -119,6 +119,7 @@ fun HomeScreen(
     val dragPosition by dragViewModel.dragPosition.collectAsState()
     val draggingFile by dragViewModel.draggingFile.collectAsState()
     val dragItemSize by dragViewModel.dragItemSize.collectAsState()
+    val dragOffset by dragViewModel.offsetWithinItem.collectAsState()
     val hoverFolder by dragViewModel.hoverFolder.collectAsState()
     Scaffold(
         topBar = {
@@ -288,7 +289,7 @@ fun HomeScreen(
                                                     val pos = itemCoords?.localToRoot(offset) ?: Offset.Zero
                                                     val size = itemCoords?.size ?: IntSize.Zero
                                                     android.util.Log.d("HomeScreen", "start drag $name at $pos size=$size")
-                                                    dragViewModel.startDragging(name, pos, size)
+                                                    dragViewModel.startDragging(name, pos, size, offset)
                                                     dragViewModel.setHoverFolder(
                                                         folderBounds.entries.find { it.value.contains(pos) }?.key
                                                     )
@@ -402,7 +403,12 @@ fun HomeScreen(
                 val displayName = folders[file]?.let { "$it/$file" } ?: file
                 Card(
                     modifier = Modifier
-                        .offset { IntOffset(dragPosition.x.roundToInt(), dragPosition.y.roundToInt()) }
+                        .offset {
+                            IntOffset(
+                                (dragPosition.x - dragOffset.x).roundToInt(),
+                                (dragPosition.y - dragOffset.y).roundToInt()
+                            )
+                        }
                         .width(widthDp)
                         .height(heightDp)
                         .graphicsLayer {

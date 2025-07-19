@@ -16,6 +16,10 @@ class DragDropViewModel @Inject constructor() : ViewModel() {
     private val _dragPosition = MutableStateFlow(Offset.Zero)
     val dragPosition: StateFlow<Offset> = _dragPosition.asStateFlow()
 
+    private val _offsetWithinItem = MutableStateFlow(Offset.Zero)
+    val offsetWithinItem: StateFlow<Offset> = _offsetWithinItem.asStateFlow()
+
+
     private val _draggingFile = MutableStateFlow<String?>(null)
     val draggingFile: StateFlow<String?> = _draggingFile.asStateFlow()
 
@@ -25,11 +29,12 @@ class DragDropViewModel @Inject constructor() : ViewModel() {
     private val _hoverFolder = MutableStateFlow<String?>(null)
     val hoverFolder: StateFlow<String?> = _hoverFolder.asStateFlow()
 
-    fun startDragging(file: String, position: Offset, size: IntSize) {
-        Log.d(tag, "startDragging file=$file pos=$position size=$size")
+    fun startDragging(file: String, position: Offset, size: IntSize, offset: Offset) {
+        Log.d(tag, "startDragging file=$file pos=$position size=$size offset=$offset")
         _draggingFile.value = file
         _dragPosition.value = position
         _dragItemSize.value = size
+        _offsetWithinItem.value = offset
     }
 
     fun updatePosition(position: Offset) {
@@ -41,6 +46,7 @@ class DragDropViewModel @Inject constructor() : ViewModel() {
         Log.d(tag, "endDragging file=${_draggingFile.value}")
         _draggingFile.value = null
         _hoverFolder.value = null
+        _offsetWithinItem.value = Offset.Zero
     }
 
     fun setHoverFolder(folder: String?) {
