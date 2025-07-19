@@ -31,6 +31,9 @@ import com.example.testapp.presentation.component.LocalFontFamily
 import com.example.testapp.presentation.component.LocalFontSize
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalLifecycleOwner
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
 import com.example.testapp.data.datastore.FontSettingsDataStore
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterialApi::class)
@@ -65,7 +68,7 @@ fun HomeScreen(
         } else if (fileNames.isNotEmpty()) {
             if (selectedFileName.value.isBlank() || selectedFileName.value !in fileNames) {
                 selectedFileName.value = fileNames.first()
-               
+
             }
         }
     }
@@ -75,7 +78,16 @@ fun HomeScreen(
         }
     }
     var bottomNavIndex by remember { mutableStateOf(3) } // 3: 主界面
-
+    val lifecycleOwner = LocalLifecycleOwner.current
+    DisposableEffect(lifecycleOwner) {
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_RESUME) {
+                bottomNavIndex = 3
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
+    }
     // BottomSheet 控制变量
     var showSheet by remember { mutableStateOf(false) }
     var pendingFileName by remember { mutableStateOf("") }

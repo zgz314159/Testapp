@@ -57,7 +57,8 @@ fun ResultScreen(
         viewModel.load(quizId)
     }
     val historyList by viewModel.history.collectAsState()
-    val latest = historyList.lastOrNull()
+    // 最新一条记录放在列表首位，直接取 firstOrNull
+    val latest = historyList.firstOrNull()
     val displayScore = if (score == 0 && total == 0) latest?.score ?: 0 else score
     val displayTotal = if (score == 0 && total == 0) latest?.total ?: 0 else total
     val wrongCount = displayTotal - displayScore
@@ -191,7 +192,7 @@ fun ResultScreen(
             // ===== 整个题库的答题情况 =====
             val allHistoryList by viewModel.allHistory.collectAsState()
             val allLatest = allHistoryList.lastOrNull()
-            if (allLatest != null) {
+            if (allHistoryList.isNotEmpty()) {
                 Spacer(modifier = Modifier.height(24.dp))
                 Text(
                     text = "全部题库",
@@ -211,8 +212,9 @@ fun ResultScreen(
                     modifier = Modifier.padding(bottom = 18.dp)
                 )
 
-                val gScore = allLatest.score
-                val gTotal = allLatest.total
+                // 汇总所有历史记录中的答题数和总题数
+                val gScore = allHistoryList.sumOf { it.score }
+                val gTotal = allHistoryList.sumOf { it.total }
                 val gWrong = gTotal - gScore
                 val gRate = if (gTotal > 0) gScore.toFloat() / gTotal else 0f
                 val gRateText = String.format("%.2f", gRate * 100)
