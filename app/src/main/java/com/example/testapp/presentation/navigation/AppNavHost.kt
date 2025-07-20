@@ -26,6 +26,7 @@ import com.example.testapp.presentation.screen.NoteScreen
 import com.example.testapp.presentation.screen.SparkScreen
 import com.example.testapp.presentation.screen.SparkAskScreen
 
+import com.example.testapp.util.safeDecode
 @Composable
 fun AppNavHost(navController: NavHostController = rememberNavController(), settingsViewModel: com.example.testapp.presentation.screen.SettingsViewModel) {
     NavHost(navController = navController, startDestination = "home") {
@@ -90,7 +91,7 @@ fun AppNavHost(navController: NavHostController = rememberNavController(), setti
             arguments = listOf(navArgument("quizId") { type = NavType.StringType })
         ) { backStackEntry ->
             val encoded = backStackEntry.arguments?.getString("quizId") ?: "default"
-            val quizId = java.net.URLDecoder.decode(encoded, "UTF-8")
+            val quizId = com.example.testapp.util.safeDecode(encoded)
             PracticeScreen(
                 quizId = quizId,
                 settingsViewModel = settingsViewModel,
@@ -129,7 +130,7 @@ fun AppNavHost(navController: NavHostController = rememberNavController(), setti
             arguments = listOf(navArgument("quizId") { type = NavType.StringType })
         ) { backStackEntry ->
             val encoded = backStackEntry.arguments?.getString("quizId") ?: "default"
-            val quizId = java.net.URLDecoder.decode(encoded, "UTF-8")
+            val quizId = com.example.testapp.util.safeDecode(encoded)
             ExamScreen(
                 quizId = quizId,
                 settingsViewModel = settingsViewModel,
@@ -168,7 +169,7 @@ fun AppNavHost(navController: NavHostController = rememberNavController(), setti
             arguments = listOf(navArgument("quizId") { type = NavType.StringType })
         ) { backStackEntry ->
             val encodedDetail = backStackEntry.arguments?.getString("quizId") ?: "default"
-            val quizId = java.net.URLDecoder.decode(encodedDetail, "UTF-8")
+            val quizId = com.example.testapp.util.safeDecode(encodedDetail)
             QuestionScreen(quizId = quizId)
         }
         composable(
@@ -179,12 +180,12 @@ fun AppNavHost(navController: NavHostController = rememberNavController(), setti
             val total = backStackEntry.arguments?.getString("total")?.toIntOrNull() ?: 0
             val unanswered = backStackEntry.arguments?.getString("unanswered")?.toIntOrNull() ?: 0
             val encodedQuiz = backStackEntry.arguments?.getString("quizId") ?: ""
-            val quizId = java.net.URLDecoder.decode(encodedQuiz, "UTF-8")
+            val quizId = com.example.testapp.util.safeDecode(encodedQuiz)
             ResultScreen(score, total, unanswered, quizId,
                 onBackHome = { navController.popBackStack("home", false) },
                 onViewDetail = {
                     if (encodedQuiz.isNotBlank()) {
-                        val decoded = java.net.URLDecoder.decode(encodedQuiz, "UTF-8")
+                        val decoded = com.example.testapp.util.safeDecode(encodedQuiz)
                         val original = when {
                             decoded.startsWith("exam_") -> decoded.removePrefix("exam_")
                             decoded.startsWith("practice_") -> decoded.removePrefix("practice_")
@@ -205,12 +206,12 @@ fun AppNavHost(navController: NavHostController = rememberNavController(), setti
         composable("wrongbook") { WrongBookScreen(navController = navController) }
         composable("wrongbook/{fileName}") { backStackEntry ->
             val encoded = backStackEntry.arguments?.getString("fileName") ?: ""
-            val fileName = java.net.URLDecoder.decode(encoded, "UTF-8")
+            val fileName = com.example.testapp.util.safeDecode(encoded)
             WrongBookScreen(fileName = fileName, navController = navController)
         }
         composable("practice_wrongbook/{fileName}") { backStackEntry ->
             val encoded = backStackEntry.arguments?.getString("fileName") ?: ""
-            val name = java.net.URLDecoder.decode(encoded, "UTF-8")
+            val name = com.example.testapp.util.safeDecode(encoded)
             PracticeScreen(
                 isWrongBookMode = true,
                 wrongBookFileName = name,
@@ -247,7 +248,7 @@ fun AppNavHost(navController: NavHostController = rememberNavController(), setti
         }
         composable("exam_wrongbook/{fileName}") { backStackEntry ->
             val encoded = backStackEntry.arguments?.getString("fileName") ?: ""
-            val name = java.net.URLDecoder.decode(encoded, "UTF-8")
+            val name = com.example.testapp.util.safeDecode(encoded)
             ExamScreen(
                 quizId = name,
                 isWrongBookMode = true,
@@ -291,12 +292,12 @@ fun AppNavHost(navController: NavHostController = rememberNavController(), setti
         composable("favorite") { FavoriteScreen(navController = navController) }
         composable("favorite/{fileName}") { backStackEntry ->
             val encodedFav = backStackEntry.arguments?.getString("fileName") ?: ""
-            val fileName = java.net.URLDecoder.decode(encodedFav, "UTF-8")
+            val fileName = com.example.testapp.util.safeDecode(encodedFav)
             FavoriteScreen(fileName = fileName, navController = navController)
         }
         composable("practice_favorite/{fileName}") { backStackEntry ->
             val encoded = backStackEntry.arguments?.getString("fileName") ?: ""
-            val name = java.net.URLDecoder.decode(encoded, "UTF-8")
+            val name = com.example.testapp.util.safeDecode(encoded)
             PracticeScreen(
                 isFavoriteMode = true,
                 favoriteFileName = name,
@@ -334,7 +335,7 @@ fun AppNavHost(navController: NavHostController = rememberNavController(), setti
 
         composable("exam_favorite/{fileName}") { backStackEntry ->
             val encoded = backStackEntry.arguments?.getString("fileName") ?: ""
-            val name = java.net.URLDecoder.decode(encoded, "UTF-8")
+            val name = com.example.testapp.util.safeDecode(encoded)
             ExamScreen(
                 quizId = name,
                 isFavoriteMode = true,
@@ -380,7 +381,7 @@ fun AppNavHost(navController: NavHostController = rememberNavController(), setti
             )
         ) { backStackEntry ->
             val encoded = backStackEntry.arguments?.getString("text") ?: ""
-            val text = java.net.URLDecoder.decode(encoded, "UTF-8")
+            val text = com.example.testapp.util.safeDecode(encoded)
             val id = backStackEntry.arguments?.getInt("id") ?: 0
             val index = backStackEntry.arguments?.getInt("index") ?: 0
             val parentEntry = remember(backStackEntry) { navController.previousBackStackEntry }
@@ -412,7 +413,7 @@ fun AppNavHost(navController: NavHostController = rememberNavController(), setti
             )
         ) { backStackEntry ->
             val encoded = backStackEntry.arguments?.getString("text") ?: ""
-            val text = java.net.URLDecoder.decode(encoded, "UTF-8")
+            val text = com.example.testapp.util.safeDecode(encoded)
             val id = backStackEntry.arguments?.getInt("id") ?: 0
             val index = backStackEntry.arguments?.getInt("index") ?: 0
             val parentEntry = remember(backStackEntry) { navController.previousBackStackEntry }
@@ -446,7 +447,7 @@ fun AppNavHost(navController: NavHostController = rememberNavController(), setti
             )
         ) { backStackEntry ->
             val encoded = backStackEntry.arguments?.getString("text") ?: ""
-            val text = java.net.URLDecoder.decode(encoded, "UTF-8")
+            val text = com.example.testapp.util.safeDecode(encoded)
             val id = backStackEntry.arguments?.getInt("id") ?: 0
             val index = backStackEntry.arguments?.getInt("index") ?: 0
             val parentEntry = remember(backStackEntry) { navController.previousBackStackEntry }
@@ -480,7 +481,7 @@ fun AppNavHost(navController: NavHostController = rememberNavController(), setti
             )
         ) { backStackEntry ->
             val encoded = backStackEntry.arguments?.getString("text") ?: ""
-            val text = java.net.URLDecoder.decode(encoded, "UTF-8")
+            val text = com.example.testapp.util.safeDecode(encoded)
             val id = backStackEntry.arguments?.getInt("id") ?: 0
             val index = backStackEntry.arguments?.getInt("index") ?: 0
             val parentEntry = remember(backStackEntry) { navController.previousBackStackEntry }
@@ -512,7 +513,7 @@ fun AppNavHost(navController: NavHostController = rememberNavController(), setti
             )
         ) { backStackEntry ->
             val encoded = backStackEntry.arguments?.getString("text") ?: ""
-            val text = java.net.URLDecoder.decode(encoded, "UTF-8")
+            val text = com.example.testapp.util.safeDecode(encoded)
             val id = backStackEntry.arguments?.getInt("id") ?: 0
             val index = backStackEntry.arguments?.getInt("index") ?: 0
             val parentEntry = remember(backStackEntry) { navController.previousBackStackEntry }
