@@ -851,7 +851,6 @@ fun PracticeScreen(
                     showExitDialog = false
                     // 1. 先算总题数
                     val totalQuestions = questions.size
-// 2. 本次未答 = 总题数 - 本次已答
                     val unanswered = questions.size - sessionAnsweredCount
                     viewModel.addHistoryRecord(sessionScore, questions.size, unanswered)
                     onQuizEnd(sessionScore, questions.size, unanswered)

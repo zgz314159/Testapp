@@ -13,6 +13,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import android.util.Log
 import javax.inject.Inject
 
 @HiltViewModel
@@ -41,13 +42,29 @@ class ResultViewModel @Inject constructor(
             }
             flow.collect {
                 _history.value = it
+                android.util.Log.d(
+                    "ResultViewModel",
+                    "history loaded for $fileName size=${it.size} -> $it"
+                )
             }
         }
         viewModelScope.launch {
-            getHistoryListUseCase().collect { _allHistory.value = it }
+            getHistoryListUseCase().collect {
+                _allHistory.value = it
+                android.util.Log.d(
+                    "ResultViewModel",
+                    "all history updated size=${it.size}"
+                )
+            }
         }
         viewModelScope.launch {
-            getWrongBookUseCase().collect { _wrongBook.value = it }
+            getWrongBookUseCase().collect {
+                _wrongBook.value = it
+                android.util.Log.d(
+                    "ResultViewModel",
+                    "wrong book updated size=${it.size}"
+                )
+            }
         }
     }
 }

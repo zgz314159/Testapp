@@ -14,6 +14,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
+import android.util.Log
 import androidx.compose.ui.unit.dp
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -65,14 +66,23 @@ fun ResultScreen(
     // 最新一次记录
     val latest = historyList.maxByOrNull { it.time }
 
-    // 当前考试/练习统计：对、总还保留走传参或历史，但未答要先用传参
+    // 当前考试/练习统计：优先使用传入参数，否则回退到最新记录
     val currentScore      = score.takeIf { total > 0 } ?: latest?.score     ?: 0
-    val currentTotal      = total.takeIf { total > 0 } ?: latest?.total     ?: 0
-    val currentUnanswered = unanswered.takeIf { total > 0 } ?: latest?.unanswered ?: 0
-
+     val currentTotal      = total.takeIf { total > 0 } ?: latest?.total     ?: 0
+     val currentUnanswered = latest?.unanswered ?: 0
     val currentWrong = currentTotal - currentScore - currentUnanswered
     val currentRate = if (currentTotal > 0) currentScore.toFloat() / currentTotal.toFloat() else 0f
     val currentRateText = String.format("%.2f", currentRate * 100)
+
+    Log.d(
+        "ResultScreen",
+        "history size=${historyList.size} latest=$latest"
+    )
+    Log.d(
+        "ResultScreen",
+        "currentScore=$currentScore currentTotal=$currentTotal " +
+                "currentUnanswered=$currentUnanswered currentWrong=$currentWrong currentRate=$currentRate"
+    )
 
     // 整张考试/练习统计：基于题库总题数（latest.total）
     val overallTotal = latest?.total ?: 0
@@ -81,6 +91,12 @@ fun ResultScreen(
     val overallWrong = overallTotal - overallScore - overallUnanswered
     val overallRate = if (overallTotal > 0) overallScore.toFloat() / overallTotal.toFloat() else 0f
     val overallRateText = String.format("%.2f", overallRate * 100)
+
+    Log.d(
+        "ResultScreen",
+        "overallScore=$overallScore overallTotal=$overallTotal " +
+                "overallUnanswered=$overallUnanswered overallWrong=$overallWrong overallRate=$overallRate"
+    )
 
     val formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")
     val scrollState = rememberScrollState()
