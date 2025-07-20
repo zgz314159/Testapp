@@ -99,6 +99,9 @@ fun DeepSeekAskScreen(
     }
 
     LaunchedEffect(Unit) {
+        viewModel.reset()
+        answer = TextFieldValue("")
+        originalAnswer = ""
         val saved = viewModel.getSavedNote(questionId)
         if (!saved.isNullOrBlank()) {
             answer = TextFieldValue(saved)
@@ -155,16 +158,19 @@ fun DeepSeekAskScreen(
                 )
             }
         }
-        if (answer.text.isBlank()) {
-            Box(
-                modifier = Modifier
-                    .align(Alignment.BottomCenter)
-                    .padding(16.dp)
-            ) {
-                Button(onClick = {
+        Box(
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .padding(16.dp)
+        ) {
+            Button(
+                onClick = {
                     answer = TextFieldValue("解析中...")
                     viewModel.ask(question.text)
-                }) { Text("提问") }
+                },
+                enabled = answer.text != "解析中...",
+            ) {
+                Text(if (answer.text.isBlank() || answer.text == "解析中...") "提问" else "再次提问")
             }
         }
         Box(modifier = Modifier.align(Alignment.TopEnd)) {

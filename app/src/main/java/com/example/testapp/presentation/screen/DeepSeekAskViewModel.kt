@@ -21,6 +21,11 @@ class DeepSeekAskViewModel @Inject constructor(
     private val _result = MutableStateFlow("解析中...")
     val result: StateFlow<String> = _result.asStateFlow()
 
+    fun reset() {
+        _result.value = ""
+    }
+
+
     suspend fun getSavedNote(questionId: Int): String? = getResultUseCase(questionId)
 
     fun save(questionId: Int, note: String) {
