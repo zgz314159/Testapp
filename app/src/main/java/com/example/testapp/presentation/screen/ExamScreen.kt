@@ -51,7 +51,9 @@ fun ExamScreen(
     onExamEnd: (score: Int, total: Int, unanswered: Int) -> Unit = { _, _, _ -> },
     onExitWithoutAnswer: () -> Unit = {},
     onViewDeepSeek: (String, Int, Int) -> Unit = { _, _, _ -> },
-    onViewSpark: (String, Int, Int) -> Unit = { _, _, _ -> }
+    onViewSpark: (String, Int, Int) -> Unit = { _, _, _ -> },
+    onAskDeepSeek: (String, Int, Int) -> Unit = { _, _, _ -> },
+    onAskSpark: (String, Int, Int) -> Unit = { _, _, _ -> }
 ) {
     val examCount by settingsViewModel.examQuestionCount.collectAsState()
     val randomExam by settingsViewModel.randomExam.collectAsState()
@@ -155,6 +157,7 @@ fun ExamScreen(
     var showDeleteNoteDialog by remember { mutableStateOf(false) }
     var menuExpanded by remember { mutableStateOf(false) }
     var aiMenuExpanded by remember { mutableStateOf(false) }
+    var askMenuExpanded by remember { mutableStateOf(false) }
     var expandedSection by remember(currentIndex) { mutableStateOf(-1) }
     val explanationScroll = rememberScrollState()
     val noteScroll = rememberScrollState()
@@ -333,6 +336,24 @@ fun ExamScreen(
                     }
                 })
             }
+
+            IconButton(onClick = { askMenuExpanded = true }) {
+                Icon(
+                    imageVector = Icons.Filled.SmartToy,
+                    contentDescription = "AI 提问"
+                )
+            }
+            DropdownMenu(expanded = askMenuExpanded, onDismissRequest = { askMenuExpanded = false }) {
+                DropdownMenuItem(text = { Text("DeepSeek AI") }, onClick = {
+                    askMenuExpanded = false
+                    onAskDeepSeek(question.content, question.id, currentIndex)
+                })
+                DropdownMenuItem(text = { Text("Spark AI") }, onClick = {
+                    askMenuExpanded = false
+                    onAskSpark(question.content, question.id, currentIndex)
+                })
+            }
+
             IconButton(onClick = {
                 coroutineScope.launch {
                     noteText = viewModel.getNote(question.id) ?: ""

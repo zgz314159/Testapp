@@ -110,4 +110,23 @@ class SparkApiService(private val client: HttpClient) {
         val result = response.choices.firstOrNull()?.message?.content ?: ""
         return stripMarkdown(result)
     }
+    suspend fun ask(text: String): String {
+        val requestBody = RequestBody(
+            messages = listOf(Message("user", text)),
+            maxTokens = 4096
+        )
+        val httpResponse = client.post {
+            url("https://spark-api-open.xf-yun.com/v2/chat/completions")
+            header("Authorization", "Bearer ${BuildConfig.SPARK_API_KEY}")
+            header(HttpHeaders.ContentType, ContentType.Application.Json)
+            setBody(requestBody)
+        }
+        val raw = httpResponse.bodyAsText()
+        if (!httpResponse.status.isSuccess()) {
+            throw RuntimeException("HTTP ${'$'}{httpResponse.status.value}: $raw")
+        }
+        val response = json.decodeFromString<ResponseData>(raw)
+        val result = response.choices.firstOrNull()?.message?.content ?: ""
+        return stripMarkdown(result)
+    }
 }

@@ -23,6 +23,7 @@ import com.example.testapp.presentation.screen.ExamScreen
 import com.example.testapp.presentation.screen.DeepSeekScreen
 import com.example.testapp.presentation.screen.DeepSeekAskScreen
 import com.example.testapp.presentation.screen.SparkScreen
+import com.example.testapp.presentation.screen.SparkAskScreen
 
 @Composable
 fun AppNavHost(navController: NavHostController = rememberNavController(), settingsViewModel: com.example.testapp.presentation.screen.SettingsViewModel) {
@@ -107,6 +108,14 @@ fun AppNavHost(navController: NavHostController = rememberNavController(), setti
                 onViewSpark = { text, id, index ->
                     val encodedText = java.net.URLEncoder.encode(text, "UTF-8")
                     navController.navigate("spark/$id/$index/$encodedText")
+                },
+                onAskDeepSeek = { text, id, index ->
+                    val encodedText = java.net.URLEncoder.encode(text, "UTF-8")
+                    navController.navigate("deepseek_ask/$id/$index/$encodedText")
+                },
+                onAskSpark = { text, id, index ->
+                    val encodedText = java.net.URLEncoder.encode(text, "UTF-8")
+                    navController.navigate("spark_ask/$id/$index/$encodedText")
                 }
             )
         }
@@ -134,6 +143,14 @@ fun AppNavHost(navController: NavHostController = rememberNavController(), setti
                 onViewSpark = { text, id, index ->
                     val encodedText = java.net.URLEncoder.encode(text, "UTF-8")
                     navController.navigate("spark/$id/$index/$encodedText")
+                },
+                onAskDeepSeek = { text, id, index ->
+                    val encodedText = java.net.URLEncoder.encode(text, "UTF-8")
+                    navController.navigate("deepseek_ask/$id/$index/$encodedText")
+                },
+                onAskSpark = { text, id, index ->
+                    val encodedText = java.net.URLEncoder.encode(text, "UTF-8")
+                    navController.navigate("spark_ask/$id/$index/$encodedText")
                 }
             )
         }
@@ -204,6 +221,14 @@ fun AppNavHost(navController: NavHostController = rememberNavController(), setti
                 onViewSpark = { text, id, index ->
                     val encodedText = java.net.URLEncoder.encode(text, "UTF-8")
                     navController.navigate("spark/$id/$index/$encodedText")
+                },
+                onAskDeepSeek = { text, id, index ->
+                    val encodedText = java.net.URLEncoder.encode(text, "UTF-8")
+                    navController.navigate("deepseek_ask/$id/$index/$encodedText")
+                },
+                onAskSpark = { text, id, index ->
+                    val encodedText = java.net.URLEncoder.encode(text, "UTF-8")
+                    navController.navigate("spark_ask/$id/$index/$encodedText")
                 }
             )
         }
@@ -230,6 +255,14 @@ fun AppNavHost(navController: NavHostController = rememberNavController(), setti
                 onViewSpark = { text, id, index ->
                     val encodedText = java.net.URLEncoder.encode(text, "UTF-8")
                     navController.navigate("spark/$id/$index/$encodedText")
+                },
+                onAskDeepSeek = { text, id, index ->
+                    val encodedText = java.net.URLEncoder.encode(text, "UTF-8")
+                    navController.navigate("deepseek_ask/$id/$index/$encodedText")
+                },
+                onAskSpark = { text, id, index ->
+                    val encodedText = java.net.URLEncoder.encode(text, "UTF-8")
+                    navController.navigate("spark_ask/$id/$index/$encodedText")
                 }
             )
 
@@ -270,6 +303,14 @@ fun AppNavHost(navController: NavHostController = rememberNavController(), setti
                 onViewSpark = { text, id, index ->
                     val encodedText = java.net.URLEncoder.encode(text, "UTF-8")
                     navController.navigate("spark/$id/$index/$encodedText")
+                },
+                onAskDeepSeek = { text, id, index ->
+                    val encodedText = java.net.URLEncoder.encode(text, "UTF-8")
+                    navController.navigate("deepseek_ask/$id/$index/$encodedText")
+                },
+                onAskSpark = { text, id, index ->
+                    val encodedText = java.net.URLEncoder.encode(text, "UTF-8")
+                    navController.navigate("spark_ask/$id/$index/$encodedText")
                 }
             )
         }
@@ -365,6 +406,40 @@ fun AppNavHost(navController: NavHostController = rememberNavController(), setti
                 settingsViewModel = settingsViewModel
             )
         }
+
+        composable(
+            "spark_ask/{id}/{index}/{text}",
+            arguments = listOf(
+                navArgument("id") { type = NavType.IntType },
+                navArgument("index") { type = NavType.IntType },
+                navArgument("text") { type = NavType.StringType }
+            )
+        ) { backStackEntry ->
+            val encoded = backStackEntry.arguments?.getString("text") ?: ""
+            val text = java.net.URLDecoder.decode(encoded, "UTF-8")
+            val id = backStackEntry.arguments?.getInt("id") ?: 0
+            val index = backStackEntry.arguments?.getInt("index") ?: 0
+            val parentEntry = remember(backStackEntry) { navController.previousBackStackEntry }
+            val parentRoute = parentEntry?.destination?.route.orEmpty()
+            val examViewModel: ExamViewModel? = if (parentRoute.startsWith("exam")) {
+                parentEntry?.let { hiltViewModel(it) }
+            } else null
+            val practiceViewModel: PracticeViewModel? = if (!parentRoute.startsWith("exam")) {
+                parentEntry?.let { hiltViewModel(it) }
+            } else null
+            SparkAskScreen(
+                text = text,
+                questionId = id,
+                index = index,
+                navController = navController,
+                onSave = {
+                    examViewModel?.saveNote(id, index, it)
+                    practiceViewModel?.saveNote(id, index, it)
+                },
+                settingsViewModel = settingsViewModel
+            )
+        }
+
         composable(
             "spark/{id}/{index}/{text}",
             arguments = listOf(

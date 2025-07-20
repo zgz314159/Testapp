@@ -54,7 +54,9 @@ fun PracticeScreen(
     onSubmit: (Boolean) -> Unit = {},
     onExitWithoutAnswer: () -> Unit = {},
     onViewDeepSeek: (String, Int, Int) -> Unit = { _, _, _ -> },
-    onViewSpark: (String, Int, Int) -> Unit = { _, _, _ -> }
+    onViewSpark: (String, Int, Int) -> Unit = { _, _, _ -> },
+    onAskDeepSeek: (String, Int, Int) -> Unit = { _, _, _ -> },
+    onAskSpark: (String, Int, Int) -> Unit = { _, _, _ -> }
 ) {
     // --- 各种状态和依赖 ---
     val randomPractice by settingsViewModel.randomPractice.collectAsState()
@@ -140,6 +142,7 @@ fun PracticeScreen(
     var noteText by remember { mutableStateOf("") }
     var menuExpanded by remember { mutableStateOf(false) }
     var aiMenuExpanded by remember { mutableStateOf(false) }
+    var askMenuExpanded by remember { mutableStateOf(false) }
     var score by remember { mutableStateOf(0) }
     val storedPracticeFontSize by FontSettingsDataStore
         .getPracticeFontSize(context, Float.NaN)
@@ -317,6 +320,28 @@ fun PracticeScreen(
                     }
                 })
             }
+
+            IconButton(onClick = { askMenuExpanded = true }) {
+                Icon(
+                    imageVector = Icons.Filled.SmartToy,
+                    contentDescription = "AI 提问"
+                )
+            }
+            DropdownMenu(expanded = askMenuExpanded, onDismissRequest = { askMenuExpanded = false }) {
+                DropdownMenuItem(text = { Text("DeepSeek AI") }, onClick = {
+                    askMenuExpanded = false
+                    if (question != null) {
+                        onAskDeepSeek(question.content, question.id, currentIndex)
+                    }
+                })
+                DropdownMenuItem(text = { Text("Spark AI") }, onClick = {
+                    askMenuExpanded = false
+                    if (question != null) {
+                        onAskSpark(question.content, question.id, currentIndex)
+                    }
+                })
+            }
+
             IconButton(onClick = {
                 coroutineScope.launch {
                     noteText = viewModel.getNote(question.id) ?: ""
