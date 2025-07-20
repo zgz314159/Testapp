@@ -141,8 +141,10 @@ fun PracticeScreen(
     }
     var showList by remember { mutableStateOf(false) }
     var menuExpanded by remember { mutableStateOf(false) }
-    var sessionAnsweredCount by remember { mutableStateOf(0) }
+    var initialAnsweredCount by remember { mutableStateOf(0) }
     var sessionScore         by remember { mutableStateOf(0) }
+    // 当前答题数 = answeredList.size - initialAnsweredCount
+    val sessionAnsweredCount = answeredList.size - initialAnsweredCount
     var aiMenuExpanded by remember { mutableStateOf(false) }
     var askMenuExpanded by remember { mutableStateOf(false) }
 
@@ -190,7 +192,8 @@ fun PracticeScreen(
         if (progressLoaded) {
             answeredThisSession = false
             sessionScore = 0
-
+            // 记录进入页面时已答题数量，便于计算本次答题数
+            initialAnsweredCount = answeredList.size
         }
     }
     LaunchedEffect(analysisPair) {
@@ -211,9 +214,9 @@ fun PracticeScreen(
                 autoJob?.cancel()
                 onExitWithoutAnswer()
             }
-            answeredList.size >= questions.size -> {
+            sessionAnsweredCount >= questions.size -> {
                 autoJob?.cancel()
-                val unanswered = questions.size - answeredList.size
+                val unanswered = questions.size - sessionAnsweredCount
                 viewModel.addHistoryRecord(sessionScore, questions.size, unanswered)
                 onQuizEnd(sessionScore, questions.size, unanswered)
             }
@@ -254,9 +257,9 @@ fun PracticeScreen(
                                         autoJob?.cancel()
                                         onExitWithoutAnswer()
                                     }
-                                    answeredList.size >= questions.size -> {
+                                    sessionAnsweredCount >= questions.size -> {
                                         autoJob?.cancel()
-                                        val unanswered = questions.size - answeredList.size
+                                        val unanswered = questions.size - sessionAnsweredCount
                                         viewModel.addHistoryRecord(sessionScore, questions.size, unanswered)
                                         onQuizEnd(sessionScore, questions.size, unanswered)
                                     }
@@ -511,9 +514,8 @@ fun PracticeScreen(
 
                             val correctIdx = answerLetterToIndex(question.answer)
                             val correct = idx == correctIdx
-                            if (!showResult) {
-                                sessionAnsweredCount++
-                                if (correct) sessionScore++
+                            if (!showResult && correct) {
+                                sessionScore++
                             }
 
                             if (soundEnabled) {
@@ -528,9 +530,7 @@ fun PracticeScreen(
                                     )
                                 }
                             }
-                            if (!showResult && correct) {
-                                sessionScore++
-                            }
+
 
                             onSubmit(correct)
                             autoJob?.cancel()
@@ -774,12 +774,7 @@ fun PracticeScreen(
                                 )
                             }
                         }
-                        if (!showResult) {
-                            sessionAnsweredCount++
-                            if (allCorrect) sessionScore++
-                        }
-
-                        if (allCorrect && !showResult) {
+                        if (!showResult && allCorrect) {
                             sessionScore++
                         }
                         onSubmit(allCorrect)
@@ -792,6 +787,7 @@ fun PracticeScreen(
                                 onExitWithoutAnswer()
                             } else if (sessionAnsweredCount >= questions.size) {
                                 val unanswered = questions.size - sessionAnsweredCount
+                                viewModel.addHistoryRecord(sessionScore, questions.size, unanswered)
                                 onQuizEnd(sessionScore, questions.size, unanswered)
                             } else {
                                 showExitDialog = true
@@ -856,7 +852,7 @@ fun PracticeScreen(
                     // 1. 先算总题数
                     val totalQuestions = questions.size
 // 2. 本次未答 = 总题数 - 本次已答
-                    val unanswered = questions.size - answeredList.size
+                    val unanswered = questions.size - sessionAnsweredCount
                     viewModel.addHistoryRecord(sessionScore, questions.size, unanswered)
                     onQuizEnd(sessionScore, questions.size, unanswered)
                 }) { Text("确定") }
@@ -865,7 +861,12 @@ fun PracticeScreen(
                 TextButton(onClick = { showExitDialog = false }) { Text("取消") }
             },
             text = {
-                Text(if (answeredList.size < questions.size) "还有未答题目，是否交卷？" else "确定交卷？")
+                Text(
+                    if (sessionAnsweredCount < questions.size)
+                        "还有未答题目，是否交卷？"
+                    else
+                        "确定交卷？"
+                )
             }
         )
     }

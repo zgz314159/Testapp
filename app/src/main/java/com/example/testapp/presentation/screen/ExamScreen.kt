@@ -198,13 +198,15 @@ fun ExamScreen(
     var dragStartX by remember { mutableStateOf(0f) }
     var showExitDialog by remember { mutableStateOf(false) }
     var answeredThisSession by remember { mutableStateOf(false) }
-    var sessionAnsweredCount by remember { mutableStateOf(0) }
+    var initialAnsweredCount by remember { mutableStateOf(0) }
     var sessionScore by remember { mutableStateOf(0) }
+    val sessionAnsweredCount = selectedOptions.count { it.isNotEmpty() } - initialAnsweredCount
     LaunchedEffect(progressLoaded) {
         if (progressLoaded) {
             answeredThisSession = false
-            sessionAnsweredCount = 0
             sessionScore = 0
+            // 记录进入页面时已答题数
+            initialAnsweredCount = selectedOptions.count { it.isNotEmpty() }
         }
     }
 
@@ -524,7 +526,6 @@ fun ExamScreen(
                         viewModel.selectOption(idx)
                         if (question.type == "单选题" || question.type == "判断题") {
                             if (!showResult) {
-                                sessionAnsweredCount++
                                 val correct = listOf(idx) == correctIndices
                                 if (correct) sessionScore++
                             }
@@ -753,7 +754,6 @@ fun ExamScreen(
                     onClick = {
                         answeredThisSession = true
                         if (!showResult) {
-                            sessionAnsweredCount++
                             val correctIndices = answerLettersToIndices(question.answer)
                             if (selectedOption.toSet() == correctIndices.toSet()) {
                                 sessionScore++
