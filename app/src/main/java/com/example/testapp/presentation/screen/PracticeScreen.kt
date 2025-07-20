@@ -573,6 +573,10 @@ fun PracticeScreen(
         if (showResult) {
             val correctText = correctIndices.joinToString("、") { question.options[it] }
             val allCorrect = selectedOption.toSet() == correctIndices.toSet()
+            val note = noteList.getOrNull(currentIndex)
+            val hasNoteText = !note.isNullOrBlank()
+            val hasAnalysisText = !analysisText.isNullOrBlank()
+            val hasSparkText = !sparkText.isNullOrBlank()
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -589,13 +593,17 @@ fun PracticeScreen(
             if (question.explanation.isNotBlank()) {
                 val collapsed = expandedSection != -1 && expandedSection != 0
                 val lineHeight = with(LocalDensity.current) { (questionFontSize * 1.3f).sp.toDp() }
+                val modifier = if (!collapsed) {
+                    var m = Modifier.verticalScroll(explanationScroll)
+                    if (!hasNoteText && !hasAnalysisText && !hasSparkText) m = m.weight(1f, fill = false)
+                    m
+                } else {
+                    Modifier.heightIn(max = lineHeight + 16.dp)
+                }
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .then(
-                            if (!collapsed) Modifier.weight(1f, fill = false).verticalScroll(explanationScroll)
-                            else Modifier.heightIn(max = lineHeight + 16.dp)
-                        )
+                        .then(modifier)
                         .background(Color(0xFFFFF5C0))
                         .padding(8.dp)
                         .animateContentSize()
@@ -615,17 +623,20 @@ fun PracticeScreen(
                     )
                 }
             }
-            val note = noteList.getOrNull(currentIndex)
-            if (!note.isNullOrBlank()) {
+            if (hasNoteText) {
                 val collapsed = expandedSection != -1 && expandedSection != 1
                 val lineHeight = with(LocalDensity.current) { (questionFontSize * 1.3f).sp.toDp() }
+                val modifier = if (!collapsed) {
+                    var m = Modifier.verticalScroll(noteScroll)
+                    if (!hasAnalysisText && !hasSparkText) m = m.weight(1f, fill = false)
+                    m
+                } else {
+                    Modifier.heightIn(max = lineHeight + 16.dp)
+                }
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .then(
-                            if (!collapsed) Modifier.weight(1f, fill = false).verticalScroll(noteScroll)
-                            else Modifier.heightIn(max = lineHeight + 16.dp)
-                        )
+                        .then(modifier)
                         .background(Color(0xFFE0FFE0))
                         .padding(8.dp)
                         .animateContentSize()
@@ -633,7 +644,9 @@ fun PracticeScreen(
                             detectTapGestures(
                                 onTap = { expandedSection = if (collapsed) 1 else -1 },
                                 onDoubleTap = {
-                                    onEditNote(note, question.id, currentIndex)
+                                    if (note != null) {
+                                        onEditNote(note, question.id, currentIndex)
+                                    }
                                 },
                                 onLongPress = { showDeleteNoteDialog = true }
                             )
@@ -650,17 +663,21 @@ fun PracticeScreen(
                 }
             }
 
-            if (!analysisText.isNullOrBlank() || !sparkText.isNullOrBlank()) {
+            if (hasAnalysisText || hasSparkText) {
                 if (!analysisText.isNullOrBlank()) {
                     val collapsed = expandedSection != -1 && expandedSection != 2
                     val lineHeight = with(LocalDensity.current) { (questionFontSize * 1.3f).sp.toDp() }
+                    val modifier = if (!collapsed) {
+                        var m = Modifier.verticalScroll(deepSeekScroll)
+                        if (!hasSparkText) m = m.weight(1f, fill = false)
+                        m
+                    } else {
+                        Modifier.heightIn(max = lineHeight + 16.dp)
+                    }
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .then(
-                                if (!collapsed) Modifier.weight(1f, fill = false).verticalScroll(deepSeekScroll)
-                                else Modifier.heightIn(max = lineHeight + 16.dp)
-                            )
+                            .then(modifier)
                             .background(Color(0xFFE8F6FF))
                             .padding(8.dp)
                             .animateContentSize()
@@ -689,13 +706,15 @@ fun PracticeScreen(
                 if (!sparkText.isNullOrBlank()) {
                     val collapsed = expandedSection != -1 && expandedSection != 3
                     val lineHeight = with(LocalDensity.current) { (questionFontSize * 1.3f).sp.toDp() }
+                    val modifier = if (!collapsed) {
+                        Modifier.weight(1f, fill = false).verticalScroll(sparkScroll)
+                    } else {
+                        Modifier.heightIn(max = lineHeight + 16.dp)
+                    }
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .then(
-                                if (!collapsed) Modifier.weight(1f, fill = false).verticalScroll(sparkScroll)
-                                else Modifier.heightIn(max = lineHeight + 16.dp)
-                            )
+                            .then(modifier)
                             .background(Color(0xFFEDE7FF))
                             .padding(8.dp)
                             .animateContentSize()
@@ -721,7 +740,7 @@ fun PracticeScreen(
                         )
                     }
                 }
-            } else {
+            } else if (!hasNoteText && question.explanation.isBlank()) {
                 Spacer(modifier = Modifier.weight(1f, fill = true))
             }
         } else {

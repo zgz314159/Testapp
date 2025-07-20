@@ -575,6 +575,10 @@ fun ExamScreen(
         if (showResult) {
             val correctIndices = answerLettersToIndices(question.answer)
             val correct = selectedOption.sorted() == correctIndices.sorted()
+            val note = noteList.getOrNull(currentIndex)
+            val hasNoteText = !note.isNullOrBlank()
+            val hasAnalysisText = !analysisText.isNullOrBlank()
+            val hasSparkText = !sparkText.isNullOrBlank()
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -595,13 +599,17 @@ fun ExamScreen(
             if (question.explanation.isNotBlank()) {
                 val collapsed = expandedSection != -1 && expandedSection != 0
                 val lineHeight = with(LocalDensity.current) { (questionFontSize * 1.3f).sp.toDp() }
+                val modifier = if (!collapsed) {
+                    var m = Modifier.verticalScroll(explanationScroll)
+                    if (!hasNoteText && !hasAnalysisText && !hasSparkText) m = m.weight(1f, fill = false)
+                    m
+                } else {
+                    Modifier.heightIn(max = lineHeight + 16.dp)
+                }
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .then(
-                            if (!collapsed) Modifier.weight(1f, fill = false).verticalScroll(explanationScroll)
-                            else Modifier.heightIn(max = lineHeight + 16.dp)
-                        )
+                        .then(modifier)
                         .background(Color(0xFFFFF5C0))
                         .padding(8.dp)
                         .animateContentSize()
@@ -621,17 +629,20 @@ fun ExamScreen(
                     )
                 }
             }
-            val note = noteList.getOrNull(currentIndex)
-            if (!note.isNullOrBlank()) {
+            if (hasNoteText) {
                 val collapsed = expandedSection != -1 && expandedSection != 1
                 val lineHeight = with(LocalDensity.current) { (questionFontSize * 1.3f).sp.toDp() }
+                val modifier = if (!collapsed) {
+                    var m = Modifier.verticalScroll(noteScroll)
+                    if (!hasAnalysisText && !hasSparkText) m = m.weight(1f, fill = false)
+                    m
+                } else {
+                    Modifier.heightIn(max = lineHeight + 16.dp)
+                }
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .then(
-                            if (!collapsed) Modifier.weight(1f, fill = false).verticalScroll(noteScroll)
-                            else Modifier.heightIn(max = lineHeight + 16.dp)
-                        )
+                        .then(modifier)
                         .background(Color(0xFFE0FFE0))
                         .padding(8.dp)
                         .animateContentSize()
@@ -639,7 +650,9 @@ fun ExamScreen(
                             detectTapGestures(
                                 onTap = { expandedSection = if (collapsed) 1 else -1 },
                                 onDoubleTap = {
-                                    onEditNote(note, question.id, currentIndex)
+                                    if (note != null) {
+                                        onEditNote(note, question.id, currentIndex)
+                                    }
                                 },
                                 onLongPress = { showDeleteNoteDialog = true }
                             )
@@ -655,26 +668,28 @@ fun ExamScreen(
                     )
                 }
             }
-            if (!analysisText.isNullOrBlank() || !sparkText.isNullOrBlank()) {
+            if (hasAnalysisText || hasSparkText) {
                 if (!analysisText.isNullOrBlank()) {
                     val collapsed = expandedSection != -1 && expandedSection != 2
                     val lineHeight = with(LocalDensity.current) { (questionFontSize * 1.3f).sp.toDp() }
+                    val modifier = if (!collapsed) {
+                        var m = Modifier.verticalScroll(deepSeekScroll)
+                        if (!hasSparkText) m = m.weight(1f, fill = false)
+                        m
+                    } else {
+                        Modifier.heightIn(max = lineHeight + 16.dp)
+                    }
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .then(
-                                if (!collapsed) Modifier.weight(1f, fill = false).verticalScroll(deepSeekScroll)
-                                else Modifier.heightIn(max = lineHeight + 16.dp)
-                            )
+                            .then(modifier)
                             .background(Color(0xFFE8F6FF))
                             .padding(8.dp)
                             .animateContentSize()
                             .pointerInput(analysisText) {
                                 detectTapGestures(
                                     onTap = { expandedSection = if (collapsed) 2 else -1 },
-                                    onDoubleTap = {
-                                        onViewDeepSeek(analysisText!!, question.id, currentIndex)
-                                    },
+                                    onDoubleTap = { onViewDeepSeek(analysisText!!, question.id, currentIndex) },
                                     onLongPress = { showDeleteDialog = true }
                                 )
                             }
@@ -692,22 +707,22 @@ fun ExamScreen(
                 if (!sparkText.isNullOrBlank()) {
                     val collapsed = expandedSection != -1 && expandedSection != 3
                     val lineHeight = with(LocalDensity.current) { (questionFontSize * 1.3f).sp.toDp() }
+                    val modifier = if (!collapsed) {
+                        Modifier.weight(1f, fill = false).verticalScroll(sparkScroll)
+                    } else {
+                        Modifier.heightIn(max = lineHeight + 16.dp)
+                    }
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .then(
-                                if (!collapsed) Modifier.weight(1f, fill = false).verticalScroll(sparkScroll)
-                                else Modifier.heightIn(max = lineHeight + 16.dp)
-                            )
+                            .then(modifier)
                             .background(Color(0xFFEDE7FF))
                             .padding(8.dp)
                             .animateContentSize()
                             .pointerInput(sparkText) {
                                 detectTapGestures(
                                     onTap = { expandedSection = if (collapsed) 3 else -1 },
-                                    onDoubleTap = {
-                                        onViewSpark(sparkText!!, question.id, currentIndex)
-                                    },
+                                    onDoubleTap = { onViewSpark(sparkText!!, question.id, currentIndex) },
                                     onLongPress = { showDeleteDialog = true }
                                 )
                             }
@@ -722,7 +737,7 @@ fun ExamScreen(
                         )
                     }
                 }
-            } else {
+            } else if (!hasNoteText && question.explanation.isBlank()) {
                 Spacer(modifier = Modifier.weight(1f))
             }
         } else {
