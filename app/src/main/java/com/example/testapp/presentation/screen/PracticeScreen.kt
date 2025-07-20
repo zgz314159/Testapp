@@ -143,7 +143,8 @@ fun PracticeScreen(
     var menuExpanded by remember { mutableStateOf(false) }
     var aiMenuExpanded by remember { mutableStateOf(false) }
     var askMenuExpanded by remember { mutableStateOf(false) }
-    var score by remember { mutableStateOf(0) }
+    var sessionScore by remember { mutableStateOf(0) }
+    var sessionAnsweredCount by remember { mutableStateOf(0) }
     val storedPracticeFontSize by FontSettingsDataStore
         .getPracticeFontSize(context, Float.NaN)
         .collectAsState(initial = Float.NaN)
@@ -184,7 +185,11 @@ fun PracticeScreen(
         if (sparkScroll.isScrollInProgress) expandedSection = 3
     }
     LaunchedEffect(progressLoaded) {
-        if (progressLoaded) answeredThisSession = false
+        if (progressLoaded) {
+            answeredThisSession = false
+            sessionScore = 0
+            sessionAnsweredCount = 0
+        }
     }
     LaunchedEffect(analysisPair) {
         val pair = analysisPair
@@ -206,9 +211,9 @@ fun PracticeScreen(
             }
             answeredList.size >= questions.size -> {
                 autoJob?.cancel()
-                val unanswered = questions.size - answeredList.size
-                viewModel.addHistoryRecord(score, questions.size, unanswered)
-                onQuizEnd(score, questions.size, unanswered)
+                val unanswered = questions.size - sessionAnsweredCount
+                viewModel.addHistoryRecord(sessionScore, questions.size, unanswered)
+                onQuizEnd(sessionScore, questions.size, unanswered)
             }
             else -> showExitDialog = true
         }
@@ -249,9 +254,9 @@ fun PracticeScreen(
                                     }
                                     answeredList.size >= questions.size -> {
                                         autoJob?.cancel()
-                                        val unanswered = questions.size - answeredList.size
-                                        viewModel.addHistoryRecord(score, questions.size, unanswered)
-                                        onQuizEnd(score, questions.size, unanswered)
+                                        val unanswered = questions.size - sessionAnsweredCount
+                                        viewModel.addHistoryRecord(sessionScore, questions.size, unanswered)
+                                        onQuizEnd(sessionScore, questions.size, unanswered)
                                     }
                                     else -> showExitDialog = true
                                 }
@@ -515,7 +520,10 @@ fun PracticeScreen(
                                     )
                                 }
                             }
-                            if (correct) score++
+                            if (!showResult) {
+                                sessionAnsweredCount++
+                                if (correct) sessionScore++
+                            }
                             onSubmit(correct)
                             autoJob?.cancel()
                             autoJob = coroutineScope.launch {
@@ -525,9 +533,9 @@ fun PracticeScreen(
                                 if (currentIndex < questions.size - 1) viewModel.nextQuestion()
                                 else if (answeredList.isEmpty()) onExitWithoutAnswer()
                                 else if (answeredList.size >= questions.size) {
-                                    val unanswered = questions.size - answeredList.size
-                                    viewModel.addHistoryRecord(score, questions.size, unanswered)
-                                    onQuizEnd(score, questions.size, unanswered)
+                                    val unanswered = questions.size - sessionAnsweredCount
+                                    viewModel.addHistoryRecord(sessionScore, questions.size, unanswered)
+                                    onQuizEnd(sessionScore, questions.size, unanswered)
                                 }
                                 else showExitDialog = true
                             }
@@ -751,7 +759,10 @@ fun PracticeScreen(
                                 )
                             }
                         }
-                        if (allCorrect) score++
+                        if (!showResult) {
+                            sessionAnsweredCount++
+                            if (allCorrect) sessionScore++
+                        }
                         onSubmit(allCorrect)
                         autoJob = coroutineScope.launch {
                             val d = if (allCorrect) correctDelay else wrongDelay
@@ -759,8 +770,8 @@ fun PracticeScreen(
                             if (currentIndex < questions.size - 1) viewModel.nextQuestion()
                             else if (answeredList.isEmpty()) onExitWithoutAnswer()
                             else if (answeredList.size >= questions.size) {
-                                val unanswered = questions.size - answeredList.size
-                                onQuizEnd(score, questions.size, unanswered)
+                                val unanswered = questions.size - sessionAnsweredCount
+                                onQuizEnd(sessionScore, questions.size, unanswered)
                             }
                             else showExitDialog = true
                         }
@@ -820,9 +831,9 @@ fun PracticeScreen(
                 TextButton(onClick = {
                     autoJob?.cancel()
                     showExitDialog = false
-                    val unanswered = questions.size - answeredList.size
-                    viewModel.addHistoryRecord(score, questions.size, unanswered)
-                    onQuizEnd(score, questions.size, unanswered)
+                    val unanswered = questions.size - sessionAnsweredCount
+                    viewModel.addHistoryRecord(sessionScore, questions.size, unanswered)
+                    onQuizEnd(sessionScore, questions.size, unanswered)
                 }) { Text("确定") }
             },
             dismissButton = {

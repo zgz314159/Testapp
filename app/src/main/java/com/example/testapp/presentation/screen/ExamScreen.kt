@@ -198,9 +198,14 @@ fun ExamScreen(
     var dragStartX by remember { mutableStateOf(0f) }
     var showExitDialog by remember { mutableStateOf(false) }
     var answeredThisSession by remember { mutableStateOf(false) }
-
+    var sessionAnsweredCount by remember { mutableStateOf(0) }
+    var sessionScore by remember { mutableStateOf(0) }
     LaunchedEffect(progressLoaded) {
-        if (progressLoaded) answeredThisSession = false
+        if (progressLoaded) {
+            answeredThisSession = false
+            sessionAnsweredCount = 0
+            sessionScore = 0
+        }
     }
 
     BackHandler {
@@ -211,9 +216,10 @@ fun ExamScreen(
             hasUnanswered -> showExitDialog = true
             else -> {
                 coroutineScope.launch {
-                    val unanswered = selectedOptions.count { it.isEmpty() }
+                    val unanswered = questions.size - sessionAnsweredCount
                     val score = viewModel.gradeExam()
-                    onExamEnd(score, questions.size, unanswered)
+                    sessionScore = score
+                    onExamEnd(sessionScore, questions.size, unanswered)
                 }
             }
         }
@@ -252,9 +258,10 @@ fun ExamScreen(
                                 selectedOptions.any { it.isEmpty() } -> showExitDialog = true
                                 else -> {
                                     coroutineScope.launch {
-                                        val unanswered = selectedOptions.count { it.isEmpty() }
+                                        val unanswered = questions.size - sessionAnsweredCount
                                         val score = viewModel.gradeExam()
-                                        onExamEnd(score, questions.size, unanswered)
+                                        sessionScore = score
+                                        onExamEnd(sessionScore, questions.size, unanswered)
                                     }
                                 }
                             }
@@ -269,9 +276,10 @@ fun ExamScreen(
                                     selectedOptions.any { it.isEmpty() } -> showExitDialog = true
                                     else -> {
                                         coroutineScope.launch {
-                                            val unanswered = selectedOptions.count { it.isEmpty() }
+                                            val unanswered = questions.size - sessionAnsweredCount
                                             val score = viewModel.gradeExam()
-                                            onExamEnd(score, questions.size, unanswered)
+                                            sessionScore = score
+                                            onExamEnd(sessionScore, questions.size, unanswered)
                                         }
                                     }
                                 }
@@ -515,7 +523,12 @@ fun ExamScreen(
                         answeredThisSession = true
                         viewModel.selectOption(idx)
                         if (question.type == "单选题" || question.type == "判断题") {
-                            viewModel.updateShowResult(currentIndex, true) // 新增这一行！
+                            if (!showResult) {
+                                sessionAnsweredCount++
+                                val correct = listOf(idx) == correctIndices
+                                if (correct) sessionScore++
+                            }
+                            viewModel.updateShowResult(currentIndex, true)
                             autoJob?.cancel()
                             autoJob = coroutineScope.launch {
                                 if (examDelay > 0) kotlinx.coroutines.delay(examDelay * 1000L)
@@ -527,9 +540,10 @@ fun ExamScreen(
                                         selectedOptions.any { it.isEmpty() } -> showExitDialog = true
                                         else -> {
                                             coroutineScope.launch {
-                                                val unanswered = selectedOptions.count { it.isEmpty() }
+                                                val unanswered = questions.size - sessionAnsweredCount
                                                 val score = viewModel.gradeExam()
-                                                onExamEnd(score, questions.size, unanswered)
+                                                sessionScore = score
+                                                onExamEnd(sessionScore, questions.size, unanswered)
                                             }
                                         }
                                     }
@@ -738,8 +752,15 @@ fun ExamScreen(
                 Button(
                     onClick = {
                         answeredThisSession = true
+                        if (!showResult) {
+                            sessionAnsweredCount++
+                            val correctIndices = answerLettersToIndices(question.answer)
+                            if (selectedOption.toSet() == correctIndices.toSet()) {
+                                sessionScore++
+                            }
+                        }
                         viewModel.updateShowResult(currentIndex, true)
-                        // 你可以加分、统计等逻辑
+
                     },
                     enabled = selectedOption.isNotEmpty()
                 ) {
@@ -795,9 +816,10 @@ fun ExamScreen(
             confirmButton = {
                 TextButton(onClick = {
                     coroutineScope.launch {
-                        val unanswered = selectedOptions.count { it.isEmpty() }
+                        val unanswered = questions.size - sessionAnsweredCount
                         val score = viewModel.gradeExam()
-                        onExamEnd(score, questions.size, unanswered)
+                        sessionScore = score
+                        onExamEnd(sessionScore, questions.size, unanswered)
                     }
                 }) { Text("确定") }
             },
