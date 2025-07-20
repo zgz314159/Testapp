@@ -56,7 +56,8 @@ fun PracticeScreen(
     onViewDeepSeek: (String, Int, Int) -> Unit = { _, _, _ -> },
     onViewSpark: (String, Int, Int) -> Unit = { _, _, _ -> },
     onAskDeepSeek: (String, Int, Int) -> Unit = { _, _, _ -> },
-    onAskSpark: (String, Int, Int) -> Unit = { _, _, _ -> }
+    onAskSpark: (String, Int, Int) -> Unit = { _, _, _ -> },
+    onEditNote: (String, Int, Int) -> Unit = { _, _, _ -> }
 ) {
     // --- 各种状态和依赖 ---
     val randomPractice by settingsViewModel.randomPractice.collectAsState()
@@ -138,8 +139,6 @@ fun PracticeScreen(
         }
     }
     var showList by remember { mutableStateOf(false) }
-    var showNoteDialog by remember { mutableStateOf(false) }
-    var noteText by remember { mutableStateOf("") }
     var menuExpanded by remember { mutableStateOf(false) }
     var aiMenuExpanded by remember { mutableStateOf(false) }
     var askMenuExpanded by remember { mutableStateOf(false) }
@@ -343,10 +342,8 @@ fun PracticeScreen(
             }
 
             IconButton(onClick = {
-                coroutineScope.launch {
-                    noteText = viewModel.getNote(question.id) ?: ""
-                    showNoteDialog = true
-                }
+                val note = noteList.getOrNull(currentIndex).orEmpty()
+                onEditNote(note, question.id, currentIndex)
             }) {
                 Icon(
                     imageVector = Icons.Filled.Edit,
@@ -627,8 +624,7 @@ fun PracticeScreen(
                             detectTapGestures(
                                 onTap = { expandedSection = if (collapsed) 1 else -1 },
                                 onDoubleTap = {
-                                    noteText = note
-                                    showNoteDialog = true
+                                    onEditNote(note, question.id, currentIndex)
                                 },
                                 onLongPress = { showDeleteNoteDialog = true }
                             )
@@ -774,24 +770,7 @@ fun PracticeScreen(
         Spacer(modifier = Modifier.height(8.dp))
     }
 
-    if (showNoteDialog) {
-        AlertDialog(
-            onDismissRequest = {
-                if (noteText.isNotBlank()) viewModel.saveNote(question.id, currentIndex, noteText)
-                showNoteDialog = false
-            },
-            confirmButton = {
-                TextButton(onClick = {
-                    if (noteText.isNotBlank()) viewModel.saveNote(question.id, currentIndex, noteText)
-                    showNoteDialog = false
-                }) { Text("完成") }
-            },
-            dismissButton = {
-                TextButton(onClick = { showNoteDialog = false }) { Text("取消") }
-            },
-            text = { TextField(value = noteText, onValueChange = { noteText = it }) }
-        )
-    }
+   
     if (showDeleteNoteDialog) {
         AlertDialog(
             onDismissRequest = { showDeleteNoteDialog = false },
