@@ -34,6 +34,7 @@ import com.example.testapp.presentation.component.AnswerCardGrid
 import com.example.testapp.presentation.component.LocalFontFamily
 import com.example.testapp.presentation.component.LocalFontSize
 import com.example.testapp.util.answerLettersToIndices
+import com.example.testapp.util.formatQuestionWithOptions
 import com.example.testapp.presentation.screen.SparkViewModel
 import kotlinx.coroutines.launch
 
@@ -345,11 +346,19 @@ fun ExamScreen(
             DropdownMenu(expanded = askMenuExpanded, onDismissRequest = { askMenuExpanded = false }) {
                 DropdownMenuItem(text = { Text("DeepSeek AI") }, onClick = {
                     askMenuExpanded = false
-                    onAskDeepSeek(question.content, question.id, currentIndex)
+                    onAskDeepSeek(
+                        formatQuestionWithOptions(question.content, question.options),
+                        question.id,
+                        currentIndex
+                    )
                 })
                 DropdownMenuItem(text = { Text("Spark AI") }, onClick = {
                     askMenuExpanded = false
-                    onAskSpark(question.content, question.id, currentIndex)
+                    onAskSpark(
+                        formatQuestionWithOptions(question.content, question.options),
+                        question.id,
+                        currentIndex
+                    )
                 })
             }
 

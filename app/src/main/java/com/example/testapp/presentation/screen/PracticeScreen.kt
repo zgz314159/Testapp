@@ -34,6 +34,7 @@ import com.example.testapp.presentation.component.LocalFontFamily
 import com.example.testapp.presentation.component.LocalFontSize
 import com.example.testapp.util.answerLetterToIndex
 import com.example.testapp.util.rememberSoundEffects
+import com.example.testapp.util.formatQuestionWithOptions
 import com.example.testapp.presentation.screen.SparkViewModel
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
@@ -330,13 +331,21 @@ fun PracticeScreen(
                 DropdownMenuItem(text = { Text("DeepSeek AI") }, onClick = {
                     askMenuExpanded = false
                     if (question != null) {
-                        onAskDeepSeek(question.content, question.id, currentIndex)
+                        onAskDeepSeek(
+                            formatQuestionWithOptions(question.content, question.options),
+                            question.id,
+                            currentIndex
+                        )
                     }
                 })
                 DropdownMenuItem(text = { Text("Spark AI") }, onClick = {
                     askMenuExpanded = false
                     if (question != null) {
-                        onAskSpark(question.content, question.id, currentIndex)
+                        onAskSpark(
+                            formatQuestionWithOptions(question.content, question.options),
+                            question.id,
+                            currentIndex
+                        )
                     }
                 })
             }

@@ -39,6 +39,7 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.material3.MaterialTheme
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import com.example.testapp.data.datastore.FontSettingsDataStore
@@ -126,13 +127,18 @@ fun DeepSeekAskScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .verticalScroll(rememberScrollState())
-                .padding(16.dp)
+                .padding(16.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
         ) {
             BasicTextField(
                 value = question,
                 onValueChange = { question = it },
                 modifier = Modifier.fillMaxWidth(),
-                textStyle = TextStyle(fontSize = LocalFontSize.current, fontFamily = LocalFontFamily.current)
+                textStyle = TextStyle(
+                    fontSize = (LocalFontSize.current.value + 2).sp,
+                    color = MaterialTheme.colorScheme.primary,
+                    fontFamily = LocalFontFamily.current
+                )
             )
 
             Spacer(modifier = Modifier.height(16.dp))
@@ -141,7 +147,11 @@ fun DeepSeekAskScreen(
                     value = answer,
                     onValueChange = { answer = it },
                     modifier = Modifier.fillMaxWidth(),
-                    textStyle = TextStyle(fontSize = screenFontSize.sp, fontFamily = LocalFontFamily.current)
+                    textStyle = TextStyle(
+                        fontSize = screenFontSize.sp,
+                        color = MaterialTheme.colorScheme.onBackground,
+                        fontFamily = LocalFontFamily.current
+                    )
                 )
             }
         }
