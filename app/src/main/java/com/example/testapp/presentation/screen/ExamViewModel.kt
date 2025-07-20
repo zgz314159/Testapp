@@ -63,6 +63,21 @@ class ExamViewModel @Inject constructor(
     private val _noteList = MutableStateFlow<List<String>>(emptyList())
     val noteList: StateFlow<List<String>> = _noteList.asStateFlow()
 
+    val totalCount: Int
+        get() = _questions.value.size
+    val answeredCount: Int
+        get() = _selectedOptions.value.count { it.isNotEmpty() }
+    val correctCount: Int
+        get() = _questions.value.indices.count { idx ->
+            val sel = _selectedOptions.value.getOrElse(idx) { emptyList() }
+            sel.isNotEmpty() && sel.sorted() == answerLettersToIndices(_questions.value[idx].answer).sorted()
+        }
+    val wrongCount: Int
+        get() = answeredCount - correctCount
+    val unansweredCount: Int
+        get() = totalCount - answeredCount
+
+
     private val _progressLoaded = MutableStateFlow(false)
     val progressLoaded: StateFlow<Boolean> = _progressLoaded.asStateFlow()
 

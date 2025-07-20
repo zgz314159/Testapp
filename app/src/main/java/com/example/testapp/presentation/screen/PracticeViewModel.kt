@@ -21,6 +21,9 @@ import com.example.testapp.domain.model.HistoryRecord
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
+import com.example.testapp.presentation.model.QuestionUiModel
+import com.example.testapp.presentation.model.AnswerStatus
+import com.example.testapp.util.answerLettersToIndices
 import javax.inject.Inject
 
 @HiltViewModel
@@ -41,6 +44,10 @@ class PracticeViewModel @Inject constructor(
 ) : ViewModel() {
     private val _questions = MutableStateFlow<List<Question>>(emptyList())
     val questions: StateFlow<List<Question>> = _questions.asStateFlow()
+
+    private val _uiQuestions = MutableStateFlow<List<QuestionUiModel>>(emptyList())
+    val uiQuestions: StateFlow<List<QuestionUiModel>> = _uiQuestions.asStateFlow()
+
 
     private val _currentIndex = MutableStateFlow(0)
     val currentIndex: StateFlow<Int> = _currentIndex.asStateFlow()
@@ -67,6 +74,21 @@ class PracticeViewModel @Inject constructor(
     private val _noteList = MutableStateFlow<List<String>>(emptyList())
     val noteList: StateFlow<List<String>> = _noteList.asStateFlow()
 
+    val totalCount: Int
+        get() = _questions.value.size
+    val answeredCount: Int
+        get() = _selectedOptions.value.count { it.isNotEmpty() }
+    val correctCount: Int
+        get() = _questions.value.indices.count { idx ->
+            val sel = _selectedOptions.value.getOrElse(idx) { emptyList() }
+            sel.isNotEmpty() && sel.sorted() == answerLettersToIndices(_questions.value[idx].answer).sorted()
+        }
+    val wrongCount: Int
+        get() = answeredCount - correctCount
+    val unansweredCount: Int
+        get() = totalCount - answeredCount
+
+
     private var progressId: String = ""
 
     val currentProgressId: String
@@ -77,6 +99,28 @@ class PracticeViewModel @Inject constructor(
     private var analysisLoaded: Boolean = false
     private var sparkAnalysisLoaded: Boolean = false
     private var notesLoaded: Boolean = false
+
+    private fun updateUiQuestions() {
+        val qs = _questions.value
+        val selections = _selectedOptions.value
+        val showRes = _showResultList.value
+        val list = qs.mapIndexed { idx, q ->
+            val sel = selections.getOrElse(idx) { emptyList() }
+            val status = if (sel.isEmpty()) {
+                AnswerStatus.UNANSWERED
+            } else if (showRes.getOrElse(idx) { false } &&
+                sel.sorted() == answerLettersToIndices(q.answer).sorted()
+            ) {
+                AnswerStatus.CORRECT
+            } else if (showRes.getOrElse(idx) { false }) {
+                AnswerStatus.INCORRECT
+            } else {
+                AnswerStatus.UNANSWERED
+            }
+            QuestionUiModel(q, status, sel)
+        }
+        _uiQuestions.value = list
+    }
 
     init {
         // 应用启动时，清理任何旧的 default 记录，防止误删到别的表
@@ -124,6 +168,7 @@ class PracticeViewModel @Inject constructor(
                         "加载题库: progressId=$progressId random=$randomPracticeEnabled count=$questionCount"
                     )
                     _questions.value = trimmed
+                    updateUiQuestions()
                     loadProgress()
                 }
             }
@@ -195,6 +240,7 @@ class PracticeViewModel @Inject constructor(
                     loadNotesFromRepository()
                     notesLoaded = true
                 }
+                updateUiQuestions()
 
             }
         }
@@ -267,6 +313,7 @@ class PracticeViewModel @Inject constructor(
         _selectedOptions.value = updatedSelected
         // ✅ 关键点：标记当前题目已经显示了答题结果
         updateShowResult(idx, true)
+        updateUiQuestions()
         saveProgress()
     }
 
@@ -278,6 +325,7 @@ class PracticeViewModel @Inject constructor(
         if (current.contains(option)) current.remove(option) else current.add(option)
         list[idx] = current
         _selectedOptions.value = list
+        updateUiQuestions()
         saveProgress()
     }
 
@@ -348,6 +396,7 @@ class PracticeViewModel @Inject constructor(
         _showResultList.value = List(count) { false }
         _analysisList.value = List(count) { "" }
         _sparkAnalysisList.value = List(count) { "" }
+        updateUiQuestions()
     }
 
     fun updateShowResult(index: Int, value: Boolean) {
@@ -356,6 +405,7 @@ class PracticeViewModel @Inject constructor(
         while (list.size <= index) list.add(false)
         list[index] = value
         _showResultList.value = list
+        updateUiQuestions()
         saveProgress()
     }
     fun updateAnalysis(index: Int, text: String) {
@@ -414,6 +464,7 @@ class PracticeViewModel @Inject constructor(
             val old = updatedList[index]
             updatedList[index] = old.copy(content = newContent)
             _questions.value = updatedList
+            updateUiQuestions()
             // 持久化到本地 JSON 文件
             viewModelScope.launch {
                 saveQuestionsUseCase(old.fileName ?: "default.json", updatedList.filter { it.fileName == old.fileName })
@@ -449,6 +500,7 @@ class PracticeViewModel @Inject constructor(
                 val filtered = wrongList.filter { it.question.fileName == fileName }
                 val list = filtered.map { it.question }
                 _questions.value = if (randomPracticeEnabled) list.shuffled() else list
+                updateUiQuestions()
                 // 重置进度相关状态
                 loadProgress()
             }
@@ -460,6 +512,7 @@ class PracticeViewModel @Inject constructor(
                 val filtered = favList.filter { it.question.fileName == fileName }
                 val list = filtered.map { it.question }
                 _questions.value = if (randomPracticeEnabled) list.shuffled() else list
+                updateUiQuestions()
                 loadProgress()
             }
         }

@@ -141,10 +141,9 @@ fun PracticeScreen(
     }
     var showList by remember { mutableStateOf(false) }
     var menuExpanded by remember { mutableStateOf(false) }
-    var initialAnsweredCount by remember { mutableStateOf(0) }
+
     var sessionScore         by remember { mutableStateOf(0) }
-    // 当前答题数 = answeredList.size - initialAnsweredCount
-    val sessionAnsweredCount = answeredList.size - initialAnsweredCount
+    val sessionAnsweredCount = viewModel.answeredCount
     var aiMenuExpanded by remember { mutableStateOf(false) }
     var askMenuExpanded by remember { mutableStateOf(false) }
 
@@ -192,8 +191,7 @@ fun PracticeScreen(
         if (progressLoaded) {
             answeredThisSession = false
             sessionScore = 0
-            // 记录进入页面时已答题数量，便于计算本次答题数
-            initialAnsweredCount = answeredList.size
+
         }
     }
     LaunchedEffect(analysisPair) {
@@ -214,11 +212,11 @@ fun PracticeScreen(
                 autoJob?.cancel()
                 onExitWithoutAnswer()
             }
-            sessionAnsweredCount >= questions.size -> {
+            sessionAnsweredCount >= viewModel.totalCount -> {
                 autoJob?.cancel()
-                val unanswered = questions.size - sessionAnsweredCount
-                viewModel.addHistoryRecord(sessionScore, questions.size, unanswered)
-                onQuizEnd(sessionScore, questions.size, unanswered)
+                val unanswered = viewModel.unansweredCount
+                viewModel.addHistoryRecord(sessionScore, viewModel.totalCount, unanswered)
+                onQuizEnd(sessionScore, viewModel.totalCount, unanswered)
             }
             else -> showExitDialog = true
         }
@@ -257,11 +255,11 @@ fun PracticeScreen(
                                         autoJob?.cancel()
                                         onExitWithoutAnswer()
                                     }
-                                    sessionAnsweredCount >= questions.size -> {
+                                    sessionAnsweredCount >= viewModel.totalCount -> {
                                         autoJob?.cancel()
-                                        val unanswered = questions.size - sessionAnsweredCount
-                                        viewModel.addHistoryRecord(sessionScore, questions.size, unanswered)
-                                        onQuizEnd(sessionScore, questions.size, unanswered)
+                                        val unanswered = viewModel.unansweredCount
+                                        viewModel.addHistoryRecord(sessionScore, viewModel.totalCount, unanswered)
+                                        onQuizEnd(sessionScore, viewModel.totalCount, unanswered)
                                     }
                                     else -> showExitDialog = true
                                 }
@@ -542,14 +540,14 @@ fun PracticeScreen(
                                     viewModel.nextQuestion()
                                 } else if (sessionAnsweredCount == 0) {
                                     onExitWithoutAnswer()
-                                } else if (sessionAnsweredCount >= questions.size) {
-                                    val unanswered = questions.size - sessionAnsweredCount
+                                } else if (sessionAnsweredCount >= viewModel.totalCount) {
+                                    val unanswered = viewModel.unansweredCount
                                     viewModel.addHistoryRecord(
                                         sessionScore,
-                                        questions.size,
+                                        viewModel.totalCount,
                                         unanswered
                                     )
-                                    onQuizEnd(sessionScore, questions.size, unanswered)
+                                    onQuizEnd(sessionScore, viewModel.totalCount, unanswered)
                                 } else {
                                     showExitDialog = true
                                 }
@@ -785,10 +783,10 @@ fun PracticeScreen(
                                 viewModel.nextQuestion()
                             } else if (sessionAnsweredCount == 0) {
                                 onExitWithoutAnswer()
-                            } else if (sessionAnsweredCount >= questions.size) {
-                                val unanswered = questions.size - sessionAnsweredCount
-                                viewModel.addHistoryRecord(sessionScore, questions.size, unanswered)
-                                onQuizEnd(sessionScore, questions.size, unanswered)
+                            } else if (sessionAnsweredCount >= viewModel.totalCount) {
+                                val unanswered = viewModel.unansweredCount
+                                viewModel.addHistoryRecord(sessionScore, viewModel.totalCount, unanswered)
+                                onQuizEnd(sessionScore, viewModel.totalCount, unanswered)
                             } else {
                                 showExitDialog = true
                             }
@@ -850,10 +848,10 @@ fun PracticeScreen(
                     autoJob?.cancel()
                     showExitDialog = false
                     // 1. 先算总题数
-                    val totalQuestions = questions.size
-                    val unanswered = questions.size - sessionAnsweredCount
-                    viewModel.addHistoryRecord(sessionScore, questions.size, unanswered)
-                    onQuizEnd(sessionScore, questions.size, unanswered)
+                    val totalQuestions = viewModel.totalCount
+                    val unanswered = viewModel.unansweredCount
+                    viewModel.addHistoryRecord(sessionScore, totalQuestions, unanswered)
+                    onQuizEnd(sessionScore, totalQuestions, unanswered)
                 }) { Text("确定") }
             },
             dismissButton = {
@@ -861,7 +859,7 @@ fun PracticeScreen(
             },
             text = {
                 Text(
-                    if (sessionAnsweredCount < questions.size)
+                    if (sessionAnsweredCount < viewModel.totalCount)
                         "还有未答题目，是否交卷？"
                     else
                         "确定交卷？"
