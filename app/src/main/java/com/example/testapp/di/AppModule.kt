@@ -11,6 +11,7 @@ import com.example.testapp.data.local.dao.PracticeProgressDao
 import com.example.testapp.data.local.dao.ExamProgressDao
 import com.example.testapp.data.local.dao.QuestionAnalysisDao
 import com.example.testapp.data.local.dao.QuestionNoteDao
+import com.example.testapp.data.local.dao.QuestionAskDao
 import com.example.testapp.data.repository.FavoriteQuestionRepositoryImpl
 import com.example.testapp.data.repository.HistoryRepositoryImpl
 import com.example.testapp.data.repository.QuestionRepositoryImpl
@@ -19,6 +20,7 @@ import com.example.testapp.data.repository.PracticeProgressRepositoryImpl
 import com.example.testapp.data.repository.ExamProgressRepositoryImpl
 import com.example.testapp.data.repository.QuestionAnalysisRepositoryImpl
 import com.example.testapp.data.repository.QuestionNoteRepositoryImpl
+import com.example.testapp.data.repository.QuestionAskRepositoryImpl
 import com.example.testapp.data.repository.FileFolderRepositoryImpl
 import com.example.testapp.data.network.deepseek.DeepSeekApiService
 import com.example.testapp.data.network.spark.SparkApiService
@@ -30,6 +32,7 @@ import com.example.testapp.domain.repository.PracticeProgressRepository
 import com.example.testapp.domain.repository.ExamProgressRepository
 import com.example.testapp.domain.repository.QuestionAnalysisRepository
 import com.example.testapp.domain.repository.QuestionNoteRepository
+import com.example.testapp.domain.repository.QuestionAskRepository
 import com.example.testapp.domain.repository.FileFolderRepository
 import com.example.testapp.domain.usecase.AddFavoriteQuestionUseCase
 import com.example.testapp.domain.usecase.AddHistoryRecordUseCase
@@ -55,6 +58,10 @@ import com.example.testapp.domain.usecase.GetSparkAnalysisUseCase
 import com.example.testapp.domain.usecase.SaveSparkAnalysisUseCase
 import com.example.testapp.domain.usecase.GetQuestionNoteUseCase
 import com.example.testapp.domain.usecase.SaveQuestionNoteUseCase
+import com.example.testapp.domain.usecase.GetDeepSeekAskResultUseCase
+import com.example.testapp.domain.usecase.SaveDeepSeekAskResultUseCase
+import com.example.testapp.domain.usecase.GetSparkAskResultUseCase
+import com.example.testapp.domain.usecase.SaveSparkAskResultUseCase
 import com.example.testapp.domain.usecase.MoveFileToFolderUseCase
 import com.example.testapp.domain.usecase.GetFileFoldersUseCase
 import com.example.testapp.domain.usecase.GetFoldersUseCase
@@ -183,6 +190,10 @@ object AppModule {
     fun provideQuestionNoteDao(db: AppDatabase): QuestionNoteDao = db.questionNoteDao()
 
     @Provides
+    fun provideQuestionAskDao(db: AppDatabase): QuestionAskDao = db.questionAskDao()
+
+
+    @Provides
     fun provideFileFolderDao(db: AppDatabase): com.example.testapp.data.local.dao.FileFolderDao = db.fileFolderDao()
 
     @Provides
@@ -259,6 +270,11 @@ object AppModule {
 
     @Provides
     @Singleton
+    fun provideQuestionAskRepository(dao: QuestionAskDao): QuestionAskRepository = QuestionAskRepositoryImpl(dao)
+
+
+    @Provides
+    @Singleton
     fun provideSavePracticeProgressUseCase(repo: PracticeProgressRepository): SavePracticeProgressUseCase = SavePracticeProgressUseCase(repo)
 
     @Provides
@@ -305,6 +321,23 @@ object AppModule {
     @Provides
     @Singleton
     fun provideSaveQuestionNoteUseCase(repo: QuestionNoteRepository): SaveQuestionNoteUseCase = SaveQuestionNoteUseCase(repo)
+
+    @Provides
+    @Singleton
+    fun provideGetDeepSeekAskResultUseCase(repo: QuestionAskRepository): GetDeepSeekAskResultUseCase = GetDeepSeekAskResultUseCase(repo)
+
+    @Provides
+    @Singleton
+    fun provideSaveDeepSeekAskResultUseCase(repo: QuestionAskRepository): SaveDeepSeekAskResultUseCase = SaveDeepSeekAskResultUseCase(repo)
+
+    @Provides
+    @Singleton
+    fun provideGetSparkAskResultUseCase(repo: QuestionAskRepository): GetSparkAskResultUseCase = GetSparkAskResultUseCase(repo)
+
+    @Provides
+    @Singleton
+    fun provideSaveSparkAskResultUseCase(repo: QuestionAskRepository): SaveSparkAskResultUseCase = SaveSparkAskResultUseCase(repo)
+
 
     @Provides
     @Singleton

@@ -3,8 +3,8 @@ package com.example.testapp.presentation.screen
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.testapp.data.network.spark.SparkApiService
-import com.example.testapp.domain.usecase.GetQuestionNoteUseCase
-import com.example.testapp.domain.usecase.SaveQuestionNoteUseCase
+import com.example.testapp.domain.usecase.GetSparkAskResultUseCase
+import com.example.testapp.domain.usecase.SaveSparkAskResultUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -15,16 +15,16 @@ import kotlinx.coroutines.launch
 @HiltViewModel
 class SparkAskViewModel @Inject constructor(
     private val api: SparkApiService,
-    private val getNoteUseCase: GetQuestionNoteUseCase,
-    private val saveNoteUseCase: SaveQuestionNoteUseCase
+    private val getResultUseCase: GetSparkAskResultUseCase,
+    private val saveResultUseCase: SaveSparkAskResultUseCase
 ) : ViewModel() {
     private val _result = MutableStateFlow("解析中...")
     val result: StateFlow<String> = _result.asStateFlow()
 
-    suspend fun getSavedNote(questionId: Int): String? = getNoteUseCase(questionId)
+    suspend fun getSavedNote(questionId: Int): String? = getResultUseCase(questionId)
 
     fun save(questionId: Int, note: String) {
-        viewModelScope.launch { saveNoteUseCase(questionId, note) }
+        viewModelScope.launch { saveResultUseCase(questionId, note) }
     }
 
     fun ask(text: String) {
