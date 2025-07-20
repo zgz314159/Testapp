@@ -394,6 +394,18 @@ class PracticeViewModel @Inject constructor(
         _noteList.value = list
     }
 
+    fun appendNote(questionId: Int, index: Int, text: String) {
+        viewModelScope.launch {
+            val current = getQuestionNoteUseCase(questionId) ?: ""
+            val newText = if (current.isBlank()) text else current + "\n\n" + text
+            saveQuestionNoteUseCase(questionId, newText)
+        }
+        val list = _noteList.value.toMutableList()
+        while (list.size <= index) list.add("")
+        list[index] = if (list[index].isBlank()) text else list[index] + "\n\n" + text
+        _noteList.value = list
+    }
+
     suspend fun getNote(questionId: Int): String? = getQuestionNoteUseCase(questionId)
 
     fun updateQuestionContent(index: Int, newContent: String) {

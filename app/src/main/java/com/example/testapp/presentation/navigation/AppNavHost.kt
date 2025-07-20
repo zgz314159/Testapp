@@ -429,8 +429,9 @@ fun AppNavHost(navController: NavHostController = rememberNavController(), setti
                 index = index,
                 navController = navController,
                 onSave = {
-                    examViewModel?.saveNote(id, index, it)
-                    practiceViewModel?.saveNote(id, index, it)
+                    val note = "【DeepSeek问答】\n" + it
+                    examViewModel?.appendNote(id, index, note)
+                    practiceViewModel?.appendNote(id, index, note)
                 },
                 settingsViewModel = settingsViewModel
             )
@@ -462,8 +463,9 @@ fun AppNavHost(navController: NavHostController = rememberNavController(), setti
                 index = index,
                 navController = navController,
                 onSave = {
-                    examViewModel?.saveNote(id, index, it)
-                    practiceViewModel?.saveNote(id, index, it)
+                    val note = "【Spark问答】\n" + it
+                    examViewModel?.appendNote(id, index, note)
+                    practiceViewModel?.appendNote(id, index, note)
                 },
                 settingsViewModel = settingsViewModel
             )
