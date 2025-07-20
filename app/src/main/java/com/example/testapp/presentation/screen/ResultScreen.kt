@@ -65,10 +65,11 @@ fun ResultScreen(
     // 最新一次记录
     val latest = historyList.maxByOrNull { it.time }
 
-    // 当前考试/练习统计：优先使用传入参数，否则回退到最新记录
-    val currentScore = if (total > 0) score else latest?.score ?: 0
-    val currentTotal = if (total > 0) total else latest?.total ?: 0
-    val currentUnanswered = if (total > 0) unanswered else latest?.unanswered ?: 0
+    // 当前考试/练习统计：对、总还保留走传参或历史，但未答要先用传参
+    val currentScore      = score.takeIf { total > 0 } ?: latest?.score     ?: 0
+    val currentTotal      = total.takeIf { total > 0 } ?: latest?.total     ?: 0
+    val currentUnanswered = unanswered.takeIf { total > 0 } ?: latest?.unanswered ?: 0
+
     val currentWrong = currentTotal - currentScore - currentUnanswered
     val currentRate = if (currentTotal > 0) currentScore.toFloat() / currentTotal.toFloat() else 0f
     val currentRateText = String.format("%.2f", currentRate * 100)
