@@ -99,7 +99,11 @@ fun ExamScreen(
     val hasDeepSeekAnalysis = analysisList.getOrNull(currentIndex).orEmpty().isNotBlank()
     val sparkText = if (sparkPair?.first == currentIndex) sparkPair?.second else sparkAnalysisList.getOrNull(currentIndex)
     val hasSparkAnalysis = sparkAnalysisList.getOrNull(currentIndex).orEmpty().isNotBlank()
-    val hasNote = noteList.getOrNull(currentIndex).orEmpty().isNotBlank()
+    val noteLines = noteList.getOrNull(currentIndex)
+        ?.lines()
+        ?.filter { it.isNotBlank() }
+        ?: emptyList()
+    val hasNote = noteLines.isNotEmpty()
     val favoriteViewModel: FavoriteViewModel = hiltViewModel()
     val favoriteQuestions by favoriteViewModel.favoriteQuestions.collectAsState()
     val isFavorite = remember(question, favoriteQuestions) {
@@ -615,11 +619,12 @@ fun ExamScreen(
                     )
                 }
             }
-            val note = noteList.getOrNull(currentIndex)
-            if (!note.isNullOrBlank()) {
+            val rawNote = noteList.getOrNull(currentIndex)
+            val notes = rawNote?.lines()?.filter { it.isNotBlank() } ?: emptyList()
+            if (notes.isNotEmpty()) {
                 val collapsed = expandedSection != -1 && expandedSection != 1
                 val lineHeight = with(LocalDensity.current) { (questionFontSize * 1.3f).sp.toDp() }
-                Box(
+                Column(
                     modifier = Modifier
                         .fillMaxWidth()
                         .then(
@@ -629,25 +634,28 @@ fun ExamScreen(
                         .background(Color(0xFFE0FFE0))
                         .padding(8.dp)
                         .animateContentSize()
-                        .pointerInput(note) {
+                        .pointerInput(rawNote) {
                             detectTapGestures(
                                 onTap = { expandedSection = if (collapsed) 1 else -1 },
                                 onDoubleTap = {
-                                    noteText = note
+                                    noteText = rawNote ?: ""
                                     showNoteDialog = true
                                 },
                                 onLongPress = { showDeleteNoteDialog = true }
                             )
                         }
                 ) {
-                    Text(
-                        text = "笔记：$note",
-                        color = Color(0xFF004B00),
-                        fontSize = questionFontSize.sp,
-                        fontFamily = LocalFontFamily.current,
-                        maxLines = if (collapsed) 1 else Int.MAX_VALUE,
-                        overflow = TextOverflow.Ellipsis
-                    )
+                    notes.forEachIndexed { idx, n ->
+                        Text(
+                            text = if (notes.size > 1) "笔记${idx + 1}：$n" else "笔记：$n",
+                            color = Color(0xFF004B00),
+                            fontSize = questionFontSize.sp,
+                            fontFamily = LocalFontFamily.current,
+                            maxLines = if (collapsed) 1 else Int.MAX_VALUE,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                        if (idx < notes.lastIndex) Spacer(Modifier.height(4.dp))
+                    }
                 }
             }
             if (!analysisText.isNullOrBlank() || !sparkText.isNullOrBlank()) {
