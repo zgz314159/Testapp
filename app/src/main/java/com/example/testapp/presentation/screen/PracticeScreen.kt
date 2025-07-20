@@ -770,7 +770,7 @@ fun PracticeScreen(
         Spacer(modifier = Modifier.height(8.dp))
     }
 
-   
+
     if (showDeleteNoteDialog) {
         AlertDialog(
             onDismissRequest = { showDeleteNoteDialog = false },

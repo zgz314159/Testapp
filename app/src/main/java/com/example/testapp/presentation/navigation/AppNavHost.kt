@@ -22,6 +22,7 @@ import com.example.testapp.presentation.screen.PracticeScreen
 import com.example.testapp.presentation.screen.ExamScreen
 import com.example.testapp.presentation.screen.DeepSeekScreen
 import com.example.testapp.presentation.screen.DeepSeekAskScreen
+import com.example.testapp.presentation.screen.NoteScreen
 import com.example.testapp.presentation.screen.SparkScreen
 import com.example.testapp.presentation.screen.SparkAskScreen
 
