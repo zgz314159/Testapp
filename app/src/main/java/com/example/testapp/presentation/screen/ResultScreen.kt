@@ -15,12 +15,13 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.example.testapp.presentation.component.LocalFontFamily
 import com.example.testapp.presentation.component.LocalFontSize
 import java.time.format.DateTimeFormatter
 
-// 1. 先写Composabe子组件
+// 子组件：统计块
 @Composable
 private fun ResultStatBlock(
     label: String,
@@ -45,7 +46,6 @@ private fun ResultStatBlock(
     }
 }
 
-// 2. 主界面
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ResultScreen(
@@ -58,25 +58,33 @@ fun ResultScreen(
     onBack: () -> Unit = onBackHome
 ) {
     val viewModel: ResultViewModel = hiltViewModel()
-    LaunchedEffect(quizId) {
-        viewModel.load(quizId)
-    }
-    val historyList by viewModel.history.collectAsState()
-    // 最新一条记录放在列表首位，直接取 firstOrNull
-    val latest = historyList.firstOrNull()
-    val displayScore = if (score == 0 && total == 0) latest?.score ?: 0 else score
-    val displayTotal = if (score == 0 && total == 0) latest?.total ?: 0 else total
-    val displayUnanswered = if (score == 0 && total == 0) latest?.unanswered ?: 0 else unanswered
-    val wrongCount = if (score == 0 && total == 0) {
-        latest?.let { it.total - it.score - it.unanswered } ?: 0
-    } else {
-        total - score - unanswered
-    }
-    val accuracyRate = if (displayTotal > 0) displayScore.toFloat() / displayTotal else 0f
-    val accuracyText = String.format("%.2f", accuracyRate * 100)
-    val formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")
+    LaunchedEffect(quizId) { viewModel.load(quizId) }
 
+    // 获取历史记录
+    val historyList by viewModel.history.collectAsState(initial = emptyList())
+    // 最新一次记录
+    val latest = historyList.maxByOrNull { it.time }
+
+    // 当前考试/练习统计：优先使用传入参数，否则回退到最新记录
+    val currentScore = if (total > 0) score else latest?.score ?: 0
+    val currentTotal = if (total > 0) total else latest?.total ?: 0
+    val currentUnanswered = if (total > 0) unanswered else latest?.unanswered ?: 0
+    val currentWrong = currentTotal - currentScore - currentUnanswered
+    val currentRate = if (currentTotal > 0) currentScore.toFloat() / currentTotal.toFloat() else 0f
+    val currentRateText = String.format("%.2f", currentRate * 100)
+
+    // 整张考试/练习统计：基于题库总题数（latest.total）
+    val overallTotal = latest?.total ?: 0
+    val overallScore = latest?.score ?: 0
+    val overallUnanswered = latest?.unanswered ?: 0
+    val overallWrong = overallTotal - overallScore - overallUnanswered
+    val overallRate = if (overallTotal > 0) overallScore.toFloat() / overallTotal.toFloat() else 0f
+    val overallRateText = String.format("%.2f", overallRate * 100)
+
+    val formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")
     val scrollState = rememberScrollState()
+
+    // 模式与文件名
     val (modeText, fileName) = when {
         quizId.startsWith("exam_") -> "考试" to quizId.removePrefix("exam_")
         quizId.startsWith("practice_") -> "练习" to quizId.removePrefix("practice_")
@@ -85,6 +93,7 @@ fun ResultScreen(
     val isExam = modeText == "考试"
     val currentLabel = if (isExam) "当前考试：" else "当前练习："
     val overallLabel = if (isExam) "整张考试：" else "整张练习："
+
     Scaffold(
         bottomBar = {
             Surface(shadowElevation = 8.dp) {
@@ -97,30 +106,18 @@ fun ResultScreen(
                 ) {
                     Button(
                         onClick = onBack,
-                        modifier = Modifier
-                            .weight(1f)
-                            .height(44.dp),
+                        modifier = Modifier.weight(1f).height(44.dp),
                         shape = RoundedCornerShape(12.dp)
                     ) {
-                        Text(
-                            "返回首页",
-                            fontSize = LocalFontSize.current * 0.98f,
-                            fontFamily = LocalFontFamily.current
-                        )
+                        Text("返回首页", fontSize = LocalFontSize.current * 0.98f, fontFamily = LocalFontFamily.current)
                     }
                     Button(
                         onClick = onViewDetail,
                         enabled = quizId.isNotBlank(),
-                        modifier = Modifier
-                            .weight(1f)
-                            .height(44.dp),
+                        modifier = Modifier.weight(1f).height(44.dp),
                         shape = RoundedCornerShape(12.dp)
                     ) {
-                        Text(
-                            "答题详情",
-                            fontSize = LocalFontSize.current * 0.98f,
-                            fontFamily = LocalFontFamily.current
-                        )
+                        Text("答题详情", fontSize = LocalFontSize.current * 0.98f, fontFamily = LocalFontFamily.current)
                     }
                 }
             }
@@ -134,290 +131,83 @@ fun ResultScreen(
                 .padding(horizontal = 18.dp, vertical = 14.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            // 文件名与模式
             if (fileName.isNotBlank()) {
                 Text(
                     text = fileName,
-                    style = MaterialTheme.typography.titleLarge.copy(
-                        fontSize = LocalFontSize.current * 1.05f,
-                        fontFamily = LocalFontFamily.current
-                    ),
+                    style = MaterialTheme.typography.titleLarge.copy(fontSize = LocalFontSize.current * 1.05f, fontFamily = LocalFontFamily.current),
                     color = MaterialTheme.colorScheme.primary,
                     modifier = Modifier.padding(bottom = 4.dp)
                 )
             }
             Spacer(modifier = Modifier.height(18.dp))
 
-            // 统计卡片
+            // 当前考试卡片
             Card(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(bottom = 20.dp),
+                modifier = Modifier.fillMaxWidth().padding(bottom = 20.dp),
                 shape = RoundedCornerShape(18.dp),
-                colors = CardDefaults.cardColors(
-                    containerColor = MaterialTheme.colorScheme.surfaceContainer
-                ),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainer),
                 elevation = CardDefaults.cardElevation(defaultElevation = 6.dp)
             ) {
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(22.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally
-                ) {
-                    Box(modifier = Modifier.fillMaxWidth()) {
-                        Text(
-                            text = currentLabel,
-                            style = MaterialTheme.typography.titleSmall.copy(
-                                fontSize = LocalFontSize.current * 0.9f,
-                                fontFamily = LocalFontFamily.current
-                            ),
-                            color = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.align(Alignment.CenterStart)
-                        )
-                    }
-                    Text(
-                        text = "$displayScore / $displayTotal",
-                        style = MaterialTheme.typography.displaySmall.copy(
-                            fontSize = LocalFontSize.current * 1.2f,
-                            fontFamily = LocalFontFamily.current
-                        ),
-                        color = MaterialTheme.colorScheme.primary
-                    )
+                Column(modifier = Modifier.fillMaxWidth().padding(22.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+                    Text(currentLabel, style = MaterialTheme.typography.titleSmall.copy(fontSize = LocalFontSize.current * 0.9f, fontFamily = LocalFontFamily.current), color = MaterialTheme.colorScheme.primary)
+                    Text("$currentScore / $currentTotal", style = MaterialTheme.typography.displaySmall.copy(fontSize = LocalFontSize.current * 1.2f, fontFamily = LocalFontFamily.current), color = MaterialTheme.colorScheme.primary)
                     Spacer(modifier = Modifier.height(10.dp))
-                    LinearProgressIndicator(
-                        progress = accuracyRate,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(8.dp),
-                        color = MaterialTheme.colorScheme.primary
-                    )
+                    LinearProgressIndicator(progress = currentRate, modifier = Modifier.fillMaxWidth().height(8.dp))
                     Spacer(modifier = Modifier.height(14.dp))
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceEvenly
-                    ) {
-                        ResultStatBlock(
-                            label = "答对",
-                            value = "$displayScore",
-                            valueColor = Color.Green
-                        )
-                        ResultStatBlock(
-                            label = "答错",
-                            value = "$wrongCount",
-                            valueColor = Color.Red
-                        )
-                        ResultStatBlock(
-                            label = "未答",
-                            value = "$displayUnanswered",
-                            valueColor = Color.Yellow
-                        )
-                        ResultStatBlock(label = "正确率", value = "$accuracyText%")
+                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
+                        ResultStatBlock("答对", "$currentScore", Color.Green)
+                        ResultStatBlock("答错", "$currentWrong", Color.Red)
+                        ResultStatBlock("未答", "$currentUnanswered", Color.Yellow)
+                        ResultStatBlock("正确率", "$currentRateText%")
                     }
                 }
             }
 
-
-            // ===== 整个题库的答题情况 =====
-
-            val wrongBook by viewModel.wrongBook.collectAsState()
-
-            if (historyList.isNotEmpty()) {
-                Spacer(modifier = Modifier.height(24.dp))
-
-                // 汇总所有历史记录中的答题数和总题数
-                val gScore = historyList.sumOf { it.score }
-                val gTotal = historyList.sumOf { it.total }
-                val gUnanswered = historyList.sumOf { it.unanswered }
-                val gWrong = wrongBook.count { it.question.fileName == fileName }
-                val gRate = if (gTotal > 0) gScore.toFloat() / gTotal else 0f
-                val gRateText = String.format("%.2f", gRate * 100)
-
-                Card(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(bottom = 20.dp),
-                    shape = RoundedCornerShape(18.dp),
-                    colors = CardDefaults.cardColors(
-                        containerColor = MaterialTheme.colorScheme.surfaceContainer
-                    ),
-                    elevation = CardDefaults.cardElevation(defaultElevation = 6.dp)
-                ) {
-                    Column(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(22.dp),
-                        horizontalAlignment = Alignment.CenterHorizontally
-                    ) {
-                        Box(modifier = Modifier.fillMaxWidth()) {
-                            Text(
-                                text = overallLabel,
-                                style = MaterialTheme.typography.titleSmall.copy(
-                                    fontSize = LocalFontSize.current * 0.9f,
-                                    fontFamily = LocalFontFamily.current
-                                ),
-                                color = MaterialTheme.colorScheme.primary,
-                                modifier = Modifier.align(Alignment.CenterStart)
-                            )
-                        }
-                        Text(
-                            text = "$gScore / $gTotal",
-                            style = MaterialTheme.typography.displaySmall.copy(
-                                fontSize = LocalFontSize.current * 1.2f,
-                                fontFamily = LocalFontFamily.current
-                            ),
-                            color = MaterialTheme.colorScheme.primary
-                        )
-                        Spacer(modifier = Modifier.height(10.dp))
-                        LinearProgressIndicator(
-                            progress = gRate,
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(8.dp),
-                            color = MaterialTheme.colorScheme.primary
-                        )
-                        Spacer(modifier = Modifier.height(14.dp))
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceEvenly
-                        ) {
-                            ResultStatBlock(
-                                label = "答对",
-                                value = "$gScore",
-                                valueColor = Color.Green
-                            )
-                            ResultStatBlock(
-                                label = "答错",
-                                value = "$gWrong",
-                                valueColor = Color.Red
-                            )
-                            ResultStatBlock(
-                                label = "未答",
-                                value = "$gUnanswered",
-                                valueColor = Color.Yellow
-                            )
-                            ResultStatBlock(label = "正确率", value = "$gRateText%")
-                        }
-                    }
-                }
-
-                val allAccList = historyList.map { it.score.toFloat() / it.total }
-                if (allAccList.isNotEmpty()) {
-                    Text(
-                        "题库整体成绩走势",
-                        style = MaterialTheme.typography.titleMedium.copy(
-                            fontSize = LocalFontSize.current * 0.98f,
-                            fontFamily = LocalFontFamily.current
-                        ),
-                        color = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier
-                            .align(Alignment.Start)
-                            .padding(bottom = 6.dp)
-                    )
-                    val primary = MaterialTheme.colorScheme.primary
-                    val secondary = MaterialTheme.colorScheme.secondary
-
-                    Canvas(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(100.dp)
-                    ) {
-                        val step = if (allAccList.size > 1) size.width / (allAccList.size - 1) else 0f
-                        val points = allAccList.mapIndexed { idx, v ->
-                            Offset(idx * step, size.height - v.coerceIn(0f, 1f) * size.height)
-                        }
-                        drawLine(Color.DarkGray, Offset(0f, size.height), Offset(size.width, size.height), strokeWidth = 2f)
-                        drawLine(Color.DarkGray, Offset(0f, size.height), Offset(0f, 0f), strokeWidth = 2f)
-                        for (i in 0 until points.size - 1) {
-                            drawLine(primary, points[i], points[i + 1], strokeWidth = 4f)
-                        }
-                        points.forEach { drawCircle(secondary, 6f, it) }
-                    }
-
-                    Spacer(modifier = Modifier.height(8.dp))
-
-                    LazyColumn(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .heightIn(max = 200.dp)
-                    ) {
-                        items(historyList) { h ->
-                            val idx = historyList.indexOf(h)
-                            val wrong = h.total - h.score - h.unanswered
-                            val rate = if (h.total > 0) h.score * 100f / h.total else 0f
-                            Column(Modifier.padding(vertical = 3.dp)) {
-                                Text(
-                                    text = "${idx + 1}. 正确:${h.score} 错误:${wrong} 正确率:${"%.2f".format(rate)}% 时间:${h.time.format(formatter)}",
-                                    style = MaterialTheme.typography.bodyMedium.copy(
-                                        fontSize = LocalFontSize.current * 0.98f,
-                                        fontFamily = LocalFontFamily.current
-                                    ),
-                                    color = MaterialTheme.colorScheme.onSurface
-                                )
-                                Divider(Modifier.padding(vertical = 2.dp))
-                            }
-                        }
+            // 整张考试卡片
+            Card(
+                modifier = Modifier.fillMaxWidth().padding(bottom = 20.dp),
+                shape = RoundedCornerShape(18.dp),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainer),
+                elevation = CardDefaults.cardElevation(defaultElevation = 6.dp)
+            ) {
+                Column(modifier = Modifier.fillMaxWidth().padding(22.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+                    Text(overallLabel, style = MaterialTheme.typography.titleSmall.copy(fontSize = LocalFontSize.current * 0.9f, fontFamily = LocalFontFamily.current), color = MaterialTheme.colorScheme.primary)
+                    Text("$overallScore / $overallTotal", style = MaterialTheme.typography.displaySmall.copy(fontSize = LocalFontSize.current * 1.2f, fontFamily = LocalFontFamily.current), color = MaterialTheme.colorScheme.primary)
+                    Spacer(modifier = Modifier.height(10.dp))
+                    LinearProgressIndicator(progress = overallRate, modifier = Modifier.fillMaxWidth().height(8.dp))
+                    Spacer(modifier = Modifier.height(14.dp))
+                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
+                        ResultStatBlock("答对", "$overallScore", Color.Green)
+                        ResultStatBlock("答错", "$overallWrong", Color.Red)
+                        ResultStatBlock("未答", "$overallUnanswered", Color.Yellow)
+                        ResultStatBlock("正确率", "$overallRateText%")
                     }
                 }
             }
-            // 历史趋势线和记录
-            val accuracyList = historyList.map { it.score.toFloat() / it.total }
+
+            // 历史成绩走势及列表
+            val accuracyList = historyList.map { it.score.toFloat() / it.total.toFloat() }
             if (accuracyList.isNotEmpty()) {
-                // 小标题
-                Text(
-                    "历史成绩走势",
-                    style = MaterialTheme.typography.titleMedium.copy(
-                        fontSize = LocalFontSize.current * 0.98f,
-                        fontFamily = LocalFontFamily.current
-                    ),
-                    color = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier
-                        .align(Alignment.Start)
-                        .padding(bottom = 6.dp)
-                )
-                // 折线趋势
-                // 在 Canvas 外部获取主题色
-                val primary = MaterialTheme.colorScheme.primary
-                val secondary = MaterialTheme.colorScheme.secondary
-
-                Canvas(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(100.dp)
-                ) {
-                    val step = if (accuracyList.size > 1) size.width / (accuracyList.size - 1) else 0f
-                    val points = accuracyList.mapIndexed { idx, v ->
-                        Offset(idx * step, size.height - v.coerceIn(0f, 1f) * size.height)
-                    }
+                Text("历史成绩走势", style = MaterialTheme.typography.titleMedium.copy(fontSize = LocalFontSize.current * 0.98f, fontFamily = LocalFontFamily.current), color = MaterialTheme.colorScheme.primary, modifier = Modifier.align(Alignment.Start).padding(bottom = 6.dp))
+                val primaryColor = MaterialTheme.colorScheme.primary
+                val secondaryColor = MaterialTheme.colorScheme.secondary
+                Canvas(modifier = Modifier.fillMaxWidth().height(100.dp)) {
+                    val step = if (accuracyList.size > 1) size.width / (accuracyList.size - 1).toFloat() else 0f
+                    val points = accuracyList.mapIndexed { idx, v -> Offset(idx * step, size.height - v.coerceIn(0f, 1f) * size.height) }
                     drawLine(Color.DarkGray, Offset(0f, size.height), Offset(size.width, size.height), strokeWidth = 2f)
                     drawLine(Color.DarkGray, Offset(0f, size.height), Offset(0f, 0f), strokeWidth = 2f)
-                    for (i in 0 until points.size - 1) {
-                        drawLine(primary, points[i], points[i + 1], strokeWidth = 4f)
-                    }
-                    points.forEach { drawCircle(secondary, 6f, it) }
+                    for (i in 0 until points.size - 1) drawLine(primaryColor, points[i], points[i + 1], strokeWidth = 4f)
+                    points.forEach { drawCircle(secondaryColor, 6f, it) }
                 }
-
                 Spacer(modifier = Modifier.height(8.dp))
-
-                // 历史记录列表（适配内容高，带分割线）
-                LazyColumn(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .heightIn(max = 200.dp)
-                ) {
+                LazyColumn(modifier = Modifier.fillMaxWidth().heightIn(max = 200.dp)) {
                     items(historyList) { h ->
                         val idx = historyList.indexOf(h)
                         val wrong = h.total - h.score - h.unanswered
-                        val rate = if (h.total > 0) h.score * 100f / h.total else 0f
+                        val rate = if (h.total > 0) h.score.toFloat() / h.total.toFloat() else 0f
                         Column(Modifier.padding(vertical = 3.dp)) {
-                            Text(
-                                text = "${idx + 1}. 正确:${h.score} 错误:${wrong} 正确率:${"%.2f".format(rate)}% 时间:${h.time.format(formatter)}",
-                                style = MaterialTheme.typography.bodyMedium.copy(
-                                    fontSize = LocalFontSize.current * 0.98f,
-                                    fontFamily = LocalFontFamily.current
-                                ),
-                                color = MaterialTheme.colorScheme.onSurface
-                            )
+                            Text("${idx + 1}. 正确:${h.score} 错误:${wrong} 正确率:${"%.2f".format(rate)}% 时间:${h.time.format(formatter)}",
+                                style = MaterialTheme.typography.bodyMedium.copy(fontSize = LocalFontSize.current * 0.98f, fontFamily = LocalFontFamily.current), color = MaterialTheme.colorScheme.onSurface)
                             Divider(Modifier.padding(vertical = 2.dp))
                         }
                     }
