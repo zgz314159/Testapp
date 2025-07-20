@@ -219,17 +219,17 @@ fun ResultScreen(
 
 
             // ===== 整个题库的答题情况 =====
-            val allHistoryList by viewModel.allHistory.collectAsState()
+
             val wrongBook by viewModel.wrongBook.collectAsState()
 
-            if (allHistoryList.isNotEmpty()) {
+            if (historyList.isNotEmpty()) {
                 Spacer(modifier = Modifier.height(24.dp))
 
                 // 汇总所有历史记录中的答题数和总题数
-                val gScore = allHistoryList.sumOf { it.score }
-                val gTotal = allHistoryList.sumOf { it.total }
-                val gUnanswered = allHistoryList.sumOf { it.unanswered }
-                val gWrong = wrongBook.size
+                val gScore = historyList.sumOf { it.score }
+                val gTotal = historyList.sumOf { it.total }
+                val gUnanswered = historyList.sumOf { it.unanswered }
+                val gWrong = wrongBook.count { it.question.fileName == fileName }
                 val gRate = if (gTotal > 0) gScore.toFloat() / gTotal else 0f
                 val gRateText = String.format("%.2f", gRate * 100)
 
@@ -301,7 +301,7 @@ fun ResultScreen(
                     }
                 }
 
-                val allAccList = allHistoryList.map { it.score.toFloat() / it.total }
+                val allAccList = historyList.map { it.score.toFloat() / it.total }
                 if (allAccList.isNotEmpty()) {
                     Text(
                         "题库整体成绩走势",
@@ -341,8 +341,8 @@ fun ResultScreen(
                             .fillMaxWidth()
                             .heightIn(max = 200.dp)
                     ) {
-                        items(allHistoryList) { h ->
-                            val idx = allHistoryList.indexOf(h)
+                        items(historyList) { h ->
+                            val idx = historyList.indexOf(h)
                             val wrong = h.total - h.score - h.unanswered
                             val rate = if (h.total > 0) h.score * 100f / h.total else 0f
                             Column(Modifier.padding(vertical = 3.dp)) {
