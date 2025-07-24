@@ -10,5 +10,7 @@ data class QuestionAnalysisEntity(
     /** DeepSeek 分析结果 */
     val analysis: String,
     /** Spark 分析结果，可为空 */
-    val sparkAnalysis: String? = null
+    val sparkAnalysis: String? = null,
+    /** 百度 分析结果，可为空 */
+    val baiduAnalysis: String? = null
 )

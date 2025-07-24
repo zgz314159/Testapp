@@ -47,24 +47,25 @@ import com.example.testapp.presentation.component.LocalFontFamily
 import com.example.testapp.presentation.component.LocalFontSize
 import com.example.testapp.data.datastore.FontSettingsDataStore
 import com.example.testapp.presentation.component.ActionModeTextToolbar
+import com.example.testapp.presentation.viewmodel.BaiduQianfanViewModel
 import kotlinx.coroutines.launch
 import androidx.hilt.navigation.compose.hiltViewModel
 
 @Composable
-fun DeepSeekScreen(
+fun BaiduScreen(
     text: String,
     questionId: Int,
     index: Int,
     navController: NavController? = null,
     onSave: (String) -> Unit = {},
-    aiViewModel: DeepSeekViewModel = hiltViewModel(),
+    baiduViewModel: BaiduQianfanViewModel = hiltViewModel(),
     settingsViewModel: SettingsViewModel = hiltViewModel()
 ) {
     val globalFontSize by settingsViewModel.fontSize.collectAsState()
     val context = LocalContext.current
     val coroutineScope = rememberCoroutineScope()
     val storedSize by FontSettingsDataStore
-        .getDeepSeekFontSize(context, Float.NaN)
+        .getBaiduFontSize(context, Float.NaN)
         .collectAsState(initial = Float.NaN)
     var screenFontSize by remember { mutableStateOf(globalFontSize) }
     var fontLoaded by remember { mutableStateOf(false) }
@@ -76,7 +77,7 @@ fun DeepSeekScreen(
     }
     LaunchedEffect(screenFontSize, fontLoaded) {
         if (fontLoaded) {
-            FontSettingsDataStore.setDeepSeekFontSize(context, screenFontSize)
+            FontSettingsDataStore.setBaiduFontSize(context, screenFontSize)
         }
     }
     var menuExpanded by remember { mutableStateOf(false) }
@@ -92,10 +93,10 @@ fun DeepSeekScreen(
                 val selected = if (sel.min < sel.max) editableTextState.value.text.substring(sel.min, sel.max) else ""
                 if (selected.isNotBlank()) {
                     val encoded = com.example.testapp.util.safeEncode(selected)
-                    navController?.navigate("deepseek_ask/$questionId/$index/$encoded")
+                    navController?.navigate("baidu_ask/$questionId/$index/$encoded")
                 }
             },
-            aiServiceName = "DeepSeek"
+            aiServiceName = "百度"
         )
     }
 
@@ -135,14 +136,14 @@ fun DeepSeekScreen(
                 DropdownMenuItem(text = { Text("放大字体") }, onClick = {
                     screenFontSize = (screenFontSize + 2).coerceAtMost(32f)
                     coroutineScope.launch {
-                        FontSettingsDataStore.setDeepSeekFontSize(context, screenFontSize)
+                        FontSettingsDataStore.setBaiduFontSize(context, screenFontSize)
                     }
                     menuExpanded = false
                 })
                 DropdownMenuItem(text = { Text("缩小字体") }, onClick = {
                     screenFontSize = (screenFontSize - 2).coerceAtLeast(14f)
                     coroutineScope.launch {
-                        FontSettingsDataStore.setDeepSeekFontSize(context, screenFontSize)
+                        FontSettingsDataStore.setBaiduFontSize(context, screenFontSize)
                     }
                     menuExpanded = false
                 })
@@ -154,7 +155,7 @@ fun DeepSeekScreen(
                 confirmButton = {
                     TextButton(onClick = {
                         onSave(editableText.text)
-                        aiViewModel.save(questionId, editableText.text)
+                        baiduViewModel.save(questionId, editableText.text)
                         Toast.makeText(context, "保存成功", Toast.LENGTH_SHORT).show()
                         showSaveDialog = false
                         navController?.popBackStack()
@@ -172,3 +173,4 @@ fun DeepSeekScreen(
 
     }
 }
+

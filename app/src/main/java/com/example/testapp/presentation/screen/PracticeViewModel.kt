@@ -13,6 +13,8 @@ import com.example.testapp.domain.usecase.GetWrongBookUseCase
 import com.example.testapp.domain.usecase.GetFavoriteQuestionsUseCase
 import com.example.testapp.domain.usecase.GetQuestionAnalysisUseCase
 import com.example.testapp.domain.usecase.GetSparkAnalysisUseCase
+import com.example.testapp.domain.usecase.GetBaiduAnalysisUseCase
+import com.example.testapp.domain.usecase.SaveBaiduAnalysisUseCase
 import com.example.testapp.domain.usecase.SaveSparkAnalysisUseCase
 import com.example.testapp.domain.usecase.GetQuestionNoteUseCase
 import com.example.testapp.domain.usecase.SaveQuestionNoteUseCase
@@ -21,6 +23,8 @@ import com.example.testapp.domain.model.HistoryRecord
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import com.example.testapp.presentation.model.QuestionUiModel
 import com.example.testapp.presentation.model.AnswerStatus
 import com.example.testapp.util.answerLettersToIndices
@@ -38,10 +42,15 @@ class PracticeViewModel @Inject constructor(
     private val getQuestionAnalysisUseCase: GetQuestionAnalysisUseCase,
     private val getSparkAnalysisUseCase: GetSparkAnalysisUseCase,
     private val saveSparkAnalysisUseCase: SaveSparkAnalysisUseCase,
+    private val getBaiduAnalysisUseCase: GetBaiduAnalysisUseCase,
+    private val saveBaiduAnalysisUseCase: SaveBaiduAnalysisUseCase,
     private val getQuestionNoteUseCase: GetQuestionNoteUseCase,
     private val saveQuestionNoteUseCase: SaveQuestionNoteUseCase,
     private val addHistoryRecordUseCase: AddHistoryRecordUseCase
 ) : ViewModel() {
+    // 添加Mutex以确保appendNote操作的原子性
+    private val appendNoteMutex = Mutex()
+    
     private val _questions = MutableStateFlow<List<Question>>(emptyList())
     val questions: StateFlow<List<Question>> = _questions.asStateFlow()
 
@@ -69,6 +78,9 @@ class PracticeViewModel @Inject constructor(
 
     private val _sparkAnalysisList = MutableStateFlow<List<String>>(emptyList())
     val sparkAnalysisList: StateFlow<List<String>> = _sparkAnalysisList.asStateFlow()
+
+    private val _baiduAnalysisList = MutableStateFlow<List<String>>(emptyList())
+    val baiduAnalysisList: StateFlow<List<String>> = _baiduAnalysisList.asStateFlow()
 
 
     private val _noteList = MutableStateFlow<List<String>>(emptyList())
@@ -98,6 +110,7 @@ class PracticeViewModel @Inject constructor(
     private var randomPracticeEnabled: Boolean = false
     private var analysisLoaded: Boolean = false
     private var sparkAnalysisLoaded: Boolean = false
+    private var baiduAnalysisLoaded: Boolean = false
     private var notesLoaded: Boolean = false
 
     private fun updateUiQuestions() {
@@ -150,6 +163,7 @@ class PracticeViewModel @Inject constructor(
         _progressLoaded.value = false
         analysisLoaded = false
         sparkAnalysisLoaded = false
+        baiduAnalysisLoaded = false
         notesLoaded = false
         if (loadQuestions) {
             viewModelScope.launch {
@@ -217,6 +231,14 @@ class PracticeViewModel @Inject constructor(
                             (progress.sparkAnalysisList +
                                     List(_questions.value.size - progress.sparkAnalysisList.size) { "" }).toList()
                         }
+                    _baiduAnalysisList.value = emptyList()
+                    _baiduAnalysisList.value =
+                        if (progress.baiduAnalysisList.size >= _questions.value.size) {
+                            progress.baiduAnalysisList.take(_questions.value.size).toList()
+                        } else {
+                            (progress.baiduAnalysisList +
+                                    List(_questions.value.size - progress.baiduAnalysisList.size) { "" }).toList()
+                        }
                 } else if (progress == null && !_progressLoaded.value) {
                     android.util.Log.d("PracticeDebug", "no existing progress, initializing")
                     _currentIndex.value = 0
@@ -225,6 +247,7 @@ class PracticeViewModel @Inject constructor(
                     _showResultList.value = List(_questions.value.size) { false }
                     _analysisList.value = List(_questions.value.size) { "" }
                     _sparkAnalysisList.value = List(_questions.value.size) { "" }
+                    _baiduAnalysisList.value = List(_questions.value.size) { "" }
                     saveProgress()
                 }
                 _progressLoaded.value = true
@@ -235,6 +258,10 @@ class PracticeViewModel @Inject constructor(
                 if (!sparkAnalysisLoaded) {
                     loadSparkAnalysisFromRepository()
                     sparkAnalysisLoaded = true
+                }
+                if (!baiduAnalysisLoaded) {
+                    loadBaiduAnalysisFromRepository()
+                    baiduAnalysisLoaded = true
                 }
                 if (!notesLoaded) {
                     loadNotesFromRepository()
@@ -280,6 +307,26 @@ class PracticeViewModel @Inject constructor(
         }
         if (changed) {
             _sparkAnalysisList.value = list
+            saveProgress()
+        }
+    }
+    
+    private suspend fun loadBaiduAnalysisFromRepository() {
+        val qs = _questions.value
+        val list = _baiduAnalysisList.value.toMutableList()
+        var changed = false
+        qs.forEachIndexed { idx, q ->
+            if (idx >= list.size) list.add("")
+            if (list[idx].isBlank()) {
+                val text = getBaiduAnalysisUseCase(q.id)
+                if (!text.isNullOrBlank()) {
+                    list[idx] = text
+                    changed = true
+                }
+            }
+        }
+        if (changed) {
+            _baiduAnalysisList.value = list
             saveProgress()
         }
     }
@@ -369,6 +416,7 @@ class PracticeViewModel @Inject constructor(
                     showResultList = _showResultList.value,
                     analysisList = _analysisList.value,
                     sparkAnalysisList = _sparkAnalysisList.value,
+                    baiduAnalysisList = _baiduAnalysisList.value,
                     noteList = _noteList.value,
                     timestamp = System.currentTimeMillis()
                 )
@@ -396,6 +444,7 @@ class PracticeViewModel @Inject constructor(
         _showResultList.value = List(count) { false }
         _analysisList.value = List(count) { "" }
         _sparkAnalysisList.value = List(count) { "" }
+        _baiduAnalysisList.value = List(count) { "" }
         updateUiQuestions()
     }
 
@@ -425,6 +474,14 @@ class PracticeViewModel @Inject constructor(
         saveProgress()
     }
 
+    fun updateBaiduAnalysis(index: Int, text: String) {
+        val list = _baiduAnalysisList.value.toMutableList()
+        while (list.size <= index) list.add("")
+        list[index] = text
+        _baiduAnalysisList.value = list
+        saveProgress()
+    }
+
 
     fun addHistoryRecord(score: Int, total: Int, unanswered: Int) {
         viewModelScope.launch {
@@ -444,16 +501,76 @@ class PracticeViewModel @Inject constructor(
         _noteList.value = list
     }
 
-    fun appendNote(questionId: Int, index: Int, text: String) {
+    // 临时测试方法，不使用Mutex
+    fun appendNoteSimple(questionId: Int, index: Int, text: String) {
+        android.util.Log.d("PracticeViewModel", "appendNoteSimple called: questionId=$questionId, index=$index")
         viewModelScope.launch {
-            val current = getQuestionNoteUseCase(questionId) ?: ""
-            val newText = if (current.isBlank()) text else current + "\n\n" + text
-            saveQuestionNoteUseCase(questionId, newText)
+            try {
+                android.util.Log.d("PracticeViewModel", "Simple: Inside coroutine...")
+                val current = getQuestionNoteUseCase(questionId) ?: ""
+                android.util.Log.d("PracticeViewModel", "Simple: Current note length: ${current.length}")
+                val timestamp = java.text.SimpleDateFormat("yyyy-MM-dd HH:mm:ss", java.util.Locale.getDefault()).format(java.util.Date())
+                val timestampedText = "[$timestamp]\n$text"
+                val newText = if (current.isBlank()) timestampedText else current + "\n\n" + timestampedText
+                android.util.Log.d("PracticeViewModel", "Simple: New note length: ${newText.length}")
+                
+                saveQuestionNoteUseCase(questionId, newText)
+                android.util.Log.d("PracticeViewModel", "Simple: Saved to database")
+                
+                val list = _noteList.value.toMutableList()
+                while (list.size <= index) list.add("")
+                list[index] = newText
+                _noteList.value = list
+                android.util.Log.d("PracticeViewModel", "Simple: StateFlow updated")
+            } catch (e: Exception) {
+                android.util.Log.e("PracticeViewModel", "Simple: Error: ${e.message}", e)
+            }
         }
-        val list = _noteList.value.toMutableList()
-        while (list.size <= index) list.add("")
-        list[index] = if (list[index].isBlank()) text else list[index] + "\n\n" + text
-        _noteList.value = list
+    }
+
+    fun appendNote(questionId: Int, index: Int, text: String) {
+        android.util.Log.d("PracticeViewModel", "appendNote called: questionId=$questionId, index=$index, text=${text.take(50)}...")
+        android.util.Log.d("PracticeViewModel", "Starting viewModelScope.launch...")
+        viewModelScope.launch {
+            try {
+                android.util.Log.d("PracticeViewModel", "Inside coroutine, acquiring lock...")
+                appendNoteMutex.withLock {
+                    android.util.Log.d("PracticeViewModel", "Lock acquired, getting current note...")
+                    val current = getQuestionNoteUseCase(questionId) ?: ""
+                    android.util.Log.d("PracticeViewModel", "Current note: ${current.take(100)}...")
+                    val timestamp = java.text.SimpleDateFormat("yyyy-MM-dd HH:mm:ss", java.util.Locale.getDefault()).format(java.util.Date())
+                    android.util.Log.d("PracticeViewModel", "Generated timestamp: $timestamp")
+                    val timestampedText = "[$timestamp]\n$text"
+                    android.util.Log.d("PracticeViewModel", "Timestamped text: ${timestampedText.take(100)}...")
+                    
+                    val newText = if (current.isBlank()) {
+                        android.util.Log.d("PracticeViewModel", "Current is blank, using timestamped text directly")
+                        timestampedText
+                    } else {
+                        android.util.Log.d("PracticeViewModel", "Current is not blank, appending to existing content")
+                        val result = current + "\n\n" + timestampedText
+                        android.util.Log.d("PracticeViewModel", "Append result length: ${result.length} vs current length: ${current.length}")
+                        result
+                    }
+                    android.util.Log.d("PracticeViewModel", "New note: ${newText.take(200)}...")
+                    android.util.Log.d("PracticeViewModel", "Saving to database...")
+                    saveQuestionNoteUseCase(questionId, newText)
+                    android.util.Log.d("PracticeViewModel", "Note saved to database")
+                    
+                    // 在协程内同步更新StateFlow，确保和数据库一致
+                    android.util.Log.d("PracticeViewModel", "Updating StateFlow...")
+                    val list = _noteList.value.toMutableList()
+                    while (list.size <= index) list.add("")
+                    list[index] = newText  // 使用与数据库相同的完整内容
+                    _noteList.value = list
+                    android.util.Log.d("PracticeViewModel", "Note list updated: ${list[index].take(200)}...")
+                    android.util.Log.d("PracticeViewModel", "appendNote completed successfully")
+                }
+            } catch (e: Exception) {
+                android.util.Log.e("PracticeViewModel", "Error in appendNote: ${e.message}", e)
+            }
+        }
+        android.util.Log.d("PracticeViewModel", "appendNote method finished (coroutine launched)")
     }
 
     suspend fun getNote(questionId: Int): String? = getQuestionNoteUseCase(questionId)

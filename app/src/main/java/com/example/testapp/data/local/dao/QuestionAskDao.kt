@@ -14,6 +14,9 @@ interface QuestionAskDao {
     @Query("SELECT sparkResult FROM question_ask WHERE questionId = :id LIMIT 1")
     suspend fun getSparkResult(id: Int): String?
 
+    @Query("SELECT baiduResult FROM question_ask WHERE questionId = :id LIMIT 1")
+    suspend fun getBaiduResult(id: Int): String?
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun upsert(entity: QuestionAskEntity)
 }

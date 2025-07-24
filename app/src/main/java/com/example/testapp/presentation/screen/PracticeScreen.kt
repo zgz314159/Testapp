@@ -36,6 +36,7 @@ import com.example.testapp.util.answerLetterToIndex
 import com.example.testapp.util.rememberSoundEffects
 import com.example.testapp.util.formatQuestionWithOptions
 import com.example.testapp.presentation.screen.SparkViewModel
+import com.example.testapp.presentation.viewmodel.BaiduQianfanViewModel
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 
@@ -51,13 +52,16 @@ fun PracticeScreen(
     settingsViewModel: SettingsViewModel = hiltViewModel(),
     aiViewModel: DeepSeekViewModel = hiltViewModel(),
     sparkViewModel: SparkViewModel = hiltViewModel(),
+    baiduQianfanViewModel: BaiduQianfanViewModel = hiltViewModel(),
     onQuizEnd: (score: Int, total: Int, unanswered: Int) -> Unit = { _, _, _ -> },
     onSubmit: (Boolean) -> Unit = {},
     onExitWithoutAnswer: () -> Unit = {},
     onViewDeepSeek: (String, Int, Int) -> Unit = { _, _, _ -> },
     onViewSpark: (String, Int, Int) -> Unit = { _, _, _ -> },
+    onViewBaidu: (String, Int, Int) -> Unit = { _, _, _ -> },
     onAskDeepSeek: (String, Int, Int) -> Unit = { _, _, _ -> },
     onAskSpark: (String, Int, Int) -> Unit = { _, _, _ -> },
+    onAskBaidu: (String, Int, Int) -> Unit = { _, _, _ -> },
     onEditNote: (String, Int, Int) -> Unit = { _, _, _ -> }
 ) {
     // --- 各种状态和依赖 ---
@@ -83,6 +87,7 @@ fun PracticeScreen(
             viewModel.setProgressId(id = quizId, questionsId = quizId, questionCount = practiceCount)
         }
     }
+
     val coroutineScope = rememberCoroutineScope()
     val wrongBookViewModel: WrongBookViewModel = hiltViewModel()
     val questions by viewModel.questions.collectAsState()
@@ -102,13 +107,17 @@ fun PracticeScreen(
     val question = questions.getOrNull(currentIndex)
     val analysisPair by aiViewModel.analysis.collectAsState()
     val sparkPair by sparkViewModel.analysis.collectAsState()
+    val baiduPair by baiduQianfanViewModel.analysisResult.collectAsState()
     val analysisList by viewModel.analysisList.collectAsState()
     val sparkAnalysisList by viewModel.sparkAnalysisList.collectAsState()
+    val baiduAnalysisList by viewModel.baiduAnalysisList.collectAsState()
     val analysisText = if (analysisPair?.first == currentIndex) analysisPair?.second else analysisList.getOrNull(currentIndex)
     val sparkText = if (sparkPair?.first == currentIndex) sparkPair?.second else sparkAnalysisList.getOrNull(currentIndex)
+    val baiduText = if (baiduPair?.first == currentIndex) baiduPair?.second else baiduAnalysisList.getOrNull(currentIndex)
     val noteList by viewModel.noteList.collectAsState()
     val hasDeepSeekAnalysis = analysisList.getOrNull(currentIndex).orEmpty().isNotBlank()
     val hasSparkAnalysis = sparkAnalysisList.getOrNull(currentIndex).orEmpty().isNotBlank()
+    val hasBaiduAnalysis = baiduAnalysisList.getOrNull(currentIndex).orEmpty().isNotBlank()
     val hasNote = noteList.getOrNull(currentIndex).orEmpty().isNotBlank()
     val selectedOption = selectedOptions.getOrNull(currentIndex) ?: emptyList<Int>()
     val showResult = showResultList.getOrNull(currentIndex) ?: false
@@ -126,6 +135,7 @@ fun PracticeScreen(
     LaunchedEffect(currentIndex) {
         aiViewModel.clear()
         sparkViewModel.clear()
+        baiduQianfanViewModel.clearResult()
     }
     LaunchedEffect(question) {
         question?.let {
@@ -136,6 +146,10 @@ fun PracticeScreen(
             val sparkSaved = sparkViewModel.getSavedAnalysis(it.id) ?: ""
             if (sparkSaved.isNotBlank()) {
                 viewModel.updateSparkAnalysis(currentIndex, sparkSaved)
+            }
+            val baiduSaved = baiduQianfanViewModel.getSavedAnalysis(it.id) ?: ""
+            if (baiduSaved.isNotBlank()) {
+                viewModel.updateBaiduAnalysis(currentIndex, baiduSaved)
             }
         }
     }
@@ -164,17 +178,26 @@ fun PracticeScreen(
             FontSettingsDataStore.setPracticeFontSize(context, questionFontSize)
         }
     }
+    var showChatGptDialog by remember { mutableStateOf(false) }
+    val chatGptResult by baiduQianfanViewModel.analysisResult.collectAsState()
+    val chatGptLoading by baiduQianfanViewModel.loading.collectAsState()
     var autoJob by remember { mutableStateOf<Job?>(null) }
     var showExitDialog by remember { mutableStateOf(false) }
     var answeredThisSession by remember { mutableStateOf(false) }
     var showDeleteDialog by remember { mutableStateOf(false) }
+    var deleteTarget by remember { mutableStateOf("") } // 记录要删除的AI类型
     var showDeleteNoteDialog by remember { mutableStateOf(false) }
     var expandedSection by remember(currentIndex) { mutableStateOf(-1) }
     val explanationScroll = rememberScrollState()
     val noteScroll = rememberScrollState()
     val deepSeekScroll = rememberScrollState()
     val sparkScroll = rememberScrollState()
+    val baiduScroll = rememberScrollState()
+    val mainScrollState = rememberScrollState()
     LaunchedEffect(currentIndex) { expandedSection = -1 }
+    LaunchedEffect(mainScrollState.isScrollInProgress) {
+        if (mainScrollState.isScrollInProgress) expandedSection = -1
+    }
     LaunchedEffect(explanationScroll.isScrollInProgress) {
         if (explanationScroll.isScrollInProgress) expandedSection = 0
     }
@@ -186,6 +209,9 @@ fun PracticeScreen(
     }
     LaunchedEffect(sparkScroll.isScrollInProgress) {
         if (sparkScroll.isScrollInProgress) expandedSection = 3
+    }
+    LaunchedEffect(baiduScroll.isScrollInProgress) {
+        if (baiduScroll.isScrollInProgress) expandedSection = 4
     }
     LaunchedEffect(progressLoaded) {
         if (progressLoaded) {
@@ -204,6 +230,12 @@ fun PracticeScreen(
         val pair = sparkPair
         if (pair != null && pair.second != "解析中...") {
             viewModel.updateSparkAnalysis(pair.first, pair.second)
+        }
+    }
+    LaunchedEffect(baiduPair) {
+        val pair = baiduPair
+        if (pair != null && pair.second != "解析中...") {
+            viewModel.updateBaiduAnalysis(pair.first, pair.second)
         }
     }
     BackHandler {
@@ -234,9 +266,11 @@ fun PracticeScreen(
     }
 
     var dragAmount by remember { mutableStateOf(0f) }
+
     Column(
         modifier = Modifier
             .fillMaxSize()
+            .verticalScroll(mainScrollState)
             .padding(16.dp)
             .pointerInput(currentIndex) {
                 detectHorizontalDragGestures(
@@ -281,9 +315,9 @@ fun PracticeScreen(
             Spacer(modifier = Modifier.width(8.dp))
             IconButton(onClick = {
                 if (isFavorite) {
-                    favoriteViewModel.removeFavorite(question.id)
+                    favoriteViewModel.removeFavorite(question?.id ?: 0)
                 } else {
-                    favoriteViewModel.addFavorite(question)
+                    question?.let { favoriteViewModel.addFavorite(it) }
                 }
             }) {
                 Icon(
@@ -295,36 +329,44 @@ fun PracticeScreen(
                 Icon(
                     imageVector = Icons.Filled.AutoAwesome,
                     contentDescription = "AI 解析",
-                    tint = if (hasDeepSeekAnalysis || hasSparkAnalysis) MaterialTheme.colorScheme.primary else LocalContentColor.current
+                    tint = if (hasDeepSeekAnalysis || hasSparkAnalysis || hasBaiduAnalysis) MaterialTheme.colorScheme.primary else LocalContentColor.current
                 )
             }
             DropdownMenu(expanded = aiMenuExpanded, onDismissRequest = { aiMenuExpanded = false }) {
                 DropdownMenuItem(text = { Text("DeepSeek AI") }, onClick = {
                     aiMenuExpanded = false
-                    if (question != null) {
-                        if (!showResult) {
-                            answeredThisSession = true
-                            viewModel.updateShowResult(currentIndex, true)
-                        }
-                        if (hasDeepSeekAnalysis) {
-                            onViewDeepSeek(analysisText ?: "", question.id, currentIndex)
-                        } else {
-                            aiViewModel.analyze(currentIndex, question)
-                        }
+                    if (!showResult) {
+                        answeredThisSession = true
+                        viewModel.updateShowResult(currentIndex, true)
+                    }
+                    if (hasDeepSeekAnalysis) {
+                        onViewDeepSeek(analysisText ?: "", question?.id ?: 0, currentIndex)
+                    } else {
+                        question?.let { aiViewModel.analyze(currentIndex, it) }
                     }
                 })
                 DropdownMenuItem(text = { Text("Spark AI") }, onClick = {
                     aiMenuExpanded = false
-                    if (question != null) {
-                        if (!showResult) {
-                            answeredThisSession = true
-                            viewModel.updateShowResult(currentIndex, true)
-                        }
-                        if (hasSparkAnalysis) {
-                            onViewSpark(sparkText ?: "", question.id, currentIndex)
-                        } else {
-                            sparkViewModel.analyze(currentIndex, question)
-                        }
+                    if (!showResult) {
+                        answeredThisSession = true
+                        viewModel.updateShowResult(currentIndex, true)
+                    }
+                    if (hasSparkAnalysis) {
+                        onViewSpark(sparkText ?: "", question?.id ?: 0, currentIndex)
+                    } else {
+                        question?.let { sparkViewModel.analyze(currentIndex, it) }
+                    }
+                })
+                DropdownMenuItem(text = { Text("百度AI") }, onClick = {
+                    aiMenuExpanded = false
+                    if (!showResult) {
+                        answeredThisSession = true
+                        viewModel.updateShowResult(currentIndex, true)
+                    }
+                    if (hasBaiduAnalysis) {
+                        onViewBaidu(baiduText ?: "", question?.id ?: 0, currentIndex)
+                    } else {
+                        question?.let { baiduQianfanViewModel.analyze(currentIndex, it) }
                     }
                 })
             }
@@ -350,6 +392,16 @@ fun PracticeScreen(
                     askMenuExpanded = false
                     if (question != null) {
                         onAskSpark(
+                            formatQuestionWithOptions(question.content, question.options),
+                            question.id,
+                            currentIndex
+                        )
+                    }
+                })
+                DropdownMenuItem(text = { Text("百度AI") }, onClick = {
+                    askMenuExpanded = false
+                    if (question != null) {
+                        onAskBaidu(
                             formatQuestionWithOptions(question.content, question.options),
                             question.id,
                             currentIndex
@@ -503,7 +555,7 @@ fun PracticeScreen(
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(vertical = 4.dp)
+                    .padding(vertical = 8.dp)  // 增加垂直内边距
                     .background(bgColor)
                     .clickable(enabled = !showResult) {
                         answeredThisSession = true
@@ -558,9 +610,11 @@ fun PracticeScreen(
                     },
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                // 给左右按钮都用Box，保证空间一致
+                // 增大选择圆圈区域
                 Box(
-                    modifier = Modifier.size(40.dp), // 与Checkbox高度/宽度一致
+                    modifier = Modifier
+                        .size(40.dp)  // 从40dp增加到56dp
+                        .padding(20.dp), // 添加内边距，让圆圈居中
                     contentAlignment = Alignment.Center
                 ) {
                 if (question.type == "多选题") {
@@ -579,10 +633,12 @@ fun PracticeScreen(
                         enabled = !showResult
                     )
                 }}
-                Spacer(modifier = Modifier.width(8.dp))
+                Spacer(modifier = Modifier.width(12.dp))  // 增加间距
                 Text(
                     text = option,
-                    modifier = Modifier.weight(1f),
+                    modifier = Modifier
+                        .weight(1f)
+                        .padding(vertical = 12.dp),  // 增加文本的垂直内边距
                     fontSize = questionFontSize.sp,
                     lineHeight = (questionFontSize * 1.3f).sp,
                     fontFamily = LocalFontFamily.current
@@ -671,7 +727,7 @@ fun PracticeScreen(
                 }
             }
 
-            if (!analysisText.isNullOrBlank() || !sparkText.isNullOrBlank()) {
+            if (!analysisText.isNullOrBlank() || !sparkText.isNullOrBlank() || !baiduText.isNullOrBlank()) {
                 if (!analysisText.isNullOrBlank()) {
                     val collapsed = expandedSection != -1 && expandedSection != 2
                     val lineHeight = with(LocalDensity.current) { (questionFontSize * 1.3f).sp.toDp() }
@@ -693,7 +749,10 @@ fun PracticeScreen(
                                             onViewDeepSeek(analysisText!!, q.id, currentIndex)
                                         }
                                     },
-                                    onLongPress = { showDeleteDialog = true }
+                                    onLongPress = { 
+                                        deleteTarget = "deepseek"
+                                        showDeleteDialog = true 
+                                    }
                                 )
                             }
                     ) {
@@ -728,13 +787,54 @@ fun PracticeScreen(
                                             onViewSpark(sparkText!!, q.id, currentIndex)
                                         }
                                     },
-                                    onLongPress = { showDeleteDialog = true }
+                                    onLongPress = { 
+                                        deleteTarget = "spark"
+                                        showDeleteDialog = true 
+                                    }
                                 )
                             }
                     ) {
                         Text(
                             text = sparkText ?: "",
                             color = Color(0xFF3A006A),
+                            fontSize = questionFontSize.sp,
+                            fontFamily = LocalFontFamily.current,
+                            maxLines = if (collapsed) 1 else Int.MAX_VALUE,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                    }
+                }
+                if (!baiduText.isNullOrBlank()) {
+                    val collapsed = expandedSection != -1 && expandedSection != 4
+                    val lineHeight = with(LocalDensity.current) { (questionFontSize * 1.3f).sp.toDp() }
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .then(
+                                if (!collapsed) Modifier.weight(1f, fill = false).verticalScroll(baiduScroll)
+                                else Modifier.heightIn(max = lineHeight + 16.dp)
+                            )
+                            .background(Color(0xFFF0F8E7))
+                            .padding(8.dp)
+                            .animateContentSize()
+                            .pointerInput(baiduText) {
+                                detectTapGestures(
+                                    onTap = { expandedSection = if (collapsed) 4 else -1 },
+                                    onDoubleTap = {
+                                        question?.let { q ->
+                                            onViewBaidu(baiduText!!, q.id, currentIndex)
+                                        }
+                                    },
+                                    onLongPress = { 
+                                        deleteTarget = "baidu"
+                                        showDeleteDialog = true 
+                                    }
+                                )
+                            }
+                    ) {
+                        Text(
+                            text = baiduText ?: "",
+                            color = Color(0xFF3B6E0A),
                             fontSize = questionFontSize.sp,
                             fontFamily = LocalFontFamily.current,
                             maxLines = if (collapsed) 1 else Int.MAX_VALUE,
@@ -827,17 +927,36 @@ fun PracticeScreen(
             onDismissRequest = { showDeleteDialog = false },
             confirmButton = {
                 TextButton(onClick = {
-                    aiViewModel.clear()
-                    sparkViewModel.clear()
-                    viewModel.updateAnalysis(currentIndex, "")
-                    viewModel.updateSparkAnalysis(currentIndex, "")
+                    when (deleteTarget) {
+                        "deepseek" -> {
+                            aiViewModel.clear()
+                            viewModel.updateAnalysis(currentIndex, "")
+                        }
+                        "spark" -> {
+                            sparkViewModel.clear()
+                            viewModel.updateSparkAnalysis(currentIndex, "")
+                        }
+                        "baidu" -> {
+                            baiduQianfanViewModel.clearResult()
+                            viewModel.updateBaiduAnalysis(currentIndex, "")
+                        }
+                    }
                     showDeleteDialog = false
+                    deleteTarget = ""
                 }) { Text("确定") }
             },
             dismissButton = {
-                TextButton(onClick = { showDeleteDialog = false }) { Text("取消") }
+                TextButton(onClick = { 
+                    showDeleteDialog = false
+                    deleteTarget = ""
+                }) { Text("取消") }
             },
-            text = { Text("确定删除解析吗？") }
+            text = { Text("确定删除${when(deleteTarget) {
+                "deepseek" -> "DeepSeek"
+                "spark" -> "Spark"
+                "baidu" -> "百度"
+                else -> ""
+            }}解析吗？") }
         )
     }
     if (showExitDialog) {
@@ -864,6 +983,29 @@ fun PracticeScreen(
                     else
                         "确定交卷？"
                 )
+            }
+        )
+    }
+    if (showChatGptDialog) {
+        AlertDialog(
+            onDismissRequest = { showChatGptDialog = false },
+            confirmButton = {
+                TextButton(onClick = {
+                    if (chatGptResult?.first == currentIndex && !chatGptResult?.second.isNullOrBlank()) {
+                        viewModel.updateAnalysis(currentIndex, chatGptResult?.second ?: "")
+                    }
+                    showChatGptDialog = false
+                }) { Text("保存到解析") }
+            },
+            dismissButton = {
+                TextButton(onClick = { showChatGptDialog = false }) { Text("关闭") }
+            },
+            text = {
+                if (chatGptLoading) {
+                    Text("百度AI解析中...", fontSize = LocalFontSize.current)
+                } else {
+                    Text(chatGptResult?.second ?: "无解析结果", fontSize = LocalFontSize.current)
+                }
             }
         )
     }

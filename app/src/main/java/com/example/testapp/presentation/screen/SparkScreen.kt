@@ -18,6 +18,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -28,13 +29,17 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalTextToolbar
+import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.activity.compose.BackHandler
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import com.example.testapp.data.datastore.FontSettingsDataStore
+import com.example.testapp.presentation.component.ActionModeTextToolbar
 import com.example.testapp.presentation.component.LocalFontFamily
 import com.example.testapp.presentation.component.LocalFontSize
 import kotlinx.coroutines.launch
@@ -70,11 +75,27 @@ fun SparkScreen(
         }
     }
     var menuExpanded by remember { mutableStateOf(false) }
-    var editableText by remember { mutableStateOf(text) }
+    val editableTextState = remember { mutableStateOf(TextFieldValue(text)) }
+    var editableText by editableTextState
     var showSaveDialog by remember { mutableStateOf(false) }
+    val view = LocalView.current
+    val toolbar = remember(view, navController) {
+        ActionModeTextToolbar(
+            view = view, 
+            onAIQuestion = {
+                val sel = editableTextState.value.selection
+                val selected = if (sel.min < sel.max) editableTextState.value.text.substring(sel.min, sel.max) else ""
+                if (selected.isNotBlank()) {
+                    val encoded = com.example.testapp.util.safeEncode(selected)
+                    navController?.navigate("spark_ask/$questionId/$index/$encoded")
+                }
+            },
+            aiServiceName = "Spark"
+        )
+    }
 
     BackHandler {
-        if (editableText != text) {
+        if (editableText.text != text) {
             showSaveDialog = true
         } else {
             navController?.popBackStack()
@@ -87,12 +108,14 @@ fun SparkScreen(
                 .verticalScroll(rememberScrollState())
                 .padding(16.dp)
         ) {
-            BasicTextField(
-                value = editableText,
-                onValueChange = { editableText = it },
-                modifier = Modifier.fillMaxWidth(),
-                textStyle = TextStyle(fontSize = screenFontSize.sp, fontFamily = LocalFontFamily.current)
-            )
+            CompositionLocalProvider(LocalTextToolbar provides toolbar) {
+                BasicTextField(
+                    value = editableText,
+                    onValueChange = { editableText = it },
+                    modifier = Modifier.fillMaxWidth(),
+                    textStyle = TextStyle(fontSize = screenFontSize.sp, fontFamily = LocalFontFamily.current)
+                )
+            }
         }
         Box(modifier = Modifier.align(Alignment.TopEnd)) {
             IconButton(onClick = { menuExpanded = true }) {
@@ -123,8 +146,8 @@ fun SparkScreen(
                 onDismissRequest = { showSaveDialog = false },
                 confirmButton = {
                     TextButton(onClick = {
-                        onSave(editableText)
-                        sparkViewModel.save(questionId, editableText)
+                        onSave(editableText.text)
+                        sparkViewModel.save(questionId, editableText.text)
                         Toast.makeText(context, "保存成功", Toast.LENGTH_SHORT).show()
                         showSaveDialog = false
                         navController?.popBackStack()

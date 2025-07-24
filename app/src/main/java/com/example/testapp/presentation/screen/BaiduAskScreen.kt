@@ -46,17 +46,18 @@ import com.example.testapp.data.datastore.FontSettingsDataStore
 import com.example.testapp.presentation.component.ActionModeTextToolbar
 import com.example.testapp.presentation.component.LocalFontFamily
 import com.example.testapp.presentation.component.LocalFontSize
+import com.example.testapp.presentation.viewmodel.BaiduQianfanViewModel
 import kotlinx.coroutines.launch
 
 
 @Composable
-fun DeepSeekAskScreen(
+fun BaiduAskScreen(
     text: String,
     questionId: Int,
     index: Int,
     navController: NavController? = null,
     onSave: (String) -> Unit = {},
-    viewModel: DeepSeekAskViewModel = hiltViewModel(),
+    viewModel: BaiduAskViewModel = hiltViewModel(),
     settingsViewModel: SettingsViewModel = hiltViewModel()
 ) {
     val result by viewModel.result.collectAsState()
@@ -64,7 +65,7 @@ fun DeepSeekAskScreen(
     val context = LocalContext.current
     val coroutineScope = rememberCoroutineScope()
     val storedSize by FontSettingsDataStore
-        .getDeepSeekFontSize(context, Float.NaN)
+        .getBaiduFontSize(context, Float.NaN)
         .collectAsState(initial = Float.NaN)
     var screenFontSize by remember { mutableStateOf(globalFontSize) }
     var fontLoaded by remember { mutableStateOf(false) }
@@ -76,7 +77,7 @@ fun DeepSeekAskScreen(
     }
     LaunchedEffect(screenFontSize, fontLoaded) {
         if (fontLoaded) {
-            FontSettingsDataStore.setDeepSeekFontSize(context, screenFontSize)
+            FontSettingsDataStore.setBaiduFontSize(context, screenFontSize)
         }
     }
     var menuExpanded by remember { mutableStateOf(false) }
@@ -94,10 +95,10 @@ fun DeepSeekAskScreen(
                 val selected = if (sel.min < sel.max) answerState.value.text.substring(sel.min, sel.max) else ""
                 if (selected.isNotBlank()) {
                     val encoded = com.example.testapp.util.safeEncode(selected)
-                    navController?.navigate("deepseek_ask/$questionId/$index/$encoded")
+                    navController?.navigate("baidu_ask/$questionId/$index/$encoded")
                 }
             },
-            aiServiceName = "DeepSeek"
+            aiServiceName = "百度"
         )
     }
 
@@ -118,7 +119,7 @@ fun DeepSeekAskScreen(
             answer = TextFieldValue(result)
             originalAnswer = result
             // 移除自动保存，由用户手动控制保存
-            android.util.Log.d("DeepSeekAskScreen", "Received successful result: ${result.take(50)}...")
+            android.util.Log.d("BaiduAskScreen", "Received successful result: ${result.take(50)}...")
         } else if (result.isNotBlank() && result != "解析中...") {
             // 仅更新UI，不保存失败结果
             answer = TextFieldValue(result)
@@ -127,7 +128,7 @@ fun DeepSeekAskScreen(
     }
 
     var showSaveDialog by remember { mutableStateOf(false) }
-    
+
     BackHandler {
         // 如果内容不为空，弹出保存确认弹窗
         if (answer.text.isNotBlank() && 
@@ -198,14 +199,14 @@ fun DeepSeekAskScreen(
                 DropdownMenuItem(text = { Text("放大字体") }, onClick = {
                     screenFontSize = (screenFontSize + 2).coerceAtMost(32f)
                     coroutineScope.launch {
-                        FontSettingsDataStore.setDeepSeekFontSize(context, screenFontSize)
+                        FontSettingsDataStore.setBaiduFontSize(context, screenFontSize)
                     }
                     menuExpanded = false
                 })
                 DropdownMenuItem(text = { Text("缩小字体") }, onClick = {
                     screenFontSize = (screenFontSize - 2).coerceAtLeast(14f)
                     coroutineScope.launch {
-                        FontSettingsDataStore.setDeepSeekFontSize(context, screenFontSize)
+                        FontSettingsDataStore.setBaiduFontSize(context, screenFontSize)
                     }
                     menuExpanded = false
                 })
@@ -216,16 +217,16 @@ fun DeepSeekAskScreen(
                 onDismissRequest = { showSaveDialog = false },
                 confirmButton = {
                     TextButton(onClick = {
-                        android.util.Log.d("DeepSeekAskScreen", "User confirmed save: ${answer.text.take(50)}...")
+                        android.util.Log.d("BaiduAskScreen", "User confirmed save: ${answer.text.take(50)}...")
                         onSave(answer.text)
-                        android.util.Log.d("DeepSeekAskScreen", "Save completed")
+                        android.util.Log.d("BaiduAskScreen", "Save completed")
                         showSaveDialog = false
                         navController?.popBackStack()
                     }) { Text("保存") }
                 },
                 dismissButton = {
                     TextButton(onClick = {
-                        android.util.Log.d("DeepSeekAskScreen", "User cancelled save")
+                        android.util.Log.d("BaiduAskScreen", "User cancelled save")
                         showSaveDialog = false
                         navController?.popBackStack()
                     }) { Text("不保存") }
@@ -235,3 +236,4 @@ fun DeepSeekAskScreen(
         }
     }
 }
+

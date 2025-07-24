@@ -7,5 +7,6 @@ import androidx.room.PrimaryKey
 data class QuestionAskEntity(
     @PrimaryKey val questionId: Int,
     val deepSeekResult: String = "",
-    val sparkResult: String = ""
+    val sparkResult: String = "",
+    val baiduResult: String = ""
 )

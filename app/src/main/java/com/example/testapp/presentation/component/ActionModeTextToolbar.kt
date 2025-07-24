@@ -10,7 +10,8 @@ import androidx.compose.ui.platform.TextToolbarStatus
 
 class ActionModeTextToolbar(
     private val view: View,
-    private val onDeepSeek: () -> Unit
+    private val onAIQuestion: () -> Unit,
+    private val aiServiceName: String = "DeepSeek"
 ) : TextToolbar {
 
     private var actionMode: ActionMode? = null
@@ -41,7 +42,7 @@ class ActionModeTextToolbar(
                 if (onSelectAllRequested != null) {
                     menu?.add(Menu.NONE, android.R.id.selectAll, order++, android.R.string.selectAll)
                 }
-                menu?.add(Menu.NONE, MENU_DEEPSEEK, order, "DeepSeek\u63d0\u95ee")
+                menu?.add(Menu.NONE, MENU_AI_QUESTION, order, "${aiServiceName}提问")
                 return true
             }
 
@@ -53,7 +54,7 @@ class ActionModeTextToolbar(
                     android.R.id.cut -> { onCutRequested?.invoke(); mode?.finish(); return true }
                     android.R.id.paste -> { onPasteRequested?.invoke(); mode?.finish(); return true }
                     android.R.id.selectAll -> { onSelectAllRequested?.invoke(); mode?.finish(); return true }
-                    MENU_DEEPSEEK -> { onDeepSeek(); mode?.finish(); return true }
+                    MENU_AI_QUESTION -> { onAIQuestion(); mode?.finish(); return true }
                 }
                 return false
             }
@@ -70,6 +71,6 @@ class ActionModeTextToolbar(
     }
 
     private companion object {
-        const val MENU_DEEPSEEK = 0xDEAD
+        const val MENU_AI_QUESTION = 0xDEAD
     }
 }

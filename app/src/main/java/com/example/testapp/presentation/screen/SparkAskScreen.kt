@@ -84,17 +84,20 @@ fun SparkAskScreen(
     val answerState = remember { mutableStateOf(TextFieldValue("")) }
     var answer by answerState
     var originalAnswer by remember { mutableStateOf("") }
-    var showSaveDialog by remember { mutableStateOf(false) }
     val view = LocalView.current
     val toolbar = remember(view, navController) {
-        ActionModeTextToolbar(view) {
-            val sel = answerState.value.selection
-            val selected = if (sel.min < sel.max) answerState.value.text.substring(sel.min, sel.max) else ""
-            if (selected.isNotBlank()) {
-                val encoded = java.net.URLEncoder.encode(selected, "UTF-8")
-                navController?.navigate("spark_ask/$questionId/$index/$encoded")
-            }
-        }
+        ActionModeTextToolbar(
+            view = view,
+            onAIQuestion = {
+                val sel = answerState.value.selection
+                val selected = if (sel.min < sel.max) answerState.value.text.substring(sel.min, sel.max) else ""
+                if (selected.isNotBlank()) {
+                    val encoded = com.example.testapp.util.safeEncode(selected)
+                    navController?.navigate("spark_ask/$questionId/$index/$encoded")
+                }
+            },
+            aiServiceName = "Spark"
+        )
     }
 
     LaunchedEffect(Unit) {
@@ -109,14 +112,25 @@ fun SparkAskScreen(
     }
 
     LaunchedEffect(result) {
-        if (result.isNotBlank() && result != "解析中...") {
+        if (result.isNotBlank() && result != "解析中..." && !result.contains("解析失败")) {
+            answer = TextFieldValue(result)
+            originalAnswer = result
+            // 移除自动保存，由用户手动控制保存
+            android.util.Log.d("SparkAskScreen", "Received successful result: ${result.take(50)}...")
+        } else if (result.isNotBlank() && result != "解析中...") {
+            // 仅更新UI，不保存失败结果
             answer = TextFieldValue(result)
             originalAnswer = result
         }
     }
 
+    var showSaveDialog by remember { mutableStateOf(false) }
+
     BackHandler {
-        if (answer.text != originalAnswer && answer.text.isNotBlank()) {
+        // 如果内容不为空，弹出保存确认弹窗
+        if (answer.text.isNotBlank() && 
+            !answer.text.contains("解析中") && 
+            !answer.text.contains("解析失败")) {
             showSaveDialog = true
         } else {
             navController?.popBackStack()
@@ -200,19 +214,21 @@ fun SparkAskScreen(
                 onDismissRequest = { showSaveDialog = false },
                 confirmButton = {
                     TextButton(onClick = {
+                        android.util.Log.d("SparkAskScreen", "User confirmed save: ${answer.text.take(50)}...")
                         onSave(answer.text)
-                        viewModel.save(questionId, answer.text)
+                        android.util.Log.d("SparkAskScreen", "Save completed")
                         showSaveDialog = false
                         navController?.popBackStack()
                     }) { Text("保存") }
                 },
                 dismissButton = {
                     TextButton(onClick = {
+                        android.util.Log.d("SparkAskScreen", "User cancelled save")
                         showSaveDialog = false
                         navController?.popBackStack()
-                    }) { Text("取消") }
+                    }) { Text("不保存") }
                 },
-                text = { Text("是否保存修改？") }
+                text = { Text("是否保存当前内容？") }
             )
         }
     }

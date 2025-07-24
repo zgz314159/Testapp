@@ -21,6 +21,7 @@ android {
         versionName       = "1.0"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         buildConfigField("String", "DEEPSEEK_API_KEY", "\"sk-23ec89dfe2484c17ba5f9329aae3d102\"")
+        buildConfigField("String", "BAIDU_API_KEY", "\"bce-v3/ALTAK-ap1WIXmrFY203toO74Ijr/cad13dbc4f1e940582acf85592d2729a19a0774a\"")
         buildConfigField("String", "SPARK_API_KEY", "\"MpymMjycdNmPsFhnrmnp:oPLkyTLZcOtVPvEIgXch\"")
     }
 
@@ -51,6 +52,7 @@ android {
 
 dependencies {
 
+    implementation("com.squareup.okhttp3:okhttp:4.12.0")
     // Compose BOM
     implementation(platform(libs.androidx.compose.bom))
     // Foundation 模块 —— 包含 LocalTextToolbar、BasicTextField、selection API 等

@@ -13,7 +13,7 @@ class QuestionAskRepositoryImpl @Inject constructor(
     }
 
     override suspend fun saveDeepSeekResult(questionId: Int, result: String) {
-        dao.upsert(QuestionAskEntity(questionId, result, getSparkResult(questionId) ?: ""))
+        dao.upsert(QuestionAskEntity(questionId, result, getSparkResult(questionId) ?: "", getBaiduResult(questionId) ?: ""))
     }
 
     override suspend fun getSparkResult(questionId: Int): String? {
@@ -21,6 +21,14 @@ class QuestionAskRepositoryImpl @Inject constructor(
     }
 
     override suspend fun saveSparkResult(questionId: Int, result: String) {
-        dao.upsert(QuestionAskEntity(questionId, getDeepSeekResult(questionId) ?: "", result))
+        dao.upsert(QuestionAskEntity(questionId, getDeepSeekResult(questionId) ?: "", result, getBaiduResult(questionId) ?: ""))
+    }
+
+    override suspend fun getBaiduResult(questionId: Int): String? {
+        return dao.getBaiduResult(questionId)
+    }
+
+    override suspend fun saveBaiduResult(questionId: Int, result: String) {
+        dao.upsert(QuestionAskEntity(questionId, getDeepSeekResult(questionId) ?: "", getSparkResult(questionId) ?: "", result))
     }
 }

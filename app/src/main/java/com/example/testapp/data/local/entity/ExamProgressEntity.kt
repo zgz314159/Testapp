@@ -22,6 +22,8 @@ data class ExamProgressEntity(
     @TypeConverters(StringListConverter::class)
     val sparkAnalysisList: List<String> = emptyList(),
     @TypeConverters(StringListConverter::class)
+    val baiduAnalysisList: List<String> = emptyList(),
+    @TypeConverters(StringListConverter::class)
     val noteList: List<String>,
     val finished: Boolean,
     val timestamp: Long

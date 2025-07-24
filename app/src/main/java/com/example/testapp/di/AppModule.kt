@@ -356,9 +356,9 @@ object AppModule {
         }
         install(Logging) { level = LogLevel.NONE }
         install(HttpTimeout) {
-            requestTimeoutMillis = 60_000
-            connectTimeoutMillis = 60_000
-            socketTimeoutMillis = 60_000
+            requestTimeoutMillis = 120_000  // 增加到120秒
+            connectTimeoutMillis = 30_000   // 连接超时30秒
+            socketTimeoutMillis = 120_000   // Socket超时120秒
         }
     }
 

@@ -19,6 +19,8 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import javax.inject.Inject
 import com.example.testapp.util.answerLetterToIndex
 import com.example.testapp.util.answerLettersToIndices
@@ -26,6 +28,7 @@ import com.example.testapp.domain.usecase.GetQuestionNoteUseCase
 import com.example.testapp.domain.usecase.SaveQuestionNoteUseCase
 import com.example.testapp.domain.usecase.GetQuestionAnalysisUseCase
 import com.example.testapp.domain.usecase.GetSparkAnalysisUseCase
+import com.example.testapp.domain.usecase.GetBaiduAnalysisUseCase
 
 @HiltViewModel
 class ExamViewModel @Inject constructor(
@@ -40,8 +43,12 @@ class ExamViewModel @Inject constructor(
     private val getQuestionNoteUseCase: GetQuestionNoteUseCase,
     private val saveQuestionNoteUseCase: SaveQuestionNoteUseCase,
     private val getQuestionAnalysisUseCase: GetQuestionAnalysisUseCase,
-    private val getSparkAnalysisUseCase: GetSparkAnalysisUseCase
+    private val getSparkAnalysisUseCase: GetSparkAnalysisUseCase,
+    private val getBaiduAnalysisUseCase: GetBaiduAnalysisUseCase
 ) : ViewModel() {
+    // 添加Mutex以确保appendNote操作的原子性
+    private val appendNoteMutex = Mutex()
+    
     private val _questions = MutableStateFlow<List<Question>>(emptyList())
     val questions: StateFlow<List<Question>> = _questions.asStateFlow()
 
@@ -59,6 +66,9 @@ class ExamViewModel @Inject constructor(
 
     private val _sparkAnalysisList = MutableStateFlow<List<String>>(emptyList())
     val sparkAnalysisList: StateFlow<List<String>> = _sparkAnalysisList.asStateFlow()
+
+    private val _baiduAnalysisList = MutableStateFlow<List<String>>(emptyList())
+    val baiduAnalysisList: StateFlow<List<String>> = _baiduAnalysisList.asStateFlow()
 
     private val _noteList = MutableStateFlow<List<String>>(emptyList())
     val noteList: StateFlow<List<String>> = _noteList.asStateFlow()
@@ -92,6 +102,7 @@ class ExamViewModel @Inject constructor(
     private var notesLoaded: Boolean = false
     private var analysisLoaded: Boolean = false
     private var sparkAnalysisLoaded: Boolean = false
+    private var baiduAnalysisLoaded: Boolean = false
 
     fun loadQuestions(quizId: String, count: Int, random: Boolean) {
         // 考试模式也使用前缀区分进度
@@ -246,6 +257,14 @@ class ExamViewModel @Inject constructor(
                     }
                     _sparkAnalysisList.value = sparkAna
 
+                    val baiduAna = if (progress.baiduAnalysisList.size >= size) {
+                        progress.baiduAnalysisList.take(size)
+                    } else {
+                        changed = true
+                        progress.baiduAnalysisList + List(size - progress.baiduAnalysisList.size) { "" }
+                    }
+                    _baiduAnalysisList.value = baiduAna
+
                     val notes = if (progress.noteList.size >= size) {
                         progress.noteList.take(size)
                     } else {
@@ -269,6 +288,10 @@ class ExamViewModel @Inject constructor(
             if (!sparkAnalysisLoaded) {
                 loadSparkAnalysisFromRepository()
                 sparkAnalysisLoaded = true
+            }
+            if (!baiduAnalysisLoaded) {
+                loadBaiduAnalysisFromRepository()
+                baiduAnalysisLoaded = true
             }
             if (!notesLoaded) {
                 loadNotesFromRepository()
@@ -367,6 +390,25 @@ class ExamViewModel @Inject constructor(
         }
     }
 
+    private suspend fun loadBaiduAnalysisFromRepository() {
+        val qs = _questions.value
+        val list = _baiduAnalysisList.value.toMutableList()
+        var changed = false
+        qs.forEachIndexed { idx, q ->
+            if (idx >= list.size) list.add("")
+            if (list[idx].isBlank()) {
+                val text = getBaiduAnalysisUseCase(q.id)
+                if (!text.isNullOrBlank()) {
+                    list[idx] = text
+                    changed = true
+                }
+            }
+        }
+        if (changed) {
+            _baiduAnalysisList.value = list
+        }
+    }
+
 
     fun saveNote(questionId: Int, index: Int, text: String) {
         viewModelScope.launch { saveQuestionNoteUseCase(questionId, text) }
@@ -377,15 +419,30 @@ class ExamViewModel @Inject constructor(
     }
 
     fun appendNote(questionId: Int, index: Int, text: String) {
+        android.util.Log.d("ExamViewModel", "appendNote called: questionId=$questionId, index=$index, text=${text.take(50)}...")
         viewModelScope.launch {
-            val current = getQuestionNoteUseCase(questionId) ?: ""
-            val newText = if (current.isBlank()) text else current + "\n\n" + text
-            saveQuestionNoteUseCase(questionId, newText)
+            appendNoteMutex.withLock {
+                val current = getQuestionNoteUseCase(questionId) ?: ""
+                android.util.Log.d("ExamViewModel", "Current note: ${current.take(100)}...")
+                val timestamp = java.text.SimpleDateFormat("yyyy-MM-dd HH:mm:ss", java.util.Locale.getDefault()).format(java.util.Date())
+                val timestampedText = "[$timestamp]\n$text"
+                val newText = if (current.isBlank()) {
+                    timestampedText
+                } else {
+                    current + "\n\n" + timestampedText
+                }
+                android.util.Log.d("ExamViewModel", "New note: ${newText.take(200)}...")
+                saveQuestionNoteUseCase(questionId, newText)
+                android.util.Log.d("ExamViewModel", "Note saved to database")
+                
+                // 在协程内同步更新StateFlow，确保和数据库一致
+                val list = _noteList.value.toMutableList()
+                while (list.size <= index) list.add("")
+                list[index] = newText  // 使用与数据库相同的完整内容
+                _noteList.value = list
+                android.util.Log.d("ExamViewModel", "Note list updated: ${list[index].take(200)}...")
+            }
         }
-        val list = _noteList.value.toMutableList()
-        while (list.size <= index) list.add("")
-        list[index] = if (list[index].isBlank()) text else list[index] + "\n\n" + text
-        _noteList.value = list
     }
 
     suspend fun getNote(questionId: Int): String? = getQuestionNoteUseCase(questionId)
@@ -420,6 +477,14 @@ class ExamViewModel @Inject constructor(
         while (list.size <= index) list.add("")
         list[index] = text
         _sparkAnalysisList.value = list
+        saveProgress()
+    }
+
+    fun updateBaiduAnalysis(index: Int, text: String) {
+        val list = _baiduAnalysisList.value.toMutableList()
+        while (list.size <= index) list.add("")
+        list[index] = text
+        _baiduAnalysisList.value = list
         saveProgress()
     }
 
@@ -474,12 +539,14 @@ class ExamViewModel @Inject constructor(
             _showResultList.value = List(_questions.value.size) { false }
             _analysisList.value = List(_questions.value.size) { "" }
             _sparkAnalysisList.value = List(_questions.value.size) { "" }
+            _baiduAnalysisList.value = List(_questions.value.size) { "" }
             _noteList.value = List(_questions.value.size) { "" }
             _finished.value = false
             _progressLoaded.value = false
             progressSeed = System.currentTimeMillis()
             analysisLoaded = false
             sparkAnalysisLoaded = false
+            baiduAnalysisLoaded = false
             notesLoaded = false
             loadProgress()
         }
@@ -493,6 +560,7 @@ class ExamViewModel @Inject constructor(
         _showResultList.value = List(qs.size) { false }
         _analysisList.value = List(qs.size) { "" }
         _sparkAnalysisList.value = List(qs.size) { "" }
+        _baiduAnalysisList.value = List(qs.size) { "" }
         _noteList.value = List(qs.size) { "" }
         _finished.value = false
         _progressLoaded.value = true
@@ -508,12 +576,14 @@ class ExamViewModel @Inject constructor(
             _showResultList.value = emptyList()
             _analysisList.value = emptyList()
             _sparkAnalysisList.value = emptyList()
+            _baiduAnalysisList.value = emptyList()
             _noteList.value = emptyList()
             _finished.value = false
             _progressLoaded.value = false
             progressSeed = System.currentTimeMillis()
             analysisLoaded = false
             sparkAnalysisLoaded = false
+            baiduAnalysisLoaded = false
             notesLoaded = false
         }
     }
@@ -531,6 +601,7 @@ class ExamViewModel @Inject constructor(
                 showResultList = _showResultList.value,
                 analysisList = _analysisList.value,
                 sparkAnalysisList = _sparkAnalysisList.value,
+                baiduAnalysisList = _baiduAnalysisList.value,
                 noteList = _noteList.value,
                 finished = _finished.value,
                 timestamp = progressSeed

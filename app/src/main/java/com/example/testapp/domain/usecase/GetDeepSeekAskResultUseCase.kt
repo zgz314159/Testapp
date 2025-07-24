@@ -26,3 +26,15 @@ class SaveSparkAskResultUseCase @Inject constructor(
 ) {
     suspend operator fun invoke(questionId: Int, result: String) = repository.saveSparkResult(questionId, result)
 }
+
+class GetBaiduAskResultUseCase @Inject constructor(
+    private val repository: QuestionAskRepository
+) {
+    suspend operator fun invoke(questionId: Int): String? = repository.getBaiduResult(questionId)
+}
+
+class SaveBaiduAskResultUseCase @Inject constructor(
+    private val repository: QuestionAskRepository
+) {
+    suspend operator fun invoke(questionId: Int, result: String) = repository.saveBaiduResult(questionId, result)
+}

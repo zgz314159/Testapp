@@ -8,6 +8,7 @@ data class PracticeProgress(
     val showResultList: List<Boolean>, // 新增：每题是否已提交/显示解析
     val analysisList: List<String>,
     val sparkAnalysisList: List<String> = emptyList(),
+    val baiduAnalysisList: List<String> = emptyList(),
     val noteList: List<String>,
     val timestamp: Long
 )
