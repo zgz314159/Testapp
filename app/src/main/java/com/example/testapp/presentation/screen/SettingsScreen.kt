@@ -1,8 +1,9 @@
-package com.example.testapp.presentation.screen
+﻿package com.example.testapp.presentation.screen
 
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -14,6 +15,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import com.example.testapp.presentation.component.LocalFontFamily
 import com.example.testapp.presentation.component.LocalFontSize
@@ -38,6 +40,8 @@ fun SettingsScreen(
     val examDelay by viewModel.examDelay.collectAsState()
     val soundEnabled by viewModel.soundEnabled.collectAsState()
     val darkTheme by viewModel.darkTheme.collectAsState()
+    val isLoading by viewModel.isLoading.collectAsState()
+    val importProgress by viewModel.progress.collectAsState()
     val context = LocalContext.current
 
     // 折叠状态
@@ -57,19 +61,29 @@ fun SettingsScreen(
         ActivityResultContracts.OpenMultipleDocuments()
     ) { uris ->
         if (!uris.isNullOrEmpty()) {
-            onNavigateHome()
-            viewModel.importQuestionsFromUris(context, uris) { success, duplicateFiles ->
+            viewModel.importQuestionsFromUris(context, uris) { success, errorFiles ->
+                // 修复：在导入完成后再导航，确保提示能够显示
                 snackbarMessage = when {
-                    success && duplicateFiles.isNullOrEmpty() ->
+                    success && errorFiles.isNullOrEmpty() -> {
+                        onNavigateHome() // 成功时导航回主页
                         "题库导入成功"
-                    success && !duplicateFiles.isNullOrEmpty() ->
-                        "部分题库导入成功，以下文件已存在：${duplicateFiles.joinToString()}"
-                    !success && !duplicateFiles.isNullOrEmpty() ->
-                        "导入失败，以下文件已存在：${duplicateFiles.joinToString()}"
+                    }
+                    success && !errorFiles.isNullOrEmpty() -> {
+                        val errorCount = errorFiles.size
+                        val successCount = uris.size - errorCount
+                        if (successCount > 0) onNavigateHome() // 部分成功时也导航回主页
+                        "导入完成：成功${successCount}个，失败${errorCount}个。失败原因：${errorFiles.take(2).joinToString("；")}${if (errorFiles.size > 2) "等" else ""}"
+                    }
+                    !success && !errorFiles.isNullOrEmpty() -> {
+                        "导入失败：${errorFiles.take(3).joinToString("；")}${if (errorFiles.size > 3) "等" else ""}"
+                    }
                     else ->
-                        "题库导入失败"
+                        "题库导入失败，请检查文件格式是否正确"
                 }
             }
+        } else {
+            // 修复：用户取消选择文件时给出提示
+            snackbarMessage = "已取消导入"
         }
     }
     // 导出题库启动器
@@ -246,7 +260,6 @@ fun SettingsScreen(
             )
         }
         Spacer(modifier = Modifier.height(24.dp))
-
 
         // 考试 可折叠标题
         Row(
@@ -513,6 +526,59 @@ fun SettingsScreen(
             hostState = snackbarHostState,
             modifier = Modifier.align(Alignment.BottomCenter)
         )
-
+        
+        // 导入进度提示
+        if (isLoading) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(Color.Black.copy(alpha = 0.5f)),
+                contentAlignment = Alignment.Center
+            ) {
+                Card(
+                    modifier = Modifier.padding(16.dp)
+                ) {
+                    Column(
+                        modifier = Modifier.padding(24.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        CircularProgressIndicator()
+                        Spacer(modifier = Modifier.height(16.dp))
+                        Text(
+                            "正在导入题库...",
+                            style = MaterialTheme.typography.bodyLarge.copy(
+                                fontSize = fontSize.sp,
+                                fontFamily = LocalFontFamily.current
+                            )
+                        )
+                        if (importProgress > 0f) {
+                            Spacer(modifier = Modifier.height(8.dp))
+                            Text(
+                                "进度: ${(importProgress * 100).toInt()}%",
+                                style = MaterialTheme.typography.bodyMedium.copy(
+                                    fontSize = (fontSize - 2).sp,
+                                    fontFamily = LocalFontFamily.current
+                                )
+                            )
+                            Spacer(modifier = Modifier.height(8.dp))
+                            LinearProgressIndicator(
+                                progress = importProgress,
+                                modifier = Modifier.fillMaxWidth()
+                            )
+                        }
+                        Spacer(modifier = Modifier.height(8.dp))
+                        TextButton(onClick = { viewModel.cancelImportExport() }) {
+                            Text(
+                                "取消",
+                                style = MaterialTheme.typography.bodyMedium.copy(
+                                    fontSize = fontSize.sp,
+                                    fontFamily = LocalFontFamily.current
+                                )
+                            )
+                        }
+                    }
+                }
+            }
+        }
     }
 }

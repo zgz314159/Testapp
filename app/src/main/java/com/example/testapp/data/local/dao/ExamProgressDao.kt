@@ -17,4 +17,7 @@ interface ExamProgressDao {
 
     @Query("DELETE FROM exam_progress WHERE id = :id")
     suspend fun deleteProgress(id: String = "exam_default")
+    
+    @Query("DELETE FROM exam_progress WHERE id LIKE :fileNamePattern")
+    suspend fun deleteProgressByFileNamePattern(fileNamePattern: String): Int
 }

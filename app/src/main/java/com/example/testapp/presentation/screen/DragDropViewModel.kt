@@ -1,4 +1,4 @@
-package com.example.testapp.presentation.screen
+﻿package com.example.testapp.presentation.screen
 
 import android.util.Log
 import androidx.compose.ui.geometry.Offset
@@ -19,7 +19,6 @@ class DragDropViewModel @Inject constructor() : ViewModel() {
     private val _offsetWithinItem = MutableStateFlow(Offset.Zero)
     val offsetWithinItem: StateFlow<Offset> = _offsetWithinItem.asStateFlow()
 
-
     private val _draggingFile = MutableStateFlow<String?>(null)
     val draggingFile: StateFlow<String?> = _draggingFile.asStateFlow()
 
@@ -30,7 +29,7 @@ class DragDropViewModel @Inject constructor() : ViewModel() {
     val hoverFolder: StateFlow<String?> = _hoverFolder.asStateFlow()
 
     fun startDragging(file: String, position: Offset, size: IntSize, offset: Offset) {
-        Log.d(tag, "startDragging file=$file pos=$position size=$size offset=$offset")
+        
         _draggingFile.value = file
         _dragPosition.value = position
         _dragItemSize.value = size
@@ -38,19 +37,19 @@ class DragDropViewModel @Inject constructor() : ViewModel() {
     }
 
     fun updatePosition(position: Offset) {
-        Log.d(tag, "updatePosition pos=$position")
+        
         _dragPosition.value = position
     }
 
     fun endDragging() {
-        Log.d(tag, "endDragging file=${_draggingFile.value}")
+        
         _draggingFile.value = null
         _hoverFolder.value = null
         _offsetWithinItem.value = Offset.Zero
     }
 
     fun setHoverFolder(folder: String?) {
-        Log.d(tag, "hoverFolder=$folder")
+        
         _hoverFolder.value = folder
     }
 }

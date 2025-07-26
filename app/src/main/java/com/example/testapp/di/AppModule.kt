@@ -1,4 +1,4 @@
-package com.example.testapp.di
+﻿package com.example.testapp.di
 
 import android.content.Context
 import androidx.room.Room
@@ -12,6 +12,7 @@ import com.example.testapp.data.local.dao.ExamProgressDao
 import com.example.testapp.data.local.dao.QuestionAnalysisDao
 import com.example.testapp.data.local.dao.QuestionNoteDao
 import com.example.testapp.data.local.dao.QuestionAskDao
+import com.example.testapp.data.local.dao.ExamHistoryRecordDao
 import com.example.testapp.data.repository.FavoriteQuestionRepositoryImpl
 import com.example.testapp.data.repository.HistoryRepositoryImpl
 import com.example.testapp.data.repository.QuestionRepositoryImpl
@@ -21,6 +22,7 @@ import com.example.testapp.data.repository.ExamProgressRepositoryImpl
 import com.example.testapp.data.repository.QuestionAnalysisRepositoryImpl
 import com.example.testapp.data.repository.QuestionNoteRepositoryImpl
 import com.example.testapp.data.repository.QuestionAskRepositoryImpl
+import com.example.testapp.data.repository.ExamHistoryRepositoryImpl
 import com.example.testapp.data.repository.FileFolderRepositoryImpl
 import com.example.testapp.data.network.deepseek.DeepSeekApiService
 import com.example.testapp.data.network.spark.SparkApiService
@@ -33,6 +35,7 @@ import com.example.testapp.domain.repository.ExamProgressRepository
 import com.example.testapp.domain.repository.QuestionAnalysisRepository
 import com.example.testapp.domain.repository.QuestionNoteRepository
 import com.example.testapp.domain.repository.QuestionAskRepository
+import com.example.testapp.domain.repository.ExamHistoryRepository
 import com.example.testapp.domain.repository.FileFolderRepository
 import com.example.testapp.domain.usecase.AddFavoriteQuestionUseCase
 import com.example.testapp.domain.usecase.AddHistoryRecordUseCase
@@ -49,19 +52,28 @@ import com.example.testapp.domain.usecase.SaveExamProgressUseCase
 import com.example.testapp.domain.usecase.GetExamProgressFlowUseCase
 import com.example.testapp.domain.usecase.ClearExamProgressUseCase
 import com.example.testapp.domain.usecase.ClearPracticeProgressUseCase
+import com.example.testapp.domain.usecase.ClearPracticeProgressByFileNameUseCase
+import com.example.testapp.domain.usecase.ClearExamProgressByFileNameUseCase
 import com.example.testapp.domain.usecase.GetHistoryListByFileUseCase
 import com.example.testapp.domain.usecase.GetHistoryListByFileNamesUseCase
 import com.example.testapp.domain.usecase.RemoveHistoryRecordsByFileNameUseCase
+import com.example.testapp.domain.usecase.AddExamHistoryRecordUseCase
+import com.example.testapp.domain.usecase.RemoveExamHistoryByFileNameUseCase
+import com.example.testapp.domain.usecase.GetExamHistoryListUseCase
+import com.example.testapp.domain.usecase.GetExamHistoryListByFileUseCase
 import com.example.testapp.domain.usecase.GetQuestionAnalysisUseCase
 import com.example.testapp.domain.usecase.SaveQuestionAnalysisUseCase
 import com.example.testapp.domain.usecase.GetSparkAnalysisUseCase
 import com.example.testapp.domain.usecase.SaveSparkAnalysisUseCase
+import com.example.testapp.domain.usecase.RemoveQuestionAnalysisByQuestionIdUseCase
 import com.example.testapp.domain.usecase.GetQuestionNoteUseCase
 import com.example.testapp.domain.usecase.SaveQuestionNoteUseCase
+import com.example.testapp.domain.usecase.RemoveQuestionNoteByQuestionIdUseCase
 import com.example.testapp.domain.usecase.GetDeepSeekAskResultUseCase
 import com.example.testapp.domain.usecase.SaveDeepSeekAskResultUseCase
 import com.example.testapp.domain.usecase.GetSparkAskResultUseCase
 import com.example.testapp.domain.usecase.SaveSparkAskResultUseCase
+import com.example.testapp.domain.usecase.RemoveQuestionAskByQuestionIdUseCase
 import com.example.testapp.domain.usecase.MoveFileToFolderUseCase
 import com.example.testapp.domain.usecase.GetFileFoldersUseCase
 import com.example.testapp.domain.usecase.GetFoldersUseCase
@@ -132,6 +144,12 @@ object AppModule {
 
     @Provides
     @Singleton
+    fun provideExamHistoryRepository(
+        examHistoryDao: ExamHistoryRecordDao
+    ): ExamHistoryRepository = ExamHistoryRepositoryImpl(examHistoryDao)
+
+    @Provides
+    @Singleton
     fun provideAddHistoryRecordUseCase(repo: HistoryRepository): AddHistoryRecordUseCase =
         AddHistoryRecordUseCase(repo)
 
@@ -155,6 +173,25 @@ object AppModule {
     fun provideRemoveHistoryRecordsByFileNameUseCase(repo: HistoryRepository): RemoveHistoryRecordsByFileNameUseCase =
         RemoveHistoryRecordsByFileNameUseCase(repo)
 
+    @Provides
+    @Singleton
+    fun provideAddExamHistoryRecordUseCase(repo: ExamHistoryRepository): AddExamHistoryRecordUseCase =
+        AddExamHistoryRecordUseCase(repo)
+
+    @Provides
+    @Singleton
+    fun provideRemoveExamHistoryByFileNameUseCase(repo: ExamHistoryRepository): RemoveExamHistoryByFileNameUseCase =
+        RemoveExamHistoryByFileNameUseCase(repo)
+
+    @Provides
+    @Singleton
+    fun provideGetExamHistoryListUseCase(repo: ExamHistoryRepository): GetExamHistoryListUseCase =
+        GetExamHistoryListUseCase(repo)
+
+    @Provides
+    @Singleton
+    fun provideGetExamHistoryListByFileUseCase(repo: ExamHistoryRepository): GetExamHistoryListByFileUseCase =
+        GetExamHistoryListByFileUseCase(repo)
 
     @Provides
     @Singleton
@@ -192,6 +229,8 @@ object AppModule {
     @Provides
     fun provideQuestionAskDao(db: AppDatabase): QuestionAskDao = db.questionAskDao()
 
+    @Provides
+    fun provideExamHistoryRecordDao(db: AppDatabase): ExamHistoryRecordDao = db.examHistoryRecordDao()
 
     @Provides
     fun provideFileFolderDao(db: AppDatabase): com.example.testapp.data.local.dao.FileFolderDao = db.fileFolderDao()
@@ -272,7 +311,6 @@ object AppModule {
     @Singleton
     fun provideQuestionAskRepository(dao: QuestionAskDao): QuestionAskRepository = QuestionAskRepositoryImpl(dao)
 
-
     @Provides
     @Singleton
     fun provideSavePracticeProgressUseCase(repo: PracticeProgressRepository): SavePracticeProgressUseCase = SavePracticeProgressUseCase(repo)
@@ -299,6 +337,14 @@ object AppModule {
 
     @Provides
     @Singleton
+    fun provideClearPracticeProgressByFileNameUseCase(repo: PracticeProgressRepository): ClearPracticeProgressByFileNameUseCase = ClearPracticeProgressByFileNameUseCase(repo)
+
+    @Provides
+    @Singleton
+    fun provideClearExamProgressByFileNameUseCase(repo: ExamProgressRepository): ClearExamProgressByFileNameUseCase = ClearExamProgressByFileNameUseCase(repo)
+
+    @Provides
+    @Singleton
     fun provideGetQuestionAnalysisUseCase(repo: QuestionAnalysisRepository): GetQuestionAnalysisUseCase = GetQuestionAnalysisUseCase(repo)
 
     @Provides
@@ -313,6 +359,9 @@ object AppModule {
     @Singleton
     fun provideSaveSparkAnalysisUseCase(repo: QuestionAnalysisRepository): SaveSparkAnalysisUseCase = SaveSparkAnalysisUseCase(repo)
 
+    @Provides
+    @Singleton
+    fun provideRemoveQuestionAnalysisByQuestionIdUseCase(repo: QuestionAnalysisRepository): RemoveQuestionAnalysisByQuestionIdUseCase = RemoveQuestionAnalysisByQuestionIdUseCase(repo)
 
     @Provides
     @Singleton
@@ -321,6 +370,10 @@ object AppModule {
     @Provides
     @Singleton
     fun provideSaveQuestionNoteUseCase(repo: QuestionNoteRepository): SaveQuestionNoteUseCase = SaveQuestionNoteUseCase(repo)
+
+    @Provides
+    @Singleton
+    fun provideRemoveQuestionNoteByQuestionIdUseCase(repo: QuestionNoteRepository): RemoveQuestionNoteByQuestionIdUseCase = RemoveQuestionNoteByQuestionIdUseCase(repo)
 
     @Provides
     @Singleton
@@ -338,6 +391,9 @@ object AppModule {
     @Singleton
     fun provideSaveSparkAskResultUseCase(repo: QuestionAskRepository): SaveSparkAskResultUseCase = SaveSparkAskResultUseCase(repo)
 
+    @Provides
+    @Singleton
+    fun provideRemoveQuestionAskByQuestionIdUseCase(repo: QuestionAskRepository): RemoveQuestionAskByQuestionIdUseCase = RemoveQuestionAskByQuestionIdUseCase(repo)
 
     @Provides
     @Singleton

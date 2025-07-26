@@ -1,11 +1,10 @@
-package com.example.testapp.presentation.navigation
+﻿package com.example.testapp.presentation.navigation
 
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.collectAsState
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.example.testapp.presentation.screen.PracticeViewModel
-import com.example.testapp.presentation.screen.ExamViewModel
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -28,6 +27,7 @@ import com.example.testapp.presentation.screen.SparkScreen
 import com.example.testapp.presentation.screen.SparkAskScreen
 import com.example.testapp.presentation.screen.BaiduScreen
 import com.example.testapp.presentation.screen.BaiduAskScreen
+import com.example.testapp.presentation.screen.ExamViewModel
 
 import com.example.testapp.util.safeDecode
 import com.example.testapp.util.safeEncode
@@ -37,9 +37,7 @@ fun AppNavHost(navController: NavHostController = rememberNavController(), setti
     // 在AppNavHost级别创建全局ViewModel实例，确保所有Screen使用相同实例
     val globalPracticeViewModel: PracticeViewModel = hiltViewModel()
     val globalExamViewModel: ExamViewModel = hiltViewModel()
-    
-    android.util.Log.d("AppNavHost", "Global ViewModel instances created - practiceViewModel: ${globalPracticeViewModel.hashCode()}, examViewModel: ${globalExamViewModel.hashCode()}")
-    
+
     NavHost(navController = navController, startDestination = "home") {
         composable("home") {
             HomeScreen(
@@ -107,10 +105,10 @@ fun AppNavHost(navController: NavHostController = rememberNavController(), setti
                 quizId = quizId,
                 settingsViewModel = settingsViewModel,
                 viewModel = globalPracticeViewModel, // 使用全局ViewModel
-                onQuizEnd = { score, total, unanswered ->
+                onQuizEnd = { score, total, unanswered, cumulativeCorrect, cumulativeAnswered ->
                     val id = "practice_${quizId}"
                     val e = java.net.URLEncoder.encode(id, "UTF-8")
-                    navController.navigate("result/$score/$total/$unanswered/$e") {
+                    navController.navigate("result/$score/$total/$unanswered/$e?cumulativeCorrect=${cumulativeCorrect ?: -1}&cumulativeAnswered=${cumulativeAnswered ?: -1}") {
                         popUpTo("home") { inclusive = false }
                     }
                 },
@@ -151,14 +149,16 @@ fun AppNavHost(navController: NavHostController = rememberNavController(), setti
         ) { backStackEntry ->
             val encoded = backStackEntry.arguments?.getString("quizId") ?: "default"
             val quizId = com.example.testapp.util.safeDecode(encoded)
+            
             ExamScreen(
                 quizId = quizId,
                 settingsViewModel = settingsViewModel,
                 viewModel = globalExamViewModel, // 使用全局ViewModel
-                onExamEnd = { score, total, unanswered ->
+                onExamEnd = { score, total, unanswered, cumulativeCorrect, cumulativeAnswered, cumulativeExamCount ->
+
                     val id = "exam_${quizId}"
                     val e = java.net.URLEncoder.encode(id, "UTF-8")
-                    navController.navigate("result/$score/$total/$unanswered/$e") {
+                    navController.navigate("result/$score/$total/$unanswered/$e?cumulativeCorrect=${cumulativeCorrect ?: -1}&cumulativeAnswered=${cumulativeAnswered ?: -1}&cumulativeExamCount=${cumulativeExamCount ?: -1}") {
                         popUpTo("home") { inclusive = false }
                     }
                 },
@@ -202,15 +202,42 @@ fun AppNavHost(navController: NavHostController = rememberNavController(), setti
             QuestionScreen(quizId = quizId)
         }
         composable(
-            "result/{score}/{total}/{unanswered}/{quizId}",
-            arguments = listOf(navArgument("quizId") { type = NavType.StringType })
+            "result/{score}/{total}/{unanswered}/{quizId}?cumulativeCorrect={cumulativeCorrect}&cumulativeAnswered={cumulativeAnswered}&cumulativeExamCount={cumulativeExamCount}",
+            arguments = listOf(
+                navArgument("quizId") { type = NavType.StringType },
+                navArgument("cumulativeCorrect") { 
+                    type = NavType.IntType
+                    defaultValue = -1
+                },
+                navArgument("cumulativeAnswered") { 
+                    type = NavType.IntType
+                    defaultValue = -1
+                },
+                navArgument("cumulativeExamCount") { 
+                    type = NavType.IntType
+                    defaultValue = -1
+                }
+            )
         ) { backStackEntry ->
             val score = backStackEntry.arguments?.getString("score")?.toIntOrNull() ?: 0
             val total = backStackEntry.arguments?.getString("total")?.toIntOrNull() ?: 0
             val unanswered = backStackEntry.arguments?.getString("unanswered")?.toIntOrNull() ?: 0
             val encodedQuiz = backStackEntry.arguments?.getString("quizId") ?: ""
+            val cumulativeCorrect = backStackEntry.arguments?.getInt("cumulativeCorrect")?.takeIf { it != -1 }
+            val cumulativeAnswered = backStackEntry.arguments?.getInt("cumulativeAnswered")?.takeIf { it != -1 }
+            val cumulativeExamCount = backStackEntry.arguments?.getInt("cumulativeExamCount")?.takeIf { it != -1 }
             val quizId = com.example.testapp.util.safeDecode(encodedQuiz)
-            ResultScreen(score, total, unanswered, quizId,
+            
+            // 添加调试日志：显示从URL解析的参数
+
+            ResultScreen(
+                score = score, 
+                total = total, 
+                unanswered = unanswered, 
+                quizId = quizId,
+                cumulativeCorrect = cumulativeCorrect,
+                cumulativeAnswered = cumulativeAnswered,
+                cumulativeExamCount = cumulativeExamCount,
                 onBackHome = { navController.popBackStack("home", false) },
                 onViewDetail = {
                     if (encodedQuiz.isNotBlank()) {
@@ -241,14 +268,16 @@ fun AppNavHost(navController: NavHostController = rememberNavController(), setti
         composable("practice_wrongbook/{fileName}") { backStackEntry ->
             val encoded = backStackEntry.arguments?.getString("fileName") ?: ""
             val name = com.example.testapp.util.safeDecode(encoded)
+            
             PracticeScreen(
                 isWrongBookMode = true,
                 wrongBookFileName = name,
                 settingsViewModel = settingsViewModel,
-                onQuizEnd = { score, total, unanswered ->
+                onQuizEnd = { score, total, unanswered, cumulativeCorrect, cumulativeAnswered ->
+                    
                     val id = "practice_${name}"
                     val e = java.net.URLEncoder.encode(id, "UTF-8")
-                    navController.navigate("result/$score/$total/$unanswered/$e") {
+                    navController.navigate("result/$score/$total/$unanswered/$e?cumulativeCorrect=${cumulativeCorrect ?: -1}&cumulativeAnswered=${cumulativeAnswered ?: -1}") {
                         popUpTo("wrongbook") { inclusive = false }
                     }
                 },
@@ -291,10 +320,10 @@ fun AppNavHost(navController: NavHostController = rememberNavController(), setti
                 isWrongBookMode = true,
                 wrongBookFileName = name,
                 settingsViewModel = settingsViewModel,
-                onExamEnd = { score, total, unanswered ->
+                onExamEnd = { score, total, unanswered, cumulativeCorrect, cumulativeAnswered, cumulativeExamCount ->
                     val id = "exam_${name}"
                     val e = java.net.URLEncoder.encode(id, "UTF-8")
-                    navController.navigate("result/$score/$total/$unanswered/$e") {
+                    navController.navigate("result/$score/$total/$unanswered/$e?cumulativeCorrect=${cumulativeCorrect ?: -1}&cumulativeAnswered=${cumulativeAnswered ?: -1}&cumulativeExamCount=${cumulativeExamCount ?: -1}") {
                         popUpTo("wrongbook") { inclusive = false }
                     }
                 },
@@ -343,14 +372,16 @@ fun AppNavHost(navController: NavHostController = rememberNavController(), setti
         composable("practice_favorite/{fileName}") { backStackEntry ->
             val encoded = backStackEntry.arguments?.getString("fileName") ?: ""
             val name = com.example.testapp.util.safeDecode(encoded)
+            
             PracticeScreen(
                 isFavoriteMode = true,
                 favoriteFileName = name,
                 settingsViewModel = settingsViewModel,
-                onQuizEnd = { score, total, unanswered ->
+                onQuizEnd = { score, total, unanswered, cumulativeCorrect, cumulativeAnswered ->
+                    
                     val id = "practice_${name}"
                     val e = java.net.URLEncoder.encode(id, "UTF-8")
-                    navController.navigate("result/$score/$total/$unanswered/$e") {
+                    navController.navigate("result/$score/$total/$unanswered/$e?cumulativeCorrect=${cumulativeCorrect ?: -1}&cumulativeAnswered=${cumulativeAnswered ?: -1}") {
                         popUpTo("favorite") { inclusive = false }
                     }
                 },
@@ -389,15 +420,17 @@ fun AppNavHost(navController: NavHostController = rememberNavController(), setti
         composable("exam_favorite/{fileName}") { backStackEntry ->
             val encoded = backStackEntry.arguments?.getString("fileName") ?: ""
             val name = com.example.testapp.util.safeDecode(encoded)
+            
             ExamScreen(
                 quizId = name,
                 isFavoriteMode = true,
                 favoriteFileName = name,
                 settingsViewModel = settingsViewModel,
-                onExamEnd = { score, total, unanswered ->
+                onExamEnd = { score, total, unanswered, cumulativeCorrect, cumulativeAnswered, cumulativeExamCount ->
+                    
                     val id = "exam_${name}"
                     val e = java.net.URLEncoder.encode(id, "UTF-8")
-                    navController.navigate("result/$score/$total/$unanswered/$e") {
+                    navController.navigate("result/$score/$total/$unanswered/$e?cumulativeCorrect=${cumulativeCorrect ?: -1}&cumulativeAnswered=${cumulativeAnswered ?: -1}&cumulativeExamCount=${cumulativeExamCount ?: -1}") {
                         popUpTo("favorite") { inclusive = false }
                     }
                 },
@@ -480,24 +513,30 @@ fun AppNavHost(navController: NavHostController = rememberNavController(), setti
             val parentEntry = remember(backStackEntry) { navController.previousBackStackEntry }
             val parentRoute = parentEntry?.destination?.route.orEmpty()
             
-            // 根据parent route确定使用哪个ViewModel
-            val examViewModel = if (parentRoute.startsWith("exam")) globalExamViewModel else null
-            val practiceViewModel = if (!parentRoute.startsWith("exam")) globalPracticeViewModel else null
-            
-            android.util.Log.d("AppNavHost", "DeepSeekAsk using global ViewModels - examViewModel: ${examViewModel?.hashCode()}, practiceViewModel: ${practiceViewModel?.hashCode()}")
-            
+            // 🔧 修复：检查整个导航栈来确定当前模式
+            val isExamMode = remember(backStackEntry) {
+                navController.backQueue.any { entry ->
+                    entry.destination.route?.startsWith("exam") == true
+                }
+            }
+
+            // 根据整个导航栈确定使用哪个ViewModel
+            val examViewModel = if (isExamMode) globalExamViewModel else null
+            val practiceViewModel = if (!isExamMode) globalPracticeViewModel else null
+
             DeepSeekAskScreen(
                 text = text,
                 questionId = id,
                 index = index,
                 navController = navController,
                 onSave = {
-                    android.util.Log.d("AppNavHost", "DeepSeekAsk onSave called: ${it.take(50)}...")
+                    
                     val note = "【DeepSeek问答】\n" + it
-                    android.util.Log.d("AppNavHost", "Calling appendNote for examViewModel: ${examViewModel != null}, hashCode: ${examViewModel?.hashCode()}")
+                    
                     examViewModel?.appendNote(id, index, note)
-                    android.util.Log.d("AppNavHost", "Calling appendNote for practiceViewModel: ${practiceViewModel != null}, hashCode: ${practiceViewModel?.hashCode()}")
+                    
                     practiceViewModel?.appendNote(id, index, note)
+                    
                 },
                 settingsViewModel = settingsViewModel
             )
@@ -518,24 +557,30 @@ fun AppNavHost(navController: NavHostController = rememberNavController(), setti
             val parentEntry = remember(backStackEntry) { navController.previousBackStackEntry }
             val parentRoute = parentEntry?.destination?.route.orEmpty()
             
-            // 根据parent route确定使用哪个ViewModel
-            val examViewModel = if (parentRoute.startsWith("exam")) globalExamViewModel else null
-            val practiceViewModel = if (!parentRoute.startsWith("exam")) globalPracticeViewModel else null
-            
-            android.util.Log.d("AppNavHost", "SparkAsk using global ViewModels - examViewModel: ${examViewModel?.hashCode()}, practiceViewModel: ${practiceViewModel?.hashCode()}")
-            
+            // 🔧 修复：检查整个导航栈来确定当前模式
+            val isExamMode = remember(backStackEntry) {
+                navController.backQueue.any { entry ->
+                    entry.destination.route?.startsWith("exam") == true
+                }
+            }
+
+            // 根据整个导航栈确定使用哪个ViewModel
+            val examViewModel = if (isExamMode) globalExamViewModel else null
+            val practiceViewModel = if (!isExamMode) globalPracticeViewModel else null
+
             SparkAskScreen(
                 text = text,
                 questionId = id,
                 index = index,
                 navController = navController,
                 onSave = {
-                    android.util.Log.d("AppNavHost", "SparkAsk onSave called: ${it.take(50)}...")
+                    
                     val note = "【Spark问答】\n" + it
-                    android.util.Log.d("AppNavHost", "Calling appendNote for examViewModel: ${examViewModel != null}, hashCode: ${examViewModel?.hashCode()}")
+                    
                     examViewModel?.appendNote(id, index, note)
-                    android.util.Log.d("AppNavHost", "Calling appendNote for practiceViewModel: ${practiceViewModel != null}, hashCode: ${practiceViewModel?.hashCode()}")
+                    
                     practiceViewModel?.appendNote(id, index, note)
+                    
                 },
                 settingsViewModel = settingsViewModel
             )
@@ -591,9 +636,7 @@ fun AppNavHost(navController: NavHostController = rememberNavController(), setti
             // 根据parent route确定使用哪个ViewModel
             val examViewModel = if (parentRoute.startsWith("exam")) globalExamViewModel else null
             val practiceViewModel = if (!parentRoute.startsWith("exam")) globalPracticeViewModel else null
-            
-            android.util.Log.d("AppNavHost", "NoteScreen using global ViewModels - examViewModel: ${examViewModel?.hashCode()}, practiceViewModel: ${practiceViewModel?.hashCode()}")
-            
+
             NoteScreen(
                 text = text,
                 questionId = id,
@@ -656,24 +699,30 @@ fun AppNavHost(navController: NavHostController = rememberNavController(), setti
             val parentEntry = remember(backStackEntry) { navController.previousBackStackEntry }
             val parentRoute = parentEntry?.destination?.route.orEmpty()
             
-            // 根据parent route确定使用哪个ViewModel
-            val examViewModel = if (parentRoute.startsWith("exam")) globalExamViewModel else null
-            val practiceViewModel = if (!parentRoute.startsWith("exam")) globalPracticeViewModel else null
-            
-            android.util.Log.d("AppNavHost", "BaiduAsk using global ViewModels - examViewModel: ${examViewModel?.hashCode()}, practiceViewModel: ${practiceViewModel?.hashCode()}")
-            
+            // 🔧 修复：检查整个导航栈来确定当前模式
+            val isExamMode = remember(backStackEntry) {
+                navController.backQueue.any { entry ->
+                    entry.destination.route?.startsWith("exam") == true
+                }
+            }
+
+            // 根据整个导航栈确定使用哪个ViewModel
+            val examViewModel = if (isExamMode) globalExamViewModel else null
+            val practiceViewModel = if (!isExamMode) globalPracticeViewModel else null
+
             BaiduAskScreen(
                 text = text,
                 questionId = id,
                 index = index,
                 navController = navController,
                 onSave = {
-                    android.util.Log.d("AppNavHost", "BaiduAsk onSave called: ${it.take(50)}...")
+                    
                     val note = "【百度问答】\n" + it
-                    android.util.Log.d("AppNavHost", "Calling appendNote for examViewModel: ${examViewModel != null}, hashCode: ${examViewModel?.hashCode()}")
+                    
                     examViewModel?.appendNote(id, index, note)
-                    android.util.Log.d("AppNavHost", "Calling appendNote for practiceViewModel: ${practiceViewModel != null}, hashCode: ${practiceViewModel?.hashCode()}")
+                    
                     practiceViewModel?.appendNote(id, index, note)
+                    
                 },
                 settingsViewModel = settingsViewModel
             )

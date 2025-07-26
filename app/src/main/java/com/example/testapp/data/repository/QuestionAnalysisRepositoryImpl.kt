@@ -1,4 +1,4 @@
-package com.example.testapp.data.repository
+﻿package com.example.testapp.data.repository
 
 import com.example.testapp.data.local.dao.QuestionAnalysisDao
 import com.example.testapp.data.local.entity.QuestionAnalysisEntity
@@ -15,22 +15,14 @@ class QuestionAnalysisRepositoryImpl @Inject constructor(
     override suspend fun getAnalysis(questionId: Int): String? {
         val start = System.currentTimeMillis()
         cache[questionId]?.let {
-            android.util.Log.d("QuestionAnalysisRepo", "cache hit id=$questionId")
+            
             return it
         }
         val cachedCheckDuration = System.currentTimeMillis() - start
-        android.util.Log.d(
-            "QuestionAnalysisRepo",
-            "cache miss id=$questionId, check duration=${cachedCheckDuration} ms"
-        )
 
         val dbStart = System.currentTimeMillis()
         val result = dao.getAnalysis(questionId)
         val dbDuration = System.currentTimeMillis() - dbStart
-        android.util.Log.d(
-            "QuestionAnalysisRepo",
-            "db get duration=${dbDuration} ms resultLength=${result?.length}"
-        )
 
         if (result != null) cache[questionId] = result
         return result
@@ -43,10 +35,7 @@ class QuestionAnalysisRepositoryImpl @Inject constructor(
             ?: QuestionAnalysisEntity(questionId = questionId, analysis = analysis, sparkAnalysis = null, baiduAnalysis = null)
         dao.upsert(entity)
         val dbDuration = System.currentTimeMillis() - dbStart
-        android.util.Log.d(
-            "QuestionAnalysisRepo",
-            "db save duration=${dbDuration} ms"
-        )
+        
         cache[questionId] = analysis
     }
     override suspend fun getSparkAnalysis(questionId: Int): String? {
@@ -54,10 +43,7 @@ class QuestionAnalysisRepositoryImpl @Inject constructor(
         val start = System.currentTimeMillis()
         val result = dao.getSparkAnalysis(questionId)
         val duration = System.currentTimeMillis() - start
-        android.util.Log.d(
-            "QuestionAnalysisRepo",
-            "getSparkAnalysis duration=${duration} ms resultLength=${result?.length}"
-        )
+        
         if (result != null) sparkCache[questionId] = result
         return result
     }
@@ -69,25 +55,19 @@ class QuestionAnalysisRepositoryImpl @Inject constructor(
             ?: QuestionAnalysisEntity(questionId = questionId, analysis = "", sparkAnalysis = analysis, baiduAnalysis = null)
         dao.upsert(entity)
         val dbDuration = System.currentTimeMillis() - dbStart
-        android.util.Log.d(
-            "QuestionAnalysisRepo",
-            "db save spark duration=${dbDuration} ms"
-        )
+        
         sparkCache[questionId] = analysis
     }
 
     override suspend fun getBaiduAnalysis(questionId: Int): String? {
         val start = System.currentTimeMillis()
         baiduCache[questionId]?.let {
-            android.util.Log.d("QuestionAnalysisRepo", "baidu cache hit id=$questionId")
+            
             return it
         }
         val result = dao.getBaiduAnalysis(questionId)
         val duration = System.currentTimeMillis() - start
-        android.util.Log.d(
-            "QuestionAnalysisRepo",
-            "getBaiduAnalysis duration=${duration} ms resultLength=${result?.length}"
-        )
+        
         if (result != null) baiduCache[questionId] = result
         return result
     }
@@ -99,10 +79,14 @@ class QuestionAnalysisRepositoryImpl @Inject constructor(
             ?: QuestionAnalysisEntity(questionId = questionId, analysis = "", sparkAnalysis = "", baiduAnalysis = analysis)
         dao.upsert(entity)
         val dbDuration = System.currentTimeMillis() - dbStart
-        android.util.Log.d(
-            "QuestionAnalysisRepo",
-            "db save baidu duration=${dbDuration} ms"
-        )
+        
         baiduCache[questionId] = analysis
+    }
+    
+    override suspend fun deleteByQuestionId(questionId: Int) {
+        dao.deleteByQuestionId(questionId)
+        cache.remove(questionId)
+        sparkCache.remove(questionId)
+        baiduCache.remove(questionId)
     }
 }

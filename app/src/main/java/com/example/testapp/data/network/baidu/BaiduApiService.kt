@@ -1,4 +1,4 @@
-package com.example.testapp.data.network.baidu
+﻿package com.example.testapp.data.network.baidu
 
 import com.example.testapp.BuildConfig
 import com.example.testapp.domain.model.Question
@@ -63,22 +63,13 @@ class BaiduApiService(private val client: HttpClient) {
             append("请给出正确答案和解析。")
         }
 
-        android.util.Log.d("BaiduApiService", "Prompt=\n$prompt")
-
         val requestBody = RequestBody(
             model = "ernie-3.5-8k",
             messages = listOf(Message("user", prompt)),
             maxCompletionTokens = 2048
         )
-        android.util.Log.d(
-            "BaiduApiService",
-            "RequestBodyJson=${Json.encodeToString(requestBody)}"
-        )
 
         val requestStart = System.currentTimeMillis()
-        android.util.Log.d("BaiduApiService", "Sending request...")
-        android.util.Log.d("BaiduApiService", "Target URL: https://qianfan.baidubce.com/v2/chat/completions")
-        android.util.Log.d("BaiduApiService", "Authorization: Bearer ${BuildConfig.BAIDU_API_KEY}")
 
         val httpResponse: HttpResponse = try {
             client.post {
@@ -88,20 +79,13 @@ class BaiduApiService(private val client: HttpClient) {
                 setBody(requestBody)
             }
         } catch (e: Exception) {
-            android.util.Log.e("BaiduApiService", "Request failed", e)
+            
             throw e
         }
         val networkDuration = System.currentTimeMillis() - requestStart
-        android.util.Log.d(
-            "BaiduApiService",
-            "Network duration=${networkDuration} ms"
-        )
-        android.util.Log.d(
-            "BaiduApiService",
-            "Status=${httpResponse.status.value}, Headers=${httpResponse.headers}"
-        )
+
         val raw: String = httpResponse.bodyAsText()
-        android.util.Log.d("BaiduApiService", "RawResponse=$raw")
+        
         if (!httpResponse.status.isSuccess()) {
             throw RuntimeException("HTTP ${httpResponse.status.value}: $raw")
         }
@@ -109,23 +93,15 @@ class BaiduApiService(private val client: HttpClient) {
         val response = try {
             json.decodeFromString<ResponseData>(raw)
         } catch (e: Exception) {
-            android.util.Log.e("BaiduApiService", "Parse response failed", e)
+            
             throw e
         }
         val parseDuration = System.currentTimeMillis() - parseStart
-        android.util.Log.d("BaiduApiService", "Parse duration=${parseDuration} ms")
-        android.util.Log.d("BaiduApiService", "Response=$response")
+
         val totalDuration = System.currentTimeMillis() - totalStart
-        android.util.Log.d(
-            "BaiduApiService",
-            "Total analyze duration=${totalDuration} ms"
-        )
-        
+
         // 添加详细耗时分析日志
-        android.util.Log.d("BaiduApi", "Total: ${totalDuration}ms")
-        android.util.Log.d("BaiduApi", "  Network: ${networkDuration}ms")
-        android.util.Log.d("BaiduApi", "  Parsing: ${parseDuration}ms")
-        
+
         val result = response.choices.firstOrNull()?.message?.content ?: ""
         return stripMarkdown(result)
     }
@@ -160,10 +136,7 @@ class BaiduApiService(private val client: HttpClient) {
         val totalDuration = System.currentTimeMillis() - totalStart
         
         // 添加详细耗时分析日志
-        android.util.Log.d("BaiduApi", "Ask Total: ${totalDuration}ms")
-        android.util.Log.d("BaiduApi", "  Network: ${networkDuration}ms")
-        android.util.Log.d("BaiduApi", "  Parsing: ${parseDuration}ms")
-        
+
         val result = response.choices.firstOrNull()?.message?.content ?: ""
         return stripMarkdown(result)
     }

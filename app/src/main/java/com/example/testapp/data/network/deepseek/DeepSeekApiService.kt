@@ -1,4 +1,4 @@
-package com.example.testapp.data.network.deepseek
+﻿package com.example.testapp.data.network.deepseek
 
 import com.example.testapp.BuildConfig
 import com.example.testapp.domain.model.Question
@@ -61,19 +61,12 @@ class DeepSeekApiService(private val client: HttpClient) {
             append("请给出正确答案和解析。")
         }
 
-        android.util.Log.d("DeepSeekApiService", "Prompt=\n$prompt")
-
         val requestBody = RequestBody(
             messages = listOf(Message("user", prompt)),
             maxTokens = 4096
         )
-        android.util.Log.d(
-            "DeepSeekApiService",
-            "RequestBodyJson=${Json.encodeToString(requestBody)}"
-        )
 
         val requestStart = System.currentTimeMillis()
-        android.util.Log.d("DeepSeekApiService", "Sending request...")
 
         val httpResponse: HttpResponse = try {
             client.post {
@@ -83,20 +76,13 @@ class DeepSeekApiService(private val client: HttpClient) {
                 setBody(requestBody)
             }
         } catch (e: Exception) {
-            android.util.Log.e("DeepSeekApiService", "Request failed", e)
+            
             throw e
         }
         val networkDuration = System.currentTimeMillis() - requestStart
-        android.util.Log.d(
-            "DeepSeekApiService",
-            "Network duration=${networkDuration} ms"
-        )
-        android.util.Log.d(
-            "DeepSeekApiService",
-            "Status=${httpResponse.status.value}, Headers=${httpResponse.headers}"
-        )
+
         val raw: String = httpResponse.bodyAsText()
-        android.util.Log.d("DeepSeekApiService", "RawResponse=$raw")
+        
         if (!httpResponse.status.isSuccess()) {
             throw RuntimeException("HTTP ${httpResponse.status.value}: $raw")
         }
@@ -104,17 +90,13 @@ class DeepSeekApiService(private val client: HttpClient) {
         val response = try {
             json.decodeFromString<ResponseData>(raw)
         } catch (e: Exception) {
-            android.util.Log.e("DeepSeekApiService", "Parse response failed", e)
+            
             throw e
         }
         val parseDuration = System.currentTimeMillis() - parseStart
-        android.util.Log.d("DeepSeekApiService", "Parse duration=${parseDuration} ms")
-        android.util.Log.d("DeepSeekApiService", "Response=$response")
+
         val totalDuration = System.currentTimeMillis() - totalStart
-        android.util.Log.d(
-            "DeepSeekApiService",
-            "Total analyze duration=${totalDuration} ms"
-        )
+        
         val result = response.choices.firstOrNull()?.message?.content ?: ""
         return stripMarkdown(result)
     }

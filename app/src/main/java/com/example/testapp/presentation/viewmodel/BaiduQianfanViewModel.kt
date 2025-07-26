@@ -1,4 +1,4 @@
-package com.example.testapp.presentation.viewmodel
+﻿package com.example.testapp.presentation.viewmodel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -37,21 +37,21 @@ class BaiduQianfanViewModel @Inject constructor(
             }
             _analysisResult.value = index to "解析中..."
             try {
-                android.util.Log.d("BaiduQianfanViewModel", "Starting analysis for question: ${question.content}")
+                
                 val result = apiService.analyze(question)
-                android.util.Log.d("BaiduQianfanViewModel", "Analysis result: $result")
+                
                 _analysisResult.value = index to (result.ifBlank { "解析失败：响应为空" })
                 if (result.isNotBlank()) {
                     saveAnalysisUseCase(question.id, result)
                 }
             } catch (e: java.nio.channels.UnresolvedAddressException) {
-                android.util.Log.e("BaiduQianfanViewModel", "网络连接失败：无法解析域名", e)
+                
                 _analysisResult.value = index to "解析失败：网络连接错误，请检查网络设置"
             } catch (e: java.net.UnknownHostException) {
-                android.util.Log.e("BaiduQianfanViewModel", "域名解析失败", e)
+                
                 _analysisResult.value = index to "解析失败：无法连接到百度服务器"
             } catch (e: Exception) {
-                android.util.Log.e("BaiduQianfanViewModel", "分析失败", e)
+                
                 _analysisResult.value = index to "解析失败：${e.message}"
             }
             _loading.value = false

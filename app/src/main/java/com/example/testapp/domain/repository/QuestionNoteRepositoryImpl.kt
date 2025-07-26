@@ -21,4 +21,9 @@ class QuestionNoteRepositoryImpl @Inject constructor(
         dao.upsert(QuestionNoteEntity(questionId = questionId, note = note))
         cache[questionId] = note
     }
+    
+    override suspend fun deleteByQuestionId(questionId: Int) {
+        dao.deleteByQuestionId(questionId)
+        cache.remove(questionId)
+    }
 }

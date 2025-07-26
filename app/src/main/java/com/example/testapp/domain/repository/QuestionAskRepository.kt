@@ -7,4 +7,5 @@ interface QuestionAskRepository {
     suspend fun saveSparkResult(questionId: Int, result: String)
     suspend fun getBaiduResult(questionId: Int): String?
     suspend fun saveBaiduResult(questionId: Int, result: String)
+    suspend fun deleteByQuestionId(questionId: Int)
 }

@@ -1,5 +1,6 @@
-package com.example.testapp.presentation.screen
+﻿package com.example.testapp.presentation.screen
 
+import android.util.Log
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
@@ -19,6 +20,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.scale
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
@@ -53,7 +55,7 @@ fun PracticeScreen(
     aiViewModel: DeepSeekViewModel = hiltViewModel(),
     sparkViewModel: SparkViewModel = hiltViewModel(),
     baiduQianfanViewModel: BaiduQianfanViewModel = hiltViewModel(),
-    onQuizEnd: (score: Int, total: Int, unanswered: Int) -> Unit = { _, _, _ -> },
+    onQuizEnd: (score: Int, total: Int, unanswered: Int, cumulativeCorrect: Int?, cumulativeAnswered: Int?) -> Unit = { _, _, _, _, _ -> },
     onSubmit: (Boolean) -> Unit = {},
     onExitWithoutAnswer: () -> Unit = {},
     onViewDeepSeek: (String, Int, Int) -> Unit = { _, _, _ -> },
@@ -156,8 +158,10 @@ fun PracticeScreen(
     var showList by remember { mutableStateOf(false) }
     var menuExpanded by remember { mutableStateOf(false) }
 
-    var sessionScore         by remember { mutableStateOf(0) }
-    val sessionAnsweredCount = viewModel.answeredCount
+    val sessionState by viewModel.sessionState.collectAsState()
+    val sessionAnsweredCount = sessionState.sessionAnsweredCount  // 本次会话已答题数
+    val sessionActualAnswered = sessionState.sessionAnsweredCount  // 使用统一状态
+    val sessionScore = sessionState.sessionCorrectCount  // 本次会话答对数
     var aiMenuExpanded by remember { mutableStateOf(false) }
     var askMenuExpanded by remember { mutableStateOf(false) }
 
@@ -216,8 +220,7 @@ fun PracticeScreen(
     LaunchedEffect(progressLoaded) {
         if (progressLoaded) {
             answeredThisSession = false
-            sessionScore = 0
-
+            // sessionScore 现在从统一状态自动计算，无需手动重置
         }
     }
     LaunchedEffect(analysisPair) {
@@ -246,9 +249,18 @@ fun PracticeScreen(
             }
             sessionAnsweredCount >= viewModel.totalCount -> {
                 autoJob?.cancel()
-                val unanswered = viewModel.unansweredCount
-                viewModel.addHistoryRecord(sessionScore, viewModel.totalCount, unanswered)
-                onQuizEnd(sessionScore, viewModel.totalCount, unanswered)
+                // 对于"本次练习"，混合使用session和总进度数据
+                val realUnanswered = viewModel.totalCount - viewModel.answeredCount
+                // 本次练习的未答数：对于已完成的练习，未答数为0
+                val sessionUnanswered = 0
+                
+                // 详细调试信息
+
+                // 修复：只在有实际答题时才记录历史
+                if (sessionActualAnswered > 0) {
+                    viewModel.addHistoryRecord(sessionScore, viewModel.totalCount, realUnanswered)
+                }
+                onQuizEnd(sessionScore, sessionActualAnswered, sessionUnanswered, viewModel.correctCount, viewModel.answeredCount)
             }
             else -> showExitDialog = true
         }
@@ -291,9 +303,18 @@ fun PracticeScreen(
                                     }
                                     sessionAnsweredCount >= viewModel.totalCount -> {
                                         autoJob?.cancel()
-                                        val unanswered = viewModel.unansweredCount
-                                        viewModel.addHistoryRecord(sessionScore, viewModel.totalCount, unanswered)
-                                        onQuizEnd(sessionScore, viewModel.totalCount, unanswered)
+                                        // 对于"本次练习"，混合使用session和总进度数据
+                                        val realUnanswered = viewModel.totalCount - viewModel.answeredCount
+                                        // 本次练习的未答数：对于已完成的练习，未答数为0
+                                        val sessionUnanswered = 0
+                                        
+                                        // 详细调试信息
+
+                                        // 修复：只在有实际答题时才记录历史
+                                        if (sessionActualAnswered > 0) {
+                                            viewModel.addHistoryRecord(sessionScore, viewModel.totalCount, realUnanswered)
+                                        }
+                                        onQuizEnd(sessionScore, sessionActualAnswered, sessionUnanswered, viewModel.correctCount, viewModel.answeredCount)
                                     }
                                     else -> showExitDialog = true
                                 }
@@ -459,7 +480,7 @@ fun PracticeScreen(
                 val multiIndices = remember(questions) { questions.mapIndexedNotNull { i, q -> if (q.type == "多选题") i else null } }
                 val judgeIndices = remember(questions) { questions.mapIndexedNotNull { i, q -> if (q.type == "判断题") i else null } }
 
-                Column(modifier = Modifier.heightIn(max = 300.dp)) {
+                Column(modifier = Modifier.heightIn(max = 500.dp).verticalScroll(rememberScrollState())) {
                     if (singleIndices.isNotEmpty()) {
                         Text("单选题", fontSize = LocalFontSize.current, fontFamily = LocalFontFamily.current)
                         AnswerCardGrid(
@@ -560,14 +581,16 @@ fun PracticeScreen(
                     .clickable(enabled = !showResult) {
                         answeredThisSession = true
                         if (question.type == "单选题" || question.type == "判断题") {
+                            // 答题前记录状态
+
                             viewModel.answerQuestion(idx)
+                            
+                            // 答题后记录状态
 
                             val correctIdx = answerLetterToIndex(question.answer)
                             val correct = idx == correctIdx
-                            if (!showResult && correct) {
-                                sessionScore++
-                            }
-
+                            // sessionScore 现在从统一状态自动计算，无需手动增加
+                            
                             if (soundEnabled) {
                                 if (correct) soundEffects.playCorrect() else soundEffects.playWrong()
                             }
@@ -581,7 +604,6 @@ fun PracticeScreen(
                                 }
                             }
 
-
                             onSubmit(correct)
                             autoJob?.cancel()
                             autoJob = coroutineScope.launch {
@@ -593,28 +615,35 @@ fun PracticeScreen(
                                 } else if (sessionAnsweredCount == 0) {
                                     onExitWithoutAnswer()
                                 } else if (sessionAnsweredCount >= viewModel.totalCount) {
-                                    val unanswered = viewModel.unansweredCount
+                                    // 对于"本次练习"，混合使用session和总进度数据
+                                    val realUnanswered = viewModel.totalCount - viewModel.answeredCount
+                                    
+                                    // 详细调试信息
+
                                     viewModel.addHistoryRecord(
                                         sessionScore,
                                         viewModel.totalCount,
-                                        unanswered
+                                        realUnanswered
                                     )
-                                    onQuizEnd(sessionScore, viewModel.totalCount, unanswered)
+                                    // 修复：只在有实际答题时才记录历史 - 这里已经检查了sessionAnsweredCount > 0，所以保持原样
+                                    onQuizEnd(sessionScore, sessionActualAnswered, realUnanswered, viewModel.correctCount, viewModel.answeredCount)
                                 } else {
                                     showExitDialog = true
                                 }
                             }
                             } else {
+
                             viewModel.toggleOption(idx)
+
                         }
                     },
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                // 增大选择圆圈区域
+                // 增大选择圆圈区域和图标直径
                 Box(
                     modifier = Modifier
-                        .size(40.dp)  // 从40dp增加到56dp
-                        .padding(20.dp), // 添加内边距，让圆圈居中
+                        .size(60.dp)  // 提供更大的点击区域
+                        .padding(4.dp), // 调整内边距，让圆圈居中
                     contentAlignment = Alignment.Center
                 ) {
                 if (question.type == "多选题") {
@@ -622,15 +651,19 @@ fun PracticeScreen(
                         checked = isSelected,
                         onCheckedChange = {
                             answeredThisSession = true
+
                             viewModel.toggleOption(idx)
+
                         },
-                        enabled = !showResult
+                        enabled = !showResult,
+                        modifier = Modifier.scale(1.5f)  // 将复选框放大1.5倍
                     )
                 } else {
                     RadioButton(
                         selected = isSelected,
                         onClick = null,
-                        enabled = !showResult
+                        enabled = !showResult,
+                        modifier = Modifier.scale(1.5f)  // 将单选按钮放大1.5倍
                     )
                 }}
                 Spacer(modifier = Modifier.width(12.dp))  // 增加间距
@@ -664,14 +697,18 @@ fun PracticeScreen(
                 )
             }
             if (question.explanation.isNotBlank()) {
-                val collapsed = expandedSection != -1 && expandedSection != 0
+                val collapsed = expandedSection != 0
                 val lineHeight = with(LocalDensity.current) { (questionFontSize * 1.3f).sp.toDp() }
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
                         .then(
-                            if (!collapsed) Modifier.weight(1f, fill = false).verticalScroll(explanationScroll)
-                            else Modifier.heightIn(max = lineHeight + 16.dp)
+                            if (!collapsed) {
+                                // 修复：展开状态下增加最大高度限制，避免与主滚动冲突
+                                Modifier.heightIn(max = 400.dp).verticalScroll(explanationScroll)
+                            } else {
+                                Modifier.heightIn(max = lineHeight + 16.dp)
+                            }
                         )
                         .background(Color(0xFFFFF5C0))
                         .padding(8.dp)
@@ -694,14 +731,18 @@ fun PracticeScreen(
             }
             val note = noteList.getOrNull(currentIndex)
             if (!note.isNullOrBlank()) {
-                val collapsed = expandedSection != -1 && expandedSection != 1
+                val collapsed = expandedSection != 1
                 val lineHeight = with(LocalDensity.current) { (questionFontSize * 1.3f).sp.toDp() }
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
                         .then(
-                            if (!collapsed) Modifier.weight(1f, fill = false).verticalScroll(noteScroll)
-                            else Modifier.heightIn(max = lineHeight + 16.dp)
+                            if (!collapsed) {
+                                // 修复：展开状态下增加最大高度限制，避免与主滚动冲突
+                                Modifier.heightIn(max = 400.dp).verticalScroll(noteScroll)
+                            } else {
+                                Modifier.heightIn(max = lineHeight + 16.dp)
+                            }
                         )
                         .background(Color(0xFFE0FFE0))
                         .padding(8.dp)
@@ -729,14 +770,18 @@ fun PracticeScreen(
 
             if (!analysisText.isNullOrBlank() || !sparkText.isNullOrBlank() || !baiduText.isNullOrBlank()) {
                 if (!analysisText.isNullOrBlank()) {
-                    val collapsed = expandedSection != -1 && expandedSection != 2
+                    val collapsed = expandedSection != 2
                     val lineHeight = with(LocalDensity.current) { (questionFontSize * 1.3f).sp.toDp() }
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
                             .then(
-                                if (!collapsed) Modifier.weight(1f, fill = false).verticalScroll(deepSeekScroll)
-                                else Modifier.heightIn(max = lineHeight + 16.dp)
+                                if (!collapsed) {
+                                    // 修复：展开状态下增加最大高度限制，避免与主滚动冲突
+                                    Modifier.heightIn(max = 400.dp).verticalScroll(deepSeekScroll)
+                                } else {
+                                    Modifier.heightIn(max = lineHeight + 16.dp)
+                                }
                             )
                             .background(Color(0xFFE8F6FF))
                             .padding(8.dp)
@@ -767,14 +812,18 @@ fun PracticeScreen(
                     }
                 }
                 if (!sparkText.isNullOrBlank()) {
-                    val collapsed = expandedSection != -1 && expandedSection != 3
+                    val collapsed = expandedSection != 3
                     val lineHeight = with(LocalDensity.current) { (questionFontSize * 1.3f).sp.toDp() }
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
                             .then(
-                                if (!collapsed) Modifier.weight(1f, fill = false).verticalScroll(sparkScroll)
-                                else Modifier.heightIn(max = lineHeight + 16.dp)
+                                if (!collapsed) {
+                                    // 修复：展开状态下增加最大高度限制，避免与主滚动冲突
+                                    Modifier.heightIn(max = 400.dp).verticalScroll(sparkScroll)
+                                } else {
+                                    Modifier.heightIn(max = lineHeight + 16.dp)
+                                }
                             )
                             .background(Color(0xFFEDE7FF))
                             .padding(8.dp)
@@ -805,14 +854,18 @@ fun PracticeScreen(
                     }
                 }
                 if (!baiduText.isNullOrBlank()) {
-                    val collapsed = expandedSection != -1 && expandedSection != 4
+                    val collapsed = expandedSection != 4
                     val lineHeight = with(LocalDensity.current) { (questionFontSize * 1.3f).sp.toDp() }
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
                             .then(
-                                if (!collapsed) Modifier.weight(1f, fill = false).verticalScroll(baiduScroll)
-                                else Modifier.heightIn(max = lineHeight + 16.dp)
+                                if (!collapsed) {
+                                    // 修复：展开状态下增加最大高度限制，避免与主滚动冲突
+                                    Modifier.heightIn(max = 400.dp).verticalScroll(baiduScroll)
+                                } else {
+                                    Modifier.heightIn(max = lineHeight + 16.dp)
+                                }
                             )
                             .background(Color(0xFFF0F8E7))
                             .padding(8.dp)
@@ -843,10 +896,12 @@ fun PracticeScreen(
                     }
                 }
             } else {
-                Spacer(modifier = Modifier.weight(1f, fill = true))
+                // 修复：移除weight修饰符，使用固定高度的Spacer以支持滚动
+                Spacer(modifier = Modifier.height(16.dp))
             }
         } else {
-            Spacer(modifier = Modifier.weight(1f, fill = true))
+            // 修复：移除weight修饰符，使用固定高度的Spacer以支持滚动
+            Spacer(modifier = Modifier.height(16.dp))
         }
 
         // “提交答案”按钮（多选题且未提交才显示）
@@ -857,8 +912,13 @@ fun PracticeScreen(
             ) {
                 Button(
                     onClick = {
+                        // 多选题提交前记录状态
+
                         autoJob?.cancel()
                         viewModel.updateShowResult(currentIndex, true)
+                        
+                        // 多选题提交后记录状态
+
                         val allCorrect = selectedOption.toSet() == correctIndices.toSet()
                         if (soundEnabled) {
                             if (allCorrect) soundEffects.playCorrect() else soundEffects.playWrong()
@@ -872,9 +932,7 @@ fun PracticeScreen(
                                 )
                             }
                         }
-                        if (!showResult && allCorrect) {
-                            sessionScore++
-                        }
+                        // sessionScore 现在从统一状态自动计算，无需手动增加
                         onSubmit(allCorrect)
                         autoJob = coroutineScope.launch {
                             val d = if (allCorrect) correctDelay else wrongDelay
@@ -884,9 +942,13 @@ fun PracticeScreen(
                             } else if (sessionAnsweredCount == 0) {
                                 onExitWithoutAnswer()
                             } else if (sessionAnsweredCount >= viewModel.totalCount) {
-                                val unanswered = viewModel.unansweredCount
-                                viewModel.addHistoryRecord(sessionScore, viewModel.totalCount, unanswered)
-                                onQuizEnd(sessionScore, viewModel.totalCount, unanswered)
+                                // 对于"本次练习"，混合使用session和总进度数据
+                                val realUnanswered = viewModel.totalCount - viewModel.answeredCount
+                                
+                                // 详细调试信息
+
+                                viewModel.addHistoryRecord(sessionScore, viewModel.totalCount, realUnanswered)
+                                onQuizEnd(sessionScore, sessionActualAnswered, realUnanswered, viewModel.correctCount, viewModel.answeredCount)
                             } else {
                                 showExitDialog = true
                             }
@@ -905,7 +967,6 @@ fun PracticeScreen(
 
         Spacer(modifier = Modifier.height(8.dp))
     }
-
 
     if (showDeleteNoteDialog) {
         AlertDialog(
@@ -966,11 +1027,17 @@ fun PracticeScreen(
                 TextButton(onClick = {
                     autoJob?.cancel()
                     showExitDialog = false
-                    // 1. 先算总题数
+                    // 对于"本次练习"，混合使用session和总进度数据
                     val totalQuestions = viewModel.totalCount
-                    val unanswered = viewModel.unansweredCount
-                    viewModel.addHistoryRecord(sessionScore, totalQuestions, unanswered)
-                    onQuizEnd(sessionScore, totalQuestions, unanswered)
+                    val realUnanswered = totalQuestions - viewModel.answeredCount
+                    
+                    // 详细调试信息
+
+                    // 修复：只在有实际答题时才记录历史
+                    if (sessionActualAnswered > 0) {
+                        viewModel.addHistoryRecord(sessionScore, totalQuestions, realUnanswered)
+                    }
+                    onQuizEnd(sessionScore, sessionActualAnswered, realUnanswered, viewModel.correctCount, viewModel.answeredCount)
                 }) { Text("确定") }
             },
             dismissButton = {

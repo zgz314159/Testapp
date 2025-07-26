@@ -1,5 +1,4 @@
-package com.example.testapp
-
+﻿package com.example.testapp
 
 import android.os.Bundle
 import androidx.activity.ComponentActivity
@@ -16,7 +15,6 @@ import androidx.compose.ui.platform.LocalContext
 import com.example.testapp.presentation.component.LocalFontSize
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.unit.sp
-
 
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {

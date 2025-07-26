@@ -1,4 +1,4 @@
-package com.example.testapp.domain.usecase
+﻿package com.example.testapp.domain.usecase
 
 import com.example.testapp.domain.model.ExamProgress
 import com.example.testapp.domain.repository.ExamProgressRepository
@@ -16,3 +16,14 @@ class GetExamProgressFlowUseCase @Inject constructor(
 class ClearExamProgressUseCase @Inject constructor(
     private val repository: ExamProgressRepository
 ) { suspend operator fun invoke(id: String = "exam_default") = repository.clearProgress(id) }
+
+class ClearExamProgressByFileNameUseCase @Inject constructor(
+    private val repository: ExamProgressRepository
+) { 
+    suspend operator fun invoke(fileName: String) {
+        val pattern = "exam_${fileName}%"
+        
+        repository.clearProgressByFileNamePattern(pattern)
+        
+    }
+}

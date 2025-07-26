@@ -19,4 +19,7 @@ interface QuestionAskDao {
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun upsert(entity: QuestionAskEntity)
+    
+    @Query("DELETE FROM question_ask WHERE questionId = :questionId")
+    suspend fun deleteByQuestionId(questionId: Int)
 }

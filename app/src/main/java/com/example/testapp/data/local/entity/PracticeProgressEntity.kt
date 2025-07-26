@@ -7,6 +7,8 @@ import com.example.testapp.data.local.entity.converter.BooleanListConverter
 import com.example.testapp.data.local.entity.converter.IntListConverter
 import com.example.testapp.data.local.entity.converter.NestedIntListConverter
 import com.example.testapp.data.local.entity.converter.StringListConverter
+import com.example.testapp.data.local.entity.converter.QuestionAnswerStateMapConverter
+import com.example.testapp.domain.model.QuestionAnswerState
 
 @Entity(tableName = "practice_progress")
 data class PracticeProgressEntity(
@@ -26,5 +28,11 @@ data class PracticeProgressEntity(
     val baiduAnalysisList: List<String> = emptyList(),
     @TypeConverters(StringListConverter::class)
     val noteList: List<String>, // 每题的笔记内容
-    val timestamp: Long // 保存时间戳
+    val timestamp: Long, // 保存时间戳
+    // 🚀 新增：固定题序支持字段
+    val sessionId: String = "", // 会话ID，用于区分不同轮次的练习
+    @TypeConverters(IntListConverter::class)
+    val fixedQuestionOrder: List<Int> = emptyList(), // 固定的题目ID顺序
+    @TypeConverters(QuestionAnswerStateMapConverter::class)
+    val questionStateMap: Map<Int, QuestionAnswerState> = emptyMap() // 题目ID -> 答题状态映射
 )

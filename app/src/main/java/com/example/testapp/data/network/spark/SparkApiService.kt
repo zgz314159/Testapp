@@ -1,4 +1,4 @@
-package com.example.testapp.data.network.spark
+﻿package com.example.testapp.data.network.spark
 
 import android.util.Log
 import com.example.testapp.BuildConfig
@@ -64,23 +64,23 @@ class SparkApiService(private val client: HttpClient) {
 
         repeat(maxRetries) { attempt ->
             try {
-                Log.d("SparkApiService", "Attempting request (${attempt + 1}/$maxRetries)")
+                
                 return operation()
             } catch (e: HttpRequestTimeoutException) {
-                Log.w("SparkApiService", "Attempt ${attempt + 1} failed with timeout: ${e.message}")
+                
                 lastException = e
                 if (attempt < maxRetries - 1) {
-                    Log.i("SparkApiService", "Retrying in ${currentDelay}ms...")
+                    
                     delay(currentDelay)
                     currentDelay = (currentDelay * backoffFactor).toLong().coerceAtMost(maxDelayMs)
                 }
             } catch (e: Exception) {
                 // 对于非超时错误，记录并不重试
-                Log.e("SparkApiService", "Request failed with non-timeout error: ${e.javaClass.simpleName}: ${e.message}")
+                
                 throw e
             }
         }
-        Log.e("SparkApiService", "All $maxRetries retry attempts failed")
+        
         throw lastException ?: Exception("All retry attempts failed")
     }
 
@@ -95,17 +95,12 @@ class SparkApiService(private val client: HttpClient) {
             append("请给出正确答案和解析。")
         }
 
-        Log.d("SparkApiService", "Prompt=\n$prompt")
-
         val requestBody = RequestBody(
             messages = listOf(Message("user", prompt)),
             maxTokens = 4096
         )
 
-        Log.d("SparkApiService", "RequestBodyJson=${json.encodeToString(requestBody)}")
-
         val requestStart = System.currentTimeMillis()
-        Log.d("SparkApiService", "Sending request...")
 
         val httpResponse: HttpResponse = retryWithBackoff(maxRetries = 3) {
             client.post {
@@ -117,11 +112,8 @@ class SparkApiService(private val client: HttpClient) {
         }
         
         val networkDuration = System.currentTimeMillis() - requestStart
-        Log.d("SparkApiService", "Network duration=${networkDuration} ms")
-        Log.d("SparkApiService", "Status=${httpResponse.status.value}, Headers=${httpResponse.headers}")
 
         val raw: String = httpResponse.bodyAsText()
-        Log.d("SparkApiService", "RawResponse=$raw")
 
         if (!httpResponse.status.isSuccess()) {
             throw RuntimeException("HTTP ${httpResponse.status.value}: $raw")
@@ -131,14 +123,12 @@ class SparkApiService(private val client: HttpClient) {
         val response = try {
             json.decodeFromString<ResponseData>(raw)
         } catch (e: Exception) {
-            Log.e("SparkApiService", "Parse response failed", e)
+            
             throw e
         }
         val parseDuration = System.currentTimeMillis() - parseStart
-        Log.d("SparkApiService", "Parse duration=${parseDuration} ms")
-        Log.d("SparkApiService", "Response=$response")
+
         val totalDuration = System.currentTimeMillis() - totalStart
-        Log.d("SparkApiService", "Total analyze duration=${totalDuration} ms")
 
         val result = response.choices.firstOrNull()?.message?.content ?: ""
         return stripMarkdown(result)
@@ -146,18 +136,14 @@ class SparkApiService(private val client: HttpClient) {
     
     suspend fun ask(text: String): String {
         val totalStart = System.currentTimeMillis()
-        
-        Log.d("SparkApiService", "Ask prompt=\n$text")
-        
+
         val requestBody = RequestBody(
             messages = listOf(Message("user", text)),
             maxTokens = 4096
         )
-        Log.d("SparkApiService", "Ask RequestBodyJson=${json.encodeToString(requestBody)}")
-        
+
         val requestStart = System.currentTimeMillis()
-        Log.d("SparkApiService", "Ask sending request...")
-        
+
         val httpResponse: HttpResponse = retryWithBackoff(maxRetries = 3) {
             client.post {
                 url("https://spark-api-open.xf-yun.com/v2/chat/completions")
@@ -168,11 +154,9 @@ class SparkApiService(private val client: HttpClient) {
         }
         
         val networkDuration = System.currentTimeMillis() - requestStart
-        Log.d("SparkApiService", "Ask network duration=${networkDuration} ms")
-        Log.d("SparkApiService", "Ask status=${httpResponse.status.value}, Headers=${httpResponse.headers}")
-        
+
         val raw = httpResponse.bodyAsText()
-        Log.d("SparkApiService", "Ask RawResponse=$raw")
+        
         if (!httpResponse.status.isSuccess()) {
             throw RuntimeException("HTTP ${httpResponse.status.value}: $raw")
         }
@@ -181,15 +165,13 @@ class SparkApiService(private val client: HttpClient) {
         val response = try {
             json.decodeFromString<ResponseData>(raw)
         } catch (e: Exception) {
-            Log.e("SparkApiService", "Ask parse response failed", e)
+            
             throw e
         }
         val parseDuration = System.currentTimeMillis() - parseStart
-        Log.d("SparkApiService", "Ask parse duration=${parseDuration} ms")
-        Log.d("SparkApiService", "Ask response=$response")
+
         val totalDuration = System.currentTimeMillis() - totalStart
-        Log.d("SparkApiService", "Total ask duration=${totalDuration} ms")
-        
+
         val result = response.choices.firstOrNull()?.message?.content ?: ""
         return stripMarkdown(result)
     }

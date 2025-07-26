@@ -1,4 +1,4 @@
-package com.example.testapp.presentation.screen
+﻿package com.example.testapp.presentation.screen
 
 import android.util.Log
 import androidx.compose.foundation.ExperimentalFoundationApi
@@ -220,8 +220,8 @@ fun HomeScreen(
                             FontSettingsDataStore.setLastSelectedNav(context, bottomNavIndex)
                         }
                     },
-                    icon = { Icon(Icons.Filled.FactCheck, "答题记录") },
-                    label = { Text("答题记录", fontSize = LocalFontSize.current, fontFamily = LocalFontFamily.current) }
+                    icon = { Icon(Icons.Filled.FactCheck, "记录") },
+                    label = { Text("记录", fontSize = LocalFontSize.current, fontFamily = LocalFontFamily.current) }
                 )
                 NavigationBarItem(
                     selected = bottomNavIndex == 3,
@@ -231,8 +231,8 @@ fun HomeScreen(
                             FontSettingsDataStore.setLastSelectedNav(context, bottomNavIndex)
                         }
                     },
-                    icon = { Icon(Icons.Filled.Settings, "题库主页") },
-                    label = { Text("题库主页", fontSize = LocalFontSize.current, fontFamily = LocalFontFamily.current) }
+                    icon = { Icon(Icons.Filled.SwapHoriz, "模式") },
+                    label = { Text("模式", fontSize = LocalFontSize.current, fontFamily = LocalFontFamily.current) }
                 )
             }
         }
@@ -428,7 +428,7 @@ fun HomeScreen(
                                             var startedLocally = false
                                             detectDragGesturesAfterLongPress(
                                                 onDragStart = { offsetWithinCard ->
-                                                    Log.d("HomeScreen", "onDragStart for $name at $offsetWithinCard")
+                                                    
                                                     startedLocally = true
                                                 },
                                                 onDrag = { change, _ ->
@@ -438,7 +438,7 @@ fun HomeScreen(
                                                         val startPos = itemCoords?.localToRoot(change.position)
                                                             ?: Offset.Zero
                                                         val size = itemCoords?.size ?: IntSize.Zero
-                                                        Log.d("HomeScreen", "startDragging for $name")
+                                                        
                                                         dragViewModel.startDragging(
                                                             name, startPos, size, change.position
                                                         )
@@ -449,10 +449,10 @@ fun HomeScreen(
                                                     dragViewModel.setHoverFolder(
                                                         folderBounds.entries.find { it.value.contains(pos) }?.key
                                                     )
-                                                    Log.d("HomeScreen", ">>> onDrag for $name, pos=$pos")
+                                                    
                                                 },
                                                 onDragEnd = {
-                                                    Log.d("HomeScreen", "onDragEnd for $name")
+                                                    
                                                     val target = folderBounds.entries
                                                         .find { it.value.contains(dragViewModel.dragPosition.value) }
                                                         ?.key
@@ -462,7 +462,7 @@ fun HomeScreen(
                                                     dragViewModel.endDragging()
                                                 },
                                                 onDragCancel = {
-                                                    Log.d("HomeScreen", "onDragCancel for $name")
+                                                    
                                                     dragViewModel.endDragging()
                                                 }
                                             )

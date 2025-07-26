@@ -1,4 +1,4 @@
-package com.example.testapp.presentation.screen
+﻿package com.example.testapp.presentation.screen
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -28,7 +28,7 @@ class WrongBookViewModel @Inject constructor(
     init {
         viewModelScope.launch {
             getWrongBookUseCase().collect {
-                android.util.Log.d("WrongBookViewModel", "收到错题本数据，数量: ${it.size}, 内容: $it")
+                
                 _wrongQuestions.value = it
                 _fileNames.value = it.mapNotNull { w -> w.question.fileName }.distinct()
             }
@@ -36,11 +36,11 @@ class WrongBookViewModel @Inject constructor(
     }
 
     fun addWrongQuestion(wrong: WrongQuestion) {
-        android.util.Log.d("WrongBookViewModel", "addWrongQuestion调用: $wrong")
+        
         viewModelScope.launch {
-            android.util.Log.d("WrongBookViewModel", "addWrongQuestion-协程: $wrong")
+            
             wrongBookRepository.add(wrong)
-            android.util.Log.d("WrongBookViewModel", "addWrongQuestion-保存完成: $wrong")
+            
         }
     }
     // 新增：按文件名删除错题

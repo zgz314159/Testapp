@@ -1,4 +1,4 @@
-package com.example.testapp.presentation.screen
+﻿package com.example.testapp.presentation.screen
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -26,11 +26,11 @@ class SparkViewModel @Inject constructor(
 
     fun analyze(index: Int, question: Question) {
         viewModelScope.launch {
-            android.util.Log.d("SparkViewModel", "Analyze question id=${question.id}")
+            
             val cached = getSparkAnalysisUseCase(question.id)
-            android.util.Log.d("SparkViewModel", "Check cache result: ${cached?.take(50)}")
+            
             if (!cached.isNullOrBlank()) {
-                android.util.Log.d("SparkViewModel", "Use cached analysis")
+                
                 _analysis.value = index to cached
                 return@launch
             }
@@ -38,13 +38,13 @@ class SparkViewModel @Inject constructor(
             _analysis.value = index to "解析中..."
             runCatching { api.analyze(question) }
                 .onSuccess {
-                    android.util.Log.d("SparkViewModel", "Analysis success: ${it.take(50)}")
+                    
                     _analysis.value = index to it
                     saveSparkAnalysisUseCase(question.id, it)
-                    android.util.Log.d("SparkViewModel", "Analysis saved")
+                    
                 }
                 .onFailure { 
-                    android.util.Log.e("SparkViewModel", "Analysis failed", it)
+                    
                     _analysis.value = index to "解析失败: ${it.message}" 
                 }
         }

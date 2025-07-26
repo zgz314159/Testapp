@@ -1,4 +1,4 @@
-package com.example.testapp.data.repository
+﻿package com.example.testapp.data.repository
 
 import com.example.testapp.data.local.dao.QuestionDao
 import com.example.testapp.data.local.dao.WrongQuestionDao
@@ -119,7 +119,6 @@ class WrongBookRepositoryImpl @Inject constructor(
         dao.removeByFileName(fileName)
     }
 
-
     fun exportWrongBookToExcel(wrongs: List<WrongQuestion>, file: java.io.File): Boolean {
         return try {
             val workbook = XSSFWorkbook()
@@ -199,7 +198,6 @@ class WrongBookRepositoryImpl @Inject constructor(
         if (result.length > 31) result = result.substring(0, 31)
         return if (result.isBlank()) "Sheet" else result
     }
-
 
     private fun parseExcelWrongBook(file: java.io.File): List<WrongQuestion> {
         val wrongs = mutableListOf<WrongQuestion>()

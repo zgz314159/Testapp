@@ -13,4 +13,7 @@ interface QuestionNoteDao {
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun upsert(entity: QuestionNoteEntity)
+    
+    @Query("DELETE FROM question_notes WHERE questionId = :questionId")
+    suspend fun deleteByQuestionId(questionId: Int)
 }

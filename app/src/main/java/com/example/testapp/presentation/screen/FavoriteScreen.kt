@@ -1,4 +1,4 @@
-package com.example.testapp.presentation.screen
+﻿package com.example.testapp.presentation.screen
 
 import android.util.Log
 import androidx.compose.foundation.ExperimentalFoundationApi
@@ -239,7 +239,7 @@ fun FavoriteScreen(
                                                     onDragStart = { offset ->
                                                         val pos = itemCoords?.localToRoot(offset) ?: Offset.Zero
                                                         val size = itemCoords?.size ?: IntSize.Zero
-                                                        Log.d("FavoriteScreen", "start drag $name at $pos size=$size")
+                                                        
                                                         dragViewModel.startDragging(name, pos, size, offset)
                                                         dragViewModel.setHoverFolder(
                                                             folderBounds.entries.find { it.value.contains(pos) }?.key
@@ -257,14 +257,14 @@ fun FavoriteScreen(
                                                     onDragEnd = {
                                                         val target = folderBounds.entries
                                                             .find { it.value.contains(dragViewModel.dragPosition.value) }?.key
-                                                        Log.d("FavoriteScreen", "end drag $name -> $target")
+                                                        
                                                         if (target != null) {
                                                             folderViewModel.moveFile(name, target)
                                                         }
                                                         dragViewModel.endDragging()
                                                     },
                                                     onDragCancel = {
-                                                        Log.d("FavoriteScreen", "drag cancel $name")
+                                                        
                                                         dragViewModel.endDragging()
                                                     }
                                                 )

@@ -7,4 +7,5 @@ interface ExamProgressRepository {
     suspend fun saveProgress(progress: ExamProgress)
     fun getProgressFlow(id: String = "exam_default"): Flow<ExamProgress?>
     suspend fun clearProgress(id: String = "exam_default")
+    suspend fun clearProgressByFileNamePattern(fileNamePattern: String)
 }

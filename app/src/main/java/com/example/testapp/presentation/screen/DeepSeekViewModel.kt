@@ -1,4 +1,4 @@
-package com.example.testapp.presentation.screen
+﻿package com.example.testapp.presentation.screen
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -35,17 +35,13 @@ class DeepSeekViewModel @Inject constructor(
     fun analyze(index: Int, question: Question) {
 
         viewModelScope.launch {
-            android.util.Log.d("DeepSeekViewModel", "Analyze question id=${question.id}")
-            android.util.Log.d(
-                "DeepSeekViewModel",
-                "QuestionJson=${Json.encodeToString(question)}"
-            )
+
             val cacheStart = System.currentTimeMillis()
             val cached = getAnalysis(question.id)
             val cacheDuration = System.currentTimeMillis() - cacheStart
-            android.util.Log.d("DeepSeekViewModel", "Check cache duration=${cacheDuration} ms")
+            
             if (!cached.isNullOrBlank()) {
-                android.util.Log.d("DeepSeekViewModel", "Use cached analysis")
+                
                 _analysis.value = index to cached
                 return@launch
             }
@@ -59,15 +55,13 @@ class DeepSeekViewModel @Inject constructor(
             }
                 .onSuccess {
                     val apiDuration = System.currentTimeMillis() - apiStart
-                    android.util.Log.d("DeepSeekViewModel", "API call duration=${apiDuration} ms")
-                    android.util.Log.d("DeepSeekViewModel", "Analysis success: $it")
+
                     _analysis.value = index to it
                     saveAnalysisUseCase(question.id, it)
                 }
                 .onFailure {
                     val apiDuration = System.currentTimeMillis() - apiStart
-                    android.util.Log.d("DeepSeekViewModel", "API call duration=${apiDuration} ms")
-                    android.util.Log.e("DeepSeekViewModel", "Analysis failed", it)
+
                     _analysis.value = index to "解析失败: ${it.message}"
                 }
         }

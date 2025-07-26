@@ -1,4 +1,4 @@
-package com.example.testapp.presentation.screen
+﻿package com.example.testapp.presentation.screen
 
 import android.util.Log
 import androidx.compose.foundation.ExperimentalFoundationApi
@@ -257,10 +257,7 @@ fun WrongBookScreen(
                                                         val pos = itemCoords?.localToRoot(offset)
                                                             ?: Offset.Zero
                                                         val size = itemCoords?.size ?: IntSize.Zero
-                                                        Log.d(
-                                                            "WrongBookScreen",
-                                                            "start drag $name at $pos size=$size"
-                                                        )
+                                                        
                                                         dragViewModel.startDragging(
                                                             name,
                                                             pos,
@@ -292,17 +289,14 @@ fun WrongBookScreen(
                                                     onDragEnd = {
                                                         val target = folderBounds.entries
                                                             .find { it.value.contains(dragViewModel.dragPosition.value) }?.key
-                                                        Log.d(
-                                                            "WrongBookScreen",
-                                                            "end drag $name -> $target"
-                                                        )
+                                                        
                                                         if (target != null) {
                                                             folderViewModel.moveFile(name, target)
                                                         }
                                                         dragViewModel.endDragging()
                                                     },
                                                     onDragCancel = {
-                                                        Log.d("WrongBookScreen", "drag cancel $name")
+                                                        
                                                         dragViewModel.endDragging()
                                                     }
                                                 )

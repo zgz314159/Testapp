@@ -1,4 +1,4 @@
-package com.example.testapp.domain.usecase
+﻿package com.example.testapp.domain.usecase
 
 import com.example.testapp.domain.model.Question
 import com.example.testapp.domain.repository.QuestionRepository
@@ -13,6 +13,13 @@ class GetQuestionsUseCase(private val repository: QuestionRepository) {
         }
 
     suspend fun deleteQuestionsByFileName(fileName: String) {
-        repository.deleteQuestionsByFileName(fileName)
+        
+        try {
+            repository.deleteQuestionsByFileName(fileName)
+            
+        } catch (e: Exception) {
+            
+            throw e
+        }
     }
 }

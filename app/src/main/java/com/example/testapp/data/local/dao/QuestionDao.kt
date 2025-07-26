@@ -19,5 +19,5 @@ interface QuestionDao {
     fun getQuestionsByFileName(fileName: String): Flow<List<QuestionEntity>>
 
     @Query("DELETE FROM questions WHERE fileName = :fileName")
-    suspend fun deleteByFileName(fileName: String)
+    suspend fun deleteByFileName(fileName: String): Int
 }

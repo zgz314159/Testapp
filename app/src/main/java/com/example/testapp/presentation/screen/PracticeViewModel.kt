@@ -1,9 +1,10 @@
-package com.example.testapp.presentation.screen
+﻿package com.example.testapp.presentation.screen
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.testapp.domain.model.PracticeProgress
 import com.example.testapp.domain.model.Question
+import com.example.testapp.domain.model.QuestionAnswerState
 import com.example.testapp.domain.usecase.ClearPracticeProgressUseCase
 import com.example.testapp.domain.usecase.GetPracticeProgressFlowUseCase
 import com.example.testapp.domain.usecase.GetQuestionsUseCase
@@ -27,6 +28,8 @@ import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import com.example.testapp.presentation.model.QuestionUiModel
 import com.example.testapp.presentation.model.AnswerStatus
+import com.example.testapp.domain.model.QuestionWithState
+import com.example.testapp.domain.model.PracticeSessionState
 import com.example.testapp.util.answerLettersToIndices
 import javax.inject.Inject
 
@@ -50,56 +53,78 @@ class PracticeViewModel @Inject constructor(
 ) : ViewModel() {
     // 添加Mutex以确保appendNote操作的原子性
     private val appendNoteMutex = Mutex()
-    
-    private val _questions = MutableStateFlow<List<Question>>(emptyList())
-    val questions: StateFlow<List<Question>> = _questions.asStateFlow()
 
-    private val _uiQuestions = MutableStateFlow<List<QuestionUiModel>>(emptyList())
-    val uiQuestions: StateFlow<List<QuestionUiModel>> = _uiQuestions.asStateFlow()
+    // 统一状态管理 - 单一数据源
+    private val _sessionState = MutableStateFlow(PracticeSessionState())
+    val sessionState: StateFlow<PracticeSessionState> = _sessionState.asStateFlow()
 
+    // 计算属性 - 从统一状态派生
+    val questions: StateFlow<List<Question>> = _sessionState.map { it.questions }.stateIn(
+        viewModelScope, SharingStarted.Lazily, emptyList()
+    )
 
-    private val _currentIndex = MutableStateFlow(0)
-    val currentIndex: StateFlow<Int> = _currentIndex.asStateFlow()
-
-    private val _answeredList = MutableStateFlow<List<Int>>(emptyList())
-    val answeredList: StateFlow<List<Int>> = _answeredList.asStateFlow()
-
-    private val _selectedOptions = MutableStateFlow<List<List<Int>>>(emptyList())
-    val selectedOptions: StateFlow<List<List<Int>>> = _selectedOptions.asStateFlow()
-
-    private val _progressLoaded = MutableStateFlow(false)
-    val progressLoaded: StateFlow<Boolean> = _progressLoaded.asStateFlow()
-
-    private val _showResultList = MutableStateFlow<List<Boolean>>(emptyList())
-    val showResultList: StateFlow<List<Boolean>> = _showResultList.asStateFlow()
-
-    private val _analysisList = MutableStateFlow<List<String>>(emptyList())
-    val analysisList: StateFlow<List<String>> = _analysisList.asStateFlow()
-
-    private val _sparkAnalysisList = MutableStateFlow<List<String>>(emptyList())
-    val sparkAnalysisList: StateFlow<List<String>> = _sparkAnalysisList.asStateFlow()
-
-    private val _baiduAnalysisList = MutableStateFlow<List<String>>(emptyList())
-    val baiduAnalysisList: StateFlow<List<String>> = _baiduAnalysisList.asStateFlow()
-
-
-    private val _noteList = MutableStateFlow<List<String>>(emptyList())
-    val noteList: StateFlow<List<String>> = _noteList.asStateFlow()
-
-    val totalCount: Int
-        get() = _questions.value.size
-    val answeredCount: Int
-        get() = _selectedOptions.value.count { it.isNotEmpty() }
-    val correctCount: Int
-        get() = _questions.value.indices.count { idx ->
-            val sel = _selectedOptions.value.getOrElse(idx) { emptyList() }
-            sel.isNotEmpty() && sel.sorted() == answerLettersToIndices(_questions.value[idx].answer).sorted()
+    val uiQuestions: StateFlow<List<QuestionUiModel>> = _sessionState.map { state ->
+        state.questionsWithState.map { questionWithState ->
+            QuestionUiModel(
+                question = questionWithState.question,
+                status = when {
+                    !questionWithState.isAnswered -> AnswerStatus.UNANSWERED
+                    !questionWithState.showResult -> AnswerStatus.UNANSWERED
+                    questionWithState.isCorrect == true -> AnswerStatus.CORRECT
+                    else -> AnswerStatus.INCORRECT
+                },
+                selectedOptions = questionWithState.selectedOptions
+            )
         }
-    val wrongCount: Int
-        get() = answeredCount - correctCount
-    val unansweredCount: Int
-        get() = totalCount - answeredCount
+    }.stateIn(viewModelScope, SharingStarted.Lazily, emptyList())
 
+    val currentIndex: StateFlow<Int> = _sessionState.map { it.currentIndex }.stateIn(
+        viewModelScope, SharingStarted.Lazily, 0
+    )
+
+    val answeredList: StateFlow<List<Int>> = _sessionState.map { it.answeredIndices }.stateIn(
+        viewModelScope, SharingStarted.Lazily, emptyList()
+    )
+
+    val selectedOptions: StateFlow<List<List<Int>>> = _sessionState.map { state ->
+        state.questionsWithState.map { it.selectedOptions }
+    }.stateIn(viewModelScope, SharingStarted.Lazily, emptyList())
+
+    val progressLoaded: StateFlow<Boolean> = _sessionState.map { it.progressLoaded }.stateIn(
+        viewModelScope, SharingStarted.Lazily, false
+    )
+
+    val showResultList: StateFlow<List<Boolean>> = _sessionState.map { state ->
+        state.questionsWithState.map { it.showResult }
+    }.stateIn(viewModelScope, SharingStarted.Lazily, emptyList())
+
+    val analysisList: StateFlow<List<String>> = _sessionState.map { state ->
+        state.questionsWithState.map { it.analysis }
+    }.stateIn(viewModelScope, SharingStarted.Lazily, emptyList())
+
+    val sparkAnalysisList: StateFlow<List<String>> = _sessionState.map { state ->
+        state.questionsWithState.map { it.sparkAnalysis }
+    }.stateIn(viewModelScope, SharingStarted.Lazily, emptyList())
+
+    val baiduAnalysisList: StateFlow<List<String>> = _sessionState.map { state ->
+        state.questionsWithState.map { it.baiduAnalysis }
+    }.stateIn(viewModelScope, SharingStarted.Lazily, emptyList())
+
+    val noteList: StateFlow<List<String>> = _sessionState.map { state ->
+        state.questionsWithState.map { it.note }
+    }.stateIn(viewModelScope, SharingStarted.Lazily, emptyList())
+
+    // 计算属性 - 从统一状态动态计算
+    val totalCount: Int
+        get() = _sessionState.value.totalCount
+    val answeredCount: Int
+        get() = _sessionState.value.answeredCount
+    val correctCount: Int
+        get() = _sessionState.value.correctCount
+    val wrongCount: Int
+        get() = _sessionState.value.wrongCount
+    val unansweredCount: Int
+        get() = _sessionState.value.unansweredCount
 
     private var progressId: String = ""
 
@@ -113,35 +138,15 @@ class PracticeViewModel @Inject constructor(
     private var baiduAnalysisLoaded: Boolean = false
     private var notesLoaded: Boolean = false
 
-    private fun updateUiQuestions() {
-        val qs = _questions.value
-        val selections = _selectedOptions.value
-        val showRes = _showResultList.value
-        val list = qs.mapIndexed { idx, q ->
-            val sel = selections.getOrElse(idx) { emptyList() }
-            val status = if (sel.isEmpty()) {
-                AnswerStatus.UNANSWERED
-            } else if (showRes.getOrElse(idx) { false } &&
-                sel.sorted() == answerLettersToIndices(q.answer).sorted()
-            ) {
-                AnswerStatus.CORRECT
-            } else if (showRes.getOrElse(idx) { false }) {
-                AnswerStatus.INCORRECT
-            } else {
-                AnswerStatus.UNANSWERED
-            }
-            QuestionUiModel(q, status, sel)
-        }
-        _uiQuestions.value = list
-    }
-
     init {
         // 应用启动时，清理任何旧的 default 记录，防止误删到别的表
         viewModelScope.launch {
             clearPracticeProgressUseCase("practice_default")
+            // 🚀 临时修复：清除问题文件的旧进度记录，让它重新生成完整数据
+            clearPracticeProgressUseCase("practice_副本铁路电力线路工岗位\"学标考标\"学标考标题库 (已编辑).xlsx")
+            
         }
     }
-
 
     fun setRandomPractice(enabled: Boolean) {
         randomPracticeEnabled = enabled
@@ -149,7 +154,6 @@ class PracticeViewModel @Inject constructor(
 
     private fun ensurePrefix(id: String): String =
         if (id.startsWith("practice_")) id else "practice_$id"
-
 
     fun setProgressId(
         id: String,
@@ -160,97 +164,317 @@ class PracticeViewModel @Inject constructor(
         // 1. 统一给练习进度加 practice_ 前缀
         progressId = ensurePrefix(id)
         questionSourceId = questionsId
-        _progressLoaded.value = false
+
+        // 2. 生成会话ID，用于区分不同轮次的练习
+        val sessionId = "${progressId}_${System.currentTimeMillis()}"
+        val newSessionStartTime = System.currentTimeMillis()
+        
+        _sessionState.value = _sessionState.value.copy(
+            progressLoaded = false,
+            sessionStartTime = newSessionStartTime
+        )
+
         analysisLoaded = false
         sparkAnalysisLoaded = false
         baiduAnalysisLoaded = false
         notesLoaded = false
+        
         if (loadQuestions) {
             viewModelScope.launch {
-                if (randomPracticeEnabled) {
-                    clearPracticeProgressUseCase(progressId)
-                }
-                getQuestionsUseCase(questionSourceId).collect { qs ->
-                    android.util.Log.d(
-                        "PracticeDebug",
-                        "getQuestionsUseCase 收到题目数量: ${qs.size}"
+
+                getQuestionsUseCase(questionSourceId).collect { originalQuestions ->
+
+                    // 如果题目列表为空，可能是文件已被删除
+                    if (originalQuestions.isEmpty()) {
+                        
+                        _sessionState.value = PracticeSessionState()
+                        return@collect
+                    }
+
+                    // 🎯 核心修复：实现固定题序逻辑 + 智能未答继续
+                    val existingProgress = getPracticeProgressFlowUseCase(progressId).firstOrNull()
+
+                    if (existingProgress != null) {
+
+                    }
+                    
+                    val questionsWithFixedOrder = if (existingProgress?.fixedQuestionOrder?.isNotEmpty() == true) {
+                        // ✅ 措施1：使用已保存的固定题序
+                        
+                        val fixedOrder = existingProgress.fixedQuestionOrder
+                        val questionsMap = originalQuestions.associateBy { it.id }
+                        
+                        // 按固定顺序重建题目列表
+                        val orderedQuestions = fixedOrder.mapNotNull { questionId ->
+                            questionsMap[questionId]?.also {
+                                
+                            }
+                        }
+
+                        orderedQuestions
+                    } else {
+                        // ✅ 措施1：第一次进入，生成并保存固定题序
+
+                        // 🚀 新增：智能未答继续练习逻辑
+                        val smartOrderedQuestions = if (randomPracticeEnabled && existingProgress != null) {
+
+                            // 从已有的questionStateMap中分析已答和未答题目
+                            val questionStateMap = existingProgress.questionStateMap
+                            val answeredQuestionIds = mutableSetOf<Int>()
+                            
+                            questionStateMap.forEach { (questionId, answerState) ->
+                                if (answerState.selectedOptions.isNotEmpty() && answerState.showResult) {
+                                    answeredQuestionIds.add(questionId)
+                                    
+                                }
+                            }
+
+                            // 分离已答和未答题目
+                            val unansweredQuestions = originalQuestions.filter { question -> 
+                                val isUnanswered = question.id !in answeredQuestionIds
+                                if (isUnanswered) {
+                                    
+                                }
+                                isUnanswered
+                            }
+                            val answeredQuestions = originalQuestions.filter { question -> 
+                                val isAnswered = question.id in answeredQuestionIds
+                                if (isAnswered) {
+                                    
+                                }
+                                isAnswered
+                            }
+
+                            // 🎯 核心算法：未答题目优先，然后是已答题目
+                            if (unansweredQuestions.isNotEmpty()) {
+                                
+                                val shuffledUnanswered = unansweredQuestions.shuffled(java.util.Random(newSessionStartTime))
+                                val shuffledAnswered = answeredQuestions.shuffled(java.util.Random(newSessionStartTime + 1000))
+                                
+                                shuffledUnanswered + shuffledAnswered
+                            } else {
+                                
+                                originalQuestions.shuffled(java.util.Random(newSessionStartTime))
+                            }
+                        } else if (randomPracticeEnabled || existingProgress == null) {
+                            // 启用随机模式 或者 新练习（没有历史进度）时默认随机
+                            
+                            originalQuestions.shuffled(java.util.Random(newSessionStartTime))
+                        } else {
+                            
+                            originalQuestions
+                        }
+                        
+                        // 限制题目数量
+                        val finalQuestions = if (questionCount > 0) {
+                            smartOrderedQuestions.take(questionCount.coerceAtMost(smartOrderedQuestions.size))
+                        } else {
+                            smartOrderedQuestions
+                        }
+                        
+                        // 保存固定题序到数据库
+                        val fixedOrder = finalQuestions.map { it.id }
+                        val newProgress = PracticeProgress(
+                            id = progressId,
+                            currentIndex = 0,
+                            answeredList = emptyList(),
+                            selectedOptions = emptyList(),
+                            showResultList = emptyList(),
+                            analysisList = emptyList(),
+                            sparkAnalysisList = emptyList(),
+                            baiduAnalysisList = emptyList(),
+                            noteList = emptyList(),
+                            timestamp = newSessionStartTime,
+                            sessionId = sessionId,
+                            fixedQuestionOrder = fixedOrder,
+                            questionStateMap = emptyMap()
+                        )
+                        
+                        savePracticeProgressUseCase(newProgress)
+
+                        finalQuestions
+                    }
+                    
+                    // ✅ 措施2：基于题目ID创建答题状态，不依赖位置
+                    val questionsWithState = questionsWithFixedOrder.map { question ->
+                        val questionState = existingProgress?.questionStateMap?.get(question.id)
+                        QuestionWithState(
+                            question = question,
+                            selectedOptions = questionState?.selectedOptions ?: emptyList(),
+                            showResult = questionState?.showResult ?: false,
+                            analysis = questionState?.analysis ?: "",
+                            sparkAnalysis = questionState?.sparkAnalysis ?: "",
+                            baiduAnalysis = questionState?.baiduAnalysis ?: "",
+                            note = questionState?.note ?: "",
+                            sessionAnswerTime = questionState?.sessionAnswerTime ?: 0L
+                        )
+                    }
+                    
+                    // 更新状态
+                    _sessionState.value = _sessionState.value.copy(
+                        questionsWithState = questionsWithState,
+                        sessionStartTime = newSessionStartTime,
+                        currentIndex = existingProgress?.currentIndex ?: 0
                     )
-                    val ordered = if (randomPracticeEnabled) qs.shuffled() else qs
-                    val trimmed = if (questionCount > 0) ordered.take(questionCount.coerceAtMost(ordered.size)) else ordered
-                    android.util.Log.d(
-                        "PracticeDebug",
-                        "加载题库: progressId=$progressId random=$randomPracticeEnabled count=$questionCount"
-                    )
-                    _questions.value = trimmed
-                    updateUiQuestions()
+
                     loadProgress()
                 }
             }
         }
-
     }
 
     private fun loadProgress() {
         viewModelScope.launch {
             getPracticeProgressFlowUseCase(progressId).collect { progress ->
-                if (progress != null && !_progressLoaded.value) {
-                    _currentIndex.value =
-                        progress.currentIndex.coerceAtMost(_questions.value.size - 1)
-                    // answeredList 直接使用已答题目下标列表，过滤非法值
-                    _answeredList.value = progress.answeredList.filter { it in _questions.value.indices }
-                    _selectedOptions.value = emptyList()
-                    _selectedOptions.value =
-                        if (progress.selectedOptions.size >= _questions.value.size) {
-                            progress.selectedOptions.take(_questions.value.size).toList()
-                        } else {
-                            (progress.selectedOptions +
-                                    List(_questions.value.size - progress.selectedOptions.size) { emptyList() }).toList()
-                        }
-                    _showResultList.value = emptyList()
-                    _showResultList.value =
-                        if (progress.showResultList.size >= _questions.value.size) {
-                            progress.showResultList.take(_questions.value.size).toList()
-                        } else {
-                            (progress.showResultList +
-                                    List(_questions.value.size - progress.showResultList.size) { false }).toList()
-                        }
+                val currentState = _sessionState.value
 
-                    _analysisList.value = emptyList()
-                    _analysisList.value =
-                        if (progress.analysisList.size >= _questions.value.size) {
-                            progress.analysisList.take(_questions.value.size).toList()
-                        } else {
-                            (progress.analysisList +
-                                    List(_questions.value.size - progress.analysisList.size) { "" }).toList()
+                if (progress != null && !currentState.progressLoaded) {
+
+                    // ✅ 措施2：优先使用基于题目ID的状态映射
+                    val updatedQuestionsWithState = if (progress.questionStateMap.isNotEmpty()) {
+
+                        currentState.questionsWithState.map { questionWithState ->
+                            val questionId = questionWithState.question.id
+                            val savedState = progress.questionStateMap[questionId]
+                            
+                            if (savedState != null) {
+                                // 🚀 核心修复：智能showResult状态恢复
+                                val shouldShowResult = if (savedState.selectedOptions.isNotEmpty()) {
+                                    // 如果题目已答且之前显示了结果，恢复显示状态
+                                    if (savedState.showResult) {
+                                        
+                                        true
+                                    } else {
+                                        // 历史进度中已答但没有显示结果的题目，智能判断是否显示
+                                        val wasAnsweredInPreviousSession = savedState.sessionAnswerTime > 0L && 
+                                            savedState.sessionAnswerTime < currentState.sessionStartTime
+                                        if (wasAnsweredInPreviousSession) {
+                                            
+                                            true
+                                        } else {
+                                            savedState.showResult
+                                        }
+                                    }
+                                } else {
+                                    savedState.showResult
+                                }
+
+                                questionWithState.copy(
+                                    selectedOptions = savedState.selectedOptions,
+                                    showResult = shouldShowResult,
+                                    analysis = savedState.analysis,
+                                    sparkAnalysis = savedState.sparkAnalysis,
+                                    baiduAnalysis = savedState.baiduAnalysis,
+                                    note = savedState.note,
+                                    sessionAnswerTime = savedState.sessionAnswerTime
+                                )
+                            } else {
+                                // 题目在固定题序中但没有答题状态，保持初始状态
+                                questionWithState
+                            }
                         }
-                    _sparkAnalysisList.value = emptyList()
-                    _sparkAnalysisList.value =
-                        if (progress.sparkAnalysisList.size >= _questions.value.size) {
-                            progress.sparkAnalysisList.take(_questions.value.size).toList()
-                        } else {
-                            (progress.sparkAnalysisList +
-                                    List(_questions.value.size - progress.sparkAnalysisList.size) { "" }).toList()
+                    } else {
+                        // 兼容旧格式：基于位置的状态恢复
+
+                        currentState.questionsWithState.mapIndexed { index, questionWithState ->
+                            val selectedOptions = progress.selectedOptions.getOrElse(index) { emptyList() }
+                            val originalShowResult = progress.showResultList.getOrElse(index) { false }
+                            val analysis = progress.analysisList.getOrElse(index) { "" }
+                            val sparkAnalysis = progress.sparkAnalysisList.getOrElse(index) { "" }
+                            val baiduAnalysis = progress.baiduAnalysisList.getOrElse(index) { "" }
+                            val note = progress.noteList.getOrElse(index) { "" }
+
+                            // 🚀 核心修复：智能showResult状态恢复（兼容旧格式）
+                            val shouldShowResult = if (selectedOptions.isNotEmpty()) {
+                                // 如果题目已答且之前显示了结果，恢复显示状态
+                                if (originalShowResult) {
+                                    
+                                    true
+                                } else {
+                                    // 历史进度中已答但没有显示结果的题目，智能判断是否显示
+                                    
+                                    true
+                                }
+                            } else {
+                                originalShowResult
+                            }
+
+                            // 对于历史进度中已显示结果的题目，设置为session开始前的时间戳
+                            val sessionAnswerTime = if (shouldShowResult && questionWithState.sessionAnswerTime == 0L && selectedOptions.isNotEmpty()) {
+                                currentState.sessionStartTime - 1000L
+                            } else {
+                                questionWithState.sessionAnswerTime
+                            }
+
+                            questionWithState.copy(
+                                selectedOptions = selectedOptions,
+                                showResult = shouldShowResult,
+                                analysis = analysis,
+                                sparkAnalysis = sparkAnalysis,
+                                baiduAnalysis = baiduAnalysis,
+                                note = note,
+                                sessionAnswerTime = sessionAnswerTime
+                            )
                         }
-                    _baiduAnalysisList.value = emptyList()
-                    _baiduAnalysisList.value =
-                        if (progress.baiduAnalysisList.size >= _questions.value.size) {
-                            progress.baiduAnalysisList.take(_questions.value.size).toList()
-                        } else {
-                            (progress.baiduAnalysisList +
-                                    List(_questions.value.size - progress.baiduAnalysisList.size) { "" }).toList()
+                    }
+
+                    val newCurrentIndex = progress.currentIndex.coerceAtMost(currentState.questionsWithState.size - 1)
+                    
+                    // 🚀 新增：智能未答题随机出题逻辑
+                    val smartCurrentIndex = if (randomPracticeEnabled) {
+                        // 筛选未答题目
+                        val unansweredIndices = updatedQuestionsWithState.mapIndexedNotNull { index, questionWithState ->
+                            if (questionWithState.selectedOptions.isEmpty()) index else null
                         }
-                } else if (progress == null && !_progressLoaded.value) {
-                    android.util.Log.d("PracticeDebug", "no existing progress, initializing")
-                    _currentIndex.value = 0
-                    _answeredList.value = emptyList()
-                    _selectedOptions.value = List(_questions.value.size) { emptyList() }
-                    _showResultList.value = List(_questions.value.size) { false }
-                    _analysisList.value = List(_questions.value.size) { "" }
-                    _sparkAnalysisList.value = List(_questions.value.size) { "" }
-                    _baiduAnalysisList.value = List(_questions.value.size) { "" }
+                        
+                        if (unansweredIndices.isNotEmpty()) {
+                            // 从未答题目中随机选择一个
+                            val randomIndex = unansweredIndices.random(kotlin.random.Random(currentState.sessionStartTime))
+                            
+                            randomIndex
+                        } else {
+                            // 全部题目都已答完，使用原来的位置
+                            
+                            newCurrentIndex
+                        }
+                    } else {
+                        // 非随机模式，使用保存的位置
+                        
+                        newCurrentIndex
+                    }
+                    
+                    _sessionState.value = currentState.copy(
+                        currentIndex = smartCurrentIndex,
+                        questionsWithState = updatedQuestionsWithState,
+                        progressLoaded = true
+                    )
+                    
+                    // 🚀 增强调试：统计showResult状态恢复情况
+                    val answeredCount = updatedQuestionsWithState.count { it.selectedOptions.isNotEmpty() }
+                    val showResultCount = updatedQuestionsWithState.count { it.showResult }
+
+                } else if (progress == null && !currentState.progressLoaded) {
+
+                    // 🚀 新增：新会话的智能起始位置
+                    val smartStartIndex = if (randomPracticeEnabled && currentState.questionsWithState.isNotEmpty()) {
+                        // 随机模式：从随机题目开始
+                        val randomIndex = (0 until currentState.questionsWithState.size).random(kotlin.random.Random(currentState.sessionStartTime))
+                        
+                        randomIndex
+                    } else {
+                        // 非随机模式：从第一题开始
+                        
+                        0
+                    }
+                    
+                    _sessionState.value = currentState.copy(
+                        currentIndex = smartStartIndex,
+                        progressLoaded = true
+                    )
                     saveProgress()
                 }
-                _progressLoaded.value = true
+
+                // 加载额外的分析和笔记数据
                 if (!analysisLoaded) {
                     loadAnalysisFromRepository()
                     analysisLoaded = true
@@ -267,169 +491,274 @@ class PracticeViewModel @Inject constructor(
                     loadNotesFromRepository()
                     notesLoaded = true
                 }
-                updateUiQuestions()
+            }
+        }
+    }
 
-            }
-        }
-    }
     private suspend fun loadAnalysisFromRepository() {
-        val qs = _questions.value
-        val list = _analysisList.value.toMutableList()
+        val currentState = _sessionState.value
         var changed = false
-        qs.forEachIndexed { idx, q ->
-            if (idx >= list.size) list.add("")
-            if (list[idx].isBlank()) {
-                val text = getQuestionAnalysisUseCase(q.id)
+
+        val updatedQuestionsWithState = currentState.questionsWithState.mapIndexed { index, questionWithState ->
+            if (questionWithState.analysis.isBlank()) {
+                val text = getQuestionAnalysisUseCase(questionWithState.question.id)
                 if (!text.isNullOrBlank()) {
-                    list[idx] = text
                     changed = true
+                    questionWithState.copy(analysis = text)
+                } else {
+                    questionWithState
                 }
+            } else {
+                questionWithState
             }
         }
+
         if (changed) {
-            _analysisList.value = list
+            _sessionState.value = currentState.copy(questionsWithState = updatedQuestionsWithState)
             saveProgress()
         }
     }
+
     private suspend fun loadSparkAnalysisFromRepository() {
-        val qs = _questions.value
-        val list = _sparkAnalysisList.value.toMutableList()
+        val currentState = _sessionState.value
         var changed = false
-        qs.forEachIndexed { idx, q ->
-            if (idx >= list.size) list.add("")
-            if (list[idx].isBlank()) {
-                val text = getSparkAnalysisUseCase(q.id)
+
+        val updatedQuestionsWithState = currentState.questionsWithState.mapIndexed { index, questionWithState ->
+            if (questionWithState.sparkAnalysis.isBlank()) {
+                val text = getSparkAnalysisUseCase(questionWithState.question.id)
                 if (!text.isNullOrBlank()) {
-                    list[idx] = text
                     changed = true
+                    questionWithState.copy(sparkAnalysis = text)
+                } else {
+                    questionWithState
                 }
+            } else {
+                questionWithState
             }
         }
+
         if (changed) {
-            _sparkAnalysisList.value = list
+            _sessionState.value = currentState.copy(questionsWithState = updatedQuestionsWithState)
             saveProgress()
         }
     }
-    
+
     private suspend fun loadBaiduAnalysisFromRepository() {
-        val qs = _questions.value
-        val list = _baiduAnalysisList.value.toMutableList()
+        val currentState = _sessionState.value
         var changed = false
-        qs.forEachIndexed { idx, q ->
-            if (idx >= list.size) list.add("")
-            if (list[idx].isBlank()) {
-                val text = getBaiduAnalysisUseCase(q.id)
+
+        val updatedQuestionsWithState = currentState.questionsWithState.mapIndexed { index, questionWithState ->
+            if (questionWithState.baiduAnalysis.isBlank()) {
+                val text = getBaiduAnalysisUseCase(questionWithState.question.id)
                 if (!text.isNullOrBlank()) {
-                    list[idx] = text
                     changed = true
+                    questionWithState.copy(baiduAnalysis = text)
+                } else {
+                    questionWithState
                 }
+            } else {
+                questionWithState
             }
         }
+
         if (changed) {
-            _baiduAnalysisList.value = list
+            _sessionState.value = currentState.copy(questionsWithState = updatedQuestionsWithState)
             saveProgress()
         }
     }
+
     private suspend fun loadNotesFromRepository() {
-        val qs = _questions.value
-        val list = _noteList.value.toMutableList()
+        val currentState = _sessionState.value
         var changed = false
-        qs.forEachIndexed { idx, q ->
-            if (idx >= list.size) list.add("")
-            if (list[idx].isBlank()) {
-                val text = getQuestionNoteUseCase(q.id)
+
+        val updatedQuestionsWithState = currentState.questionsWithState.mapIndexed { index, questionWithState ->
+            if (questionWithState.note.isBlank()) {
+                val text = getQuestionNoteUseCase(questionWithState.question.id)
                 if (!text.isNullOrBlank()) {
-                    list[idx] = text
                     changed = true
+                    questionWithState.copy(note = text)
+                } else {
+                    questionWithState
                 }
+            } else {
+                questionWithState
             }
         }
+
         if (changed) {
-            _noteList.value = list
+            _sessionState.value = currentState.copy(questionsWithState = updatedQuestionsWithState)
         }
     }
 
     fun answerQuestion(option: Int) {
-        val idx = _currentIndex.value
-        android.util.Log.d("PracticeDebug", "answerQuestion index=$idx option=$option")
-        val updatedAnswered = if (!_answeredList.value.contains(idx)) _answeredList.value + idx else _answeredList.value
-        val updatedSelected = _selectedOptions.value.toMutableList().apply {
-            if (size > idx) this[idx] = listOf(option) else add(listOf(option))
+        val currentState = _sessionState.value
+        val idx = currentState.currentIndex
+        val currentQuestion = currentState.questionsWithState.getOrNull(idx)
+
+        val updatedQuestionsWithState = currentState.questionsWithState.mapIndexed { index, questionWithState ->
+            if (index == idx) {
+                
+                questionWithState.copy(
+                    selectedOptions = listOf(option),
+                    showResult = true,
+                    sessionAnswerTime = System.currentTimeMillis() // 设置答题时间戳
+                )
+            } else {
+                questionWithState
+            }
         }
-        _answeredList.value = updatedAnswered
-        _selectedOptions.value = updatedSelected
-        // ✅ 关键点：标记当前题目已经显示了答题结果
-        updateShowResult(idx, true)
-        updateUiQuestions()
+
+        val newState = currentState.copy(questionsWithState = updatedQuestionsWithState)
+        _sessionState.value = newState
+        
+        // 🚀 新增：随机模式下答题后自动跳转到下一个未答题目
+        if (randomPracticeEnabled) {
+
+            // 检查是否还有未答题目
+            val unansweredIndices = newState.questionsWithState.mapIndexedNotNull { index, questionWithState ->
+                if (questionWithState.selectedOptions.isEmpty()) index else null
+            }
+
+            if (unansweredIndices.isNotEmpty()) {
+                val newIndex = unansweredIndices.random(kotlin.random.Random(newState.sessionStartTime))
+                
+                _sessionState.value = newState.copy(currentIndex = newIndex)
+            } else {
+                
+            }
+        }
+        
         saveProgress()
     }
 
     fun toggleOption(option: Int) {
-        val idx = _currentIndex.value
-        val list = _selectedOptions.value.toMutableList()
-        while (list.size <= idx) list.add(emptyList())
-        val current = list[idx].toMutableList()
-        if (current.contains(option)) current.remove(option) else current.add(option)
-        list[idx] = current
-        _selectedOptions.value = list
-        updateUiQuestions()
+        val currentState = _sessionState.value
+        val idx = currentState.currentIndex
+
+        val updatedQuestionsWithState = currentState.questionsWithState.mapIndexed { index, questionWithState ->
+            if (index == idx) {
+                val currentOptions = questionWithState.selectedOptions.toMutableList()
+                if (currentOptions.contains(option)) {
+                    currentOptions.remove(option)
+                } else {
+                    currentOptions.add(option)
+                }
+                questionWithState.copy(selectedOptions = currentOptions)
+            } else {
+                questionWithState
+            }
+        }
+
+        _sessionState.value = currentState.copy(questionsWithState = updatedQuestionsWithState)
         saveProgress()
     }
 
-
     fun nextQuestion() {
-        if (_currentIndex.value < _questions.value.size - 1) {
-            android.util.Log.d("PracticeDebug", "nextQuestion from ${_currentIndex.value}")
-            _currentIndex.value += 1
-            saveProgress()
+        val currentState = _sessionState.value
+        
+        if (randomPracticeEnabled) {
+            // 🚀 随机模式：智能选择下一个未答题目
+            val unansweredIndices = currentState.questionsWithState.mapIndexedNotNull { index, questionWithState ->
+                if (questionWithState.selectedOptions.isEmpty()) index else null
+            }
+            
+            if (unansweredIndices.isNotEmpty()) {
+                // 从未答题目中随机选择一个
+                val randomIndex = unansweredIndices.random(kotlin.random.Random(currentState.sessionStartTime))
+                
+                _sessionState.value = currentState.copy(currentIndex = randomIndex)
+            } else {
+                // 所有题目都已答完，提示用户
+                
+                // 可以在这里添加完成提示逻辑
+            }
+        } else {
+            // 📍 非随机模式：按顺序进入下一题
+            if (currentState.currentIndex < currentState.questionsWithState.size - 1) {
+                
+                _sessionState.value = currentState.copy(currentIndex = currentState.currentIndex + 1)
+            }
         }
+        
+        saveProgress()
     }
 
     fun prevQuestion() {
-        if (_currentIndex.value > 0) {
-            android.util.Log.d("PracticeDebug", "prevQuestion from ${_currentIndex.value}")
-            _currentIndex.value -= 1
-            saveProgress()
-        }
-    }
-    fun goToQuestion(index: Int) {
-        if (index in _questions.value.indices) {
-            android.util.Log.d("PracticeDebug", "goToQuestion $index")
-            _currentIndex.value = index
+        val currentState = _sessionState.value
+        if (currentState.currentIndex > 0) {
+            
+            _sessionState.value = currentState.copy(currentIndex = currentState.currentIndex - 1)
             saveProgress()
         }
     }
 
+    fun goToQuestion(index: Int) {
+        val currentState = _sessionState.value
+        if (index in 0 until currentState.questionsWithState.size) {
+            
+            _sessionState.value = currentState.copy(currentIndex = index)
+            saveProgress()
+        }
+    }
 
     fun saveProgress() {
         viewModelScope.launch {
-            android.util.Log.d(
-                "PracticeDebug",
-                "saveProgress: index=${_currentIndex.value} answered=${_answeredList.value} selected=${_selectedOptions.value} showResult=${_showResultList.value}"
-            )
-            savePracticeProgressUseCase(
-                PracticeProgress(
-                    id = progressId,
-                    currentIndex = _currentIndex.value,
-                    answeredList = _answeredList.value,
-                    selectedOptions = _selectedOptions.value,
-                    showResultList = _showResultList.value,
-                    analysisList = _analysisList.value,
-                    sparkAnalysisList = _sparkAnalysisList.value,
-                    baiduAnalysisList = _baiduAnalysisList.value,
-                    noteList = _noteList.value,
-                    timestamp = System.currentTimeMillis()
+            val currentState = _sessionState.value
+
+            // ✅ 措施2：构建题目ID到答题状态的映射
+            val questionStateMap = mutableMapOf<Int, QuestionAnswerState>()
+            val fixedQuestionOrder = mutableListOf<Int>()
+            
+            currentState.questionsWithState.forEach { questionWithState ->
+                val questionId = questionWithState.question.id
+                fixedQuestionOrder.add(questionId)
+                
+                // 创建基于题目ID的答题状态
+                questionStateMap[questionId] = QuestionAnswerState(
+                    questionId = questionId,
+                    selectedOptions = questionWithState.selectedOptions,
+                    showResult = questionWithState.showResult,
+                    analysis = questionWithState.analysis,
+                    sparkAnalysis = questionWithState.sparkAnalysis,
+                    baiduAnalysis = questionWithState.baiduAnalysis,
+                    note = questionWithState.note,
+                    sessionAnswerTime = questionWithState.sessionAnswerTime
                 )
+
+            }
+
+            // 🚀 增强调试：统计保存的状态信息
+            val answeredCount = currentState.questionsWithState.count { it.selectedOptions.isNotEmpty() }
+            val showResultCount = currentState.questionsWithState.count { it.showResult }
+
+            // 兼容旧格式的数据（为了数据库兼容）
+            val progress = PracticeProgress(
+                id = progressId,
+                currentIndex = currentState.currentIndex,
+                answeredList = currentState.answeredIndices,
+                selectedOptions = currentState.questionsWithState.map { it.selectedOptions },
+                showResultList = currentState.questionsWithState.map { it.showResult },
+                analysisList = currentState.questionsWithState.map { it.analysis },
+                sparkAnalysisList = currentState.questionsWithState.map { it.sparkAnalysis },
+                baiduAnalysisList = currentState.questionsWithState.map { it.baiduAnalysis },
+                noteList = currentState.questionsWithState.map { it.note },
+                timestamp = System.currentTimeMillis(),
+                // ✅ 新增：固定题序相关字段
+                sessionId = "${progressId}_${currentState.sessionStartTime}",
+                fixedQuestionOrder = fixedQuestionOrder,
+                questionStateMap = questionStateMap
             )
+            
+            savePracticeProgressUseCase(progress)
+
         }
     }
 
     fun clearProgress() {
         viewModelScope.launch {
-            android.util.Log.d("PracticeDebug", "clearProgress called for $progressId")
+            
             clearPracticeProgressUseCase(progressId)
             resetLocalState()
-            _progressLoaded.value = false
             analysisLoaded = false
             sparkAnalysisLoaded = false
             notesLoaded = false
@@ -437,201 +766,442 @@ class PracticeViewModel @Inject constructor(
     }
 
     private fun resetLocalState() {
-        val count = _questions.value.size
-        _currentIndex.value = 0
-        _answeredList.value = emptyList()
-        _selectedOptions.value = List(count) { emptyList() }
-        _showResultList.value = List(count) { false }
-        _analysisList.value = List(count) { "" }
-        _sparkAnalysisList.value = List(count) { "" }
-        _baiduAnalysisList.value = List(count) { "" }
-        updateUiQuestions()
+        val currentState = _sessionState.value
+        val resetQuestionsWithState = currentState.questionsWithState.map { questionWithState ->
+            questionWithState.copy(
+                selectedOptions = emptyList(),
+                showResult = false,
+                analysis = "",
+                sparkAnalysis = "",
+                baiduAnalysis = "",
+                note = ""
+            )
+        }
+
+        _sessionState.value = currentState.copy(
+            currentIndex = 0,
+            questionsWithState = resetQuestionsWithState,
+            progressLoaded = false
+        )
     }
 
     fun updateShowResult(index: Int, value: Boolean) {
-        android.util.Log.d("PracticeDebug", "updateShowResult index=$index value=$value")
-        val list = _showResultList.value.toMutableList()
-        while (list.size <= index) list.add(false)
-        list[index] = value
-        _showResultList.value = list
-        updateUiQuestions()
+        val currentState = _sessionState.value
+        val currentQuestion = currentState.questionsWithState.getOrNull(index)
+
+        val updatedQuestionsWithState = currentState.questionsWithState.mapIndexed { idx, questionWithState ->
+            if (idx == index) {
+                if (value && questionWithState.sessionAnswerTime == 0L) {
+                    
+                    // 当首次显示结果时，设置时间戳为当前时间
+                    questionWithState.copy(
+                        showResult = value,
+                        sessionAnswerTime = System.currentTimeMillis()
+                    )
+                } else {
+                    questionWithState.copy(showResult = value)
+                }
+            } else {
+                questionWithState
+            }
+        }
+
+        _sessionState.value = currentState.copy(questionsWithState = updatedQuestionsWithState)
         saveProgress()
     }
+
     fun updateAnalysis(index: Int, text: String) {
-        android.util.Log.d("PracticeDebug", "updateAnalysis index=$index text=$text")
-        val list = _analysisList.value.toMutableList()
-        while (list.size <= index) list.add("")
-        list[index] = text
-        _analysisList.value = list
+        
+        val currentState = _sessionState.value
+
+        val updatedQuestionsWithState = currentState.questionsWithState.mapIndexed { idx, questionWithState ->
+            if (idx == index) {
+                questionWithState.copy(analysis = text)
+            } else {
+                questionWithState
+            }
+        }
+
+        _sessionState.value = currentState.copy(questionsWithState = updatedQuestionsWithState)
         saveProgress()
     }
 
     fun updateSparkAnalysis(index: Int, text: String) {
-        val list = _sparkAnalysisList.value.toMutableList()
-        while (list.size <= index) list.add("")
-        list[index] = text
-        _sparkAnalysisList.value = list
+        val currentState = _sessionState.value
+
+        val updatedQuestionsWithState = currentState.questionsWithState.mapIndexed { idx, questionWithState ->
+            if (idx == index) {
+                questionWithState.copy(sparkAnalysis = text)
+            } else {
+                questionWithState
+            }
+        }
+
+        _sessionState.value = currentState.copy(questionsWithState = updatedQuestionsWithState)
         saveProgress()
     }
 
     fun updateBaiduAnalysis(index: Int, text: String) {
-        val list = _baiduAnalysisList.value.toMutableList()
-        while (list.size <= index) list.add("")
-        list[index] = text
-        _baiduAnalysisList.value = list
+        val currentState = _sessionState.value
+
+        val updatedQuestionsWithState = currentState.questionsWithState.mapIndexed { idx, questionWithState ->
+            if (idx == index) {
+                questionWithState.copy(baiduAnalysis = text)
+            } else {
+                questionWithState
+            }
+        }
+
+        _sessionState.value = currentState.copy(questionsWithState = updatedQuestionsWithState)
         saveProgress()
     }
-
 
     fun addHistoryRecord(score: Int, total: Int, unanswered: Int) {
         viewModelScope.launch {
             val id = "practice_${questionSourceId}"
-            addHistoryRecordUseCase(HistoryRecord(score, total, unanswered, id))
+            // 修复：只有在实际答题时才记录历史（score > 0 或有答错题目）
+            val actualAnswered = total - unanswered
+            if (actualAnswered > 0) {
+                
+                addHistoryRecordUseCase(HistoryRecord(score, total, unanswered, id))
+            } else {
+                
+            }
         }
     }
-
 
     fun saveNote(questionId: Int, index: Int, text: String) {
         viewModelScope.launch {
             saveQuestionNoteUseCase(questionId, text)
         }
-        val list = _noteList.value.toMutableList()
-        while (list.size <= index) list.add("")
-        list[index] = text
-        _noteList.value = list
-    }
 
-    // 临时测试方法，不使用Mutex
-    fun appendNoteSimple(questionId: Int, index: Int, text: String) {
-        android.util.Log.d("PracticeViewModel", "appendNoteSimple called: questionId=$questionId, index=$index")
-        viewModelScope.launch {
-            try {
-                android.util.Log.d("PracticeViewModel", "Simple: Inside coroutine...")
-                val current = getQuestionNoteUseCase(questionId) ?: ""
-                android.util.Log.d("PracticeViewModel", "Simple: Current note length: ${current.length}")
-                val timestamp = java.text.SimpleDateFormat("yyyy-MM-dd HH:mm:ss", java.util.Locale.getDefault()).format(java.util.Date())
-                val timestampedText = "[$timestamp]\n$text"
-                val newText = if (current.isBlank()) timestampedText else current + "\n\n" + timestampedText
-                android.util.Log.d("PracticeViewModel", "Simple: New note length: ${newText.length}")
-                
-                saveQuestionNoteUseCase(questionId, newText)
-                android.util.Log.d("PracticeViewModel", "Simple: Saved to database")
-                
-                val list = _noteList.value.toMutableList()
-                while (list.size <= index) list.add("")
-                list[index] = newText
-                _noteList.value = list
-                android.util.Log.d("PracticeViewModel", "Simple: StateFlow updated")
-            } catch (e: Exception) {
-                android.util.Log.e("PracticeViewModel", "Simple: Error: ${e.message}", e)
+        val currentState = _sessionState.value
+        val updatedQuestionsWithState = currentState.questionsWithState.mapIndexed { idx, questionWithState ->
+            if (idx == index) {
+                questionWithState.copy(note = text)
+            } else {
+                questionWithState
             }
         }
+
+        _sessionState.value = currentState.copy(questionsWithState = updatedQuestionsWithState)
     }
 
     fun appendNote(questionId: Int, index: Int, text: String) {
-        android.util.Log.d("PracticeViewModel", "appendNote called: questionId=$questionId, index=$index, text=${text.take(50)}...")
-        android.util.Log.d("PracticeViewModel", "Starting viewModelScope.launch...")
+        
         viewModelScope.launch {
             try {
-                android.util.Log.d("PracticeViewModel", "Inside coroutine, acquiring lock...")
                 appendNoteMutex.withLock {
-                    android.util.Log.d("PracticeViewModel", "Lock acquired, getting current note...")
                     val current = getQuestionNoteUseCase(questionId) ?: ""
-                    android.util.Log.d("PracticeViewModel", "Current note: ${current.take(100)}...")
                     val timestamp = java.text.SimpleDateFormat("yyyy-MM-dd HH:mm:ss", java.util.Locale.getDefault()).format(java.util.Date())
-                    android.util.Log.d("PracticeViewModel", "Generated timestamp: $timestamp")
                     val timestampedText = "[$timestamp]\n$text"
-                    android.util.Log.d("PracticeViewModel", "Timestamped text: ${timestampedText.take(100)}...")
-                    
+
                     val newText = if (current.isBlank()) {
-                        android.util.Log.d("PracticeViewModel", "Current is blank, using timestamped text directly")
                         timestampedText
                     } else {
-                        android.util.Log.d("PracticeViewModel", "Current is not blank, appending to existing content")
-                        val result = current + "\n\n" + timestampedText
-                        android.util.Log.d("PracticeViewModel", "Append result length: ${result.length} vs current length: ${current.length}")
-                        result
+                        current + "\n\n" + timestampedText
                     }
-                    android.util.Log.d("PracticeViewModel", "New note: ${newText.take(200)}...")
-                    android.util.Log.d("PracticeViewModel", "Saving to database...")
+
                     saveQuestionNoteUseCase(questionId, newText)
-                    android.util.Log.d("PracticeViewModel", "Note saved to database")
+
+                    // 更新统一状态
+                    val currentState = _sessionState.value
+                    val updatedQuestionsWithState = currentState.questionsWithState.mapIndexed { idx, questionWithState ->
+                        if (idx == index) {
+                            questionWithState.copy(note = newText)
+                        } else {
+                            questionWithState
+                        }
+                    }
+
+                    _sessionState.value = currentState.copy(questionsWithState = updatedQuestionsWithState)
                     
-                    // 在协程内同步更新StateFlow，确保和数据库一致
-                    android.util.Log.d("PracticeViewModel", "Updating StateFlow...")
-                    val list = _noteList.value.toMutableList()
-                    while (list.size <= index) list.add("")
-                    list[index] = newText  // 使用与数据库相同的完整内容
-                    _noteList.value = list
-                    android.util.Log.d("PracticeViewModel", "Note list updated: ${list[index].take(200)}...")
-                    android.util.Log.d("PracticeViewModel", "appendNote completed successfully")
                 }
             } catch (e: Exception) {
-                android.util.Log.e("PracticeViewModel", "Error in appendNote: ${e.message}", e)
+                
             }
         }
-        android.util.Log.d("PracticeViewModel", "appendNote method finished (coroutine launched)")
     }
 
     suspend fun getNote(questionId: Int): String? = getQuestionNoteUseCase(questionId)
 
     fun updateQuestionContent(index: Int, newContent: String) {
-        val updatedList = _questions.value.toMutableList()
-        if (index in updatedList.indices) {
-            val old = updatedList[index]
-            updatedList[index] = old.copy(content = newContent)
-            _questions.value = updatedList
-            updateUiQuestions()
+        val currentState = _sessionState.value
+        if (index in currentState.questionsWithState.indices) {
+            val updatedQuestionsWithState = currentState.questionsWithState.mapIndexed { idx, questionWithState ->
+                if (idx == index) {
+                    questionWithState.copy(
+                        question = questionWithState.question.copy(content = newContent)
+                    )
+                } else {
+                    questionWithState
+                }
+            }
+
+            _sessionState.value = currentState.copy(questionsWithState = updatedQuestionsWithState)
+
             // 持久化到本地 JSON 文件
+            val updatedQuestion = updatedQuestionsWithState[index].question
             viewModelScope.launch {
-                saveQuestionsUseCase(old.fileName ?: "default.json", updatedList.filter { it.fileName == old.fileName })
+                val fileName = updatedQuestion.fileName ?: "default.json"
+                val questionsToSave = updatedQuestionsWithState
+                    .map { it.question }
+                    .filter { it.fileName == fileName }
+
+                // 检查数据库中是否还存在该文件的题目，防止复活已删除的数据
+                val existingQuestions = getQuestionsUseCase(fileName).firstOrNull() ?: emptyList()
+                if (existingQuestions.isNotEmpty()) {
+                    saveQuestionsUseCase(fileName, questionsToSave)
+                } else {
+                    
+                }
             }
         }
     }
 
     fun updateQuestionAllFields(index: Int, newContent: String, newOptions: List<String>, newAnswer: String, newExplanation: String) {
-        val updatedList = _questions.value.toMutableList()
-        if (index in updatedList.indices) {
-            val old = updatedList[index]
-            updatedList[index] = old.copy(
-                content = newContent,
-                options = newOptions,
-                answer = newAnswer,
-                explanation = newExplanation
-            )
-            _questions.value = updatedList
+        val currentState = _sessionState.value
+        if (index in currentState.questionsWithState.indices) {
+            val updatedQuestionsWithState = currentState.questionsWithState.mapIndexed { idx, questionWithState ->
+                if (idx == index) {
+                    questionWithState.copy(
+                        question = questionWithState.question.copy(
+                            content = newContent,
+                            options = newOptions,
+                            answer = newAnswer,
+                            explanation = newExplanation
+                        )
+                    )
+                } else {
+                    questionWithState
+                }
+            }
+
+            _sessionState.value = currentState.copy(questionsWithState = updatedQuestionsWithState)
+
             // 持久化到本地 JSON 文件
+            val updatedQuestion = updatedQuestionsWithState[index].question
             viewModelScope.launch {
-                saveQuestionsUseCase(old.fileName ?: "default.json", updatedList.filter { it.fileName == old.fileName })
-                // 保存后强制刷新题库内容
-                // 刷新题库并保持当前的进度 ID
-                setProgressId(progressId, questionSourceId)
+                val fileName = updatedQuestion.fileName ?: "default.json"
+                val questionsToSave = updatedQuestionsWithState
+                    .map { it.question }
+                    .filter { it.fileName == fileName }
+
+                // 检查数据库中是否还存在该文件的题目，防止复活已删除的数据
+                val existingQuestions = getQuestionsUseCase(fileName).firstOrNull() ?: emptyList()
+                if (existingQuestions.isNotEmpty()) {
+                    saveQuestionsUseCase(fileName, questionsToSave)
+                    // 保存后强制刷新题库内容
+                    setProgressId(progressId, questionSourceId)
+                } else {
+                    
+                }
             }
         }
     }
 
     fun loadWrongQuestions(fileName: String) {
         viewModelScope.launch {
-            // 获取指定文件下的错题并加载进度
+            // 设置新的session开始时间
+            val newSessionStartTime = System.currentTimeMillis()
+
             getWrongBookUseCase().collect { wrongList ->
                 val filtered = wrongList.filter { it.question.fileName == fileName }
                 val list = filtered.map { it.question }
-                _questions.value = if (randomPracticeEnabled) list.shuffled() else list
-                updateUiQuestions()
-                // 重置进度相关状态
+
+                // 🚀 新增：练习错题模式智能随机未答继续逻辑（修复版）
+                val smartOrderedList = if (randomPracticeEnabled) {
+                    
+                    // 先获取历史进度以了解哪些题目已答
+                    val existingProgress = getPracticeProgressFlowUseCase(progressId).firstOrNull()
+
+                    if (existingProgress != null) {
+
+                        // 🔧 修复：通过题目ID直接匹配历史进度，而不是依赖索引
+                        // 构建题目ID到进度数据的映射
+                        val questionIdToProgress = mutableMapOf<Int, Pair<List<Int>, Boolean>>()
+
+                        // 获取原始错题列表（非随机顺序）
+                        val originalQuestions = list
+
+                        // 🔧 关键修复：验证历史进度数据是否与当前题目集合匹配
+                        val originalQuestionIds = originalQuestions.map { it.id }.toSet()
+                        var progressMatchCount = 0
+
+                        existingProgress.selectedOptions.forEachIndexed { index, options ->
+                            val showResult = existingProgress.showResultList.getOrElse(index) { false }
+                            if (index < originalQuestions.size) {
+                                val questionId = originalQuestions[index].id
+                                questionIdToProgress[questionId] = Pair(options, showResult)
+
+                                // 验证历史进度中的已答题目是否在当前题目集合中
+                                if (options.isNotEmpty() && showResult && questionId in originalQuestionIds) {
+                                    progressMatchCount++
+                                    
+                                } else if (options.isNotEmpty() && showResult && questionId !in originalQuestionIds) {
+                                    
+                                }
+                            } else {
+                                
+                            }
+                        }
+
+                        // 分析已答和未答题目
+                        val answeredQuestionIds = mutableSetOf<Int>()
+                        questionIdToProgress.forEach { (questionId, progressData) ->
+                            val (selectedOptions, showResult) = progressData
+                            if (selectedOptions.isNotEmpty() && showResult) {
+                                answeredQuestionIds.add(questionId)
+                                
+                            }
+                        }
+
+                        // 分离已答和未答题目
+                        val unansweredQuestions = list.filter { question ->
+                            val isUnanswered = question.id !in answeredQuestionIds
+                            if (isUnanswered) {
+                                
+                            }
+                            isUnanswered
+                        }
+                        val answeredQuestions = list.filter { question ->
+                            val isAnswered = question.id in answeredQuestionIds
+                            if (isAnswered) {
+                                
+                            }
+                            isAnswered
+                        }
+
+                        // 🎯 核心算法：随机未答继续练习错题
+                        if (unansweredQuestions.isNotEmpty()) {
+                            
+                            val shuffledUnanswered = unansweredQuestions.shuffled()
+                            val shuffledAnswered = answeredQuestions.shuffled()
+                            
+                            shuffledUnanswered + shuffledAnswered
+                        } else {
+                            
+                            list.shuffled()
+                        }
+                    } else {
+                        
+                        list.shuffled()
+                    }
+                } else {
+                    
+                    list
+                }
+
+                _sessionState.value = _sessionState.value.copy(
+                    questionsWithState = smartOrderedList.map { question ->
+                        QuestionWithState(question = question)
+                    },
+                    sessionStartTime = newSessionStartTime
+                )
                 loadProgress()
             }
         }
     }
+
     fun loadFavoriteQuestions(fileName: String) {
         viewModelScope.launch {
+            // 设置新的session开始时间
+            val newSessionStartTime = System.currentTimeMillis()
+
             getFavoriteQuestionsUseCase().collect { favList ->
                 val filtered = favList.filter { it.question.fileName == fileName }
                 val list = filtered.map { it.question }
-                _questions.value = if (randomPracticeEnabled) list.shuffled() else list
-                updateUiQuestions()
+
+                // 🚀 新增：练习收藏模式智能随机未答继续逻辑（修复版）
+                val smartOrderedList = if (randomPracticeEnabled) {
+                    
+                    // 先获取历史进度以了解哪些题目已答
+                    val existingProgress = getPracticeProgressFlowUseCase(progressId).firstOrNull()
+
+                    if (existingProgress != null) {
+
+                        // 🔧 修复：通过题目ID直接匹配历史进度，而不是依赖索引
+                        // 构建题目ID到进度数据的映射
+                        val questionIdToProgress = mutableMapOf<Int, Pair<List<Int>, Boolean>>()
+
+                        // 获取原始收藏列表（非随机顺序）
+                        val originalQuestions = list
+
+                        // 🔧 关键修复：验证历史进度数据是否与当前题目集合匹配
+                        val originalQuestionIds = originalQuestions.map { it.id }.toSet()
+                        var progressMatchCount = 0
+
+                        existingProgress.selectedOptions.forEachIndexed { index, options ->
+                            val showResult = existingProgress.showResultList.getOrElse(index) { false }
+                            if (index < originalQuestions.size) {
+                                val questionId = originalQuestions[index].id
+                                questionIdToProgress[questionId] = Pair(options, showResult)
+
+                                // 验证历史进度中的已答题目是否在当前题目集合中
+                                if (options.isNotEmpty() && showResult && questionId in originalQuestionIds) {
+                                    progressMatchCount++
+                                    
+                                } else if (options.isNotEmpty() && showResult && questionId !in originalQuestionIds) {
+                                    
+                                }
+                            } else {
+                                
+                            }
+                        }
+
+                        // 分析已答和未答题目
+                        val answeredQuestionIds = mutableSetOf<Int>()
+                        questionIdToProgress.forEach { (questionId, progressData) ->
+                            val (selectedOptions, showResult) = progressData
+                            if (selectedOptions.isNotEmpty() && showResult) {
+                                answeredQuestionIds.add(questionId)
+                                
+                            }
+                        }
+
+                        // 分离已答和未答题目
+                        val unansweredQuestions = list.filter { question ->
+                            val isUnanswered = question.id !in answeredQuestionIds
+                            if (isUnanswered) {
+                                
+                            }
+                            isUnanswered
+                        }
+                        val answeredQuestions = list.filter { question ->
+                            val isAnswered = question.id in answeredQuestionIds
+                            if (isAnswered) {
+                                
+                            }
+                            isAnswered
+                        }
+
+                        // 🎯 核心算法：随机未答继续练习收藏
+                        if (unansweredQuestions.isNotEmpty()) {
+                            
+                            val shuffledUnanswered = unansweredQuestions.shuffled()
+                            val shuffledAnswered = answeredQuestions.shuffled()
+                            
+                            shuffledUnanswered + shuffledAnswered
+                        } else {
+                            
+                            list.shuffled()
+                        }
+                    } else {
+                        
+                        list.shuffled()
+                    }
+                } else {
+                    
+                    list
+                }
+
+                _sessionState.value = _sessionState.value.copy(
+                    questionsWithState = smartOrderedList.map { question ->
+                        QuestionWithState(question = question)
+                    },
+                    sessionStartTime = newSessionStartTime
+                )
                 loadProgress()
             }
         }
-    }
-}
+    }}

@@ -1,4 +1,4 @@
-package com.example.testapp.presentation.screen
+﻿package com.example.testapp.presentation.screen
 
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.Box
@@ -116,7 +116,7 @@ fun SparkAskScreen(
             answer = TextFieldValue(result)
             originalAnswer = result
             // 移除自动保存，由用户手动控制保存
-            android.util.Log.d("SparkAskScreen", "Received successful result: ${result.take(50)}...")
+            
         } else if (result.isNotBlank() && result != "解析中...") {
             // 仅更新UI，不保存失败结果
             answer = TextFieldValue(result)
@@ -214,16 +214,16 @@ fun SparkAskScreen(
                 onDismissRequest = { showSaveDialog = false },
                 confirmButton = {
                     TextButton(onClick = {
-                        android.util.Log.d("SparkAskScreen", "User confirmed save: ${answer.text.take(50)}...")
+                        
                         onSave(answer.text)
-                        android.util.Log.d("SparkAskScreen", "Save completed")
+                        
                         showSaveDialog = false
                         navController?.popBackStack()
                     }) { Text("保存") }
                 },
                 dismissButton = {
                     TextButton(onClick = {
-                        android.util.Log.d("SparkAskScreen", "User cancelled save")
+                        
                         showSaveDialog = false
                         navController?.popBackStack()
                     }) { Text("不保存") }

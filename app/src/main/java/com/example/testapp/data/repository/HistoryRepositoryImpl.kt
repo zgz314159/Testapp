@@ -1,4 +1,4 @@
-package com.example.testapp.data.repository
+﻿package com.example.testapp.data.repository
 
 import com.example.testapp.data.local.dao.HistoryRecordDao
 import com.example.testapp.data.local.dao.QuestionDao
@@ -22,7 +22,6 @@ import org.apache.poi.ss.usermodel.Row
 import org.apache.poi.ss.usermodel.WorkbookFactory
 import org.apache.poi.ss.usermodel.DataFormatter
 
-
 class HistoryRepositoryImpl @Inject constructor(
     private val dao: HistoryRecordDao,
     private val questionDao: QuestionDao
@@ -36,6 +35,12 @@ class HistoryRepositoryImpl @Inject constructor(
     override fun getByFileNames(fileNames: List<String>): Flow<List<HistoryRecord>> =
         dao.getByFileNames(fileNames).map { list -> list.map { it.toDomain() } }
 
+    // 暂时注释掉包含mode的方法
+    // override fun getByMode(mode: String): Flow<List<HistoryRecord>> =
+    //     dao.getByMode(mode).map { list -> list.map { it.toDomain() } }
+
+    // override fun getByFileNameAndMode(fileName: String, mode: String): Flow<List<HistoryRecord>> =
+    //     dao.getByFileNameAndMode(fileName, mode).map { list -> list.map { it.toDomain() } }
 
     override suspend fun add(record: HistoryRecord) {
         dao.add(record.toEntity())
@@ -45,6 +50,15 @@ class HistoryRepositoryImpl @Inject constructor(
     override suspend fun removeByFileName(fileName: String) {
         dao.deleteByFileName(fileName)
     }
+
+    // 暂时注释掉包含mode的删除方法
+    // override suspend fun removeByMode(mode: String) {
+    //     dao.deleteByMode(mode)
+    // }
+
+    // override suspend fun removeByFileNameAndMode(fileName: String, mode: String) {
+    //     dao.deleteByFileNameAndMode(fileName, mode)
+    // }
 
     // txt/Excel 文件解析，建议字段：分数|总题数|时间戳
     override suspend fun importFromFile(file: java.io.File): Int {

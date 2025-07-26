@@ -17,4 +17,7 @@ interface PracticeProgressDao {
 
     @Query("DELETE FROM practice_progress WHERE id = :id")
     suspend fun deleteProgress(id: String = "practice_default")
+    
+    @Query("DELETE FROM practice_progress WHERE id LIKE :fileNamePattern")
+    suspend fun deleteProgressByFileNamePattern(fileNamePattern: String): Int
 }

@@ -1,4 +1,4 @@
-package com.example.testapp.presentation.screen
+﻿package com.example.testapp.presentation.screen
 
 import android.content.Context
 import android.net.Uri
@@ -23,7 +23,6 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
-
 
 @HiltViewModel
 class SettingsViewModel @Inject constructor(
@@ -62,7 +61,7 @@ class SettingsViewModel @Inject constructor(
 
     fun setFontSize(context: Context, size: Float) {
         _fontSize.value = size
-        android.util.Log.d("SettingsVM", "setFontSize size=$size")
+        
         viewModelScope.launch {
             FontSettingsDataStore.setFontSize(context, size)
         }
@@ -147,10 +146,7 @@ class SettingsViewModel @Inject constructor(
             val examDelay = FontSettingsDataStore.getExamDelay(context).first()
             val sound = FontSettingsDataStore.getSoundEnabled(context).first()
             val dark = FontSettingsDataStore.getDarkTheme(context).first()
-            android.util.Log.d(
-                "SettingsVM",
-                "loadFontSettings size=$size style=$style examCount=$examCount practiceCount=$practiceCount random=$random randomExam=$randomExam sound=$sound dark=$dark"
-            )
+            
             _fontSize.value = size
             _fontStyle.value = style
             _examQuestionCount.value = examCount
@@ -173,22 +169,74 @@ class SettingsViewModel @Inject constructor(
             var total = 0
             val count = uris.size
             var duplicateFiles: List<String>? = null
-            for ((idx, uri) in uris.withIndex()) {
-                if (!isActive) break
-                val file = uriToFile(context, uri)
-                val originalFileName = getFileNameFromUri(context, uri)
-                if (file != null && originalFileName != null) {
+            val failedFiles = mutableListOf<String>()
+
+            try {
+                for ((idx, uri) in uris.withIndex()) {
+                    if (!isActive) break
+                    val originalFileName = getFileNameFromUri(context, uri)
+
                     try {
-                        total += questionRepository.importFromFilesWithOrigin(listOf(file to originalFileName))
-                    } catch (e: com.example.testapp.data.repository.QuestionRepositoryImpl.DuplicateFileImportException) {
-                        duplicateFiles = e.duplicates
+                        val file = uriToFile(context, uri)
+                        if (file != null && originalFileName != null) {
+                            // 修复：添加文件大小检查
+                            if (file.length() == 0L) {
+                                
+                                failedFiles.add("$originalFileName (文件为空)")
+                            } else {
+                                try {
+                                    val importedCount = questionRepository.importFromFilesWithOrigin(listOf(file to originalFileName))
+                                    if (importedCount > 0) {
+                                        total += importedCount
+                                        
+                                    } else {
+                                        
+                                        failedFiles.add("$originalFileName (无有效题目数据)")
+                                    }
+                                } catch (e: com.example.testapp.data.repository.QuestionRepositoryImpl.DuplicateFileImportException) {
+                                    duplicateFiles = e.duplicates
+                                    
+                                } catch (e: com.example.testapp.data.repository.QuestionRepositoryImpl.ImportFailedException) {
+                                    
+                                    failedFiles.add("$originalFileName (${e.reason})")
+                                } catch (e: Exception) {
+                                    
+                                    failedFiles.add("$originalFileName (解析失败: ${e.message?.take(30) ?: "未知错误"})")
+                                }
+                            }
+                        } else {
+                            
+                            failedFiles.add("$originalFileName (无法读取文件)")
+                        }
+                    } catch (e: Exception) {
+                        
+                        failedFiles.add("$originalFileName (文件处理异常: ${e.message?.take(20) ?: "未知错误"})")
                     }
+                    
+                    _progress.value = (idx + 1f) / count
                 }
-                _progress.value = (idx + 1f) / count
+            } catch (e: Exception) {
+                
+                failedFiles.add("导入过程异常: ${e.message?.take(30) ?: "未知错误"}")
+            } finally {
+                _isLoading.value = false
+                _progress.value = 0f
             }
-            _isLoading.value = false
-            _progress.value = 0f
-            onResult(total > 0, duplicateFiles)
+            
+            // 修复：提供更详细的结果反馈
+            val success = total > 0
+            val errorMessage = when {
+                duplicateFiles?.isNotEmpty() == true && failedFiles.isNotEmpty() -> 
+                    duplicateFiles!! + failedFiles
+                duplicateFiles?.isNotEmpty() == true -> duplicateFiles
+                failedFiles.isNotEmpty() -> failedFiles
+                else -> null
+            }
+            
+            // 修复：如果所有文件都失败了，将success设为false
+            val finalSuccess = success || (duplicateFiles?.isNotEmpty() == true)
+
+            onResult(finalSuccess, errorMessage)
         }
     }
     fun importWrongBookFromUri(context: Context, uri: Uri, onResult: (Boolean) -> Unit) {
@@ -209,13 +257,37 @@ class SettingsViewModel @Inject constructor(
     // 工具方法：将 SAF Uri 转为临时 File，适用于导入流程
     private fun uriToFile(context: Context, uri: Uri): java.io.File? {
         return try {
-            val inputStream = context.contentResolver.openInputStream(uri) ?: return null
-            val tempFile = java.io.File.createTempFile("import_", null, context.cacheDir)
-            tempFile.outputStream().use { output ->
-                inputStream.copyTo(output)
+            
+            val inputStream = context.contentResolver.openInputStream(uri)
+            if (inputStream == null) {
+                
+                return null
             }
+            
+            val tempFile = java.io.File.createTempFile("import_", null, context.cacheDir)
+
+            tempFile.outputStream().use { output ->
+                inputStream.use { input ->
+                    val bytesWritten = input.copyTo(output)
+                    
+                }
+            }
+            
+            if (tempFile.length() == 0L) {
+                
+                tempFile.delete()
+                return null
+            }
+            
             tempFile
+        } catch (e: SecurityException) {
+            
+            null
+        } catch (e: java.io.IOException) {
+            
+            null
         } catch (e: Exception) {
+            
             null
         }
     }
@@ -351,14 +423,29 @@ class SettingsViewModel @Inject constructor(
 
     // 新增：通过uri获取原始文件名
     private fun getFileNameFromUri(context: Context, uri: Uri): String? {
-        val resolver = context.contentResolver
-        val cursor = resolver.query(uri, null, null, null, null)
-        cursor?.use {
-            if (it.moveToFirst()) {
-                val idx = it.getColumnIndex(android.provider.OpenableColumns.DISPLAY_NAME)
-                if (idx >= 0) return it.getString(idx)
+        return try {
+            val resolver = context.contentResolver
+            val cursor = resolver.query(uri, null, null, null, null)
+            cursor?.use {
+                if (it.moveToFirst()) {
+                    val idx = it.getColumnIndex(android.provider.OpenableColumns.DISPLAY_NAME)
+                    if (idx >= 0) {
+                        val displayName = it.getString(idx)
+                        if (!displayName.isNullOrBlank()) {
+                            
+                            return displayName
+                        }
+                    }
+                }
             }
+            
+            // 备用方法：从Uri路径获取文件名
+            val fallbackName = uri.lastPathSegment
+            
+            fallbackName ?: "未知文件_${System.currentTimeMillis()}"
+        } catch (e: Exception) {
+            
+            "未知文件_${System.currentTimeMillis()}"
         }
-        return uri.lastPathSegment
     }
 }

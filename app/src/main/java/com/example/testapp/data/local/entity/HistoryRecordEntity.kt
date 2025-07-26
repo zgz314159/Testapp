@@ -11,4 +11,6 @@ data class HistoryRecordEntity(
     val unanswered: Int,
     val fileName: String?,
     val time: Long // 时间戳
+    // 暂时移除mode字段
+    // val mode: String = "practice" // 新增：区分练习("practice")和考试("exam")模式
 )

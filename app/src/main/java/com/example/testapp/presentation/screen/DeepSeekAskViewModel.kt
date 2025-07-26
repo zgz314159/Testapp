@@ -1,4 +1,4 @@
-package com.example.testapp.presentation.screen
+﻿package com.example.testapp.presentation.screen
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -24,7 +24,6 @@ class DeepSeekAskViewModel @Inject constructor(
     fun reset() {
         _result.value = ""
     }
-
 
     suspend fun getSavedNote(questionId: Int): String? = getResultUseCase(questionId)
 

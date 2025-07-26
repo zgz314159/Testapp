@@ -7,4 +7,5 @@ interface QuestionAnalysisRepository {
     suspend fun saveSparkAnalysis(questionId: Int, analysis: String)
     suspend fun getBaiduAnalysis(questionId: Int): String?
     suspend fun saveBaiduAnalysis(questionId: Int, analysis: String)
+    suspend fun deleteByQuestionId(questionId: Int)
 }

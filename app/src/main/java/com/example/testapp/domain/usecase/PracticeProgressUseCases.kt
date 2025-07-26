@@ -1,4 +1,4 @@
-package com.example.testapp.domain.usecase
+﻿package com.example.testapp.domain.usecase
 
 import com.example.testapp.domain.model.PracticeProgress
 import com.example.testapp.domain.repository.PracticeProgressRepository
@@ -21,4 +21,15 @@ class ClearPracticeProgressUseCase @Inject constructor(
     private val repository: PracticeProgressRepository
 ) {
     suspend operator fun invoke(id: String = "practice_default") = repository.clearProgress(id)
+}
+
+class ClearPracticeProgressByFileNameUseCase @Inject constructor(
+    private val repository: PracticeProgressRepository
+) {
+    suspend operator fun invoke(fileName: String) {
+        val pattern = "practice_${fileName}%"
+        
+        repository.clearProgressByFileNamePattern(pattern)
+        
+    }
 }

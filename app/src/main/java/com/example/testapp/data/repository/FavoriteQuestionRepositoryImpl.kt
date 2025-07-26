@@ -1,4 +1,4 @@
-package com.example.testapp.data.repository
+﻿package com.example.testapp.data.repository
 
 import com.example.testapp.data.local.dao.FavoriteQuestionDao
 import com.example.testapp.data.local.entity.FavoriteQuestionEntity
@@ -29,7 +29,6 @@ class FavoriteQuestionRepositoryImpl @Inject constructor(
 ) : FavoriteQuestionRepository {
     override fun getAll(): Flow<List<FavoriteQuestion>> =
         dao.getAll().map { list -> list.map { it.toDomain() } }
-
 
     override suspend fun add(favorite: FavoriteQuestion) =
         dao.add(favorite.toEntity())
@@ -187,7 +186,6 @@ class FavoriteQuestionRepositoryImpl @Inject constructor(
             }
         }
     }
-
 
 }
 

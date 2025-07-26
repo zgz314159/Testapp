@@ -1,4 +1,4 @@
-package com.example.testapp.presentation.screen
+﻿package com.example.testapp.presentation.screen
 
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.Box
@@ -48,7 +48,6 @@ import com.example.testapp.presentation.component.LocalFontFamily
 import com.example.testapp.presentation.component.LocalFontSize
 import com.example.testapp.presentation.viewmodel.BaiduQianfanViewModel
 import kotlinx.coroutines.launch
-
 
 @Composable
 fun BaiduAskScreen(
@@ -113,13 +112,12 @@ fun BaiduAskScreen(
         }
     }
 
-
     LaunchedEffect(result) {
         if (result.isNotBlank() && result != "解析中..." && !result.contains("解析失败")) {
             answer = TextFieldValue(result)
             originalAnswer = result
             // 移除自动保存，由用户手动控制保存
-            android.util.Log.d("BaiduAskScreen", "Received successful result: ${result.take(50)}...")
+            
         } else if (result.isNotBlank() && result != "解析中...") {
             // 仅更新UI，不保存失败结果
             answer = TextFieldValue(result)
@@ -217,16 +215,16 @@ fun BaiduAskScreen(
                 onDismissRequest = { showSaveDialog = false },
                 confirmButton = {
                     TextButton(onClick = {
-                        android.util.Log.d("BaiduAskScreen", "User confirmed save: ${answer.text.take(50)}...")
+                        
                         onSave(answer.text)
-                        android.util.Log.d("BaiduAskScreen", "Save completed")
+                        
                         showSaveDialog = false
                         navController?.popBackStack()
                     }) { Text("保存") }
                 },
                 dismissButton = {
                     TextButton(onClick = {
-                        android.util.Log.d("BaiduAskScreen", "User cancelled save")
+                        
                         showSaveDialog = false
                         navController?.popBackStack()
                     }) { Text("不保存") }

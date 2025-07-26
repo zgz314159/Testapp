@@ -1,4 +1,4 @@
-package com.example.testapp.presentation.screen
+﻿package com.example.testapp.presentation.screen
 
 import android.util.Log
 import androidx.lifecycle.ViewModel
@@ -33,39 +33,38 @@ class FileFolderViewModel @Inject constructor(
     private val _folderNames = MutableStateFlow<List<String>>(emptyList())
     val folderNames: StateFlow<List<String>> = _folderNames.asStateFlow()
 
-
     init {
         viewModelScope.launch {
             getFileFoldersUseCase().collect { list ->
-                Log.d(tag, "fileFolders loaded: $list")
+                
                 _folders.value = list.associate { it.fileName to it.folderName }
             }
         }
         viewModelScope.launch {
             getFoldersUseCase().collect { names ->
-                Log.d(tag, "folder names loaded: $names")
+                
                 _folderNames.value = names
             }
         }
     }
 
     fun moveFile(fileName: String, folderName: String) {
-        Log.d(tag, "moveFile $fileName -> $folderName")
+        
         viewModelScope.launch { moveFileToFolderUseCase(fileName, folderName) }
     }
 
     fun addFolder(name: String) {
-        Log.d(tag, "addFolder $name")
+        
         viewModelScope.launch { addFolderUseCase(name) }
     }
 
     fun renameFolder(oldName: String, newName: String) {
-        Log.d(tag, "renameFolder $oldName -> $newName")
+        
         viewModelScope.launch { renameFolderUseCase(oldName, newName) }
     }
 
     fun deleteFolder(name: String) {
-        Log.d(tag, "deleteFolder $name")
+        
         viewModelScope.launch { deleteFolderUseCase(name) }
     }
 }

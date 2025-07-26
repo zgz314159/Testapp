@@ -46,6 +46,8 @@ fun HistoryRecordEntity.toDomain() = HistoryRecord(
     unanswered = unanswered,
     fileName = fileName,
     time = LocalDateTime.ofInstant(Instant.ofEpochMilli(time), ZoneId.systemDefault())
+    // 暂时移除mode字段
+    // mode = mode
 )
 
 fun HistoryRecord.toEntity() = HistoryRecordEntity(
@@ -54,6 +56,8 @@ fun HistoryRecord.toEntity() = HistoryRecordEntity(
     unanswered = unanswered,
     fileName = fileName,
     time = time.atZone(ZoneId.systemDefault()).toInstant().toEpochMilli()
+    // 暂时移除mode字段
+    // mode = mode
 )
 
 fun PracticeProgressEntity.toDomain() = PracticeProgress(
@@ -66,7 +70,11 @@ fun PracticeProgressEntity.toDomain() = PracticeProgress(
     sparkAnalysisList = sparkAnalysisList,
     baiduAnalysisList = baiduAnalysisList,
     noteList = noteList,
-    timestamp = timestamp
+    timestamp = timestamp,
+    // 🚀 新增：固定题序支持字段
+    sessionId = sessionId,
+    fixedQuestionOrder = fixedQuestionOrder,
+    questionStateMap = questionStateMap
 )
 
 fun PracticeProgress.toEntity() = PracticeProgressEntity(
@@ -79,7 +87,11 @@ fun PracticeProgress.toEntity() = PracticeProgressEntity(
     sparkAnalysisList = sparkAnalysisList,
     baiduAnalysisList = baiduAnalysisList,
     noteList = noteList,
-    timestamp = timestamp
+    timestamp = timestamp,
+    // 🚀 新增：固定题序支持字段
+    sessionId = sessionId,
+    fixedQuestionOrder = fixedQuestionOrder,
+    questionStateMap = questionStateMap
 )
 
 fun WrongQuestion.toEntity() = WrongQuestionEntity(
@@ -102,7 +114,11 @@ fun ExamProgressEntity.toDomain() = ExamProgress(
     baiduAnalysisList = baiduAnalysisList,
     noteList = noteList,
     finished = finished,
-    timestamp = timestamp
+    timestamp = timestamp,
+    // 🚀 新增：固定题序支持字段
+    sessionId = sessionId,
+    fixedQuestionOrder = fixedQuestionOrder,
+    questionStateMap = questionStateMap
 )
 
 fun ExamProgress.toEntity() = ExamProgressEntity(
@@ -115,5 +131,9 @@ fun ExamProgress.toEntity() = ExamProgressEntity(
     baiduAnalysisList = baiduAnalysisList,
     noteList = noteList,
     finished = finished,
-    timestamp = timestamp
+    timestamp = timestamp,
+    // 🚀 新增：固定题序支持字段
+    sessionId = sessionId,
+    fixedQuestionOrder = fixedQuestionOrder,
+    questionStateMap = questionStateMap
 )

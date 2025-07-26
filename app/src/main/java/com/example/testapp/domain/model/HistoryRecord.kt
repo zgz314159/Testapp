@@ -1,5 +1,4 @@
-package com.example.testapp.domain.model
-
+﻿package com.example.testapp.domain.model
 
 import java.time.LocalDateTime
 import kotlinx.serialization.Contextual
@@ -14,4 +13,6 @@ data class HistoryRecord(
     val fileName: String? = null,
     @Contextual
     val time: LocalDateTime = LocalDateTime.now()
+    // 暂时移除mode字段
+    // val mode: String = "practice"  // 新增：区分练习("practice")和考试("exam")模式
 )

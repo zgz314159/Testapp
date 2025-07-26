@@ -1,4 +1,4 @@
-package com.example.testapp.presentation.screen
+﻿package com.example.testapp.presentation.screen
 
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.Box
@@ -66,42 +66,39 @@ fun NoteScreen(
     
     // 添加日志来追踪StateFlow变化
     LaunchedEffect(examNoteList) {
-        android.util.Log.d("NoteScreen", "examNoteList changed: size=${examNoteList.size}, content at index $index: ${if (index < examNoteList.size) examNoteList[index].take(50) else "N/A"}...")
+        
     }
     
     LaunchedEffect(practiceNoteList) {
-        android.util.Log.d("NoteScreen", "practiceNoteList changed: size=${practiceNoteList.size}, content at index $index: ${if (index < practiceNoteList.size) practiceNoteList[index].take(50) else "N/A"}...")
+        
     }
     
     // 强制刷新机制 - 每当进入NoteScreen时强制检查最新StateFlow值
     LaunchedEffect(Unit) {
-        android.util.Log.d("NoteScreen", "Force refreshing StateFlow on NoteScreen entry...")
+        
         forceRefreshTrigger = forceRefreshTrigger + 1
         
         // 直接从ViewModel获取最新值并打印
         practiceViewModel?.noteList?.value?.let { list ->
-            android.util.Log.d("NoteScreen", "Direct practiceViewModel.noteList.value access: size=${list.size}, content at index $index: ${if (index < list.size) list[index].take(50) else "N/A"}...")
+            
             if (index < list.size) {
-                android.util.Log.d("NoteScreen", "Direct access content length: ${list[index].length}, hash: ${list[index].hashCode()}")
+                
             }
         }
         
         examViewModel?.noteList?.value?.let { list ->
-            android.util.Log.d("NoteScreen", "Direct examViewModel.noteList.value access: size=${list.size}, content at index $index: ${if (index < list.size) list[index].take(50) else "N/A"}...")
+            
             if (index < list.size) {
-                android.util.Log.d("NoteScreen", "Direct access content length: ${list[index].length}, hash: ${list[index].hashCode()}")
+                
             }
         }
     }
     
     // 添加ViewModel实例日志
     LaunchedEffect(Unit) {
-        android.util.Log.d("NoteScreen", "ViewModel instances - examViewModel: ${examViewModel != null}, practiceViewModel: ${practiceViewModel != null}")
-        android.util.Log.d("NoteScreen", "ViewModel hashCodes - examViewModel: ${examViewModel?.hashCode()}, practiceViewModel: ${practiceViewModel?.hashCode()}")
-        android.util.Log.d("NoteScreen", "Initial parameters - questionId: $questionId, index: $index, text: ${text.take(50)}...")
-        
+
         // 强制触发StateFlow刷新以确保获得最新状态
-        android.util.Log.d("NoteScreen", "Force triggering StateFlow refresh...")
+        
     }
     
     // 获取当前index对应的实时note内容 - 使用强制StateFlow访问
@@ -109,16 +106,14 @@ fun NoteScreen(
         // 首先尝试直接从ViewModel的StateFlow获取最新值
         val directPracticeNote = practiceViewModel?.noteList?.value?.let { list ->
             if (index < list.size) {
-                android.util.Log.d("NoteScreen", "Using DIRECT practiceViewModel.noteList.value[${index}]: ${list[index].take(50)}...")
-                android.util.Log.d("NoteScreen", "DIRECT content length: ${list[index].length}, hash: ${list[index].hashCode()}")
+
                 list[index]
             } else null
         }
         
         val directExamNote = examViewModel?.noteList?.value?.let { list ->
             if (index < list.size) {
-                android.util.Log.d("NoteScreen", "Using DIRECT examViewModel.noteList.value[${index}]: ${list[index].take(50)}...")
-                android.util.Log.d("NoteScreen", "DIRECT content length: ${list[index].length}, hash: ${list[index].hashCode()}")
+
                 list[index]
             } else null
         }
@@ -126,27 +121,25 @@ fun NoteScreen(
         // 优先使用直接访问的值，否则回退到collectAsState的值
         when {
             examViewModel != null && directExamNote != null -> {
-                android.util.Log.d("NoteScreen", "Using DIRECT examViewModel note")
+                
                 directExamNote
             }
             practiceViewModel != null && directPracticeNote != null -> {
-                android.util.Log.d("NoteScreen", "Using DIRECT practiceViewModel note")
+                
                 directPracticeNote
             }
             examViewModel != null && index < examNoteList.size -> {
                 val content = examNoteList[index]
-                android.util.Log.d("NoteScreen", "Fallback to collectAsState examViewModel noteList[${index}]: ${content.take(50)}...")
-                android.util.Log.d("NoteScreen", "Fallback content length: ${content.length}, hash: ${content.hashCode()}")
+
                 content
             }
             practiceViewModel != null && index < practiceNoteList.size -> {
                 val content = practiceNoteList[index]
-                android.util.Log.d("NoteScreen", "Fallback to collectAsState practiceViewModel noteList[${index}]: ${content.take(50)}...")
-                android.util.Log.d("NoteScreen", "Fallback content length: ${content.length}, hash: ${content.hashCode()}")
+
                 content
             }
             else -> {
-                android.util.Log.d("NoteScreen", "No ViewModel data available - examViewModel: ${examViewModel != null}, practiceViewModel: ${practiceViewModel != null}, examNoteList.size: ${examNoteList.size}, practiceNoteList.size: ${practiceNoteList.size}, index: $index")
+                
                 ""
             }
         }
