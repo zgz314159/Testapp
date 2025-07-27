@@ -3,6 +3,8 @@
 import com.example.testapp.data.local.dao.QuestionAnalysisDao
 import com.example.testapp.data.local.entity.QuestionAnalysisEntity
 import com.example.testapp.domain.repository.QuestionAnalysisRepository
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.flow
 import javax.inject.Inject
 
 class QuestionAnalysisRepositoryImpl @Inject constructor(
@@ -88,5 +90,11 @@ class QuestionAnalysisRepositoryImpl @Inject constructor(
         cache.remove(questionId)
         sparkCache.remove(questionId)
         baiduCache.remove(questionId)
+    }
+    
+    override fun getByQuestionId(questionId: Int): Flow<QuestionAnalysisEntity?> {
+        return flow {
+            emit(dao.getEntity(questionId))
+        }
     }
 }

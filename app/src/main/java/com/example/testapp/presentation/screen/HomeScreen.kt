@@ -243,6 +243,7 @@ fun HomeScreen(
                 .padding(innerPadding)
                 .pointerInput(Unit) { detectTapGestures(onLongPress = { showAddFolderDialog = true }) }
         ) {
+           
             Column(
                 modifier = Modifier.fillMaxSize(),
                 horizontalAlignment = Alignment.CenterHorizontally

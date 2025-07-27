@@ -73,32 +73,73 @@ class WrongBookRepositoryImpl @Inject constructor(
     override suspend fun importFromFile(file: java.io.File): Int {
         return try {
             val content = file.readText()
-            val wrongs = try {
+            val jsonWrongs = try {
+                // 尝试JSON格式
                 Json.decodeFromString<List<WrongQuestion>>(content)
             } catch (_: Exception) {
-                try {
+                null
+            }
+            
+            if (jsonWrongs != null) {
+                // 处理JSON格式
+                val existingQuestions = questionDao.getAll().firstOrNull() ?: emptyList()
+                var count = 0
+                for (w in jsonWrongs) {
+                    val match = existingQuestions.find { it.content == w.question.content && it.answer == w.question.answer }
+                    val qId = match?.id ?: run {
+                        val qEntity = w.question.toEntity()
+                        questionDao.insertAll(listOf(qEntity))
+                        questionDao.getAll().firstOrNull()
+                            ?.find { it.content == w.question.content && it.answer == w.question.answer }?.id
+                    }
+                    qId?.let {
+                        dao.add(WrongQuestionEntity(questionId = it, selected = w.selected))
+                        count++
+                    }
+                }
+                count
+            } else {
+                // 尝试Excel格式
+                val excelData = try {
                     parseExcelQuestionStyle(file)
                 } catch (_: Exception) {
-                    parseExcelWrongBook(file)
+                    try {
+                        parseExcelWrongBook(file).map { Pair(it, null as Triple<String, String, String>?) }
+                    } catch (_: Exception) {
+                        emptyList()
+                    }
                 }
-            }
 
-            val existingQuestions = questionDao.getAll().firstOrNull() ?: emptyList()
-            var count = 0
-            for (w in wrongs) {
-                val match = existingQuestions.find { it.content == w.question.content && it.answer == w.question.answer }
-                val qId = match?.id ?: run {
-                    val qEntity = w.question.toEntity()
-                    questionDao.insertAll(listOf(qEntity))
-                    questionDao.getAll().firstOrNull()
-                        ?.find { it.content == w.question.content && it.answer == w.question.answer }?.id
+                val existingQuestions = questionDao.getAll().firstOrNull() ?: emptyList()
+                var count = 0
+                for ((w, aiAnalysis) in excelData) {
+                    val match = existingQuestions.find { it.content == w.question.content && it.answer == w.question.answer }
+                    val qId = match?.id ?: run {
+                        val qEntity = w.question.toEntity()
+                        questionDao.insertAll(listOf(qEntity))
+                        questionDao.getAll().firstOrNull()
+                            ?.find { it.content == w.question.content && it.answer == w.question.answer }?.id
+                    }
+                    qId?.let { questionId ->
+                        dao.add(WrongQuestionEntity(questionId = questionId, selected = w.selected))
+                        count++
+                        
+                        // 如果有AI解析数据，插入到分析表
+                        aiAnalysis?.let { (deepSeek, spark, baidu) ->
+                            if (deepSeek.isNotBlank() || spark.isNotBlank() || baidu.isNotBlank()) {
+                                val analysisEntity = com.example.testapp.data.local.entity.QuestionAnalysisEntity(
+                                    questionId = questionId,
+                                    analysis = deepSeek,
+                                    sparkAnalysis = spark.takeIf { it.isNotBlank() },
+                                    baiduAnalysis = baidu.takeIf { it.isNotBlank() }
+                                )
+                                analysisDao.upsert(analysisEntity)
+                            }
+                        }
+                    }
                 }
-                qId?.let {
-                    dao.add(WrongQuestionEntity(questionId = it, selected = w.selected))
-                    count++
-                }
+                count
             }
-            count
         } catch (e: Exception) {
             0
         }
@@ -165,8 +206,10 @@ class WrongBookRepositoryImpl @Inject constructor(
                 (2..8).forEach { header.createCell(it).setCellValue("选项${it-1}") }
                 header.createCell(9).setCellValue("解析")
                 header.createCell(10).setCellValue("答案")
-                header.createCell(11).setCellValue("AI解析")
-                header.createCell(12).setCellValue("笔记")
+                header.createCell(11).setCellValue("DeepSeek解析")
+                header.createCell(12).setCellValue("Spark解析")
+                header.createCell(13).setCellValue("百度AI解析")
+                header.createCell(14).setCellValue("笔记")
 
                 list.forEachIndexed { idx, w ->
                     val row: Row = sheet.createRow(idx + 1)
@@ -178,10 +221,15 @@ class WrongBookRepositoryImpl @Inject constructor(
                     }
                     row.createCell(9).setCellValue(q.explanation)
                     row.createCell(10).setCellValue(q.answer)
-                    val analysis = analysisDao.getAnalysis(q.id) ?: ""
+                    val analysisEntity = analysisDao.getEntity(q.id)
+                    val deepSeekAnalysis = analysisEntity?.analysis ?: ""
+                    val sparkAnalysis = analysisEntity?.sparkAnalysis ?: ""
+                    val baiduAnalysis = analysisEntity?.baiduAnalysis ?: ""
                     val note = noteDao.getNote(q.id) ?: ""
-                    row.createCell(11).setCellValue(analysis)
-                    row.createCell(12).setCellValue(note)
+                    row.createCell(11).setCellValue(deepSeekAnalysis)
+                    row.createCell(12).setCellValue(sparkAnalysis)
+                    row.createCell(13).setCellValue(baiduAnalysis)
+                    row.createCell(14).setCellValue(note)
                 }
             }
 
@@ -234,11 +282,11 @@ class WrongBookRepositoryImpl @Inject constructor(
         return wrongs
     }
 
-    private fun parseExcelQuestionStyle(file: File): List<WrongQuestion> {
-        val wrongs = mutableListOf<WrongQuestion>()
+    private fun parseExcelQuestionStyle(file: File): List<Pair<WrongQuestion, Triple<String, String, String>?>> {
+        val wrongs = mutableListOf<Pair<WrongQuestion, Triple<String, String, String>?>>()
         val f = DataFormatter()
 
-        fun parseRowStyle1(row: org.apache.poi.ss.usermodel.Row): WrongQuestion? {
+        fun parseRowStyle1(row: org.apache.poi.ss.usermodel.Row): Pair<WrongQuestion, Triple<String, String, String>?>? {
             val content = row.getCell(0)?.let { f.formatCellValue(it) } ?: ""
             if (content.isBlank()) return null
             val type = row.getCell(1)?.let { f.formatCellValue(it) } ?: ""
@@ -247,7 +295,22 @@ class WrongBookRepositoryImpl @Inject constructor(
             }
             val explanation = row.getCell(9)?.let { f.formatCellValue(it) } ?: ""
             val answer = row.getCell(10)?.let { f.formatCellValue(it) } ?: ""
-            return WrongQuestion(
+            
+            // 读取AI解析数据（新格式）
+            val deepSeekAnalysis = row.getCell(11)?.let { f.formatCellValue(it) } ?: ""
+            val sparkAnalysis = row.getCell(12)?.let { f.formatCellValue(it) } ?: ""
+            val baiduAnalysis = row.getCell(13)?.let { f.formatCellValue(it) } ?: ""
+            val note = row.getCell(14)?.let { f.formatCellValue(it) } ?: ""
+            
+            val aiAnalysis = if (deepSeekAnalysis.isNotBlank() || sparkAnalysis.isNotBlank() || baiduAnalysis.isNotBlank()) {
+                Triple(deepSeekAnalysis, sparkAnalysis, baiduAnalysis)
+            } else {
+                // 兼容旧格式：尝试读取第11列作为DeepSeek解析
+                val oldAnalysis = row.getCell(11)?.let { f.formatCellValue(it) } ?: ""
+                if (oldAnalysis.isNotBlank()) Triple(oldAnalysis, "", "") else null
+            }
+            
+            val wrongQuestion = WrongQuestion(
                 question = Question(
                     id = 0,
                     content = content,
@@ -261,9 +324,11 @@ class WrongBookRepositoryImpl @Inject constructor(
                 ),
                 selected = emptyList()
             )
+            
+            return Pair(wrongQuestion, aiAnalysis)
         }
 
-        fun parseRowStyle2(row: org.apache.poi.ss.usermodel.Row): WrongQuestion? {
+        fun parseRowStyle2(row: org.apache.poi.ss.usermodel.Row): Pair<WrongQuestion, Triple<String, String, String>?>? {
             val content = row.getCell(0)?.let { f.formatCellValue(it) } ?: ""
             if (content.isBlank()) return null
             val options = (1..3).mapNotNull { idx ->
@@ -271,7 +336,8 @@ class WrongBookRepositoryImpl @Inject constructor(
             }
             val explanation = row.getCell(4)?.let { f.formatCellValue(it) } ?: ""
             val answer = row.getCell(5)?.let { f.formatCellValue(it) } ?: ""
-            return WrongQuestion(
+            
+            val wrongQuestion = WrongQuestion(
                 question = Question(
                     id = 0,
                     content = content,
@@ -285,13 +351,15 @@ class WrongBookRepositoryImpl @Inject constructor(
                 ),
                 selected = emptyList()
             )
+            
+            return Pair(wrongQuestion, null) // 旧格式不包含AI解析
         }
 
         WorkbookFactory.create(file).use { workbook ->
             val sheet = workbook.getSheetAt(0)
             for (row in sheet.drop(1)) {
-                val q = parseRowStyle1(row) ?: parseRowStyle2(row)
-                if (q != null) wrongs.add(q)
+                val result = parseRowStyle1(row) ?: parseRowStyle2(row)
+                if (result != null) wrongs.add(result)
             }
         }
         return wrongs
