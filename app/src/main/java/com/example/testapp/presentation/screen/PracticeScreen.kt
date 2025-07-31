@@ -70,9 +70,10 @@ fun PracticeScreen(
     val randomPractice by settingsViewModel.randomPractice.collectAsState()
     val practiceCount by settingsViewModel.practiceQuestionCount.collectAsState()
     LaunchedEffect(quizId, isWrongBookMode, wrongBookFileName, isFavoriteMode, favoriteFileName, randomPractice, practiceCount) {
-        Log.d("PracticeScreen", "randomPractice=$randomPractice, isWrongBookMode=$isWrongBookMode, wrongBookFileName=$wrongBookFileName, isFavoriteMode=$isFavoriteMode, favoriteFileName=$favoriteFileName, quizId=$quizId, practiceCount=$practiceCount")
+        Log.d("PracticeScreen", "[INIT] randomPractice=$randomPractice, isWrongBookMode=$isWrongBookMode, wrongBookFileName=$wrongBookFileName, isFavoriteMode=$isFavoriteMode, favoriteFileName=$favoriteFileName, quizId=$quizId, practiceCount=$practiceCount")
         viewModel.setRandomPractice(randomPractice)
         if (isWrongBookMode && wrongBookFileName != null) {
+            Log.d("PracticeScreen", "[setProgressId] wrongbook mode, id=wrongbook_${wrongBookFileName}, questionsId=$wrongBookFileName, random=$randomPractice")
             viewModel.setProgressId(
                 id = "wrongbook_${wrongBookFileName}",
                 questionsId = wrongBookFileName,
@@ -80,8 +81,9 @@ fun PracticeScreen(
                 random = randomPractice
             )
             viewModel.loadWrongQuestions(wrongBookFileName)
-            Log.d("PracticeScreen", "loadWrongQuestions: ${wrongBookFileName}, random=$randomPractice")
+            Log.d("PracticeScreen", "[loadWrongQuestions] ${wrongBookFileName}, random=$randomPractice")
         } else if (isFavoriteMode && favoriteFileName != null) {
+            Log.d("PracticeScreen", "[setProgressId] favorite mode, id=favorite_${favoriteFileName}, questionsId=$favoriteFileName, random=$randomPractice")
             viewModel.setProgressId(
                 id = "favorite_${favoriteFileName}",
                 questionsId = favoriteFileName,
@@ -89,14 +91,15 @@ fun PracticeScreen(
                 random = randomPractice
             )
             viewModel.loadFavoriteQuestions(favoriteFileName)
-            Log.d("PracticeScreen", "loadFavoriteQuestions: ${favoriteFileName}, random=$randomPractice")
+            Log.d("PracticeScreen", "[loadFavoriteQuestions] ${favoriteFileName}, random=$randomPractice")
         } else {
+            Log.d("PracticeScreen", "[setProgressId] normal mode, id=$quizId, questionsId=$quizId, questionCount=$practiceCount, random=$randomPractice")
             viewModel.setProgressId(id = quizId, questionsId = quizId, questionCount = practiceCount, random = randomPractice)
-            Log.d("PracticeScreen", "loadNormalQuestions: $quizId, random=$randomPractice")
+            Log.d("PracticeScreen", "[loadNormalQuestions] $quizId, random=$randomPractice")
         }
         // 打印当前题目顺序
         val questions = viewModel.questions.value
-        Log.d("PracticeScreen", "questions order: ${questions.map { it.id }}")
+        Log.d("PracticeScreen", "[questions order] ${questions.map { it.id }}")
     }
 
     val coroutineScope = rememberCoroutineScope()
@@ -295,18 +298,27 @@ fun PracticeScreen(
             .padding(16.dp)
             .pointerInput(currentIndex) {
                 detectHorizontalDragGestures(
-                    onHorizontalDrag = { _, amount -> dragAmount += amount },
+                    onHorizontalDrag = { _, amount ->
+                        dragAmount += amount
+                        Log.d("PracticeScreen", "[DRAG] onHorizontalDrag: amount=$amount, dragAmount=$dragAmount, currentIndex=$currentIndex, randomPractice=${settingsViewModel.randomPractice.value}")
+                    },
                     onDragEnd = {
+                        Log.d("PracticeScreen", "[DRAG] onDragEnd: dragAmount=$dragAmount, currentIndex=$currentIndex, randomPractice=${settingsViewModel.randomPractice.value}")
                         if (dragAmount > 100f) {
                             autoJob?.cancel()
+                            Log.d("PracticeScreen", "[DRAG] prevQuestion called, currentIndex(before)=$currentIndex")
                             viewModel.prevQuestion()
                         } else if (dragAmount < -100f) {
                             autoJob?.cancel()
+                            Log.d("PracticeScreen", "[DRAG] nextQuestion called, currentIndex(before)=$currentIndex")
                             viewModel.nextQuestion()
                         }
                         dragAmount = 0f
                     },
-                    onDragCancel = { dragAmount = 0f }
+                    onDragCancel = {
+                        Log.d("PracticeScreen", "[DRAG] onDragCancel, dragAmount reset to 0")
+                        dragAmount = 0f
+                    }
                 )
             }
     ) {
