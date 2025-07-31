@@ -644,29 +644,23 @@ class PracticeViewModel @Inject constructor(
         val currentState = _sessionState.value
 
         if (randomPracticeEnabled) {
-            // 🚀 随机模式：智能选择下一个未答题目
+            // 随机模式：无论自动还是手动，点击“下一题”都随机跳转到一个未答题目
             val unansweredIndices = currentState.questionsWithState.mapIndexedNotNull { index, questionWithState ->
                 if (questionWithState.selectedOptions.isEmpty()) index else null
             }
-
             if (unansweredIndices.isNotEmpty()) {
-                // 从未答题目中随机选择一个
                 val randomIndex = unansweredIndices.random(kotlin.random.Random(currentState.sessionStartTime))
-
                 _sessionState.value = currentState.copy(currentIndex = randomIndex)
             } else {
                 // 所有题目都已答完，提示用户
-
                 // 可以在这里添加完成提示逻辑
             }
         } else {
-            // 📍 非随机模式：按顺序进入下一题
+            // 非随机模式：按顺序进入下一题
             if (currentState.currentIndex < currentState.questionsWithState.size - 1) {
-
                 _sessionState.value = currentState.copy(currentIndex = currentState.currentIndex + 1)
             }
         }
-
         saveProgress()
     }
 
