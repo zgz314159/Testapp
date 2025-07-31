@@ -167,7 +167,7 @@ class PracticeViewModel @Inject constructor(
         questionSourceId = questionsId
         // 🔧 修复：直接使用传入的random参数，确保随机设置生效
         randomPracticeEnabled = random
-
+ android.util.Log.d("PracticeViewModel", "setProgressId: randomPracticeEnabled=$randomPracticeEnabled, randomParam=$random")
         // 2. 生成会话ID，用于区分不同轮次的练习
         val sessionId = "${progressId}_${System.currentTimeMillis()}"
         val newSessionStartTime = System.currentTimeMillis()
@@ -220,52 +220,34 @@ class PracticeViewModel @Inject constructor(
                         // ✅ 措施1：第一次进入，生成并保存固定题序
 
                         // 🚀 新增：智能未答继续练习逻辑
-                        val smartOrderedQuestions = if (randomPracticeEnabled && existingProgress != null) {
 
-                            // 从已有的questionStateMap中分析已答和未答题目
-                            val questionStateMap = existingProgress.questionStateMap
-                            val answeredQuestionIds = mutableSetOf<Int>()
-
-                            questionStateMap.forEach { (questionId, answerState) ->
-                                if (answerState.selectedOptions.isNotEmpty() && answerState.showResult) {
-                                    answeredQuestionIds.add(questionId)
-
+                        val smartOrderedQuestions = if (randomPracticeEnabled) {
+                            if (existingProgress != null) {
+                                // 从已有的questionStateMap中分析已答和未答题目
+                                val questionStateMap = existingProgress.questionStateMap
+                                val answeredQuestionIds = mutableSetOf<Int>()
+                                questionStateMap.forEach { (questionId, answerState) ->
+                                    if (answerState.selectedOptions.isNotEmpty() && answerState.showResult) {
+                                        answeredQuestionIds.add(questionId)
+                                    }
                                 }
-                            }
-
-                            // 分离已答和未答题目
-                            val unansweredQuestions = originalQuestions.filter { question ->
-                                val isUnanswered = question.id !in answeredQuestionIds
-                                if (isUnanswered) {
-
+                                // 分离已答和未答题目
+                                val unansweredQuestions = originalQuestions.filter { it.id !in answeredQuestionIds }
+                                val answeredQuestions = originalQuestions.filter { it.id in answeredQuestionIds }
+                                // 未答题目优先，然后是已答题目
+                                if (unansweredQuestions.isNotEmpty()) {
+                                    val shuffledUnanswered = unansweredQuestions.shuffled(java.util.Random(newSessionStartTime))
+                                    val shuffledAnswered = answeredQuestions.shuffled(java.util.Random(newSessionStartTime + 1000))
+                                    shuffledUnanswered + shuffledAnswered
+                                } else {
+                                    originalQuestions.shuffled(java.util.Random(newSessionStartTime))
                                 }
-                                isUnanswered
-                            }
-                            val answeredQuestions = originalQuestions.filter { question ->
-                                val isAnswered = question.id in answeredQuestionIds
-                                if (isAnswered) {
-
-                                }
-                                isAnswered
-                            }
-
-                            // 🎯 核心算法：未答题目优先，然后是已答题目
-                            if (unansweredQuestions.isNotEmpty()) {
-
-                                val shuffledUnanswered = unansweredQuestions.shuffled(java.util.Random(newSessionStartTime))
-                                val shuffledAnswered = answeredQuestions.shuffled(java.util.Random(newSessionStartTime + 1000))
-
-                                shuffledUnanswered + shuffledAnswered
                             } else {
-
+                                // 新练习（没有历史进度）时默认随机
                                 originalQuestions.shuffled(java.util.Random(newSessionStartTime))
                             }
-                        } else if (randomPracticeEnabled || existingProgress == null) {
-                            // 启用随机模式 或者 新练习（没有历史进度）时默认随机
-
-                            originalQuestions.shuffled(java.util.Random(newSessionStartTime))
                         } else {
-
+                            // 非随机模式，始终保持原顺序
                             originalQuestions
                         }
 
