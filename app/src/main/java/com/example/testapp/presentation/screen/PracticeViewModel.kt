@@ -288,7 +288,6 @@ class PracticeViewModel @Inject constructor(
                             analysisList = emptyList(),
                             sparkAnalysisList = emptyList(),
                             baiduAnalysisList = emptyList(),
-        android.util.Log.d("PracticeViewModel", "setProgressId: randomPracticeEnabled=$randomPracticeEnabled, id=$id, questionsId=$questionsId, questionCount=$questionCount, loadQuestions=$loadQuestions")
                             noteList = emptyList(),
                             timestamp = newSessionStartTime,
                             sessionId = sessionId,
@@ -300,7 +299,7 @@ class PracticeViewModel @Inject constructor(
 
                         finalQuestions
                     }
-                    
+                    android.util.Log.d("PracticeViewModel", "setProgressId: randomPracticeEnabled=$randomPracticeEnabled, id=$id, questionsId=$questionsId, questionCount=$questionCount, loadQuestions=$loadQuestions")
                     // ✅ 措施2：基于题目ID创建答题状态，不依赖位置
                     val questionsWithState = questionsWithFixedOrder.map { question ->
                         val questionState = existingProgress?.questionStateMap?.get(question.id)
