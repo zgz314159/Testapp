@@ -297,37 +297,12 @@ fun PracticeScreen(
                 detectHorizontalDragGestures(
                     onHorizontalDrag = { _, amount -> dragAmount += amount },
                     onDragEnd = {
-                        if (dragAmount > 100f && currentIndex > 0) {
+                        if (dragAmount > 100f) {
                             autoJob?.cancel()
                             viewModel.prevQuestion()
                         } else if (dragAmount < -100f) {
                             autoJob?.cancel()
-                            if (currentIndex < questions.size - 1) {
-                                viewModel.nextQuestion()
-                            } else {
-                                when {
-                                    !answeredThisSession -> {
-                                        autoJob?.cancel()
-                                        onExitWithoutAnswer()
-                                    }
-                                    sessionAnsweredCount >= viewModel.totalCount -> {
-                                        autoJob?.cancel()
-                                        // 对于"本次练习"，混合使用session和总进度数据
-                                        val realUnanswered = viewModel.totalCount - viewModel.answeredCount
-                                        // 本次练习的未答数：对于已完成的练习，未答数为0
-                                        val sessionUnanswered = 0
-                                        
-                                        // 详细调试信息
-
-                                        // 修复：只在有实际答题时才记录历史
-                                        if (sessionActualAnswered > 0) {
-                                            viewModel.addHistoryRecord(sessionScore, viewModel.totalCount, realUnanswered)
-                                        }
-                                        onQuizEnd(sessionScore, sessionActualAnswered, sessionUnanswered, viewModel.correctCount, viewModel.answeredCount)
-                                    }
-                                    else -> showExitDialog = true
-                                }
-                            }
+                            viewModel.nextQuestion()
                         }
                         dragAmount = 0f
                     },
