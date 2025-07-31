@@ -144,7 +144,7 @@ class PracticeViewModel @Inject constructor(
             clearPracticeProgressUseCase("practice_default")
             // 🚀 临时修复：清除问题文件的旧进度记录，让它重新生成完整数据
             clearPracticeProgressUseCase("practice_副本铁路电力线路工岗位\"学标考标\"学标考标题库 (已编辑).xlsx")
-            
+
         }
     }
 
@@ -171,7 +171,7 @@ class PracticeViewModel @Inject constructor(
         // 2. 生成会话ID，用于区分不同轮次的练习
         val sessionId = "${progressId}_${System.currentTimeMillis()}"
         val newSessionStartTime = System.currentTimeMillis()
-        
+
         _sessionState.value = _sessionState.value.copy(
             progressLoaded = false,
             sessionStartTime = newSessionStartTime
@@ -181,7 +181,7 @@ class PracticeViewModel @Inject constructor(
         sparkAnalysisLoaded = false
         baiduAnalysisLoaded = false
         notesLoaded = false
-        
+
         if (loadQuestions) {
             viewModelScope.launch {
 
@@ -190,7 +190,7 @@ class PracticeViewModel @Inject constructor(
                     android.util.Log.d("PracticeViewModel", "setProgressId: originalQuestions.size=${originalQuestions.size}, ids=${originalQuestions.map { it.id }}")
                     // 如果题目列表为空，可能是文件已被删除
                     if (originalQuestions.isEmpty()) {
-                        
+
                         _sessionState.value = PracticeSessionState()
                         return@collect
                     }
@@ -201,17 +201,17 @@ class PracticeViewModel @Inject constructor(
                     if (existingProgress != null) {
 
                     }
-                    
+
                     val questionsWithFixedOrder = if (existingProgress?.fixedQuestionOrder?.isNotEmpty() == true) {
                         // ✅ 措施1：使用已保存的固定题序
-                        
+
                         val fixedOrder = existingProgress.fixedQuestionOrder
                         val questionsMap = originalQuestions.associateBy { it.id }
-                        
+
                         // 按固定顺序重建题目列表
                         val orderedQuestions = fixedOrder.mapNotNull { questionId ->
                             questionsMap[questionId]?.also {
-                                
+
                             }
                         }
 
@@ -225,50 +225,50 @@ class PracticeViewModel @Inject constructor(
                             // 从已有的questionStateMap中分析已答和未答题目
                             val questionStateMap = existingProgress.questionStateMap
                             val answeredQuestionIds = mutableSetOf<Int>()
-                            
+
                             questionStateMap.forEach { (questionId, answerState) ->
                                 if (answerState.selectedOptions.isNotEmpty() && answerState.showResult) {
                                     answeredQuestionIds.add(questionId)
-                                    
+
                                 }
                             }
 
                             // 分离已答和未答题目
-                            val unansweredQuestions = originalQuestions.filter { question -> 
+                            val unansweredQuestions = originalQuestions.filter { question ->
                                 val isUnanswered = question.id !in answeredQuestionIds
                                 if (isUnanswered) {
-                                    
+
                                 }
                                 isUnanswered
                             }
-                            val answeredQuestions = originalQuestions.filter { question -> 
+                            val answeredQuestions = originalQuestions.filter { question ->
                                 val isAnswered = question.id in answeredQuestionIds
                                 if (isAnswered) {
-                                    
+
                                 }
                                 isAnswered
                             }
 
                             // 🎯 核心算法：未答题目优先，然后是已答题目
                             if (unansweredQuestions.isNotEmpty()) {
-                                
+
                                 val shuffledUnanswered = unansweredQuestions.shuffled(java.util.Random(newSessionStartTime))
                                 val shuffledAnswered = answeredQuestions.shuffled(java.util.Random(newSessionStartTime + 1000))
-                                
+
                                 shuffledUnanswered + shuffledAnswered
                             } else {
-                                
+
                                 originalQuestions.shuffled(java.util.Random(newSessionStartTime))
                             }
                         } else if (randomPracticeEnabled || existingProgress == null) {
                             // 启用随机模式 或者 新练习（没有历史进度）时默认随机
-                            
+
                             originalQuestions.shuffled(java.util.Random(newSessionStartTime))
                         } else {
-                            
+
                             originalQuestions
                         }
-                        
+
                         // 限制题目数量
                         val finalQuestions = if (questionCount > 0) {
                             smartOrderedQuestions.take(questionCount.coerceAtMost(smartOrderedQuestions.size))
@@ -276,7 +276,7 @@ class PracticeViewModel @Inject constructor(
                             smartOrderedQuestions
                         }
                         android.util.Log.d("PracticeViewModel", "setProgressId: finalQuestions.size=${finalQuestions.size}, ids=${finalQuestions.map { it.id }}")
-                        
+
                         // 保存固定题序到数据库
                         val fixedOrder = finalQuestions.map { it.id }
                         val newProgress = PracticeProgress(
@@ -294,7 +294,7 @@ class PracticeViewModel @Inject constructor(
                             fixedQuestionOrder = fixedOrder,
                             questionStateMap = emptyMap()
                         )
-                        
+
                         savePracticeProgressUseCase(newProgress)
 
                         finalQuestions
@@ -314,7 +314,7 @@ class PracticeViewModel @Inject constructor(
                             sessionAnswerTime = questionState?.sessionAnswerTime ?: 0L
                         )
                     }
-                    
+
                     // 更新状态
                     _sessionState.value = _sessionState.value.copy(
                         questionsWithState = questionsWithState,
@@ -341,20 +341,20 @@ class PracticeViewModel @Inject constructor(
                         currentState.questionsWithState.map { questionWithState ->
                             val questionId = questionWithState.question.id
                             val savedState = progress.questionStateMap[questionId]
-                            
+
                             if (savedState != null) {
                                 // 🚀 核心修复：智能showResult状态恢复
                                 val shouldShowResult = if (savedState.selectedOptions.isNotEmpty()) {
                                     // 如果题目已答且之前显示了结果，恢复显示状态
                                     if (savedState.showResult) {
-                                        
+
                                         true
                                     } else {
                                         // 历史进度中已答但没有显示结果的题目，智能判断是否显示
-                                        val wasAnsweredInPreviousSession = savedState.sessionAnswerTime > 0L && 
-                                            savedState.sessionAnswerTime < currentState.sessionStartTime
+                                        val wasAnsweredInPreviousSession = savedState.sessionAnswerTime > 0L &&
+                                                savedState.sessionAnswerTime < currentState.sessionStartTime
                                         if (wasAnsweredInPreviousSession) {
-                                            
+
                                             true
                                         } else {
                                             savedState.showResult
@@ -393,11 +393,11 @@ class PracticeViewModel @Inject constructor(
                             val shouldShowResult = if (selectedOptions.isNotEmpty()) {
                                 // 如果题目已答且之前显示了结果，恢复显示状态
                                 if (originalShowResult) {
-                                    
+
                                     true
                                 } else {
                                     // 历史进度中已答但没有显示结果的题目，智能判断是否显示
-                                    
+
                                     true
                                 }
                             } else {
@@ -424,36 +424,36 @@ class PracticeViewModel @Inject constructor(
                     }
 
                     val newCurrentIndex = progress.currentIndex.coerceAtMost(currentState.questionsWithState.size - 1)
-                    
+
                     // 🚀 新增：智能未答题随机出题逻辑
                     val smartCurrentIndex = if (randomPracticeEnabled) {
                         // 筛选未答题目
                         val unansweredIndices = updatedQuestionsWithState.mapIndexedNotNull { index, questionWithState ->
                             if (questionWithState.selectedOptions.isEmpty()) index else null
                         }
-                        
+
                         if (unansweredIndices.isNotEmpty()) {
                             // 从未答题目中随机选择一个
                             val randomIndex = unansweredIndices.random(kotlin.random.Random(currentState.sessionStartTime))
-                            
+
                             randomIndex
                         } else {
                             // 全部题目都已答完，使用原来的位置
-                            
+
                             newCurrentIndex
                         }
                     } else {
                         // 非随机模式，使用保存的位置
-                        
+
                         newCurrentIndex
                     }
-                    
+
                     _sessionState.value = currentState.copy(
                         currentIndex = smartCurrentIndex,
                         questionsWithState = updatedQuestionsWithState,
                         progressLoaded = true
                     )
-                    
+
                     // 🚀 增强调试：统计showResult状态恢复情况
                     val answeredCount = updatedQuestionsWithState.count { it.selectedOptions.isNotEmpty() }
                     val showResultCount = updatedQuestionsWithState.count { it.showResult }
@@ -464,14 +464,14 @@ class PracticeViewModel @Inject constructor(
                     val smartStartIndex = if (randomPracticeEnabled && currentState.questionsWithState.isNotEmpty()) {
                         // 随机模式：从随机题目开始
                         val randomIndex = (0 until currentState.questionsWithState.size).random(kotlin.random.Random(currentState.sessionStartTime))
-                        
+
                         randomIndex
                     } else {
                         // 非随机模式：从第一题开始
-                        
+
                         0
                     }
-                    
+
                     _sessionState.value = currentState.copy(
                         currentIndex = smartStartIndex,
                         progressLoaded = true
@@ -602,7 +602,7 @@ class PracticeViewModel @Inject constructor(
 
         val updatedQuestionsWithState = currentState.questionsWithState.mapIndexed { index, questionWithState ->
             if (index == idx) {
-                
+
                 questionWithState.copy(
                     selectedOptions = listOf(option),
                     showResult = true,
@@ -615,7 +615,7 @@ class PracticeViewModel @Inject constructor(
 
         val newState = currentState.copy(questionsWithState = updatedQuestionsWithState)
         _sessionState.value = newState
-        
+
         // 🚀 新增：随机模式下答题后自动跳转到下一个未答题目
         if (randomPracticeEnabled) {
 
@@ -626,13 +626,13 @@ class PracticeViewModel @Inject constructor(
 
             if (unansweredIndices.isNotEmpty()) {
                 val newIndex = unansweredIndices.random(kotlin.random.Random(newState.sessionStartTime))
-                
+
                 _sessionState.value = newState.copy(currentIndex = newIndex)
             } else {
-                
+
             }
         }
-        
+
         saveProgress()
     }
 
@@ -660,38 +660,38 @@ class PracticeViewModel @Inject constructor(
 
     fun nextQuestion() {
         val currentState = _sessionState.value
-        
+
         if (randomPracticeEnabled) {
             // 🚀 随机模式：智能选择下一个未答题目
             val unansweredIndices = currentState.questionsWithState.mapIndexedNotNull { index, questionWithState ->
                 if (questionWithState.selectedOptions.isEmpty()) index else null
             }
-            
+
             if (unansweredIndices.isNotEmpty()) {
                 // 从未答题目中随机选择一个
                 val randomIndex = unansweredIndices.random(kotlin.random.Random(currentState.sessionStartTime))
-                
+
                 _sessionState.value = currentState.copy(currentIndex = randomIndex)
             } else {
                 // 所有题目都已答完，提示用户
-                
+
                 // 可以在这里添加完成提示逻辑
             }
         } else {
             // 📍 非随机模式：按顺序进入下一题
             if (currentState.currentIndex < currentState.questionsWithState.size - 1) {
-                
+
                 _sessionState.value = currentState.copy(currentIndex = currentState.currentIndex + 1)
             }
         }
-        
+
         saveProgress()
     }
 
     fun prevQuestion() {
         val currentState = _sessionState.value
         if (currentState.currentIndex > 0) {
-            
+
             _sessionState.value = currentState.copy(currentIndex = currentState.currentIndex - 1)
             saveProgress()
         }
@@ -700,7 +700,7 @@ class PracticeViewModel @Inject constructor(
     fun goToQuestion(index: Int) {
         val currentState = _sessionState.value
         if (index in 0 until currentState.questionsWithState.size) {
-            
+
             _sessionState.value = currentState.copy(currentIndex = index)
             saveProgress()
         }
@@ -713,11 +713,11 @@ class PracticeViewModel @Inject constructor(
             // ✅ 措施2：构建题目ID到答题状态的映射
             val questionStateMap = mutableMapOf<Int, QuestionAnswerState>()
             val fixedQuestionOrder = mutableListOf<Int>()
-            
+
             currentState.questionsWithState.forEach { questionWithState ->
                 val questionId = questionWithState.question.id
                 fixedQuestionOrder.add(questionId)
-                
+
                 // 创建基于题目ID的答题状态
                 questionStateMap[questionId] = QuestionAnswerState(
                     questionId = questionId,
@@ -753,7 +753,7 @@ class PracticeViewModel @Inject constructor(
                 fixedQuestionOrder = fixedQuestionOrder,
                 questionStateMap = questionStateMap
             )
-            
+
             savePracticeProgressUseCase(progress)
 
         }
@@ -761,7 +761,7 @@ class PracticeViewModel @Inject constructor(
 
     fun clearProgress() {
         viewModelScope.launch {
-            
+
             clearPracticeProgressUseCase(progressId)
             resetLocalState()
             analysisLoaded = false
@@ -797,7 +797,7 @@ class PracticeViewModel @Inject constructor(
         val updatedQuestionsWithState = currentState.questionsWithState.mapIndexed { idx, questionWithState ->
             if (idx == index) {
                 if (value && questionWithState.sessionAnswerTime == 0L) {
-                    
+
                     // 当首次显示结果时，设置时间戳为当前时间
                     questionWithState.copy(
                         showResult = value,
@@ -816,7 +816,7 @@ class PracticeViewModel @Inject constructor(
     }
 
     fun updateAnalysis(index: Int, text: String) {
-        
+
         val currentState = _sessionState.value
 
         val updatedQuestionsWithState = currentState.questionsWithState.mapIndexed { idx, questionWithState ->
@@ -867,10 +867,10 @@ class PracticeViewModel @Inject constructor(
             // 修复：只有在实际答题时才记录历史（score > 0 或有答错题目）
             val actualAnswered = total - unanswered
             if (actualAnswered > 0) {
-                
+
                 addHistoryRecordUseCase(HistoryRecord(score, total, unanswered, id))
             } else {
-                
+
             }
         }
     }
@@ -893,7 +893,7 @@ class PracticeViewModel @Inject constructor(
     }
 
     fun appendNote(questionId: Int, index: Int, text: String) {
-        
+
         viewModelScope.launch {
             try {
                 appendNoteMutex.withLock {
@@ -920,10 +920,10 @@ class PracticeViewModel @Inject constructor(
                     }
 
                     _sessionState.value = currentState.copy(questionsWithState = updatedQuestionsWithState)
-                    
+
                 }
             } catch (e: Exception) {
-                
+
             }
         }
     }
@@ -958,7 +958,7 @@ class PracticeViewModel @Inject constructor(
                 if (existingQuestions.isNotEmpty()) {
                     saveQuestionsUseCase(fileName, questionsToSave)
                 } else {
-                    
+
                 }
             }
         }
@@ -999,7 +999,7 @@ class PracticeViewModel @Inject constructor(
                     // 保存后强制刷新题库内容
                     setProgressId(progressId, questionSourceId)
                 } else {
-                    
+
                 }
             }
         }
@@ -1016,7 +1016,7 @@ class PracticeViewModel @Inject constructor(
 
                 // 🚀 新增：练习错题模式智能随机未答继续逻辑（修复版）
                 val smartOrderedList = if (randomPracticeEnabled) {
-                    
+
                     // 先获取历史进度以了解哪些题目已答
                     val existingProgress = getPracticeProgressFlowUseCase(progressId).firstOrNull()
 
@@ -1042,12 +1042,12 @@ class PracticeViewModel @Inject constructor(
                                 // 验证历史进度中的已答题目是否在当前题目集合中
                                 if (options.isNotEmpty() && showResult && questionId in originalQuestionIds) {
                                     progressMatchCount++
-                                    
+
                                 } else if (options.isNotEmpty() && showResult && questionId !in originalQuestionIds) {
-                                    
+
                                 }
                             } else {
-                                
+
                             }
                         }
 
@@ -1058,7 +1058,7 @@ class PracticeViewModel @Inject constructor(
                             val showResult = progressData.second
                             if (selectedOptions.isNotEmpty() && showResult) {
                                 answeredQuestionIds.add(questionId)
-                                
+
                             }
                         }
 
@@ -1066,35 +1066,35 @@ class PracticeViewModel @Inject constructor(
                         val unansweredQuestions = list.filter { question ->
                             val isUnanswered = question.id !in answeredQuestionIds
                             if (isUnanswered) {
-                                
+
                             }
                             isUnanswered
                         }
                         val answeredQuestions = list.filter { question ->
                             val isAnswered = question.id in answeredQuestionIds
                             if (isAnswered) {
-                                
+
                             }
                             isAnswered
                         }
 
                         // 🎯 核心算法：随机未答继续练习错题
                         if (unansweredQuestions.isNotEmpty()) {
-                            
+
                             val shuffledUnanswered = unansweredQuestions.shuffled()
                             val shuffledAnswered = answeredQuestions.shuffled()
-                            
+
                             shuffledUnanswered + shuffledAnswered
                         } else {
-                            
+
                             list.shuffled()
                         }
                     } else {
-                        
+
                         list.shuffled()
                     }
                 } else {
-                    
+
                     list
                 }
 
@@ -1120,7 +1120,7 @@ class PracticeViewModel @Inject constructor(
 
                 // 🚀 新增：练习收藏模式智能随机未答继续逻辑（修复版）
                 val smartOrderedList = if (randomPracticeEnabled) {
-                    
+
                     // 先获取历史进度以了解哪些题目已答
                     val existingProgress = getPracticeProgressFlowUseCase(progressId).firstOrNull()
 
@@ -1146,12 +1146,12 @@ class PracticeViewModel @Inject constructor(
                                 // 验证历史进度中的已答题目是否在当前题目集合中
                                 if (options.isNotEmpty() && showResult && questionId in originalQuestionIds) {
                                     progressMatchCount++
-                                    
+
                                 } else if (options.isNotEmpty() && showResult && questionId !in originalQuestionIds) {
-                                    
+
                                 }
                             } else {
-                                
+
                             }
                         }
 
@@ -1162,7 +1162,7 @@ class PracticeViewModel @Inject constructor(
                             val showResult = progressData.second
                             if (selectedOptions.isNotEmpty() && showResult) {
                                 answeredQuestionIds.add(questionId)
-                                
+
                             }
                         }
 
@@ -1170,35 +1170,35 @@ class PracticeViewModel @Inject constructor(
                         val unansweredQuestions = list.filter { question ->
                             val isUnanswered = question.id !in answeredQuestionIds
                             if (isUnanswered) {
-                                
+
                             }
                             isUnanswered
                         }
                         val answeredQuestions = list.filter { question ->
                             val isAnswered = question.id in answeredQuestionIds
                             if (isAnswered) {
-                                
+
                             }
                             isAnswered
                         }
 
                         // 🎯 核心算法：随机未答继续练习收藏
                         if (unansweredQuestions.isNotEmpty()) {
-                            
+
                             val shuffledUnanswered = unansweredQuestions.shuffled()
                             val shuffledAnswered = answeredQuestions.shuffled()
-                            
+
                             shuffledUnanswered + shuffledAnswered
                         } else {
-                            
+
                             list.shuffled()
                         }
                     } else {
-                        
+
                         list.shuffled()
                     }
                 } else {
-                    
+
                     list
                 }
 
