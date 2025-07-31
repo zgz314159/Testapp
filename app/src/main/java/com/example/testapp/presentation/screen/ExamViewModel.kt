@@ -152,6 +152,8 @@ class ExamViewModel @Inject constructor(
         // 考试模式也使用前缀区分进度
         progressId = "exam_${quizId}"
         quizIdInternal = quizId
+        // 🔧 修复：直接使用传入的random参数，确保随机设置生效
+        randomExamEnabled = random
         _progressLoaded.value = false
 
         viewModelScope.launch {
@@ -300,6 +302,8 @@ class ExamViewModel @Inject constructor(
     fun loadWrongQuestions(fileName: String, count: Int, random: Boolean) {
         progressId = "exam_${fileName}"
         quizIdInternal = fileName
+        // 🔧 修复：直接使用传入的random参数，确保随机设置生效
+        randomExamEnabled = random
         _progressLoaded.value = false
 
         viewModelScope.launch {
@@ -401,6 +405,8 @@ class ExamViewModel @Inject constructor(
     fun loadFavoriteQuestions(fileName: String, count: Int, random: Boolean) {
         progressId = "exam_${fileName}"
         quizIdInternal = fileName
+        // 🔧 修复：直接使用传入的random参数，确保随机设置生效
+        randomExamEnabled = random
         _progressLoaded.value = false
 
         viewModelScope.launch {

@@ -47,6 +47,8 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import com.example.testapp.data.datastore.FontSettingsDataStore
 import com.example.testapp.presentation.component.LocalFontFamily
 import com.example.testapp.presentation.component.LocalFontSize
+import com.example.testapp.presentation.component.OptimizedFileCard
+import com.example.testapp.presentation.component.DraggingFileCard
 import kotlin.math.roundToInt
 import com.example.testapp.presentation.screen.WrongBookViewModel
 import com.example.testapp.presentation.screen.FavoriteViewModel
@@ -109,17 +111,9 @@ fun HomeScreen(
 
     val isLoading by settingsViewModel.isLoading.collectAsState()
     val importProgress by settingsViewModel.progress.collectAsState()
-    val questionCounts = remember(questions) {
-        questions.groupBy { it.fileName ?: "" }.mapValues { it.value.size }
-    }
-    val wrongQuestions by wrongBookViewModel.wrongQuestions.collectAsState()
-    val wrongCounts = remember(wrongQuestions) {
-        wrongQuestions.groupBy { it.question.fileName ?: "" }.mapValues { it.value.size }
-    }
-    val favoriteQuestions by favoriteViewModel.favoriteQuestions.collectAsState()
-    val favoriteCounts = remember(favoriteQuestions) {
-        favoriteQuestions.groupBy { it.question.fileName ?: "" }.mapValues { it.value.size }
-    }
+    
+    // 使用优化的统计数据，减少重组
+    val fileStatistics by viewModel.fileStatistics.collectAsState()
     val practiceProgress by viewModel.practiceProgress.collectAsState()
     val displayFileNames = remember(fileNames, folders, currentFolder) {
         fileNames.filter { name ->
@@ -127,7 +121,7 @@ fun HomeScreen(
             if (currentFolder == null) folder == null else folder == currentFolder
         }
     }
-
+    
     LaunchedEffect(storedFileName, fileNames) {
         if (storedFileName.isNotBlank() && storedFileName in fileNames) {
             selectedFileName.value = storedFileName
@@ -165,6 +159,11 @@ fun HomeScreen(
     var folderToDelete by remember { mutableStateOf<String?>(null) }
     var showDeleteFolderDialog by remember { mutableStateOf(false) }
     val listState = rememberLazyListState()
+    
+    // 检测滚动状态，滚动时禁用拖拽以提升性能
+    val isScrolling by remember {
+        derivedStateOf { listState.isScrollInProgress }
+    }
 
     // TopAppBar 随滚动隐藏显示
     val scrollBehavior = TopAppBarDefaults.enterAlwaysScrollBehavior()
@@ -344,24 +343,41 @@ fun HomeScreen(
                     }
                 }
 
-                // 文件列表
+                // 优化的文件列表
                 LazyColumn(
                     modifier = Modifier
                         .fillMaxWidth()
                         .weight(1f)
                         .padding(bottom = 8.dp),
-                    state = listState
+                    state = listState,
+                    // 添加内容填充，减少列表项创建/销毁频率
+                    contentPadding = PaddingValues(vertical = 4.dp)
                 ) {
-                    items(displayFileNames, key = { it }) { name ->
+                    items(
+                        items = displayFileNames,
+                        key = { fileName -> fileName }, // 保持稳定的 key
+                        contentType = { "file_card" } // 添加内容类型优化
+                    ) { fileName ->
+                        // 使用 derivedStateOf 减少不必要的重组
+                        val fileStats by remember(fileName) {
+                            derivedStateOf { 
+                                fileStatistics[fileName] ?: com.example.testapp.domain.usecase.FileStatistics()
+                            }
+                        }
+                        val progressCount by remember(fileName) {
+                            derivedStateOf { practiceProgress[fileName] ?: 0 }
+                        }
+                        
                         val dismissState = rememberDismissState(
                             confirmStateChange = {
                                 if (it == DismissValue.DismissedToStart) {
-                                    fileToDelete = name
+                                    fileToDelete = fileName
                                     showDeleteDialog = true
                                     false
                                 } else true
                             }
                         )
+                        
                         SwipeToDismiss(
                             state = dismissState,
                             directions = setOf(DismissDirection.EndToStart),
@@ -380,141 +396,64 @@ fun HomeScreen(
                                 }
                             },
                             dismissContent = {
-                                var itemCoords by remember { mutableStateOf<LayoutCoordinates?>(null) }
-                                val itemModifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(horizontal = 16.dp, vertical = 6.dp)
-                                    .onGloballyPositioned { coords -> itemCoords = coords }
-                                    // 隐藏正在拖拽的原卡片
-                                    .alpha(if (draggingFile == name) 0f else 1f)
-
-                                Card(
-                                    modifier = itemModifier
-                                        .combinedClickable(
-                                            onClick = {
-                                                when (bottomNavIndex) {
-                                                    2 -> {
-                                                        selectedFileName.value = name
-                                                        kotlinx.coroutines.runBlocking {
-                                                            FontSettingsDataStore.setLastSelectedFile(context, name)
-                                                        }
-                                                        onViewResult(name)
-                                                    }
-                                                    else -> {
-                                                        if (selectedFileName.value == name) {
-                                                            pendingFileName = name
-                                                            kotlinx.coroutines.runBlocking {
-                                                                FontSettingsDataStore.setLastSelectedFile(context, name)
-                                                            }
-                                                            showSheet = true
-                                                        } else {
-                                                            selectedFileName.value = name
-                                                            kotlinx.coroutines.runBlocking {
-                                                                FontSettingsDataStore.setLastSelectedFile(context, name)
-                                                            }
-                                                        }
-                                                    }
-                                                }
-                                            },
-                                            onLongClick = { /* 空实现 */ },
-                                            onDoubleClick = {
-                                                selectedFileName.value = name
+                                OptimizedFileCard(
+                                    fileName = fileName,
+                                    statistics = fileStats,
+                                    progressCount = progressCount,
+                                    isSelected = selectedFileName.value == fileName,
+                                    folderDisplayName = folders[fileName],
+                                    isDragging = draggingFile == fileName,
+                                    enableDragDrop = !isScrolling, // 滚动时禁用拖拽
+                                    onCardClick = {
+                                        when (bottomNavIndex) {
+                                            2 -> {
+                                                selectedFileName.value = fileName
                                                 kotlinx.coroutines.runBlocking {
-                                                    FontSettingsDataStore.setLastSelectedFile(context, name)
+                                                    FontSettingsDataStore.setLastSelectedFile(context, fileName)
                                                 }
-                                                onViewQuestionDetail(name)
+                                                onViewResult(fileName)
                                             }
-                                        )
-                                        .pointerInput(name) {
-                                            var startedLocally = false
-                                            detectDragGesturesAfterLongPress(
-                                                onDragStart = { offsetWithinCard ->
-                                                    
-                                                    startedLocally = true
-                                                },
-                                                onDrag = { change, _ ->
-                                                    change.consume()
-                                                    if (startedLocally) {
-                                                        startedLocally = false
-                                                        val startPos = itemCoords?.localToRoot(change.position)
-                                                            ?: Offset.Zero
-                                                        val size = itemCoords?.size ?: IntSize.Zero
-                                                        
-                                                        dragViewModel.startDragging(
-                                                            name, startPos, size, change.position
-                                                        )
+                                            else -> {
+                                                if (selectedFileName.value == fileName) {
+                                                    pendingFileName = fileName
+                                                    kotlinx.coroutines.runBlocking {
+                                                        FontSettingsDataStore.setLastSelectedFile(context, fileName)
                                                     }
-                                                    val pos = itemCoords?.localToRoot(change.position)
-                                                        ?: dragViewModel.dragPosition.value
-                                                    dragViewModel.updatePosition(pos)
-                                                    dragViewModel.setHoverFolder(
-                                                        folderBounds.entries.find { it.value.contains(pos) }?.key
-                                                    )
-                                                    
-                                                },
-                                                onDragEnd = {
-                                                    
-                                                    val target = folderBounds.entries
-                                                        .find { it.value.contains(dragViewModel.dragPosition.value) }
-                                                        ?.key
-                                                    if (target != null) {
-                                                        folderViewModel.moveFile(name, target)
+                                                    showSheet = true
+                                                } else {
+                                                    selectedFileName.value = fileName
+                                                    kotlinx.coroutines.runBlocking {
+                                                        FontSettingsDataStore.setLastSelectedFile(context, fileName)
                                                     }
-                                                    dragViewModel.endDragging()
-                                                },
-                                                onDragCancel = {
-                                                    
-                                                    dragViewModel.endDragging()
                                                 }
-                                            )
-                                        },
-                                    shape = RoundedCornerShape(16.dp),
-                                    colors = if (selectedFileName.value == name)
-                                        CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer)
-                                    else CardDefaults.cardColors(),
-                                    elevation = CardDefaults.cardElevation(
-                                        defaultElevation = if (selectedFileName.value == name) 6.dp else 2.dp
-                                    )
-                                ) {
-                                    Column(
-                                        Modifier
-                                            .fillMaxWidth()
-                                            .padding(horizontal = 16.dp, vertical = 16.dp)
-                                    ) {
-                                        val displayName = folders[name]?.let { "$it/$name" } ?: name
-                                        Text(
-                                            text = displayName,
-                                            fontSize = LocalFontSize.current,
-                                            fontFamily = LocalFontFamily.current
-                                        )
-                                        Spacer(modifier = Modifier.height(8.dp))
-                                        Row(
-                                            modifier = Modifier.fillMaxWidth(),
-                                            horizontalArrangement = Arrangement.SpaceEvenly
-                                        ) {
-                                            FileStatBlock(
-                                                label = "总题数",
-                                                value = "${questionCounts[name] ?: 0}",
-                                                valueColor = MaterialTheme.colorScheme.primary
-                                            )
-                                            FileStatBlock(
-                                                label = "错题数",
-                                                value = "${wrongCounts[name] ?: 0}",
-                                                valueColor = Color.Red
-                                            )
-                                            FileStatBlock(
-                                                label = "收藏数",
-                                                value = "${favoriteCounts[name] ?: 0}",
-                                                valueColor = Color.Cyan
-                                            )
-                                            FileStatBlock(
-                                                label = "进度数",
-                                                value = "${practiceProgress[name] ?: 0}",
-                                                valueColor = MaterialTheme.colorScheme.tertiary
-                                            )
+                                            }
                                         }
+                                    },
+                                    onDoubleClick = {
+                                        selectedFileName.value = fileName
+                                        kotlinx.coroutines.runBlocking {
+                                            FontSettingsDataStore.setLastSelectedFile(context, fileName)
+                                        }
+                                        onViewQuestionDetail(fileName)
+                                    },
+                                    onDragStart = { position, size, offset ->
+                                        dragViewModel.startDragging(fileName, position, size, offset)
+                                    },
+                                    onDragUpdate = { position ->
+                                        dragViewModel.updatePosition(position)
+                                        dragViewModel.setHoverFolder(
+                                            folderBounds.entries.find { it.value.contains(position) }?.key
+                                        )
+                                    },
+                                    onDragEnd = {
+                                        val target = folderBounds.entries
+                                            .find { it.value.contains(dragViewModel.dragPosition.value) }?.key
+                                        if (target != null) {
+                                            folderViewModel.moveFile(fileName, target)
+                                        }
+                                        dragViewModel.endDragging()
                                     }
-                                }
+                                )
                             }
                         )
                     }
@@ -539,8 +478,17 @@ fun HomeScreen(
             draggingFile?.let { file ->
                 val widthDp = with(LocalDensity.current) { dragItemSize.width.toDp() }
                 val heightDp = with(LocalDensity.current) { dragItemSize.height.toDp() }
-                val displayName = folders[file]?.let { "$it/$file" } ?: file
-                Card(
+                val fileStats = fileStatistics[file] ?: com.example.testapp.domain.usecase.FileStatistics()
+                val fileProgressCount = practiceProgress[file] ?: 0
+                
+                DraggingFileCard(
+                    fileName = file,
+                    statistics = fileStats,
+                    progressCount = fileProgressCount,
+                    folderDisplayName = folders[file],
+                    dragPosition = dragPosition,
+                    dragOffset = dragOffset,
+                    dragItemSize = dragItemSize,
                     modifier = Modifier
                         .offset {
                             IntOffset(
@@ -550,48 +498,8 @@ fun HomeScreen(
                         }
                         .width(widthDp)
                         .height(heightDp)
-                        .graphicsLayer { scaleX = 0.75f; scaleY = 0.75f },
-                    shape = RoundedCornerShape(16.dp),
-                    elevation = CardDefaults.cardElevation(defaultElevation = 6.dp)
-                ) {
-                    Column(
-                        Modifier
-                            .fillMaxSize()
-                            .padding(horizontal = 16.dp, vertical = 16.dp)
-                    ) {
-                        Text(
-                            text = displayName,
-                            fontSize = LocalFontSize.current,
-                            fontFamily = LocalFontFamily.current
-                        )
-                        Spacer(modifier = Modifier.height(8.dp))
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceEvenly
-                        ) {
-                            FileStatBlock(
-                                label = "总题数",
-                                value = "${questionCounts[file] ?: 0}",
-                                valueColor = MaterialTheme.colorScheme.primary
-                            )
-                            FileStatBlock(
-                                label = "错题数",
-                                value = "${wrongCounts[file] ?: 0}",
-                                valueColor = Color.Red
-                            )
-                            FileStatBlock(
-                                label = "收藏数",
-                                value = "${favoriteCounts[file] ?: 0}",
-                                valueColor = Color.Cyan
-                            )
-                            FileStatBlock(
-                                label = "进度数",
-                                value = "${practiceProgress[file] ?: 0}",
-                                valueColor = MaterialTheme.colorScheme.tertiary
-                            )
-                        }
-                    }
-                }
+                        .graphicsLayer { scaleX = 0.75f; scaleY = 0.75f }
+                )
             }
 
             // BottomSheet 弹出菜单

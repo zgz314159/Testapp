@@ -159,11 +159,14 @@ class PracticeViewModel @Inject constructor(
         id: String,
         questionsId: String = id,
         loadQuestions: Boolean = true,
-        questionCount: Int = 0
+        questionCount: Int = 0,
+        random: Boolean = randomPracticeEnabled
     ) {
         // 1. 统一给练习进度加 practice_ 前缀
         progressId = ensurePrefix(id)
         questionSourceId = questionsId
+        // 🔧 修复：直接使用传入的random参数，确保随机设置生效
+        randomPracticeEnabled = random
 
         // 2. 生成会话ID，用于区分不同轮次的练习
         val sessionId = "${progressId}_${System.currentTimeMillis()}"
@@ -184,6 +187,7 @@ class PracticeViewModel @Inject constructor(
 
                 getQuestionsUseCase(questionSourceId).collect { originalQuestions ->
 
+                    android.util.Log.d("PracticeViewModel", "setProgressId: originalQuestions.size=${originalQuestions.size}, ids=${originalQuestions.map { it.id }}")
                     // 如果题目列表为空，可能是文件已被删除
                     if (originalQuestions.isEmpty()) {
                         
@@ -271,6 +275,7 @@ class PracticeViewModel @Inject constructor(
                         } else {
                             smartOrderedQuestions
                         }
+                        android.util.Log.d("PracticeViewModel", "setProgressId: finalQuestions.size=${finalQuestions.size}, ids=${finalQuestions.map { it.id }}")
                         
                         // 保存固定题序到数据库
                         val fixedOrder = finalQuestions.map { it.id }
@@ -283,6 +288,7 @@ class PracticeViewModel @Inject constructor(
                             analysisList = emptyList(),
                             sparkAnalysisList = emptyList(),
                             baiduAnalysisList = emptyList(),
+        android.util.Log.d("PracticeViewModel", "setProgressId: randomPracticeEnabled=$randomPracticeEnabled, id=$id, questionsId=$questionsId, questionCount=$questionCount, loadQuestions=$loadQuestions")
                             noteList = emptyList(),
                             timestamp = newSessionStartTime,
                             sessionId = sessionId,
@@ -1049,7 +1055,8 @@ class PracticeViewModel @Inject constructor(
                         // 分析已答和未答题目
                         val answeredQuestionIds = mutableSetOf<Int>()
                         questionIdToProgress.forEach { (questionId, progressData) ->
-                            val (selectedOptions, showResult) = progressData
+                            val selectedOptions = progressData.first
+                            val showResult = progressData.second
                             if (selectedOptions.isNotEmpty() && showResult) {
                                 answeredQuestionIds.add(questionId)
                                 
@@ -1152,7 +1159,8 @@ class PracticeViewModel @Inject constructor(
                         // 分析已答和未答题目
                         val answeredQuestionIds = mutableSetOf<Int>()
                         questionIdToProgress.forEach { (questionId, progressData) ->
-                            val (selectedOptions, showResult) = progressData
+                            val selectedOptions = progressData.first
+                            val showResult = progressData.second
                             if (selectedOptions.isNotEmpty() && showResult) {
                                 answeredQuestionIds.add(questionId)
                                 

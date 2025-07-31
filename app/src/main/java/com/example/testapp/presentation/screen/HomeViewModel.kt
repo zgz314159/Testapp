@@ -8,6 +8,8 @@ import com.example.testapp.domain.usecase.ClearPracticeProgressUseCase
 import com.example.testapp.domain.usecase.ClearExamProgressUseCase
 import com.example.testapp.domain.usecase.ClearPracticeProgressByFileNameUseCase
 import com.example.testapp.domain.usecase.ClearExamProgressByFileNameUseCase
+import com.example.testapp.domain.usecase.GetFileStatisticsUseCase
+import com.example.testapp.domain.usecase.FileStatistics
 import com.example.testapp.domain.usecase.GetQuestionsUseCase
 import com.example.testapp.domain.usecase.GetPracticeProgressFlowUseCase
 import com.example.testapp.domain.usecase.GetExamProgressFlowUseCase
@@ -32,6 +34,7 @@ import javax.inject.Inject
 @HiltViewModel
 class HomeViewModel @Inject constructor(
     private val getQuestionsUseCase: GetQuestionsUseCase,
+    private val getFileStatisticsUseCase: GetFileStatisticsUseCase,
     private val clearPracticeProgressUseCase: ClearPracticeProgressUseCase,
     private val clearExamProgressUseCase: ClearExamProgressUseCase,
     private val clearPracticeProgressByFileNameUseCase: ClearPracticeProgressByFileNameUseCase,
@@ -55,6 +58,10 @@ class HomeViewModel @Inject constructor(
     private val _practiceProgress = MutableStateFlow<Map<String, Int>>(emptyMap())
     val practiceProgress: StateFlow<Map<String, Int>> = _practiceProgress.asStateFlow()
 
+    // 添加文件统计数据
+    private val _fileStatistics = MutableStateFlow<Map<String, FileStatistics>>(emptyMap())
+    val fileStatistics: StateFlow<Map<String, FileStatistics>> = _fileStatistics.asStateFlow()
+
     private val progressJobs = mutableMapOf<String, kotlinx.coroutines.Job>()
     
     init {
@@ -65,6 +72,13 @@ class HomeViewModel @Inject constructor(
                 _fileNames.value = names
                 updateProgressCollectors(names)
                 
+            }
+        }
+        
+        // 收集文件统计数据
+        viewModelScope.launch {
+            getFileStatisticsUseCase().collect { statistics ->
+                _fileStatistics.value = statistics
             }
         }
     }

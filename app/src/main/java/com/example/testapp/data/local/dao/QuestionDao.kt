@@ -6,7 +6,7 @@ import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface QuestionDao {
-    @Query("SELECT * FROM questions")
+    @Query("SELECT * FROM questions ORDER BY id")
     fun getAll(): Flow<List<QuestionEntity>>
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
@@ -15,7 +15,7 @@ interface QuestionDao {
     @Query("DELETE FROM questions")
     suspend fun clear()
 
-    @Query("SELECT * FROM questions WHERE fileName = :fileName")
+    @Query("SELECT * FROM questions WHERE fileName = :fileName ORDER BY id")
     fun getQuestionsByFileName(fileName: String): Flow<List<QuestionEntity>>
 
     @Query("DELETE FROM questions WHERE fileName = :fileName")

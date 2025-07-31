@@ -80,6 +80,7 @@ import com.example.testapp.domain.usecase.GetFoldersUseCase
 import com.example.testapp.domain.usecase.AddFolderUseCase
 import com.example.testapp.domain.usecase.RenameFolderUseCase
 import com.example.testapp.domain.usecase.DeleteFolderUseCase
+import com.example.testapp.domain.usecase.GetFileStatisticsUseCase
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -269,6 +270,14 @@ object AppModule {
     @Provides
     @Singleton
     fun provideDeleteFolderUseCase(repo: FileFolderRepository): DeleteFolderUseCase = DeleteFolderUseCase(repo)
+
+    @Provides
+    @Singleton
+    fun provideGetFileStatisticsUseCase(
+        questionRepo: QuestionRepository,
+        wrongBookRepo: WrongBookRepository, 
+        favoriteRepo: FavoriteQuestionRepository
+    ): GetFileStatisticsUseCase = GetFileStatisticsUseCase(questionRepo, wrongBookRepo, favoriteRepo)
 
     @Provides
     @Singleton

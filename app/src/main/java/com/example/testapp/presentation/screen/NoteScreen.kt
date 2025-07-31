@@ -166,7 +166,8 @@ fun NoteScreen(
     var menuExpanded by remember { mutableStateOf(false) }
     
     // 让 editableText 的 remember 依赖 currentNote，确保每次 noteList 变化时 UI 都能刷新
-    val editableTextState = remember(currentNote) { mutableStateOf(TextFieldValue(currentNote.ifBlank { text })) }
+    val initialText = if (text.trim() == "") "" else text
+    val editableTextState = remember(currentNote) { mutableStateOf(TextFieldValue(currentNote.ifBlank { initialText })) }
     var editableText by editableTextState
     var showSaveDialog by remember { mutableStateOf(false) }
     val view = LocalView.current
@@ -186,7 +187,7 @@ fun NoteScreen(
     }
 
     BackHandler {
-        val currentDisplayText = currentNote.ifBlank { text }
+        val currentDisplayText = currentNote.ifBlank { initialText }
         if (editableText.text != currentDisplayText) {
             showSaveDialog = true
         } else {

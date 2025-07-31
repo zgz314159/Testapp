@@ -514,7 +514,7 @@ fun ExamScreen(
             }
 
             IconButton(onClick = {
-                val note = noteList.getOrNull(currentIndex).orEmpty()
+                val note = noteList.getOrNull(currentIndex)?.takeIf { it.isNotBlank() } ?: " "
                 onEditNote(note, question.id, currentIndex)
             }) {
                 Icon(
@@ -830,7 +830,8 @@ fun ExamScreen(
                             detectTapGestures(
                                 onTap = { expandedSection = if (collapsed) 1 else -1 },
                                 onDoubleTap = {
-                                    onEditNote(note, question.id, currentIndex)
+                                    val noteText = note?.takeIf { it.isNotBlank() } ?: " "
+                                    onEditNote(noteText, question.id, currentIndex)
                                 },
                                 onLongPress = { showDeleteNoteDialog = true }
                             )

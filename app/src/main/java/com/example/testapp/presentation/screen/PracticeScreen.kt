@@ -70,24 +70,33 @@ fun PracticeScreen(
     val randomPractice by settingsViewModel.randomPractice.collectAsState()
     val practiceCount by settingsViewModel.practiceQuestionCount.collectAsState()
     LaunchedEffect(quizId, isWrongBookMode, wrongBookFileName, isFavoriteMode, favoriteFileName, randomPractice, practiceCount) {
+        Log.d("PracticeScreen", "randomPractice=$randomPractice, isWrongBookMode=$isWrongBookMode, wrongBookFileName=$wrongBookFileName, isFavoriteMode=$isFavoriteMode, favoriteFileName=$favoriteFileName, quizId=$quizId, practiceCount=$practiceCount")
         viewModel.setRandomPractice(randomPractice)
         if (isWrongBookMode && wrongBookFileName != null) {
             viewModel.setProgressId(
                 id = "wrongbook_${wrongBookFileName}",
                 questionsId = wrongBookFileName,
-                loadQuestions = false
+                loadQuestions = false,
+                random = randomPractice
             )
             viewModel.loadWrongQuestions(wrongBookFileName)
+            Log.d("PracticeScreen", "loadWrongQuestions: ${wrongBookFileName}, random=$randomPractice")
         } else if (isFavoriteMode && favoriteFileName != null) {
             viewModel.setProgressId(
                 id = "favorite_${favoriteFileName}",
                 questionsId = favoriteFileName,
-                loadQuestions = false
+                loadQuestions = false,
+                random = randomPractice
             )
             viewModel.loadFavoriteQuestions(favoriteFileName)
+            Log.d("PracticeScreen", "loadFavoriteQuestions: ${favoriteFileName}, random=$randomPractice")
         } else {
-            viewModel.setProgressId(id = quizId, questionsId = quizId, questionCount = practiceCount)
+            viewModel.setProgressId(id = quizId, questionsId = quizId, questionCount = practiceCount, random = randomPractice)
+            Log.d("PracticeScreen", "loadNormalQuestions: $quizId, random=$randomPractice")
         }
+        // 打印当前题目顺序
+        val questions = viewModel.questions.value
+        Log.d("PracticeScreen", "questions order: ${questions.map { it.id }}")
     }
 
     val coroutineScope = rememberCoroutineScope()
@@ -432,7 +441,7 @@ fun PracticeScreen(
             }
 
             IconButton(onClick = {
-                val note = noteList.getOrNull(currentIndex).orEmpty()
+                val note = noteList.getOrNull(currentIndex)?.takeIf { it.isNotBlank() } ?: " "
                 onEditNote(note, question.id, currentIndex)
             }) {
                 Icon(
@@ -751,7 +760,8 @@ fun PracticeScreen(
                             detectTapGestures(
                                 onTap = { expandedSection = if (collapsed) 1 else -1 },
                                 onDoubleTap = {
-                                    onEditNote(note, question.id, currentIndex)
+                                    val noteText = note?.takeIf { it.isNotBlank() } ?: " "
+                                    onEditNote(noteText, question.id, currentIndex)
                                 },
                                 onLongPress = { showDeleteNoteDialog = true }
                             )
