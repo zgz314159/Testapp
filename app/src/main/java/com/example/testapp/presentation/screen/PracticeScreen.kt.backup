@@ -41,10 +41,7 @@ import com.example.testapp.presentation.screen.SparkViewModel
 import com.example.testapp.presentation.viewmodel.BaiduQianfanViewModel
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
-<<<<<<< HEAD
-=======
 import kotlinx.coroutines.delay
->>>>>>> 2bbc597 (Temp pre-pull commit)
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -74,17 +71,10 @@ fun PracticeScreen(
     val randomPractice by settingsViewModel.randomPractice.collectAsState()
     val practiceCount by settingsViewModel.practiceQuestionCount.collectAsState()
     LaunchedEffect(quizId, isWrongBookMode, wrongBookFileName, isFavoriteMode, favoriteFileName, randomPractice, practiceCount) {
-<<<<<<< HEAD
         Log.d("PracticeScreen", "[INIT] randomPractice=$randomPractice, isWrongBookMode=$isWrongBookMode, wrongBookFileName=$wrongBookFileName, isFavoriteMode=$isFavoriteMode, favoriteFileName=$favoriteFileName, quizId=$quizId, practiceCount=$practiceCount")
         viewModel.setRandomPractice(randomPractice)
         if (isWrongBookMode && wrongBookFileName != null) {
             Log.d("PracticeScreen", "[setProgressId] wrongbook mode, id=wrongbook_${wrongBookFileName}, questionsId=$wrongBookFileName, random=$randomPractice")
-=======
-        
-        viewModel.setRandomPractice(randomPractice)
-        if (isWrongBookMode && wrongBookFileName != null) {
-            
->>>>>>> 2bbc597 (Temp pre-pull commit)
             viewModel.setProgressId(
                 id = "wrongbook_${wrongBookFileName}",
                 questionsId = wrongBookFileName,
@@ -92,15 +82,9 @@ fun PracticeScreen(
                 random = randomPractice
             )
             viewModel.loadWrongQuestions(wrongBookFileName)
-<<<<<<< HEAD
             Log.d("PracticeScreen", "[loadWrongQuestions] ${wrongBookFileName}, random=$randomPractice")
         } else if (isFavoriteMode && favoriteFileName != null) {
             Log.d("PracticeScreen", "[setProgressId] favorite mode, id=favorite_${favoriteFileName}, questionsId=$favoriteFileName, random=$randomPractice")
-=======
-            
-        } else if (isFavoriteMode && favoriteFileName != null) {
-            
->>>>>>> 2bbc597 (Temp pre-pull commit)
             viewModel.setProgressId(
                 id = "favorite_${favoriteFileName}",
                 questionsId = favoriteFileName,
@@ -108,7 +92,6 @@ fun PracticeScreen(
                 random = randomPractice
             )
             viewModel.loadFavoriteQuestions(favoriteFileName)
-<<<<<<< HEAD
             Log.d("PracticeScreen", "[loadFavoriteQuestions] ${favoriteFileName}, random=$randomPractice")
         } else {
             Log.d("PracticeScreen", "[setProgressId] normal mode, id=$quizId, questionsId=$quizId, questionCount=$practiceCount, random=$randomPractice")
@@ -118,17 +101,6 @@ fun PracticeScreen(
         // 打印当前题目顺序
         val questions = viewModel.questions.value
         Log.d("PracticeScreen", "[questions order] ${questions.map { it.id }}")
-=======
-            
-        } else {
-            
-            viewModel.setProgressId(id = quizId, questionsId = quizId, questionCount = practiceCount, random = randomPractice)
-            
-        }
-        // 打印当前题目顺序
-        val questions = viewModel.questions.value
-        
->>>>>>> 2bbc597 (Temp pre-pull commit)
     }
 
     val coroutineScope = rememberCoroutineScope()
@@ -175,14 +147,6 @@ fun PracticeScreen(
             elapsed += 1
         }
     }
-<<<<<<< HEAD
-    LaunchedEffect(currentIndex) {
-        aiViewModel.clear()
-        sparkViewModel.clear()
-        baiduQianfanViewModel.clearResult()
-    }
-    LaunchedEffect(question) {
-=======
     
     // 🚀 修复UI卡顿：合并currentIndex和question相关的副作用，减少重组次数
     LaunchedEffect(currentIndex, question) {
@@ -192,7 +156,6 @@ fun PracticeScreen(
         baiduQianfanViewModel.clearResult()
         
         // 加载保存的分析数据
->>>>>>> 2bbc597 (Temp pre-pull commit)
         question?.let {
             val saved = aiViewModel.getSavedAnalysis(it.id) ?: ""
             if (saved.isNotBlank()) {
@@ -254,49 +217,6 @@ fun PracticeScreen(
     val sparkScroll = rememberScrollState()
     val baiduScroll = rememberScrollState()
     val mainScrollState = rememberScrollState()
-<<<<<<< HEAD
-    LaunchedEffect(currentIndex) { expandedSection = -1 }
-    LaunchedEffect(mainScrollState.isScrollInProgress) {
-        if (mainScrollState.isScrollInProgress) expandedSection = -1
-    }
-    LaunchedEffect(explanationScroll.isScrollInProgress) {
-        if (explanationScroll.isScrollInProgress) expandedSection = 0
-    }
-    LaunchedEffect(noteScroll.isScrollInProgress) {
-        if (noteScroll.isScrollInProgress) expandedSection = 1
-    }
-    LaunchedEffect(deepSeekScroll.isScrollInProgress) {
-        if (deepSeekScroll.isScrollInProgress) expandedSection = 2
-    }
-    LaunchedEffect(sparkScroll.isScrollInProgress) {
-        if (sparkScroll.isScrollInProgress) expandedSection = 3
-    }
-    LaunchedEffect(baiduScroll.isScrollInProgress) {
-        if (baiduScroll.isScrollInProgress) expandedSection = 4
-    }
-    LaunchedEffect(progressLoaded) {
-        if (progressLoaded) {
-            answeredThisSession = false
-            // sessionScore 现在从统一状态自动计算，无需手动重置
-        }
-    }
-    LaunchedEffect(analysisPair) {
-        val pair = analysisPair
-        if (pair != null && pair.second != "解析中...") {
-            viewModel.updateAnalysis(pair.first, pair.second)
-        }
-    }
-    LaunchedEffect(sparkPair) {
-        val pair = sparkPair
-        if (pair != null && pair.second != "解析中...") {
-            viewModel.updateSparkAnalysis(pair.first, pair.second)
-        }
-    }
-    LaunchedEffect(baiduPair) {
-        val pair = baiduPair
-        if (pair != null && pair.second != "解析中...") {
-            viewModel.updateBaiduAnalysis(pair.first, pair.second)
-=======
     
     // 🚀 修复UI卡顿：合并滚动状态相关的LaunchedEffect，减少重组
     LaunchedEffect(
@@ -323,7 +243,6 @@ fun PracticeScreen(
         if (progressLoaded) {
             answeredThisSession = false
             // sessionScore 现在从统一状态自动计算，无需手动重置
->>>>>>> 2bbc597 (Temp pre-pull commit)
         }
     }
     
@@ -393,7 +312,6 @@ fun PracticeScreen(
                 detectHorizontalDragGestures(
                     onHorizontalDrag = { _, amount ->
                         dragAmount += amount
-<<<<<<< HEAD
                         Log.d("PracticeScreen", "[DRAG] onHorizontalDrag: amount=$amount, dragAmount=$dragAmount, currentIndex=$currentIndex, randomPractice=${settingsViewModel.randomPractice.value}")
                     },
                     onDragEnd = {
@@ -405,29 +323,12 @@ fun PracticeScreen(
                         } else if (dragAmount < -100f) {
                             autoJob?.cancel()
                             Log.d("PracticeScreen", "[DRAG] nextQuestion called, currentIndex(before)=$currentIndex")
-=======
-                        
-                    },
-                    onDragEnd = {
-                        
-                        if (dragAmount > 100f) {
-                            autoJob?.cancel()
-                            
-                            viewModel.prevQuestion()
-                        } else if (dragAmount < -100f) {
-                            autoJob?.cancel()
-                            
->>>>>>> 2bbc597 (Temp pre-pull commit)
                             viewModel.nextQuestion()
                         }
                         dragAmount = 0f
                     },
                     onDragCancel = {
-<<<<<<< HEAD
                         Log.d("PracticeScreen", "[DRAG] onDragCancel, dragAmount reset to 0")
-=======
-                        
->>>>>>> 2bbc597 (Temp pre-pull commit)
                         dragAmount = 0f
                     }
                 )
@@ -685,19 +586,6 @@ fun PracticeScreen(
                     .fillMaxWidth()
                     .padding(vertical = 8.dp)  // 增加垂直内边距
                     .background(bgColor)
-<<<<<<< HEAD
-                    .clickable(enabled = !showResult) {
-                        answeredThisSession = true
-                        if (question.type == "单选题" || question.type == "判断题") {
-                            // 答题前记录状态
-
-                            viewModel.answerQuestion(idx)
-                            
-                            // 答题后记录状态
-
-                            val correctIdx = answerLetterToIndex(question.answer)
-                            val correct = idx == correctIdx
-=======
                     .clickable(enabled = !showResult && !isProcessingClick) { // 🚀 添加防重复点击保护
                         if (!isProcessingClick) {
                             isProcessingClick = true
@@ -712,7 +600,6 @@ fun PracticeScreen(
 
                                 val correctIdx = answerLetterToIndex(question.answer)
                                 val correct = idx == correctIdx
->>>>>>> 2bbc597 (Temp pre-pull commit)
                             // sessionScore 现在从统一状态自动计算，无需手动增加
                             
                             if (soundEnabled) {
@@ -754,13 +641,6 @@ fun PracticeScreen(
                                 } else {
                                     showExitDialog = true
                                 }
-<<<<<<< HEAD
-                            }
-                            } else {
-
-                            viewModel.toggleOption(idx)
-
-=======
                                 
                                 // 🚀 恢复点击状态，允许下次点击
                                 isProcessingClick = false
@@ -773,7 +653,6 @@ fun PracticeScreen(
                                     isProcessingClick = false
                                 }
                             }
->>>>>>> 2bbc597 (Temp pre-pull commit)
                         }
                     },
                 verticalAlignment = Alignment.CenterVertically
@@ -789,14 +668,6 @@ fun PracticeScreen(
                     Checkbox(
                         checked = isSelected,
                         onCheckedChange = {
-<<<<<<< HEAD
-                            answeredThisSession = true
-
-                            viewModel.toggleOption(idx)
-
-                        },
-                        enabled = !showResult,
-=======
                             if (!isProcessingClick) {
                                 isProcessingClick = true
                                 answeredThisSession = true
@@ -810,7 +681,6 @@ fun PracticeScreen(
                             }
                         },
                         enabled = !showResult && !isProcessingClick, // 🚀 添加防重复点击保护
->>>>>>> 2bbc597 (Temp pre-pull commit)
                         modifier = Modifier.scale(1.5f)  // 将复选框放大1.5倍
                     )
                 } else {
@@ -1068,24 +938,6 @@ fun PracticeScreen(
             ) {
                 Button(
                     onClick = {
-<<<<<<< HEAD
-                        // 多选题提交前记录状态
-
-                        autoJob?.cancel()
-                        viewModel.updateShowResult(currentIndex, true)
-                        
-                        // 多选题提交后记录状态
-
-                        val allCorrect = selectedOption.toSet() == correctIndices.toSet()
-                        if (soundEnabled) {
-                            if (allCorrect) soundEffects.playCorrect() else soundEffects.playWrong()
-                        }
-                        if (!allCorrect && selectedOption.isNotEmpty()) {
-                            coroutineScope.launch {
-                                wrongBookViewModel.addWrongQuestion(
-                                    com.example.testapp.domain.model.WrongQuestion(
-                                        question, selectedOption
-=======
                         if (!isProcessingClick) {
                             isProcessingClick = true
                             // 多选题提交前记录状态
@@ -1105,7 +957,6 @@ fun PracticeScreen(
                                         com.example.testapp.domain.model.WrongQuestion(
                                             question, selectedOption
                                         )
->>>>>>> 2bbc597 (Temp pre-pull commit)
                                     )
                                 }
                             }
@@ -1134,30 +985,6 @@ fun PracticeScreen(
                                 isProcessingClick = false
                             }
                         }
-<<<<<<< HEAD
-                        // sessionScore 现在从统一状态自动计算，无需手动增加
-                        onSubmit(allCorrect)
-                        autoJob = coroutineScope.launch {
-                            val d = if (allCorrect) correctDelay else wrongDelay
-                            if (d > 0) kotlinx.coroutines.delay(d * 1000L)
-                            if (currentIndex < questions.size - 1) {
-                                viewModel.nextQuestion()
-                            } else if (sessionAnsweredCount == 0) {
-                                onExitWithoutAnswer()
-                            } else if (sessionAnsweredCount >= viewModel.totalCount) {
-                                // 对于"本次练习"，混合使用session和总进度数据
-                                val realUnanswered = viewModel.totalCount - viewModel.answeredCount
-                                
-                                // 详细调试信息
-
-                                viewModel.addHistoryRecord(sessionScore, viewModel.totalCount, realUnanswered)
-                                onQuizEnd(sessionScore, sessionActualAnswered, realUnanswered, viewModel.correctCount, viewModel.answeredCount)
-                            } else {
-                                showExitDialog = true
-                            }
-                        }
-=======
->>>>>>> 2bbc597 (Temp pre-pull commit)
                     },
                     enabled = selectedOption.isNotEmpty() && !isProcessingClick // 🚀 添加防重复点击保护
                 ) {
