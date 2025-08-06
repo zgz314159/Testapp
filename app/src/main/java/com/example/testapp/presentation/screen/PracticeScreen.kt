@@ -307,11 +307,25 @@ fun PracticeScreen(
                         if (dragAmount > 100f) {
                             autoJob?.cancel()
                             Log.d("PracticeScreen", "[DRAG] prevQuestion called, currentIndex(before)=$currentIndex")
-                            viewModel.prevQuestion()
+                            
+                            // 🔧 修复：随机模式下检查是否还有未答题目
+                            if (settingsViewModel.randomPractice.value && !viewModel.hasUnansweredQuestions) {
+                                Log.d("PracticeScreen", "[DRAG] All questions answered, showing completion dialog")
+                                showExitDialog = true
+                            } else {
+                                viewModel.prevQuestion()
+                            }
                         } else if (dragAmount < -100f) {
                             autoJob?.cancel()
                             Log.d("PracticeScreen", "[DRAG] nextQuestion called, currentIndex(before)=$currentIndex")
-                            viewModel.nextQuestion()
+                            
+                            // 🔧 修复：随机模式下检查是否还有未答题目
+                            if (settingsViewModel.randomPractice.value && !viewModel.hasUnansweredQuestions) {
+                                Log.d("PracticeScreen", "[DRAG] All questions answered, showing completion dialog")
+                                showExitDialog = true
+                            } else {
+                                viewModel.nextQuestion()
+                            }
                         }
                         dragAmount = 0f
                     },
