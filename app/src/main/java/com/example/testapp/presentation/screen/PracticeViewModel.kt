@@ -130,6 +130,16 @@ class PracticeViewModel @Inject constructor(
     val hasUnansweredQuestions: Boolean
         get() = _sessionState.value.questionsWithState.any { it.selectedOptions.isEmpty() }
 
+    // 🔧 新增：检查是否还有其他未答题目（排除当前题目）
+    val hasOtherUnansweredQuestions: Boolean
+        get() {
+            val currentState = _sessionState.value
+            val allUnansweredIndices = currentState.questionsWithState.mapIndexedNotNull { index, questionWithState ->
+                if (questionWithState.selectedOptions.isEmpty()) index else null
+            }
+            return allUnansweredIndices.filter { it != currentState.currentIndex }.isNotEmpty()
+        }
+
     private var progressId: String = ""
 
     val currentProgressId: String
@@ -649,20 +659,25 @@ class PracticeViewModel @Inject constructor(
         android.util.Log.d("PracticeViewModel", "nextQuestion called: randomPracticeEnabled=$randomPracticeEnabled, currentIndex=${currentState.currentIndex}")
 
         if (randomPracticeEnabled) {
-            // 🔧 修复：随机模式下只跳转到未答题目
-            val unansweredIndices = currentState.questionsWithState.mapIndexedNotNull { index, questionWithState ->
+            // 🔧 修复：随机模式下只跳转到未答题目，并排除当前题目
+            val allUnansweredIndices = currentState.questionsWithState.mapIndexedNotNull { index, questionWithState ->
                 if (questionWithState.selectedOptions.isEmpty()) index else null
             }
-            android.util.Log.d("PracticeViewModel", "nextQuestion: unansweredIndices.size=${unansweredIndices.size}, current=${currentState.currentIndex}")
+            // 排除当前题目，确保能循环跳转
+            val availableIndices = allUnansweredIndices.filter { it != currentState.currentIndex }
             
-            if (unansweredIndices.isNotEmpty()) {
-                val randomIndex = unansweredIndices.random(kotlin.random.Random(currentState.sessionStartTime + currentState.currentIndex))
+            android.util.Log.d("PracticeViewModel", "nextQuestion: allUnanswered=${allUnansweredIndices.size}, available=${availableIndices.size}, current=${currentState.currentIndex}")
+            
+            if (availableIndices.isNotEmpty()) {
+                val randomIndex = availableIndices.random(kotlin.random.Random(currentState.sessionStartTime + currentState.currentIndex))
                 android.util.Log.d("PracticeViewModel", "nextQuestion: jumping from ${currentState.currentIndex} to $randomIndex")
                 _sessionState.value = currentState.copy(currentIndex = randomIndex)
-            } else {
+            } else if (allUnansweredIndices.isEmpty()) {
                 android.util.Log.d("PracticeViewModel", "nextQuestion: no unanswered questions available, should show completion dialog")
-                // TODO: 这里应该触发完成提示，但需要在 PracticeScreen 中处理
-                // 暂时不做跳转，让界面层处理完成逻辑
+                // 所有题目都已答完，不做跳转，让界面层处理完成逻辑
+            } else {
+                android.util.Log.d("PracticeViewModel", "nextQuestion: only current question is unanswered, staying at current position")
+                // 只有当前题目未答，保持在当前位置
             }
         } else {
             // 非随机模式：按顺序进入下一题
@@ -678,14 +693,17 @@ class PracticeViewModel @Inject constructor(
         android.util.Log.d("PracticeViewModel", "prevQuestion called: randomPracticeEnabled=$randomPracticeEnabled, currentIndex=${currentState.currentIndex}")
         
         if (randomPracticeEnabled) {
-            // 🔧 修复：随机模式下只跳转到未答题目
-            val unansweredIndices = currentState.questionsWithState.mapIndexedNotNull { index, questionWithState ->
+            // 🔧 修复：随机模式下只跳转到未答题目，并排除当前题目
+            val allUnansweredIndices = currentState.questionsWithState.mapIndexedNotNull { index, questionWithState ->
                 if (questionWithState.selectedOptions.isEmpty()) index else null
             }
-            android.util.Log.d("PracticeViewModel", "prevQuestion: unansweredIndices.size=${unansweredIndices.size}, current=${currentState.currentIndex}")
+            // 排除当前题目，确保能循环跳转
+            val availableIndices = allUnansweredIndices.filter { it != currentState.currentIndex }
             
-            if (unansweredIndices.isNotEmpty()) {
-                val randomIndex = unansweredIndices.random(kotlin.random.Random(currentState.sessionStartTime + currentState.currentIndex + 1000))
+            android.util.Log.d("PracticeViewModel", "prevQuestion: allUnanswered=${allUnansweredIndices.size}, available=${availableIndices.size}, current=${currentState.currentIndex}")
+            
+            if (availableIndices.isNotEmpty()) {
+                val randomIndex = availableIndices.random(kotlin.random.Random(currentState.sessionStartTime + currentState.currentIndex + 1000))
                 android.util.Log.d("PracticeViewModel", "prevQuestion: jumping from ${currentState.currentIndex} to $randomIndex")
                 val newState = currentState.copy(currentIndex = randomIndex)
                 _sessionState.value = newState
@@ -693,10 +711,12 @@ class PracticeViewModel @Inject constructor(
                 viewModelScope.launch {
                     saveProgressWithState(newState)
                 }
-            } else {
+            } else if (allUnansweredIndices.isEmpty()) {
                 android.util.Log.d("PracticeViewModel", "prevQuestion: no unanswered questions available, should show completion dialog")
-                // TODO: 这里应该触发完成提示，但需要在 PracticeScreen 中处理
-                // 暂时不做跳转，让界面层处理完成逻辑
+                // 所有题目都已答完，不做跳转，让界面层处理完成逻辑
+            } else {
+                android.util.Log.d("PracticeViewModel", "prevQuestion: only current question is unanswered, staying at current position")
+                // 只有当前题目未答，保持在当前位置
             }
         } else {
             // 非随机模式：按顺序返回上一题

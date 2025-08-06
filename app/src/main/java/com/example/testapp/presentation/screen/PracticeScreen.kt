@@ -308,9 +308,9 @@ fun PracticeScreen(
                             autoJob?.cancel()
                             Log.d("PracticeScreen", "[DRAG] prevQuestion called, currentIndex(before)=$currentIndex")
                             
-                            // 🔧 修复：随机模式下检查是否还有未答题目
-                            if (settingsViewModel.randomPractice.value && !viewModel.hasUnansweredQuestions) {
-                                Log.d("PracticeScreen", "[DRAG] All questions answered, showing completion dialog")
+                            // 🔧 修复：随机模式下检查是否还有其他未答题目
+                            if (settingsViewModel.randomPractice.value && !viewModel.hasOtherUnansweredQuestions) {
+                                Log.d("PracticeScreen", "[DRAG] No other unanswered questions, showing completion dialog")
                                 showExitDialog = true
                             } else {
                                 viewModel.prevQuestion()
@@ -319,9 +319,9 @@ fun PracticeScreen(
                             autoJob?.cancel()
                             Log.d("PracticeScreen", "[DRAG] nextQuestion called, currentIndex(before)=$currentIndex")
                             
-                            // 🔧 修复：随机模式下检查是否还有未答题目
-                            if (settingsViewModel.randomPractice.value && !viewModel.hasUnansweredQuestions) {
-                                Log.d("PracticeScreen", "[DRAG] All questions answered, showing completion dialog")
+                            // 🔧 修复：随机模式下检查是否还有其他未答题目
+                            if (settingsViewModel.randomPractice.value && !viewModel.hasOtherUnansweredQuestions) {
+                                Log.d("PracticeScreen", "[DRAG] No other unanswered questions, showing completion dialog")
                                 showExitDialog = true
                             } else {
                                 viewModel.nextQuestion()
