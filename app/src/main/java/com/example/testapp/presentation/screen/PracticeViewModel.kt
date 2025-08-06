@@ -598,9 +598,10 @@ class PracticeViewModel @Inject constructor(
         val newState = currentState.copy(questionsWithState = updatedQuestionsWithState)
         _sessionState.value = newState
 
-        // 🚀 新增：随机模式下答题后自动跳转到下一个未答题目
+        // � 修复：移除随机模式下的自动跳转，让 PracticeScreen 控制停留时间
+        // 原来的自动跳转逻辑注释掉，改由 PracticeScreen 在停留时间后调用 nextQuestion()
+        /*
         if (randomPracticeEnabled) {
-
             // 检查是否还有未答题目
             val unansweredIndices = newState.questionsWithState.mapIndexedNotNull { index, questionWithState ->
                 if (questionWithState.selectedOptions.isEmpty()) index else null
@@ -608,12 +609,11 @@ class PracticeViewModel @Inject constructor(
 
             if (unansweredIndices.isNotEmpty()) {
                 val newIndex = unansweredIndices.random(kotlin.random.Random(newState.sessionStartTime))
-
                 _sessionState.value = newState.copy(currentIndex = newIndex)
             } else {
-
             }
         }
+        */
 
         saveProgress()
     }
@@ -642,18 +642,18 @@ class PracticeViewModel @Inject constructor(
 
     fun nextQuestion() {
         val currentState = _sessionState.value
+        android.util.Log.d("PracticeViewModel", "nextQuestion called: randomPracticeEnabled=$randomPracticeEnabled, currentIndex=${currentState.currentIndex}")
 
         if (randomPracticeEnabled) {
-            // 随机模式：无论自动还是手动，点击“下一题”都随机跳转到一个未答题目
-            val unansweredIndices = currentState.questionsWithState.mapIndexedNotNull { index, questionWithState ->
-                if (questionWithState.selectedOptions.isEmpty()) index else null
-            }
-            if (unansweredIndices.isNotEmpty()) {
-                val randomIndex = unansweredIndices.random(kotlin.random.Random(currentState.sessionStartTime))
+                        // 🔧 修复：与 prevQuestion 使用相同的逻辑 - 随机跳转到任何不同的题目
+            val otherIndices = (0 until currentState.questionsWithState.size).filter { it != currentState.currentIndex }
+            android.util.Log.d("PracticeViewModel", "nextQuestion: otherIndices.size=${otherIndices.size}, current=${currentState.currentIndex}")
+            if (otherIndices.isNotEmpty()) {
+                val randomIndex = otherIndices.random(kotlin.random.Random(currentState.sessionStartTime + currentState.currentIndex))
+                android.util.Log.d("PracticeViewModel", "nextQuestion: jumping from ${currentState.currentIndex} to $randomIndex")
                 _sessionState.value = currentState.copy(currentIndex = randomIndex)
             } else {
-                // 所有题目都已答完，提示用户
-                // 可以在这里添加完成提示逻辑
+                android.util.Log.d("PracticeViewModel", "nextQuestion: no other indices available")
             }
         } else {
             // 非随机模式：按顺序进入下一题
@@ -666,10 +666,33 @@ class PracticeViewModel @Inject constructor(
 
     fun prevQuestion() {
         val currentState = _sessionState.value
-        if (currentState.currentIndex > 0) {
-
-            _sessionState.value = currentState.copy(currentIndex = currentState.currentIndex - 1)
-            saveProgress()
+        android.util.Log.d("PracticeViewModel", "prevQuestion called: randomPracticeEnabled=$randomPracticeEnabled, currentIndex=${currentState.currentIndex}")
+        
+        if (randomPracticeEnabled) {
+            // 随机模式：随机跳转到一个不同的题目
+            val otherIndices = (0 until currentState.questionsWithState.size).filter { it != currentState.currentIndex }
+            android.util.Log.d("PracticeViewModel", "prevQuestion: otherIndices.size=${otherIndices.size}, current=${currentState.currentIndex}")
+            if (otherIndices.isNotEmpty()) {
+                val randomIndex = otherIndices.random(kotlin.random.Random(currentState.sessionStartTime + currentState.currentIndex))
+                android.util.Log.d("PracticeViewModel", "prevQuestion: jumping from ${currentState.currentIndex} to $randomIndex")
+                val newState = currentState.copy(currentIndex = randomIndex)
+                _sessionState.value = newState
+                // 确保使用更新后的状态保存
+                viewModelScope.launch {
+                    saveProgressWithState(newState)
+                }
+            } else {
+                android.util.Log.d("PracticeViewModel", "prevQuestion: no other indices available")
+            }
+        } else {
+            // 非随机模式：按顺序返回上一题
+            if (currentState.currentIndex > 0) {
+                val newState = currentState.copy(currentIndex = currentState.currentIndex - 1)
+                _sessionState.value = newState
+                viewModelScope.launch {
+                    saveProgressWithState(newState)
+                }
+            }
         }
     }
 
@@ -680,6 +703,49 @@ class PracticeViewModel @Inject constructor(
             _sessionState.value = currentState.copy(currentIndex = index)
             saveProgress()
         }
+    }
+
+    private suspend fun saveProgressWithState(state: PracticeSessionState) {
+        // ✅ 措施2：构建题目ID到答题状态的映射
+        val questionStateMap = mutableMapOf<Int, QuestionAnswerState>()
+        val fixedQuestionOrder = mutableListOf<Int>()
+
+        state.questionsWithState.forEach { questionWithState ->
+            val questionId = questionWithState.question.id
+            fixedQuestionOrder.add(questionId)
+
+            // 创建基于题目ID的答题状态
+            questionStateMap[questionId] = QuestionAnswerState(
+                questionId = questionId,
+                selectedOptions = questionWithState.selectedOptions,
+                showResult = questionWithState.showResult,
+                analysis = questionWithState.analysis,
+                sparkAnalysis = questionWithState.sparkAnalysis,
+                baiduAnalysis = questionWithState.baiduAnalysis,
+                note = questionWithState.note,
+                sessionAnswerTime = questionWithState.sessionAnswerTime
+            )
+        }
+
+        // 兼容旧格式的数据（为了数据库兼容）
+        val progress = PracticeProgress(
+            id = progressId,
+            currentIndex = state.currentIndex, // 使用传入的状态
+            answeredList = state.answeredIndices,
+            selectedOptions = state.questionsWithState.map { it.selectedOptions },
+            showResultList = state.questionsWithState.map { it.showResult },
+            analysisList = state.questionsWithState.map { it.analysis },
+            sparkAnalysisList = state.questionsWithState.map { it.sparkAnalysis },
+            baiduAnalysisList = state.questionsWithState.map { it.baiduAnalysis },
+            noteList = state.questionsWithState.map { it.note },
+            timestamp = System.currentTimeMillis(),
+            // ✅ 新增：固定题序相关字段
+            sessionId = "${progressId}_${state.sessionStartTime}",
+            fixedQuestionOrder = fixedQuestionOrder,
+            questionStateMap = questionStateMap
+        )
+
+        savePracticeProgressUseCase(progress)
     }
 
     fun saveProgress() {
