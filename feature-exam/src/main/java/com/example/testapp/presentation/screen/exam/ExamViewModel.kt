@@ -253,6 +253,10 @@ class ExamViewModel @Inject constructor(
     // ================================================================
 
     fun setRandomExam(enabled: Boolean) { randomExamEnabled = enabled }
+
+    fun resetLoadState() {
+        _sessionState.update { it.copy(progressLoaded = false) }
+    }
     fun setMemoryModeConfig(enabled: Boolean, batchSize: Int, wrongMode: Int, poolMode: Int) {
         memoryModeEnabled = enabled
         if (!enabled) memoryModeActive = false
@@ -321,7 +325,7 @@ class ExamViewModel @Inject constructor(
     // Answer interaction
     // ================================================================
 
-    fun selectOption(option: Int) = answerCoordinator.selectOption(option)
+    fun selectOption(option: Int, skipAfterChanged: Boolean = false) = answerCoordinator.selectOption(option, skipAfterChanged)
 
     fun updateTextAnswer(answer: String) = answerCoordinator.updateTextAnswer(answer)
 
@@ -403,19 +407,20 @@ class ExamViewModel @Inject constructor(
                     } else nci
                     val result = sessionEngine.progressManager.restoreFromRawProgress(s.questions, progress, s.sessionStartTime)
                     if (result != null) {
+                        val wasFinished = progress.finished
                         val qws = if (progress.questionStateMap.isNotEmpty()) {
-                            // Exam-specific questionStateMap restore (with textAnswer + finished handling)
                             s.questionsWithState.mapIndexed { i, qw ->
                                 val p = progress.questionStateMap[qw.question.id]
                                 if (p != null) {
-                                    val show = if (progress.finished) p.selectedOptions.isNotEmpty() || p.textAnswer.isNotBlank() else p.showResult
+                                    val show = if (wasFinished) p.selectedOptions.isNotEmpty() || p.textAnswer.isNotBlank() else p.showResult
                                     qw.copy(selectedOptions = p.selectedOptions, textAnswer = p.textAnswer, showResult = show,
                                         analysis = p.analysis, sparkAnalysis = p.sparkAnalysis, baiduAnalysis = p.baiduAnalysis,
                                         note = p.note.takeIf { it.isNotBlank() } ?: qw.note, sessionAnswerTime = p.answerTime)
                                 } else qw
                             }
                         } else result.questionsWithState
-                        _sessionState.value = s.copy(questionsWithState = qws, currentIndex = sci, finished = result.finished)
+                        val resumeIndex = if (wasFinished) qws.indexOfFirst { !it.showResult }.takeIf { it >= 0 } ?: sci else sci
+                        _sessionState.value = s.copy(questionsWithState = qws, currentIndex = resumeIndex, finished = false)
                         if (progress.selectedOptions.size < size) saveProgressInternal()
                     }
                 } else if (progress == null && !s.progressLoaded) {

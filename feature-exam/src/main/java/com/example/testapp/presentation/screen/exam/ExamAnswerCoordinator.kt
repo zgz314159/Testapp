@@ -21,7 +21,7 @@ class ExamAnswerCoordinator(
     private val saveProgressInternal: suspend () -> Unit
 ) {
 
-    fun selectOption(option: Int) {
+    fun selectOption(option: Int, skipAfterChanged: Boolean = false) {
         val idx = sessionState.value.currentIndex
         val question = sessionState.value.questions.getOrNull(idx) ?: return
         if (QuestionTypes.isFill(question.type)) return
@@ -39,7 +39,7 @@ class ExamAnswerCoordinator(
             }
         }
 
-        afterAnswerChanged(idx)
+        if (!skipAfterChanged) afterAnswerChanged(idx)
     }
 
     fun updateTextAnswer(answer: String) {
@@ -52,8 +52,6 @@ class ExamAnswerCoordinator(
                 )
             }
         }
-
-        afterAnswerChanged(idx)
     }
 
     private fun afterAnswerChanged(index: Int) {

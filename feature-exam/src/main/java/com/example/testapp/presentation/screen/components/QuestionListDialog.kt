@@ -43,10 +43,22 @@ fun QuestionListDialog(
         sectionCollapsed = if (name in sectionCollapsed) sectionCollapsed - name else sectionCollapsed + name
     }
     AlertDialog(onDismissRequest = { onDismiss() }, confirmButton = {}, text = {
-        val singleIndices = remember(questions) { questions.mapIndexedNotNull { i, q -> if (QuestionTypes.isSingle(q.type)) i else null } }
-        val multiIndices = remember(questions) { questions.mapIndexedNotNull { i, q -> if (QuestionTypes.isMulti(q.type)) i else null } }
-        val judgeIndices = remember(questions) { questions.mapIndexedNotNull { i, q -> if (QuestionTypes.isJudge(q.type)) i else null } }
-        val fillIndices = remember(questions) { questions.mapIndexedNotNull { i, q -> if (QuestionTypes.isFill(q.type)) i else null } }
+    val singleIndices = remember(questions, showResultList, displayInfoByQuestionId) {
+            questions.mapIndexedNotNull { i, q -> if (QuestionTypes.isSingle(q.type)) i else null }
+                .sortedWith(compareByDescending<Int> { showResultList.getOrElse(it) { false } }.thenBy { displayInfoByQuestionId[questions[it].id]?.order ?: it })
+        }
+        val multiIndices = remember(questions, showResultList, displayInfoByQuestionId) {
+            questions.mapIndexedNotNull { i, q -> if (QuestionTypes.isMulti(q.type)) i else null }
+                .sortedWith(compareByDescending<Int> { showResultList.getOrElse(it) { false } }.thenBy { displayInfoByQuestionId[questions[it].id]?.order ?: it })
+        }
+        val judgeIndices = remember(questions, showResultList, displayInfoByQuestionId) {
+            questions.mapIndexedNotNull { i, q -> if (QuestionTypes.isJudge(q.type)) i else null }
+                .sortedWith(compareByDescending<Int> { showResultList.getOrElse(it) { false } }.thenBy { displayInfoByQuestionId[questions[it].id]?.order ?: it })
+        }
+        val fillIndices = remember(questions, showResultList, displayInfoByQuestionId) {
+            questions.mapIndexedNotNull { i, q -> if (QuestionTypes.isFill(q.type)) i else null }
+                .sortedWith(compareByDescending<Int> { showResultList.getOrElse(it) { false } }.thenBy { displayInfoByQuestionId[questions[it].id]?.order ?: it })
+        }
 
         val singleItems = remember(singleIndices, questions, selectedOptions, textAnswers, showResultList, displayInfoByQuestionId, currentIndex) {
             AnswerCardStateBuilder.build(singleIndices, questions, selectedOptions, textAnswers, showResultList, displayInfoByQuestionId, currentIndex = currentIndex)

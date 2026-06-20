@@ -16,6 +16,10 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
@@ -31,6 +35,33 @@ import com.example.testapp.feature.exam.R
 import com.example.testapp.uicommon.component.LocalFontFamily
 import com.example.testapp.uicommon.component.LocalFontSize
 import com.example.testapp.uicommon.component.StemImagesSection
+import com.example.testapp.uicommon.component.InlineBlankVisualTransformation
+import com.example.testapp.uicommon.component.buildInlineBlankEditorSpec
+import com.example.testapp.uicommon.component.buildInlineEditorRawText
+import com.example.testapp.uicommon.component.buildResultQuestionAnnotatedString
+import com.example.testapp.uicommon.component.decodeCorrectAnswers
+import com.example.testapp.uicommon.component.decodeUserAnswers
+import com.example.testapp.uicommon.component.defaultInlineEditorSelection
+import com.example.testapp.uicommon.component.encodeUserAnswers
+import com.example.testapp.uicommon.component.normalizeInlineEditorValue
+import com.example.testapp.uicommon.component.splitInlineEditorRawText
+import com.example.testapp.uicommon.component.EditingBlue
+import com.example.testapp.uicommon.component.RichText
+import androidx.compose.foundation.layout.size
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.focus.onFocusChanged
+import androidx.compose.ui.input.pointer.pointerInput as composePointerInput
+import androidx.compose.foundation.gestures.detectTapGestures as composeDetectTapGestures
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.text.PlatformTextStyle
+import androidx.compose.ui.text.TextLayoutResult
+import androidx.compose.ui.text.TextRange
+import androidx.compose.ui.text.input.TextFieldValue
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.ui.geometry.Offset
 
 internal val CorrectGreen = Color(0xFF16A34A)
 private val BlankRegex = Regex("_{2,}|（\\s*）|\\(\\s*\\)|【\\s*】|\\[\\s*]")
@@ -138,31 +169,99 @@ fun InlineBlankQuestionContent(
     onAnswerChange: (String) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val style = questionTextStyle(questionFontSize, lineSpacingMultiplier, letterSpacing)
-    Column(modifier = modifier.fillMaxWidth()) {
+    val matches = remember(content) { BlankRegex.findAll(content).toList() }
+    val baseTextStyle = questionTextStyle(questionFontSize, lineSpacingMultiplier, letterSpacing)
+    if (matches.isEmpty()) {
         Text(
             text = content,
-            style = style,
-            modifier = Modifier.fillMaxWidth()
+            style = baseTextStyle,
+            modifier = modifier.fillMaxWidth()
         )
-        Spacer(modifier = Modifier.height(12.dp))
-        BasicTextField(
-            value = answerText,
-            onValueChange = onAnswerChange,
-            enabled = !showResult,
-            textStyle = style,
-            cursorBrush = SolidColor(MaterialTheme.colorScheme.primary),
-            modifier = Modifier.fillMaxWidth()
-        )
-        if (showResult) {
-            Text(
-                text = correctAnswer,
-                color = MaterialTheme.colorScheme.primary,
-                fontSize = (questionFontSize - 1f).coerceAtLeast(10f).sp,
-                fontFamily = LocalFontFamily.current
-            )
+        return
+    }
+    val blankCount = matches.size
+    val userParts = remember(answerText, blankCount) { decodeUserAnswers(answerText, blankCount) }
+    val correctParts = remember(correctAnswer, blankCount) { decodeCorrectAnswers(correctAnswer, blankCount) }
+    val errorColor = MaterialTheme.colorScheme.error
+
+    if (showResult) {
+        val resultAnnotatedText = remember(content, matches, userParts, correctParts, questionFontSize, errorColor) {
+            buildResultQuestionAnnotatedString(content = content, matches = matches, userParts = userParts, correctParts = correctParts, questionFontSize = questionFontSize, errorColor = errorColor)
+        }
+        Text(text = resultAnnotatedText, style = baseTextStyle, modifier = modifier.fillMaxWidth())
+        return
+    }
+
+    InlineBlankSingleEditor(
+        content = content,
+        matches = matches,
+        userParts = userParts,
+        questionTextStyle = baseTextStyle,
+        onAnswerChange = onAnswerChange,
+        modifier = modifier.fillMaxWidth()
+    )
+}
+
+@Composable
+private fun InlineBlankSingleEditor(
+    content: String,
+    matches: List<MatchResult>,
+    userParts: List<String>,
+    questionTextStyle: TextStyle,
+    onAnswerChange: (String) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val editorSpec = remember(content, matches) { buildInlineBlankEditorSpec(content, matches) }
+    val density = LocalDensity.current
+    val externalRawText = remember(userParts, editorSpec.blankCount) { buildInlineEditorRawText(userParts, editorSpec.blankCount) }
+    var editorValue by remember(content) {
+        mutableStateOf(TextFieldValue(text = externalRawText, selection = defaultInlineEditorSelection(externalRawText, editorSpec.blankCount)))
+    }
+    val visualTransformation = remember(editorSpec) { InlineBlankVisualTransformation(editorSpec) }
+    val transformedEditorText = remember(editorValue.text, visualTransformation) { visualTransformation.filter(AnnotatedString(editorValue.text)) }
+    val cursorHeightPx = with(density) { questionTextStyle.fontSize.toPx() }
+    var isFocused by remember { mutableStateOf(false) }
+    var textLayoutResult by remember { mutableStateOf<TextLayoutResult?>(null) }
+    val focusRequester = remember { FocusRequester() }
+
+    LaunchedEffect(externalRawText, editorSpec.blankCount) {
+        if (editorValue.text != externalRawText) {
+            editorValue = TextFieldValue(text = externalRawText, selection = defaultInlineEditorSelection(externalRawText, editorSpec.blankCount))
         }
     }
+
+    BasicTextField(
+        value = editorValue,
+        onValueChange = { incomingValue ->
+            val normalizedValue = normalizeInlineEditorValue(candidate = incomingValue, previous = editorValue, blankCount = editorSpec.blankCount)
+            editorValue = normalizedValue
+            onAnswerChange(encodeUserAnswers(splitInlineEditorRawText(normalizedValue.text, editorSpec.blankCount)))
+        },
+        textStyle = questionTextStyle,
+        cursorBrush = SolidColor(Color.Transparent),
+        modifier = modifier
+            .focusRequester(focusRequester)
+            .composePointerInput(transformedEditorText) {
+                composeDetectTapGestures { tapOffset ->
+                    focusRequester.requestFocus()
+                    val layout = textLayoutResult ?: return@composeDetectTapGestures
+                    val transformedOffset = layout.getOffsetForPosition(tapOffset)
+                    val rawOffset = transformedEditorText.offsetMapping.transformedToOriginal(transformedOffset).coerceIn(0, editorValue.text.length)
+                    editorValue = editorValue.copy(selection = TextRange(rawOffset))
+                }
+            }
+            .onFocusChanged { isFocused = it.isFocused }
+            .drawBehind {
+                if (!isFocused || !editorValue.selection.collapsed) return@drawBehind
+                val layout = textLayoutResult ?: return@drawBehind
+                val transformedCursorOffset = transformedEditorText.offsetMapping.originalToTransformed(editorValue.selection.end)
+                val cursorRect = layout.getCursorRect(transformedCursorOffset)
+                val cursorTop = cursorRect.top + ((cursorRect.height - cursorHeightPx) / 2f).coerceAtLeast(0f)
+                drawLine(color = EditingBlue, start = Offset(cursorRect.left, cursorTop), end = Offset(cursorRect.left, cursorTop + cursorHeightPx.coerceAtMost(cursorRect.height)), strokeWidth = 2f)
+            },
+        visualTransformation = visualTransformation,
+        onTextLayout = { textLayoutResult = it }
+    )
 }
 
 @Composable

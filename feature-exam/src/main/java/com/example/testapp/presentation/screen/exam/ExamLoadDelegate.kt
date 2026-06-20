@@ -106,7 +106,7 @@ class ExamLoadDelegate @Inject constructor(
         val genMode = fontSettings.fillQuestionGenerationMode.firstOrNull()
             ?: FillQuestionGenerationMode.SCORE_RANGE_RANDOM
 
-        if (progress?.finished == true) { clearExamProgressUseCase(pid); progress = null }
+        if (progress?.finished == true) { /* 保留已批改进度，重入时恢复 */ }
 
         val canReuse = fillTransform.canReuseByFillSignature(progress?.sessionId, fillSig, fillTransform.isFillConfigSensitive(originalQuestions))
         val savedSig = fillTransform.extractFillConfigSignature(progress?.sessionId)
@@ -137,7 +137,8 @@ class ExamLoadDelegate @Inject constructor(
                 showResultList = emptyList(), analysisList = emptyList(), sparkAnalysisList = emptyList(),
                 baiduAnalysisList = emptyList(), noteList = emptyList(), finished = false, timestamp = seed,
                 sessionId = fillTransform.buildSessionIdWithFillSignature(pid, seed, fillSig),
-                fixedQuestionOrder = limited.map { it.id }, questionStateMap = emptyMap()))
+                fixedQuestionOrder = limited.map { it.id },
+                questionStateMap = if (progress?.finished == true) progress.questionStateMap else emptyMap()))
             limited
         }
 

@@ -250,10 +250,10 @@ fun ExamScreenContent(
         ExamTopBar(
             elapsed = elapsed, isFavorite = externalState.isFavorite,
             onToggleFavorite = externalState.onToggleFavorite,
-            aiMenuExpanded = ds.aiMenuExpanded, onAiMenuToggle = { ds.aiMenuExpanded = true }, onAiMenuDismiss = { ds.aiMenuExpanded = false },
+            aiMenuExpanded = ds.aiMenuExpanded, onAiMenuToggle = { if (showResult) ds.aiMenuExpanded = true }, onAiMenuDismiss = { ds.aiMenuExpanded = false },
             onOpenAiMenu = { timer.pause(); onAskDeepSeek(questionTextForAi, question.id, currentIndex) },
             onOpenAskMenu = { timer.cancel(); onAskSpark(questionTextForAi, question.id, currentIndex) },
-            onEditNote = { timer.pause(); val note = noteList.getOrNull(currentIndex)?.takeIf { it.isNotBlank() } ?: " "; onEditNote(note, question.id, currentIndex) },
+            onEditNote = { if (showResult) { timer.pause(); val note = noteList.getOrNull(currentIndex)?.takeIf { it.isNotBlank() } ?: " "; onEditNote(note, question.id, currentIndex) } },
             onShowList = { ds.showList = true },
             settingsMenuExpanded = ds.menuExpanded, onMenuToggle = { ds.menuExpanded = true }, onMenuDismiss = { ds.menuExpanded = false },
             questionsSize = questions.size, hasAnyAnalysis = hasDeepSeekAnalysis || hasSparkAnalysis || hasBaiduAnalysis, hasNote = hasNote,
@@ -305,8 +305,9 @@ fun ExamScreenContent(
             question = question, questionFontSize = fc.questionFontSize, lineSpacingMultiplier = fc.questionLineSpacing,
             selectedOption = selectedOption, textAnswer = textAnswer, showResult = showResult,
             onOptionClick = { idx ->
-                answeredThisSession = true; viewModel.selectOption(idx)
-                if (QuestionTypes.isSingle(question.type) || QuestionTypes.isJudge(question.type)) {
+                val isSingleOrJudge = QuestionTypes.isSingle(question.type) || QuestionTypes.isJudge(question.type)
+                answeredThisSession = true; viewModel.selectOption(idx, skipAfterChanged = isSingleOrJudge)
+                if (isSingleOrJudge) {
                     autoAdvance(externalState.examDelay * 1000L) {
                         if (currentIndex < questions.size - 1) viewModel.nextQuestion()
                         else { viewModel.gradeExam() }
@@ -352,18 +353,8 @@ fun ExamScreenContent(
             onSetDeleteTargetAndShow = { target -> timer.cancel(); ds.deleteTarget = target; ds.showDeleteDialog = true }
         )
 
-        if (QuestionTypes.isFill(question.type) && !showResult) {
-            PracticeSubmitControls(enabled = textAnswer.isNotBlank(), label = stringResource(R.string.submit_answer), onSubmitClick = {
-                focusManager.clearFocus(force = true); answeredThisSession = true; viewModel.updateShowResult(currentIndex, true)
-                autoAdvance(externalState.examDelay * 1000L) {
-                    if (currentIndex < questions.size - 1) viewModel.nextQuestion()
-                    else viewModel.gradeExam()
-                }
-            })
-        }
-
         QuestionNavigationControls(
-            visible = QuestionTypes.isMulti(question.type) && !showResult,
+            visible = !QuestionTypes.isSingle(question.type) && !QuestionTypes.isJudge(question.type) && !showResult,
             onPrev = { focusManager.clearFocus(force = true); if (selectedOption.isNotEmpty()) answeredThisSession = true; viewModel.prevQuestion() },
             onNext = { focusManager.clearFocus(force = true); if (selectedOption.isNotEmpty()) answeredThisSession = true; viewModel.nextQuestion() },
             enabledPrev = currentIndex > 0,

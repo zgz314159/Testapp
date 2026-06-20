@@ -166,7 +166,7 @@ fun AppNavHost(navController: NavHostController = rememberNavController(), setti
                         val decoded = com.example.testapp.util.safeDecode(encodedQuiz)
                         val original = when { decoded.startsWith("exam_") -> decoded.removePrefix("exam_"); decoded.startsWith("practice_") -> decoded.removePrefix("practice_"); else -> decoded }
                         val encodedOriginal = java.net.URLEncoder.encode(original, "UTF-8")
-                        val route = if (decoded.startsWith("exam_")) "exam/$encodedOriginal" else "question/$encodedOriginal"
+                        val route = "question/$encodedOriginal"
                         navController.navigate(route)
                     }
                 },

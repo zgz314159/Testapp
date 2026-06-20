@@ -48,6 +48,9 @@ fun ExamScreen(
     val fontSize by settingsViewModel.fontSize.collectAsState()
     val examDelay by settingsViewModel.examDelay.collectAsState()
 
+    LaunchedEffect(Unit) { settingsViewModel.loadFontSettings() }
+    LaunchedEffect(quizId) { viewModel.resetLoadState() }
+
     val analysisPair by aiViewModel.analysis.collectAsState()
     val sparkPair by sparkViewModel.analysis.collectAsState()
     val chatGptResult by baiduQianfanViewModel.analysisResult.collectAsState()
