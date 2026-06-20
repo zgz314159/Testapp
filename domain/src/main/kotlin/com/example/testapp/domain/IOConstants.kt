@@ -1,0 +1,61 @@
+package com.example.testapp.domain
+
+object IOConstants {
+    const val EXPORT_PREFIX_KEY = "export_prefix"
+    const val EXPORT_FAILED_PREFIX_KEY = "export_failed_prefix"
+    const val IMPORT_SUCCESS_KEY = "import_success"
+    const val IMPORT_FAILED_PREFIX_KEY = "import_failed"
+    const val IMPORT_FAILED_FILE_NOT_EXIST_KEY = "import_failed_file_not_exist"
+    const val IMPORT_FAILED_FILE_EMPTY_KEY = "import_failed_file_empty"
+    const val IMPORT_FAILED_FILE_UNREADABLE_KEY = "import_failed_file_unreadable"
+    const val IMPORT_FAILED_NO_VALID_QUESTIONS_KEY = "import_failed_no_valid_questions"
+    const val IMPORT_FAILED_PARSE_KEY = "import_failed_parse"
+    const val IMPORT_FAILED_TXT_EMPTY_KEY = "import_failed_txt_empty"
+    const val IMPORT_FAILED_TXT_NO_CONTENT_KEY = "import_failed_txt_no_content"
+    const val IMPORT_FAILED_TXT_FORMAT_INCORRECT_KEY = "import_failed_txt_format_incorrect"
+    const val IMPORT_FAILED_TXT_PARSE_KEY = "import_failed_txt_parse"
+    const val IMPORT_FAILED_EXCEL_EMPTY_KEY = "import_failed_excel_empty"
+    const val IMPORT_FAILED_EXCEL_NO_SHEETS_KEY = "import_failed_excel_no_sheets"
+    const val IMPORT_FAILED_EXCEL_NO_VALID_DATA_KEY = "import_failed_excel_no_valid_data"
+    const val IMPORT_FAILED_EXCEL_PARSE_KEY = "import_failed_excel_parse"
+    const val IMPORT_FAILED_DOCX_EMPTY_KEY = "import_failed_docx_empty"
+    const val IMPORT_FAILED_DOCX_NO_CONTENT_KEY = "import_failed_docx_no_content"
+    const val IMPORT_FAILED_DOCX_PARSE_KEY = "import_failed_docx_parse"
+    const val IMPORT_FAILED_DOCX_NO_QUESTIONS_KEY = "import_failed_docx_no_questions"
+    const val IMPORT_FAILED_DUPLICATE_FILES_KEY = "import_failed_duplicate_files"
+    const val EXPORT_FILENAME_PREFIX_FAVORITE_KEY = "export_filename_prefix_favorite"
+    const val EXPORT_FILENAME_PREFIX_WRONGBOOK_KEY = "export_filename_prefix_wrongbook"
+    const val SAVE_SUCCESS_KEY = "save_success"
+    const val SAVE_FAILED_PREFIX_KEY = "save_failed_prefix"
+    const val GRADE_FAILED_KEY = "grade_failed"
+    const val CANNOT_WRITE_FILE_KEY = "cannot_write_file"
+
+    const val EXPORT_PREFIX = EXPORT_PREFIX_KEY
+    const val EXPORT_FAILED_PREFIX = EXPORT_FAILED_PREFIX_KEY
+    const val IMPORT_SUCCESS = IMPORT_SUCCESS_KEY
+    const val IMPORT_FAILED_PREFIX = IMPORT_FAILED_PREFIX_KEY
+    const val IMPORT_FAILED_FILE_NOT_EXIST = IMPORT_FAILED_FILE_NOT_EXIST_KEY
+    const val IMPORT_FAILED_FILE_EMPTY = IMPORT_FAILED_FILE_EMPTY_KEY
+    const val IMPORT_FAILED_FILE_UNREADABLE = IMPORT_FAILED_FILE_UNREADABLE_KEY
+    const val IMPORT_FAILED_NO_VALID_QUESTIONS = IMPORT_FAILED_NO_VALID_QUESTIONS_KEY
+    const val IMPORT_FAILED_PARSE = IMPORT_FAILED_PARSE_KEY
+    const val IMPORT_FAILED_TXT_EMPTY = IMPORT_FAILED_TXT_EMPTY_KEY
+    const val IMPORT_FAILED_TXT_NO_CONTENT = IMPORT_FAILED_TXT_NO_CONTENT_KEY
+    const val IMPORT_FAILED_TXT_FORMAT_INCORRECT = IMPORT_FAILED_TXT_FORMAT_INCORRECT_KEY
+    const val IMPORT_FAILED_TXT_PARSE = IMPORT_FAILED_TXT_PARSE_KEY
+    const val IMPORT_FAILED_EXCEL_EMPTY = IMPORT_FAILED_EXCEL_EMPTY_KEY
+    const val IMPORT_FAILED_EXCEL_NO_SHEETS = IMPORT_FAILED_EXCEL_NO_SHEETS_KEY
+    const val IMPORT_FAILED_EXCEL_NO_VALID_DATA = IMPORT_FAILED_EXCEL_NO_VALID_DATA_KEY
+    const val IMPORT_FAILED_EXCEL_PARSE = IMPORT_FAILED_EXCEL_PARSE_KEY
+    const val IMPORT_FAILED_DOCX_EMPTY = IMPORT_FAILED_DOCX_EMPTY_KEY
+    const val IMPORT_FAILED_DOCX_NO_CONTENT = IMPORT_FAILED_DOCX_NO_CONTENT_KEY
+    const val IMPORT_FAILED_DOCX_PARSE = IMPORT_FAILED_DOCX_PARSE_KEY
+    const val IMPORT_FAILED_DOCX_NO_QUESTIONS = IMPORT_FAILED_DOCX_NO_QUESTIONS_KEY
+    const val IMPORT_FAILED_DUPLICATE_FILES = IMPORT_FAILED_DUPLICATE_FILES_KEY
+    const val EXPORT_FILENAME_PREFIX_FAVORITE = EXPORT_FILENAME_PREFIX_FAVORITE_KEY
+    const val EXPORT_FILENAME_PREFIX_WRONGBOOK = EXPORT_FILENAME_PREFIX_WRONGBOOK_KEY
+    const val SAVE_SUCCESS = SAVE_SUCCESS_KEY
+    const val SAVE_FAILED_PREFIX = SAVE_FAILED_PREFIX_KEY
+    const val GRADE_FAILED = GRADE_FAILED_KEY
+    const val CANNOT_WRITE_FILE = CANNOT_WRITE_FILE_KEY
+}

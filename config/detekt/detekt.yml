@@ -1,0 +1,90 @@
+# detekt.yml — dead code focused scan
+# Only rules that detect unused declarations, imports, and dead code paths are enabled.
+# All other rules are disabled to keep scans fast and relevant.
+
+style:
+  UnusedPrivateMember:
+    active: true
+    allowedNames: "(_|ignored|expected|serialVersionUID|Companion)"
+  UnusedImports:
+    active: true
+  UnusedPrivateProperty:
+    active: true
+  UnusedParameter:
+    active: false
+  WildcardImport:
+    active: false
+  MagicNumber:
+    active: false
+  ForbiddenComment:
+    active: false
+  MaxLineLength:
+    active: false
+  NoTabs:
+    active: false
+  VarCouldBeVal:
+    active: true
+  UnnecessaryAbstractClass:
+    active: true
+  UnnecessaryAnnotationUseSiteTarget:
+    active: false
+  UnnecessaryApply:
+    active: false
+  MayBeConst:
+    active: false
+  OptionalUnit:
+    active: false
+  RedundantExplicitType:
+    active: false
+  RedundantVisibilityModifierRule:
+    active: false
+  SpacingBetweenPackageAndImports:
+    active: false
+  ThrowsCount:
+    active: false
+  TrailingWhitespace:
+    active: false
+  UntilInsteadOfRangeTo:
+    active: false
+  UnusedPrivateClass:
+    active: true
+  UseAnyOrNoneInsteadOfFind:
+    active: false
+  UseArrayLiteralsInAnnotations:
+    active: false
+  UseCheckOrError:
+    active: false
+  UseRequire:
+    active: false
+  CanBeNonNullable:
+    active: false
+  ReturnCount:
+    active: false
+  LoopWithTooManyJumpStatements:
+    active: false
+  NewLineAtEndOfFile:
+    active: true
+
+complexity:
+  active: false
+
+exceptions:
+  active: false
+
+naming:
+  active: false
+
+performance:
+  active: false
+
+potential-bugs:
+  active: false
+
+empty-blocks:
+  active: false
+
+comments:
+  active: false
+
+coroutines:
+  active: false
