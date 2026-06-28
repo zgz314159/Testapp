@@ -47,6 +47,12 @@
     <string name="confirm_reset_progress">确定重置 %1$s 的答题记录吗？重置后该题库将恢复为全部未答状态。</string>
     <string name="no_analysis_result">无解析结果</string>
     <string name="submit_answer">提交答案</string>
+    <string name="answered_history_at_latest">已是最后作答题</string>
+    <string name="answered_history_at_oldest">已是最前作答题</string>
+    <string name="unanswered_nav_at_first">已是最前的未答题</string>
+    <string name="unanswered_nav_at_last">已是最后的未答题</string>
+    <string name="full_answer_no_prev_unanswered_source">前面没有未作答的词条了</string>
+    <string name="full_answer_no_next_unanswered_source">后面没有未作答的词条了</string>
     <string name="question_type_prefix">题型：</string>
     <string name="folder_card_type_mixed">混合题型</string>
     <string name="answer_correct">回答正确！</string>
@@ -234,6 +240,14 @@
     <string name="no_questions">暂无题目</string>
     <string name="return_home">返回首页</string>
     <string name="view_details">答题详情</string>
+    <string name="answer_review_title">答题详情</string>
+    <string name="answer_review_empty">暂无本次答题记录</string>
+    <string name="answer_review_item_title">第 %1$d 题</string>
+    <string name="answer_review_status_correct">正确</string>
+    <string name="answer_review_status_wrong">错误</string>
+    <string name="answer_review_status_unanswered">未答</string>
+    <string name="answer_review_status_answered">已答</string>
+    <string name="fill_full_answer_exam_completion_note">考试模式下全答完成条件固定为「全答」；「全答对」仅练习模式生效。</string>
     <string name="mode_exam">考试</string>
     <string name="mode_practice">练习</string>
     <string name="current_exam_label">本次考试：</string>

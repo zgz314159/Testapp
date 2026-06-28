@@ -1,6 +1,7 @@
 package com.example.testapp.presentation.screen.practice
 
 import android.util.Log
+import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
@@ -19,6 +20,7 @@ import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material.icons.outlined.StarBorder
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.key
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
@@ -37,17 +39,18 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.res.stringResource
 import com.example.testapp.R
-import com.example.testapp.data.datastore.FontSettingsDataStore
-import com.example.testapp.uicommon.component.AnswerCardGrid
-import com.example.testapp.uicommon.component.CollapsibleAnswerCardSection
-import com.example.testapp.uicommon.component.AnswerCardStateBuilder
+import com.example.testapp.uicommon.component.FillAnswerRoundLabel
+import com.example.testapp.uicommon.component.QuestionNavigationControls
 import com.example.testapp.uicommon.component.QuestionEditDialog
 import com.example.testapp.uicommon.component.LocalFontFamily
 import com.example.testapp.uicommon.component.LocalFontSize
 import com.example.testapp.presentation.screen.practice.components.ExamTopBar
 import com.example.testapp.presentation.screen.practice.components.ExamAnalysisSection
-import com.example.testapp.presentation.screen.exam.components.PracticeSubmitControls
-import com.example.testapp.core.util.answerToOptionIndex
+import com.example.testapp.presentation.screen.practice.components.PracticeQuestionListDialog
+import com.example.testapp.presentation.screen.practice.navigation.AnsweredHistoryBackwardResult
+import com.example.testapp.presentation.screen.practice.navigation.AnsweredHistoryForwardResult
+import com.example.testapp.presentation.screen.practice.UnansweredNavResult
+import com.example.testapp.presentation.screen.practice.SkipUnansweredSourceResult
 import com.example.testapp.core.util.answerToOptionIndices
 import com.example.testapp.core.util.resolveDisplayOptions
 import com.example.testapp.core.util.resolveFillCorrectAnswer
@@ -81,6 +84,9 @@ fun PracticeScreen(
     wrongBookFileName: String? = null,
     isFavoriteMode: Boolean = false,
     favoriteFileName: String? = null,
+    isReviewMode: Boolean = false,
+    reviewProgressId: String? = null,
+    onReviewBack: () -> Unit = {},
     viewModel: PracticeViewModel = hiltViewModel(),
     settingsViewModel: SettingsViewModel = hiltViewModel(),
     aiViewModel: DeepSeekViewModel = hiltViewModel(),
@@ -100,21 +106,52 @@ fun PracticeScreen(
 ) {
     val randomPractice by settingsViewModel.randomPractice.collectAsState()
     val practiceCount by settingsViewModel.practiceQuestionCount.collectAsState()
-    LaunchedEffect(quizId, isWrongBookMode, wrongBookFileName, isFavoriteMode, favoriteFileName) {
+    val fillQuestionGenerationMode by settingsViewModel.fillQuestionGenerationMode.collectAsState()
+    val fillBlankCount by settingsViewModel.fillBlankCount.collectAsState()
+    val fillFullAnswerRandomOrder by settingsViewModel.fillFullAnswerRandomOrder.collectAsState()
+    val fillFullAnswerRequireCorrect by settingsViewModel.fillFullAnswerRequireCorrect.collectAsState()
+    val fillAnswerScoreMin by settingsViewModel.fillAnswerScoreMin.collectAsState()
+    val fillAnswerScoreMax by settingsViewModel.fillAnswerScoreMax.collectAsState()
+    val fillAnswerTagFilter by settingsViewModel.fillAnswerTagFilter.collectAsState()
+    val fillConfigVersion = listOf(
+        fillQuestionGenerationMode.storageValue,
+        fillBlankCount,
+        fillFullAnswerRandomOrder,
+        fillFullAnswerRequireCorrect,
+        fillAnswerScoreMin,
+        fillAnswerScoreMax,
+        fillAnswerTagFilter
+    ).joinToString("|")
+    LaunchedEffect(isReviewMode, reviewProgressId) {
+        if (isReviewMode && !reviewProgressId.isNullOrBlank()) {
+            viewModel.enterReviewSession(reviewProgressId)
+        }
+    }
+    LaunchedEffect(
+        quizId,
+        isWrongBookMode,
+        wrongBookFileName,
+        isFavoriteMode,
+        favoriteFileName,
+        fillConfigVersion,
+        practiceCount,
+        randomPractice
+    ) {
+        if (isReviewMode) return@LaunchedEffect
         settingsViewModel.settingsReady.first { it }
-        val count = settingsViewModel.practiceQuestionCount.value
-        val random = settingsViewModel.randomPractice.value
-        Log.d("PracticeScreen", "[INIT] randomPractice=$random, isWrongBookMode=$isWrongBookMode, wrongBookFileName=$wrongBookFileName, isFavoriteMode=$isFavoriteMode, favoriteFileName=$favoriteFileName, quizId=$quizId, practiceCount=$count")
+        val count = practiceCount
+        val random = randomPractice
+        Log.d("PracticeScreen", "[INIT] randomPractice=$random, isWrongBookMode=$isWrongBookMode, wrongBookFileName=$wrongBookFileName, isFavoriteMode=$isFavoriteMode, favoriteFileName=$favoriteFileName, quizId=$quizId, practiceCount=$count, fillConfig=$fillConfigVersion")
         val targetProgressId = when {
             isWrongBookMode && wrongBookFileName != null -> "practice_wrongbook_${wrongBookFileName}"
             isFavoriteMode && favoriteFileName != null -> "practice_favorite_${favoriteFileName}"
             else -> "practice_${quizId}"
         }
-        if (targetProgressId == viewModel.currentProgressId) {
-            Log.d("PracticeScreen", "[INIT] progressId already matches, skip re-init to preserve memory state")
+        viewModel.setRandomPractice(random)
+        if (targetProgressId == viewModel.currentProgressId && viewModel.currentProgressId.isNotBlank()) {
+            viewModel.reloadForFillConfig(count)
             return@LaunchedEffect
         }
-        viewModel.setRandomPractice(random)
         if (isWrongBookMode && wrongBookFileName != null) {
             viewModel.setProgressId(id = targetProgressId, questionsId = wrongBookFileName, loadQuestions = false, random = random)
             viewModel.loadWrongQuestions(wrongBookFileName)
@@ -127,19 +164,21 @@ fun PracticeScreen(
     }
 
     val coroutineScope = rememberCoroutineScope()
+    val context = LocalContext.current
     val focusManager = LocalFocusManager.current
     val wrongBookViewModel: WrongBookViewModel = hiltViewModel()
     val questions by viewModel.questions.collectAsState()
     val fontSize by settingsViewModel.fontSize.collectAsState()
     val correctDelay by settingsViewModel.correctDelay.collectAsState()
     val wrongDelay by settingsViewModel.wrongDelay.collectAsState()
-    val context = LocalContext.current
     val soundEffects = rememberSoundEffects()
     val soundEnabled by settingsViewModel.soundEnabled.collectAsState()
     val currentIndex by viewModel.currentIndex.collectAsState()
+    val currentQuestionUi by viewModel.currentQuestionUi.collectAsState()
     val answeredList by viewModel.answeredList.collectAsState()
     val selectedOptions by viewModel.selectedOptions.collectAsState()
     val progressLoaded by viewModel.progressLoaded.collectAsState()
+    val reviewReady by viewModel.reviewReady.collectAsState()
     val showResultList by viewModel.showResultList.collectAsState()
     val favoriteViewModel: FavoriteViewModel = hiltViewModel()
     val favoriteQuestions by favoriteViewModel.favoriteQuestions.collectAsState()
@@ -151,21 +190,24 @@ fun PracticeScreen(
     val sparkAnalysisList by viewModel.sparkAnalysisList.collectAsState()
     val baiduAnalysisList by viewModel.baiduAnalysisList.collectAsState()
     val questionTextForAi = remember(question) { question?.let(::formatQuestionForCopy).orEmpty() }
-    val analysisText = if (analysisPair?.first == currentIndex) analysisPair?.second else analysisList.getOrNull(currentIndex)
-    val sparkText = if (sparkPair?.first == currentIndex) sparkPair?.second else sparkAnalysisList.getOrNull(currentIndex)
-    val baiduText = if (baiduPair?.first == currentIndex) baiduPair?.second else baiduAnalysisList.getOrNull(currentIndex)
+    val analysisText = if (analysisPair?.first == currentIndex) analysisPair?.second
+        else currentQuestionUi?.analysis ?: analysisList.getOrNull(currentIndex)
+    val sparkText = if (sparkPair?.first == currentIndex) sparkPair?.second
+        else currentQuestionUi?.sparkAnalysis ?: sparkAnalysisList.getOrNull(currentIndex)
+    val baiduText = if (baiduPair?.first == currentIndex) baiduPair?.second
+        else currentQuestionUi?.baiduAnalysis ?: baiduAnalysisList.getOrNull(currentIndex)
     val noteList by viewModel.noteList.collectAsState()
     val textAnswers by viewModel.textAnswers.collectAsState()
     val editableQuestion by viewModel.editableQuestion.collectAsState()
-    val textAnswer = textAnswers.getOrNull(currentIndex).orEmpty()
+    val textAnswer = currentQuestionUi?.textAnswer ?: textAnswers.getOrNull(currentIndex).orEmpty()
     val resolvedFillAnswer = remember(question) { question?.let { resolveFillCorrectAnswer(it) }.orEmpty() }
     val parsingText = stringResource(R.string.parsing)
-    val hasDeepSeekAnalysis = analysisList.getOrNull(currentIndex).orEmpty().isNotBlank()
-    val hasSparkAnalysis = sparkAnalysisList.getOrNull(currentIndex).orEmpty().isNotBlank()
-    val hasBaiduAnalysis = baiduAnalysisList.getOrNull(currentIndex).orEmpty().isNotBlank()
-    val hasNote = noteList.getOrNull(currentIndex).orEmpty().isNotBlank()
-    val selectedOption = selectedOptions.getOrNull(currentIndex) ?: emptyList<Int>()
-    val showResult = showResultList.getOrNull(currentIndex) ?: false
+    val hasDeepSeekAnalysis = (currentQuestionUi?.analysis ?: analysisList.getOrNull(currentIndex)).orEmpty().isNotBlank()
+    val hasSparkAnalysis = (currentQuestionUi?.sparkAnalysis ?: sparkAnalysisList.getOrNull(currentIndex)).orEmpty().isNotBlank()
+    val hasBaiduAnalysis = (currentQuestionUi?.baiduAnalysis ?: baiduAnalysisList.getOrNull(currentIndex)).orEmpty().isNotBlank()
+    val hasNote = (currentQuestionUi?.note ?: noteList.getOrNull(currentIndex)).orEmpty().isNotBlank()
+    val selectedOption = currentQuestionUi?.selectedOptions ?: selectedOptions.getOrNull(currentIndex) ?: emptyList<Int>()
+    val showResult = currentQuestionUi?.showResult ?: showResultList.getOrNull(currentIndex) ?: false
     val displayOptions = remember(question) { question?.let(::resolveDisplayOptions).orEmpty() }
     val correctIndices = remember(question) { question?.let(::answerToOptionIndices).orEmpty() }
     val isFavorite = remember(question, favoriteQuestions) {
@@ -191,26 +233,12 @@ fun PracticeScreen(
     var editedQuestionAnswer by remember { mutableStateOf("") }
     var editedAnswerParts by remember { mutableStateOf(listOf<String>()) }
 
-    val sessionState by viewModel.sessionState.collectAsState()
-    val sessionAnsweredCount = sessionState.sessionAnsweredCount
-    val sessionScore = sessionState.sessionCorrectCount
+    val sessionAnsweredCount by viewModel.sessionAnsweredCountFlow.collectAsState()
+    val sessionScore by viewModel.sessionCorrectCountFlow.collectAsState()
     var aiMenuExpanded by remember { mutableStateOf(false) }
 
-    val storedPracticeFontSize by FontSettingsDataStore.getPracticeFontSize(context, Float.NaN).collectAsState(initial = Float.NaN)
-    var questionFontSize by remember { mutableStateOf(fontSize) }
-    var questionLineSpacing by remember { mutableStateOf(1.3f) }
-    var questionLetterSpacing by remember { mutableStateOf(0f) }
-    var fontLoaded by remember { mutableStateOf(false) }
-    LaunchedEffect(storedPracticeFontSize) {
-        if (!storedPracticeFontSize.isNaN()) { questionFontSize = storedPracticeFontSize; fontLoaded = true }
-    }
-    LaunchedEffect(questionFontSize, fontLoaded) {
-        if (fontLoaded) {
-            FontSettingsDataStore.setPracticeFontSize(context, questionFontSize)
-            FontSettingsDataStore.setPracticeLineSpacing(context, questionLineSpacing)
-            FontSettingsDataStore.setPracticeLetterSpacing(context, questionLetterSpacing)
-        }
-    }
+    val fc = remember { PracticeFontController(fontSize, 1.3f, viewModel.fontSettingsRepository) }
+    LaunchedEffect(Unit) { fc.loadFromStore() }
     var showChatGptDialog by remember { mutableStateOf(false) }
     val chatGptResult by baiduQianfanViewModel.analysisResult.collectAsState()
     val chatGptLoading by baiduQianfanViewModel.loading.collectAsState()
@@ -236,6 +264,7 @@ fun PracticeScreen(
     var showDeleteExplanationDialog by remember { mutableStateOf(false) }
     var showExplanationFull by remember { mutableStateOf(false) }
     val mainScrollState = rememberScrollState()
+    LaunchedEffect(currentIndex) { mainScrollState.scrollTo(0) }
     LaunchedEffect(mainScrollState.isScrollInProgress) {
         if (mainScrollState.isScrollInProgress) autoAdvance.cancel()
     }
@@ -257,6 +286,10 @@ fun PracticeScreen(
     LaunchedEffect(baiduPair) { val p = baiduPair; if (p != null && p.second != parsingText) viewModel.updateBaiduAnalysis(p.first, p.second) }
 
     BackHandler {
+        if (isReviewMode) {
+            onReviewBack()
+            return@BackHandler
+        }
         when {
             !answeredThisSession -> { autoAdvance.cancel(); onExitWithoutAnswer() }
             sessionAnsweredCount >= viewModel.totalCount -> {
@@ -269,6 +302,13 @@ fun PracticeScreen(
         }
     }
 
+    if (isReviewMode && !reviewReady) {
+        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+            CircularProgressIndicator()
+        }
+        return
+    }
+
     if (question == null || !progressLoaded) {
         Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
             Text(stringResource(R.string.no_questions_loading), fontSize = LocalFontSize.current, fontFamily = LocalFontFamily.current)
@@ -277,22 +317,76 @@ fun PracticeScreen(
     }
 
     var dragAmount by remember { mutableStateOf(0f) }
+    val answeredHistoryAtLatestText = stringResource(R.string.answered_history_at_latest)
+    val answeredHistoryAtOldestText = stringResource(R.string.answered_history_at_oldest)
+    val fullAnswerNoPrevUnansweredSourceText = stringResource(R.string.full_answer_no_prev_unanswered_source)
+    val fullAnswerNoNextUnansweredSourceText = stringResource(R.string.full_answer_no_next_unanswered_source)
+    val unansweredNavAtFirstText = stringResource(R.string.unanswered_nav_at_first)
+    val unansweredNavAtLastText = stringResource(R.string.unanswered_nav_at_last)
+    val inAnsweredHistory = viewModel.isInAnsweredHistory()
+
+    val postAnswerAdvance: suspend () -> Unit = {
+        when (PracticePostAnswerAdvancePipeline.resolve(viewModel.hasPendingQuestions())) {
+            PracticePostAnswerAdvancePipeline.Action.Advance -> viewModel.nextQuestion()
+            PracticePostAnswerAdvancePipeline.Action.FinishOrPromptExit -> {
+                if (sessionAnsweredCount >= viewModel.totalCount) {
+                    viewModel.addHistoryRecord(sessionScore, viewModel.totalCount, viewModel.totalCount - viewModel.answeredCount)
+                    onQuizEnd(
+                        sessionScore,
+                        sessionAnsweredCount,
+                        viewModel.totalCount - viewModel.answeredCount,
+                        viewModel.correctCount,
+                        viewModel.answeredCount
+                    )
+                } else {
+                    showExitDialog = true
+                }
+            }
+        }
+    }
 
     Column(
         modifier = Modifier.fillMaxSize().verticalScroll(mainScrollState).padding(16.dp)
             .cancelAutoAdvanceOnTouch { autoAdvance.cancel() }
             .pointerInput(currentIndex) {
                 detectHorizontalDragGestures(
-                    onHorizontalDrag = { _, amount -> dragAmount += amount },
+                    onHorizontalDrag = { _, amount ->
+                        if (amount != 0f) autoAdvance.cancel()
+                        dragAmount += amount
+                    },
                     onDragEnd = {
-                        if (dragAmount > 100f) {
-                            autoAdvance.cancel()
-                            focusManager.clearFocus(force = true)
-                            viewModel.prevQuestion()
-                        } else if (dragAmount < -100f) {
-                            autoAdvance.cancel()
-                            focusManager.clearFocus(force = true)
-                            viewModel.nextQuestion()
+                        autoAdvance.cancel()
+                        focusManager.clearFocus(force = true)
+                        when {
+                            dragAmount > 100f -> {
+                                val result = viewModel.browseAnsweredHistoryOlder()
+                                Log.d(
+                                    "PracticeHistorySwipe",
+                                    "UI.swipeRight | idx=$currentIndex | showResult=$showResult | result=$result"
+                                )
+                                when (result) {
+                                    AnsweredHistoryBackwardResult.AtOldestAnswered,
+                                    AnsweredHistoryBackwardResult.NoMoreHistory -> {
+                                        if (showResult || inAnsweredHistory) {
+                                            Toast.makeText(context, answeredHistoryAtOldestText, Toast.LENGTH_SHORT).show()
+                                        }
+                                    }
+                                    else -> Unit
+                                }
+                            }
+                            dragAmount < -100f -> {
+                                val result = viewModel.browseAnsweredHistoryNewer()
+                                Log.d(
+                                    "PracticeHistorySwipe",
+                                    "UI.swipeLeft | idx=$currentIndex | showResult=$showResult | inHistory=$inAnsweredHistory | result=$result"
+                                )
+                                when (result) {
+                                    AnsweredHistoryForwardResult.AtLatestAnswered -> {
+                                        Toast.makeText(context, answeredHistoryAtLatestText, Toast.LENGTH_SHORT).show()
+                                    }
+                                    else -> Unit
+                                }
+                            }
                         }
                         dragAmount = 0f
                     },
@@ -312,28 +406,24 @@ fun PracticeScreen(
             questionsSize = questions.size, hasAnyAnalysis = hasDeepSeekAnalysis || hasSparkAnalysis || hasBaiduAnalysis, hasNote = hasNote,
             settingsMenuContent = {
                 DropdownMenuItem(text = { Text(stringResource(R.string.increase_font)) }, onClick = {
-                    val newSize = (questionFontSize + 2f).coerceAtMost(42f)
-                    questionFontSize = newSize
-                    coroutineScope.launch { FontSettingsDataStore.setPracticeFontSize(context, newSize) }
+                    fc.increaseFont(coroutineScope)
                     menuExpanded = false
                 })
                 DropdownMenuItem(text = { Text(stringResource(R.string.decrease_font)) }, onClick = {
-                    val newSize = (questionFontSize - 2f).coerceAtLeast(12f)
-                    questionFontSize = newSize
-                    coroutineScope.launch { FontSettingsDataStore.setPracticeFontSize(context, newSize) }
+                    fc.decreaseFont(coroutineScope)
                     menuExpanded = false
                 })
                 DropdownMenuItem(text = { Text(stringResource(R.string.increase_line_spacing)) }, onClick = {
-                    questionLineSpacing = (questionLineSpacing + 0.1f).coerceAtMost(2.2f); menuExpanded = false
+                    fc.increaseSpacing(coroutineScope); menuExpanded = false
                 })
                 DropdownMenuItem(text = { Text(stringResource(R.string.decrease_line_spacing)) }, onClick = {
-                    questionLineSpacing = (questionLineSpacing - 0.1f).coerceAtLeast(1.0f); menuExpanded = false
+                    fc.decreaseSpacing(coroutineScope); menuExpanded = false
                 })
                 DropdownMenuItem(text = { Text(stringResource(R.string.increase_letter_spacing)) }, onClick = {
-                    questionLetterSpacing = (questionLetterSpacing + 0.1f).coerceAtMost(2.0f); menuExpanded = false
+                    fc.increaseLetterSpacing(coroutineScope); menuExpanded = false
                 })
                 DropdownMenuItem(text = { Text(stringResource(R.string.decrease_letter_spacing)) }, onClick = {
-                    questionLetterSpacing = (questionLetterSpacing - 0.1f).coerceAtLeast(0f); menuExpanded = false
+                    fc.decreaseLetterSpacing(coroutineScope); menuExpanded = false
                 })
                 DropdownMenuItem(text = { Text(stringResource(R.string.edit_current_question)) }, onClick = {
                     menuExpanded = false
@@ -343,83 +433,18 @@ fun PracticeScreen(
                 })
             }
         )
-        if (showList) {
-            var sectionCollapsed by remember { mutableStateOf(emptySet<String>()) }
-            fun toggleSection(name: String) {
-                sectionCollapsed = if (name in sectionCollapsed) sectionCollapsed - name else sectionCollapsed + name
-            }
-            AlertDialog(onDismissRequest = { showList = false }, confirmButton = {}, text = {
-                Column(modifier = Modifier.heightIn(max = 500.dp).verticalScroll(rememberScrollState())) {
-                    val singleIndices = remember(questions) { questions.mapIndexedNotNull { i, q -> if (QuestionTypes.isSingle(q.type)) i else null } }
-                    val multiIndices = remember(questions) { questions.mapIndexedNotNull { i, q -> if (QuestionTypes.isMulti(q.type)) i else null } }
-                    val judgeIndices = remember(questions) { questions.mapIndexedNotNull { i, q -> if (QuestionTypes.isJudge(q.type)) i else null } }
-                    val fillIndices = remember(questions) { questions.mapIndexedNotNull { i, q -> if (QuestionTypes.isFill(q.type) || QuestionTypes.isInlineBlank(q.type)) i else null } }
-                    val textIndices = remember(questions) { questions.mapIndexedNotNull { i, q -> if (QuestionTypes.isTextResponse(q.type)) i else null } }
-
-                    val singleItems = remember(singleIndices, questions, selectedOptions, textAnswers, showResultList, currentIndex) {
-                        AnswerCardStateBuilder.build(singleIndices, questions, selectedOptions, textAnswers, showResultList, currentIndex = currentIndex)
-                    }
-                    val multiItems = remember(multiIndices, questions, selectedOptions, textAnswers, showResultList, currentIndex) {
-                        AnswerCardStateBuilder.build(multiIndices, questions, selectedOptions, textAnswers, showResultList, currentIndex = currentIndex)
-                    }
-                    val judgeItems = remember(judgeIndices, questions, selectedOptions, textAnswers, showResultList, currentIndex) {
-                        AnswerCardStateBuilder.build(judgeIndices, questions, selectedOptions, textAnswers, showResultList, currentIndex = currentIndex)
-                    }
-                    val fillItems = remember(fillIndices, questions, selectedOptions, textAnswers, showResultList, currentIndex) {
-                        AnswerCardStateBuilder.build(fillIndices, questions, selectedOptions, textAnswers, showResultList, currentIndex = currentIndex)
-                    }
-                    val textItems = remember(textIndices, questions, selectedOptions, textAnswers, showResultList, currentIndex) {
-                        AnswerCardStateBuilder.build(textIndices, questions, selectedOptions, textAnswers, showResultList, currentIndex = currentIndex)
-                    }
-
-                    if (singleItems.isNotEmpty()) {
-                        CollapsibleAnswerCardSection(
-                            label = stringResource(R.string.single_choice),
-                            collapsed = "single" in sectionCollapsed,
-                            onToggle = { toggleSection("single") },
-                            items = singleItems,
-                            onClick = { viewModel.goToQuestion(it); showList = false }
-                        )
-                    }
-                    if (multiItems.isNotEmpty()) {
-                        CollapsibleAnswerCardSection(
-                            label = stringResource(R.string.multi_choice),
-                            collapsed = "multi" in sectionCollapsed,
-                            onToggle = { toggleSection("multi") },
-                            items = multiItems,
-                            onClick = { viewModel.goToQuestion(it); showList = false }
-                        )
-                    }
-                    if (judgeItems.isNotEmpty()) {
-                        CollapsibleAnswerCardSection(
-                            label = stringResource(R.string.judge_choice),
-                            collapsed = "judge" in sectionCollapsed,
-                            onToggle = { toggleSection("judge") },
-                            items = judgeItems,
-                            onClick = { viewModel.goToQuestion(it); showList = false }
-                        )
-                    }
-                    if (fillItems.isNotEmpty()) {
-                        CollapsibleAnswerCardSection(
-                            label = stringResource(R.string.fill_blank),
-                            collapsed = "fill" in sectionCollapsed,
-                            onToggle = { toggleSection("fill") },
-                            items = fillItems,
-                            onClick = { viewModel.goToQuestion(it); showList = false }
-                        )
-                    }
-                    if (textItems.isNotEmpty()) {
-                        CollapsibleAnswerCardSection(
-                            label = stringResource(R.string.short_answer),
-                            collapsed = "text" in sectionCollapsed,
-                            onToggle = { toggleSection("text") },
-                            items = textItems,
-                            onClick = { viewModel.goToQuestion(it); showList = false }
-                        )
-                    }
-                }
-            })
-        }
+        PracticeQuestionListDialog(
+            show = showList,
+            onDismiss = { showList = false },
+            questions = questions,
+            selectedOptions = selectedOptions,
+            textAnswers = textAnswers,
+            showResultList = showResultList,
+            displayInfoByQuestionId = remember(questions) { viewModel.buildAnswerCardDisplayInfo(questions) },
+            entryGrouped = remember(questions) { viewModel.answerCardEntryGrouped(questions) },
+            currentIndex = currentIndex,
+            onSelect = { viewModel.goToQuestion(it) }
+        )
 
         if (showEditQuestionDialog) {
             QuestionEditDialog(
@@ -452,8 +477,23 @@ fun PracticeScreen(
             modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp)
         )
         Spacer(modifier = Modifier.height(8.dp))
+        FillAnswerRoundLabel(
+            questionId = question.id,
+            sessionQuestionIds = questions.map { it.id },
+            modifier = Modifier.padding(bottom = 8.dp)
+        ) { round, total ->
+            Text(
+                text = stringResource(R.string.fill_full_answer_round_template, round, total),
+                style = MaterialTheme.typography.bodyMedium.copy(
+                    fontSize = (LocalFontSize.current.value - 1f).coerceAtLeast(12f).sp,
+                    fontFamily = LocalFontFamily.current,
+                    color = MaterialTheme.colorScheme.primary
+                )
+            )
+        }
 
         // Question content
+        key(currentIndex) {
         PracticeQuestionContent(
             question = question,
             textAnswer = textAnswer,
@@ -461,41 +501,52 @@ fun PracticeScreen(
             selectedOption = selectedOption,
             displayOptions = displayOptions,
             resolvedFillAnswer = resolvedFillAnswer,
-            questionFontSize = questionFontSize,
-            questionLineSpacing = questionLineSpacing,
-            questionLetterSpacing = questionLetterSpacing,
-            onAnswerChange = { viewModel.updateTextAnswer(it) },
-            onOptionClick = { idx ->
+            questionFontSize = fc.questionFontSize,
+            questionLineSpacing = fc.questionLineSpacing,
+            questionLetterSpacing = fc.questionLetterSpacing,
+            onAnswerChange = if (isReviewMode) { {} } else { { viewModel.updateTextAnswer(it) } },
+            onOptionClick = if (isReviewMode) { {} } else { { idx ->
                 answeredThisSession = true
                 if (QuestionTypes.isMulti(question.type)) viewModel.toggleOption(idx)
-            },
-            submitCurrentAnswer = { idx ->
+            } },
+            submitCurrentAnswer = if (isReviewMode) { {} } else { { idx ->
                 if (idx != null) {
                     answeredThisSession = true
                     val answeredIndex = currentIndex
+                    val allCorrect = PracticeAnswerCorrectnessPipeline.isAllCorrect(
+                        question = question,
+                        textAnswer = textAnswer,
+                        selectedOptions = listOf(idx),
+                        resolvedFillAnswer = resolvedFillAnswer,
+                        correctIndices = correctIndices
+                    )
                     viewModel.answerQuestion(idx)
-                    val correct = idx == answerToOptionIndex(question)
-                    if (soundEnabled) { if (correct) soundEffects.playCorrect() else soundEffects.playWrong() }
-                    if (!correct) coroutineScope.launch { wrongBookViewModel.addWrongQuestion(WrongQuestion(question, listOf(idx))) }
-                    onSubmit(correct)
-                    autoAdvance.schedule(coroutineScope, answeredIndex, delaySec = if (correct) correctDelay else wrongDelay, revealResultFirst = true, showResult = viewModel::updateShowResult, onAdvance = {
-    val total = questions.size
-    if (answeredIndex >= total - 1) {
-        if (sessionAnsweredCount >= viewModel.totalCount) {
-            viewModel.addHistoryRecord(sessionScore, viewModel.totalCount, viewModel.totalCount - viewModel.answeredCount)
-            onQuizEnd(sessionScore, sessionAnsweredCount, viewModel.totalCount - viewModel.answeredCount, viewModel.correctCount, viewModel.answeredCount)
-        } else {
-            showExitDialog = true
-        }
-    } else if (randomPractice) {
-        viewModel.nextQuestion()
-    } else {
-        viewModel.goToQuestion(answeredIndex + 1)
-    }
-})
+                    PracticeSubmitRevealPipeline.revealImmediately(answeredIndex, viewModel::revealShowResult)
+                    autoAdvance.schedule(
+                        coroutineScope,
+                        answeredIndex,
+                        delaySec = if (allCorrect) correctDelay else wrongDelay,
+                        revealResultFirst = false,
+                        showResult = viewModel::updateShowResult,
+                        onAdvance = postAnswerAdvance,
+                        advanceOnly = true
+                    )
+                    coroutineScope.launch {
+                        PracticeSubmitSideEffectsPipeline.apply(
+                            allCorrect = allCorrect,
+                            soundEnabled = soundEnabled,
+                            playCorrect = soundEffects::playCorrect,
+                            playWrong = soundEffects::playWrong,
+                            onSubmit = onSubmit,
+                            onWrongAnswer = {
+                                wrongBookViewModel.addWrongQuestion(WrongQuestion(question, listOf(idx)))
+                            }
+                        )
+                    }
                 }
-            }
+            } }
         )
+        }
 
         if (showResult) {
             val answerResult = buildPracticeAnswerResult(
@@ -519,33 +570,44 @@ fun PracticeScreen(
                 correctIndices = correctIndices,
                 displayOptions = displayOptions,
                 selectedOption = selectedOption,
-                questionFontSize = questionFontSize,
-                questionLineSpacing = questionLineSpacing,
-                questionLetterSpacing = questionLetterSpacing,
+                questionFontSize = fc.questionFontSize,
+                questionLineSpacing = fc.questionLineSpacing,
+                questionLetterSpacing = fc.questionLetterSpacing,
                 allCorrect = answerResult.allCorrect,
                 correctText = answerResult.correctText,
                 answerResultText = answerResultText,
-            retryLabel = stringResource(R.string.retry_current_question),
-            retryWrongLabel = stringResource(R.string.retry_wrong_blanks),
-                onRetry = {
-                    answeredThisSession = false
-                    viewModel.updateShowResult(currentIndex, false)
-                },
-                onRetryWrongBlanks = if (QuestionTypes.isInlineBlank(question.type)) {
+            retryLabel = if (isReviewMode) "" else stringResource(R.string.retry_current_question),
+            retryWrongLabel = if (isReviewMode) "" else stringResource(R.string.retry_wrong_blanks),
+                onInteraction = { autoAdvance.cancel() },
+                onRetry = if (isReviewMode) {
+                    {}
+                } else {
                     {
+                        autoAdvance.cancel()
                         answeredThisSession = false
-                        viewModel.updateShowResult(currentIndex, false)
+                        viewModel.retryCurrentQuestion(currentIndex)
                     }
-                } else null
+                },
+                onRetryWrongBlanks = if (isReviewMode || !QuestionTypes.isInlineBlank(question.type)) {
+                    null
+                } else {
+                    {
+                        autoAdvance.cancel()
+                        answeredThisSession = false
+                        viewModel.retryWrongBlanks(currentIndex)
+                    }
+                }
             )
             val analysisPrefix = stringResource(R.string.analysis_prefix)
+            val cancelAutoAdvance = { autoAdvance.cancel() }
             ExamAnalysisSection(
                 text = question.explanation.takeIf { it.isNotBlank() },
                 backgroundColor = Color(0xFFFFF5C0),
                 label = analysisPrefix,
-                fontSize = questionFontSize,
-                lineHeight = questionLineSpacing,
-                letterSpacing = questionLetterSpacing,
+                fontSize = fc.questionFontSize,
+                lineHeight = fc.questionLineSpacing,
+                letterSpacing = fc.questionLetterSpacing,
+                onInteraction = cancelAutoAdvance,
                 onDoubleTap = { onViewExplanation(analysisPrefix + question.explanation) },
                 onLongPress = { showDeleteExplanationDialog = true }
             )
@@ -554,9 +616,10 @@ fun PracticeScreen(
                 text = note?.takeIf { it.isNotBlank() },
                 backgroundColor = Color(0xFFE0FFE0),
                 label = stringResource(R.string.note_prefix),
-                fontSize = questionFontSize,
-                lineHeight = questionLineSpacing,
-                letterSpacing = questionLetterSpacing,
+                fontSize = fc.questionFontSize,
+                lineHeight = fc.questionLineSpacing,
+                letterSpacing = fc.questionLetterSpacing,
+                onInteraction = cancelAutoAdvance,
                 onDoubleTap = { question?.let { onEditNote(note!!, it.id, currentIndex) } },
                 onLongPress = { showDeleteNoteDialog = true }
             )
@@ -564,9 +627,10 @@ fun PracticeScreen(
                 text = analysisText?.takeIf { it.isNotBlank() },
                 backgroundColor = Color(0xFFE8F6FF),
                 label = stringResource(R.string.export_header_deepseek),
-                fontSize = questionFontSize,
-                lineHeight = questionLineSpacing,
-                letterSpacing = questionLetterSpacing,
+                fontSize = fc.questionFontSize,
+                lineHeight = fc.questionLineSpacing,
+                letterSpacing = fc.questionLetterSpacing,
+                onInteraction = cancelAutoAdvance,
                 onDoubleTap = { question?.let { onViewDeepSeek(analysisText ?: "", it.id, currentIndex) } },
                 onLongPress = { deleteTarget = "deepseek"; showDeleteDialog = true }
             )
@@ -574,9 +638,10 @@ fun PracticeScreen(
                 text = sparkText?.takeIf { it.isNotBlank() },
                 backgroundColor = Color(0xFFEDE7FF),
                 label = stringResource(R.string.export_header_spark),
-                fontSize = questionFontSize,
-                lineHeight = questionLineSpacing,
-                letterSpacing = questionLetterSpacing,
+                fontSize = fc.questionFontSize,
+                lineHeight = fc.questionLineSpacing,
+                letterSpacing = fc.questionLetterSpacing,
+                onInteraction = cancelAutoAdvance,
                 onDoubleTap = { question?.let { onViewSpark(sparkText ?: "", it.id, currentIndex) } },
                 onLongPress = { deleteTarget = "spark"; showDeleteDialog = true }
             )
@@ -584,9 +649,10 @@ fun PracticeScreen(
                 text = baiduText?.takeIf { it.isNotBlank() },
                 backgroundColor = Color(0xFFF0F8E7),
                 label = stringResource(R.string.export_header_baidu),
-                fontSize = questionFontSize,
-                lineHeight = questionLineSpacing,
-                letterSpacing = questionLetterSpacing,
+                fontSize = fc.questionFontSize,
+                lineHeight = fc.questionLineSpacing,
+                letterSpacing = fc.questionLetterSpacing,
+                onInteraction = cancelAutoAdvance,
                 onDoubleTap = { question?.let { onViewBaidu(baiduText ?: "", it.id, currentIndex) } },
                 onLongPress = { deleteTarget = "baidu"; showDeleteDialog = true }
             )
@@ -594,72 +660,120 @@ fun PracticeScreen(
             Spacer(modifier = Modifier.height(16.dp))
         }
 
-        if (!showResult) {
-            val submitManualAnswer = {
+        if (!isReviewMode) {
+            fun requestPracticeSubmitDialog() {
                 autoAdvance.cancel()
                 focusManager.clearFocus(force = true)
+                when (PracticeSubmitFlow.resolve(answeredThisSession)) {
+                    PracticeSubmitFlow.Action.ExitWithoutAnswer -> onExitWithoutAnswer()
+                    PracticeSubmitFlow.Action.ShowSubmitDialog -> showExitDialog = true
+                }
+            }
+            val submitManualAnswer: (() -> Unit)? = if (!showResult && !inAnsweredHistory) {
+                {
+                autoAdvance.cancel()
                 answeredThisSession = true
                 val answeredIndex = currentIndex
-                val allCorrect = if (
-                    QuestionTypes.isFill(question.type) ||
-                    QuestionTypes.isTextResponse(question.type) ||
-                    QuestionTypes.isInlineBlank(question.type)
-                ) {
-                    val correct = question.answer.split("|").map { it.trim() }
-                    val userAnswer = textAnswers.getOrNull(answeredIndex).orEmpty()
-                    val userParts = userAnswer.split("|").map { it.trim() }
-                    correct.zip(userParts).all { (c, u) -> c == u } ||
-                        correct.size == 1 && userAnswer.trim() == correct.first()
-                } else {
-                    selectedOption.toSet() == correctIndices.toSet()
-                }
-                if (soundEnabled) {
-                    if (allCorrect) soundEffects.playCorrect() else soundEffects.playWrong()
-                }
-                if (!allCorrect && (selectedOption.isNotEmpty() || textAnswer.isNotBlank())) {
-                    coroutineScope.launch {
-                        wrongBookViewModel.addWrongQuestion(WrongQuestion(question, selectedOption))
-                    }
-                }
-                onSubmit(allCorrect)
-                autoAdvance.schedule(coroutineScope, answeredIndex, delaySec = if (allCorrect) correctDelay else wrongDelay, revealResultFirst = true, showResult = viewModel::updateShowResult, onAdvance = {
-                    val total = questions.size
-                    if (answeredIndex >= total - 1) {
-                        if (sessionAnsweredCount >= viewModel.totalCount) {
-                            viewModel.addHistoryRecord(sessionScore, viewModel.totalCount, viewModel.totalCount - viewModel.answeredCount)
-                            onQuizEnd(sessionScore, sessionAnsweredCount, viewModel.totalCount - viewModel.answeredCount, viewModel.correctCount, viewModel.answeredCount)
-                        } else {
-                            showExitDialog = true
+                val allCorrect = PracticeAnswerCorrectnessPipeline.isAllCorrect(
+                    question = question,
+                    textAnswer = textAnswer,
+                    selectedOptions = selectedOption,
+                    resolvedFillAnswer = resolvedFillAnswer,
+                    correctIndices = correctIndices
+                )
+                PracticeSubmitRevealPipeline.revealImmediately(answeredIndex, viewModel::revealShowResult)
+                autoAdvance.schedule(
+                    coroutineScope,
+                    answeredIndex,
+                    delaySec = if (allCorrect) correctDelay else wrongDelay,
+                    revealResultFirst = false,
+                    showResult = viewModel::updateShowResult,
+                    onAdvance = postAnswerAdvance,
+                    advanceOnly = true
+                )
+                coroutineScope.launch {
+                    focusManager.clearFocus(force = true)
+                    PracticeSubmitSideEffectsPipeline.apply(
+                        allCorrect = allCorrect,
+                        soundEnabled = soundEnabled,
+                        playCorrect = soundEffects::playCorrect,
+                        playWrong = soundEffects::playWrong,
+                        onSubmit = onSubmit,
+                        onWrongAnswer = {
+                            if (selectedOption.isNotEmpty() || textAnswer.isNotBlank()) {
+                                wrongBookViewModel.addWrongQuestion(WrongQuestion(question, selectedOption))
+                            }
                         }
-                    } else if (randomPractice) {
-                        viewModel.nextQuestion()
-                    } else {
-                        viewModel.goToQuestion(answeredIndex + 1)
-                    }
-                })
-            }
-            PracticeSubmitControls(
-                enabled = true,
-                label = stringResource(R.string.submit_answer),
-                modifier = Modifier.padding(top = 16.dp),
-                swapPrimaryAndLeading = true,
-                leadingContent = {
-                    Button(
-                        onClick = {
-                            autoAdvance.cancel()
-                            focusManager.clearFocus(force = true)
-                            viewModel.nextQuestion()
-                        },
-                        enabled = currentIndex < questions.size - 1
-                    ) {
-                        Text(
-                            text = stringResource(R.string.next_question),
-                            fontSize = LocalFontSize.current,
-                            fontFamily = LocalFontFamily.current
-                        )
+                    )
+                }
+                }
+            } else null
+            val fullAnswerSkipEnabled = viewModel.isFullAnswerMode && !isReviewMode
+            val canSkipPrevSource = fullAnswerSkipEnabled && viewModel.canSkipToUnansweredSource(forward = false)
+            val canSkipNextSource = fullAnswerSkipEnabled && viewModel.canSkipToUnansweredSource(forward = true)
+            QuestionNavigationControls(
+                visible = true,
+                onPrev = {
+                    autoAdvance.cancel()
+                    focusManager.clearFocus(force = true)
+                    when (viewModel.prevQuestionViaIcon()) {
+                        UnansweredNavResult.AtFirstUnanswered -> {
+                            Toast.makeText(context, unansweredNavAtFirstText, Toast.LENGTH_SHORT).show()
+                        }
+                        else -> Unit
                     }
                 },
-                onSubmitClick = submitManualAnswer
+                onNext = {
+                    autoAdvance.cancel()
+                    focusManager.clearFocus(force = true)
+                    when (viewModel.nextQuestionViaIcon()) {
+                        UnansweredNavResult.AtLastUnanswered -> {
+                            Toast.makeText(context, unansweredNavAtLastText, Toast.LENGTH_SHORT).show()
+                        }
+                        else -> Unit
+                    }
+                },
+                onPrevDoubleClick = if (fullAnswerSkipEnabled) {
+                    {
+                        autoAdvance.cancel()
+                        focusManager.clearFocus(force = true)
+                        when (viewModel.skipToUnansweredSource(forward = false)) {
+                            SkipUnansweredSourceResult.NoPrevSource -> {
+                                Toast.makeText(context, fullAnswerNoPrevUnansweredSourceText, Toast.LENGTH_SHORT).show()
+                            }
+                            else -> Unit
+                        }
+                    }
+                } else null,
+                onNextDoubleClick = if (fullAnswerSkipEnabled) {
+                    {
+                        autoAdvance.cancel()
+                        focusManager.clearFocus(force = true)
+                        when (viewModel.skipToUnansweredSource(forward = true)) {
+                            SkipUnansweredSourceResult.NoNextSource -> {
+                                Toast.makeText(context, fullAnswerNoNextUnansweredSourceText, Toast.LENGTH_SHORT).show()
+                            }
+                            else -> Unit
+                        }
+                    }
+                } else null,
+                onSubmit = submitManualAnswer,
+                onSubmitDoubleClick = ::requestPracticeSubmitDialog,
+                submitContentDescription = stringResource(R.string.submit_answer),
+                enabledPrev = viewModel.canNavigateToPrevUnanswered() || canSkipPrevSource ||
+                    showResult || inAnsweredHistory,
+                enabledNext = viewModel.canNavigateToNextUnanswered() || canSkipNextSource ||
+                    showResult || inAnsweredHistory
+            )
+        }
+        if (isReviewMode) {
+            QuestionNavigationControls(
+                visible = true,
+                onPrev = { viewModel.prevQuestion() },
+                onNext = { viewModel.nextQuestion() },
+                onSubmit = null,
+                enabledPrev = viewModel.canReviewBrowseBack(),
+                enabledNext = viewModel.canReviewBrowseForward()
             )
         }
         Spacer(modifier = Modifier.height(8.dp))
@@ -676,10 +790,10 @@ fun PracticeScreen(
                 ) {
                     Text(
                         text = stringResource(R.string.analysis_prefix) + question.explanation,
-                        fontSize = questionFontSize.sp,
+                        fontSize = fc.questionFontSize.sp,
                         fontFamily = LocalFontFamily.current,
-                        lineHeight = (questionFontSize * questionLineSpacing).sp,
-                        letterSpacing = questionLetterSpacing.sp
+                        lineHeight = (fc.questionFontSize * fc.questionLineSpacing).sp,
+                        letterSpacing = fc.questionLetterSpacing.sp
                     )
                 }
             }

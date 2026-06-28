@@ -18,6 +18,8 @@ interface FontSettingsRepository {
     val lastSelectedFile: Flow<String>
     val lastSelectedNav: Flow<Int>
     val practiceFontSize: Flow<Float>
+    val practiceLineSpacing: Flow<Float>
+    val practiceLetterSpacing: Flow<Float>
     val examFontSize: Flow<Float>
     val deepSeekFontSize: Flow<Float>
     val sparkFontSize: Flow<Float>
@@ -31,6 +33,7 @@ interface FontSettingsRepository {
     val fillAnswerScoreMax: Flow<Int>
     val fillAnswerTagFilter: Flow<String>
     val examLineSpacing: Flow<Float>
+    val examLetterSpacing: Flow<Float>
     val practiceMemoryMode: Flow<Int>
     val practiceMemoryBatchSize: Flow<Int>
     val practiceMemoryWrongMode: Flow<Int>
@@ -54,6 +57,8 @@ interface FontSettingsRepository {
     suspend fun setLastSelectedFile(fileName: String)
     suspend fun setLastSelectedNav(index: Int)
     suspend fun setPracticeFontSize(size: Float)
+    suspend fun setPracticeLineSpacing(value: Float)
+    suspend fun setPracticeLetterSpacing(value: Float)
     suspend fun setExamFontSize(size: Float)
     suspend fun setDeepSeekFontSize(size: Float)
     suspend fun setSparkFontSize(size: Float)
@@ -67,6 +72,7 @@ interface FontSettingsRepository {
     suspend fun setFillAnswerScoreMax(value: Int)
     suspend fun setFillAnswerTagFilter(value: String)
     suspend fun setExamLineSpacing(value: Float)
+    suspend fun setExamLetterSpacing(value: Float)
     suspend fun setPracticeMemoryMode(value: Int)
     suspend fun setPracticeMemoryBatchSize(value: Int)
     suspend fun setPracticeMemoryWrongMode(value: Int)

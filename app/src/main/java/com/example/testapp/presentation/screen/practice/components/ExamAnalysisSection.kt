@@ -35,7 +35,8 @@ fun ExamAnalysisSection(
     lineHeight: Float = 1.3f,
     letterSpacing: Float = 0f,
     onDoubleTap: (() -> Unit)? = null,
-    onLongPress: (() -> Unit)? = null
+    onLongPress: (() -> Unit)? = null,
+    onInteraction: (() -> Unit)? = null
 ) {
     if (text.isNullOrBlank()) return
 
@@ -57,9 +58,18 @@ fun ExamAnalysisSection(
             .padding(8.dp)
             .pointerInput(text) {
                 detectTapGestures(
-                    onTap = { collapsed = !collapsed },
-                    onDoubleTap = { onDoubleTap?.invoke() },
-                    onLongPress = { onLongPress?.invoke() }
+                    onTap = {
+                        onInteraction?.invoke()
+                        collapsed = !collapsed
+                    },
+                    onDoubleTap = {
+                        onInteraction?.invoke()
+                        onDoubleTap?.invoke()
+                    },
+                    onLongPress = {
+                        onInteraction?.invoke()
+                        onLongPress?.invoke()
+                    }
                 )
             }
     ) {
@@ -89,7 +99,10 @@ fun ExamAnalysisSection(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.Center
             ) {
-                IconButton(onClick = { collapsed = true }) {
+                IconButton(onClick = {
+                    onInteraction?.invoke()
+                    collapsed = true
+                }) {
                     Icon(
                         imageVector = Icons.Filled.KeyboardArrowUp,
                         contentDescription = "折叠",

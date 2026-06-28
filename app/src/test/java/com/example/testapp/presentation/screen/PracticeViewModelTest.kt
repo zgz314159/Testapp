@@ -16,6 +16,7 @@ import com.example.testapp.domain.model.QuestionWithState
 import com.example.testapp.domain.model.SessionMode
 import com.example.testapp.domain.model.UnifiedQuestionState
 import com.example.testapp.domain.model.UnifiedSessionState
+import com.example.testapp.domain.model.LibraryCatalog
 import com.example.testapp.domain.model.WrongQuestion
 import com.example.testapp.domain.repository.FavoriteQuestionRepository
 import com.example.testapp.domain.repository.HistoryRepository
@@ -425,6 +426,8 @@ private class FakePracticeProgressRepository : PracticeProgressRepository {
 
 private object FakeWrongBookRepository : WrongBookRepository {
     override fun getAll(): Flow<List<WrongQuestion>> = flowOf(emptyList())
+    override fun observeLibraryCatalog(): Flow<LibraryCatalog> =
+        flowOf(LibraryCatalog(emptyList(), emptyMap()))
     override suspend fun add(wrong: WrongQuestion) = Unit
     override suspend fun clear() = Unit
     override suspend fun importFromFile(file: java.io.File): Int = 0
@@ -434,6 +437,8 @@ private object FakeWrongBookRepository : WrongBookRepository {
 
 private object FakeFavoriteQuestionRepository : FavoriteQuestionRepository {
     override fun getAll(): Flow<List<FavoriteQuestion>> = flowOf(emptyList())
+    override fun observeLibraryCatalog(): Flow<LibraryCatalog> =
+        flowOf(LibraryCatalog(emptyList(), emptyMap()))
     override suspend fun add(favorite: FavoriteQuestion) = Unit
     override suspend fun remove(questionId: Int) = Unit
     override suspend fun isFavorite(questionId: Int): Boolean = false

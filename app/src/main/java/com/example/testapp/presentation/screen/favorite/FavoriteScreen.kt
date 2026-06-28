@@ -8,9 +8,9 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Button
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
@@ -24,7 +24,6 @@ import com.example.testapp.presentation.screen.file.FileFolderViewModel
 import com.example.testapp.presentation.screen.library.ScopedQuestionLibraryScreen
 import com.example.testapp.uicommon.component.LocalFontFamily
 import com.example.testapp.uicommon.component.LocalFontSize
-import com.example.testapp.uicommon.util.buildFileStatisticsForQuestions
 
 private const val FAVORITE_GROUP_SCOPE = "__favorite__"
 private const val FAVORITE_HOME_DROP_TARGET = "__FAVORITE_HOME__"
@@ -37,10 +36,12 @@ fun FavoriteScreen(
     folderViewModel: FileFolderViewModel = hiltViewModel(),
     dragViewModel: DragDropViewModel = hiltViewModel()
 ) {
-    val favoriteQuestions by viewModel.favoriteQuestions.collectAsState()
+    val libraryCatalog by viewModel.libraryCatalog.collectAsState()
     val fileNames by viewModel.fileNames.collectAsState()
+    val favoriteQuestions by viewModel.favoriteQuestions.collectAsState()
 
     if (!fileName.isNullOrEmpty()) {
+        LaunchedEffect(fileName) { viewModel.ensureFullListLoaded() }
         FavoriteDetailContent(
             fileName = fileName,
             favoriteQuestions = favoriteQuestions.filter { it.question.fileName == fileName },
@@ -49,26 +50,13 @@ fun FavoriteScreen(
         return
     }
 
-    val groupedFavorites = remember(favoriteQuestions) {
-        favoriteQuestions.groupBy { it.question.fileName.orEmpty() }.filterKeys { it.isNotBlank() }
-    }
-    val fileStatistics = remember(groupedFavorites) {
-        groupedFavorites.mapValues { (_, list) ->
-            buildFileStatisticsForQuestions(
-                questions = list.map { it.question },
-                wrongCount = 0,
-                favoriteCount = list.size
-            )
-        }
-    }
-
     ScopedQuestionLibraryScreen(
         scope = FAVORITE_GROUP_SCOPE,
         homeDropTargetKey = FAVORITE_HOME_DROP_TARGET,
         rootTitleRes = R.string.favorites,
         emptyMessageRes = R.string.no_favorites,
         fileNames = fileNames,
-        fileStatistics = fileStatistics,
+        fileStatistics = libraryCatalog.fileStatistics,
         folderViewModel = folderViewModel,
         dragViewModel = dragViewModel,
         onDeleteFile = viewModel::removeByFileName,

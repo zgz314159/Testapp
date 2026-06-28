@@ -12,7 +12,7 @@ import com.example.testapp.core.util.resolveFillCorrectAnswer
 
 /**
  * Pure answer-evaluation logic extracted from PracticeViewModel.
- * Does NOT mutate session state â€?only computes truth values.
+ * Does NOT mutate session state ï¿½?only computes truth values.
  */
 class PracticeAnswerHandler {
 
@@ -105,7 +105,6 @@ class PracticeAnswerHandler {
     ): List<Int> {
         val currentQuestion = questionsWithState.getOrNull(currentIndex)?.question ?: return emptyList()
         val currentSourceQuestionId = extractSourceQuestionId(currentQuestion.id)
-        if (currentSourceQuestionId == currentQuestion.id) return emptyList()
 
         return (eligibleIndices + currentIndex)
             .distinct()
@@ -125,9 +124,6 @@ class PracticeAnswerHandler {
 
         val currentQuestion = questionsWithState.getOrNull(currentIndex)?.question ?: return emptyList()
         val currentSourceQuestionId = extractSourceQuestionId(currentQuestion.id)
-        if (currentSourceQuestionId == currentQuestion.id) {
-            return eligibleIndices.filter { index -> !questionsWithState[index].showResult }
-        }
 
         val sameSourceIndices = eligibleIndices.filter { index ->
             extractSourceQuestionId(questionsWithState[index].question.id) == currentSourceQuestionId
@@ -195,6 +191,43 @@ class PracticeAnswerHandler {
         return emptyList()
     }
 
+    fun findNextSourceEntryIndices(
+        currentState: PracticeSessionState,
+        fullAnswerModeActive: Boolean,
+        fullAnswerRequireCorrect: Boolean
+    ): List<Int> {
+        if (!fullAnswerModeActive) return emptyList()
+        val questionsWithState = currentState.questionsWithState
+        if (questionsWithState.isEmpty()) return emptyList()
+
+        val currentQuestion = questionsWithState.getOrNull(currentState.currentIndex)?.question ?: return emptyList()
+        val currentSourceId = extractSourceQuestionId(currentQuestion.id)
+
+        val sourceEntries = mutableListOf<Pair<Int, Int>>()
+        val seen = mutableSetOf<Int>()
+        questionsWithState.forEachIndexed { index, qws ->
+            val sourceId = extractSourceQuestionId(qws.question.id)
+            if (sourceId !in seen) {
+                seen.add(sourceId)
+                sourceEntries.add(sourceId to index)
+            }
+        }
+
+        val currentSourcePosition = sourceEntries.indexOfFirst { it.first == currentSourceId }
+        if (currentSourcePosition < 0) return emptyList()
+
+        return sourceEntries
+            .drop(currentSourcePosition + 1)
+            .map { it.second }
+            .filter { index ->
+                isQuestionPendingForCurrentMode(
+                    questionsWithState[index],
+                    fullAnswerModeActive,
+                    fullAnswerRequireCorrect
+                )
+            }
+    }
+
     fun isCurrentSourceComplete(
         currentState: PracticeSessionState,
         fullAnswerModeActive: Boolean,
@@ -203,7 +236,6 @@ class PracticeAnswerHandler {
         val questionsWithState = currentState.questionsWithState
         val currentQuestion = questionsWithState.getOrNull(currentState.currentIndex)?.question ?: return true
         val currentSourceQuestionId = extractSourceQuestionId(currentQuestion.id)
-        if (currentSourceQuestionId == currentQuestion.id) return true
 
         return questionsWithState.indices
             .filter { index -> extractSourceQuestionId(questionsWithState[index].question.id) == currentSourceQuestionId }

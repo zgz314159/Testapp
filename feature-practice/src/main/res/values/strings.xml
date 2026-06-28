@@ -18,6 +18,10 @@
     <string name="copy_question_success">题目已复制</string>
     <string name="no_analysis_result">无解析结果</string>
     <string name="submit_answer">提交答案</string>
+    <string name="answered_history_at_latest">已是最后作答题</string>
+    <string name="answered_history_at_oldest">已是最前作答题</string>
+    <string name="unanswered_nav_at_first">已是最前的未答题</string>
+    <string name="unanswered_nav_at_last">已是最后的未答题</string>
     <string name="question_type_prefix">题型：</string>
     <string name="answer_correct">回答正确！</string>
     <string name="answer_wrong_format">回答错误，正确答案：%1$s</string>

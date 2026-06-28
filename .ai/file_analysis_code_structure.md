@@ -60,10 +60,45 @@ PROJECT_ROOT/
 
 | 文件 | 行数 | 依赖数 | 职责 | 功能描述 |
 |------|------|--------|------|----------|
-| **PracticeNavigationCoordinator.kt** | ~617 | 0 | 导航编排 | 导航状态机核心。管理三种导航模式：正常前向/后向、回答历史浏览（`AnsweredHistoryNavigationState`）、随机导航历史回退。Phase 4 激进提取后直接持有 `_sessionState: MutableStateFlow<PracticeSessionState>` 和 16 个 lambda 回调。核心方法：`nextQuestion()`（含全答案模式调度、随机模式、顺序模式的完整编排）、`prevQuestion()`（含回答历史向后导航）、`goToQuestion()`（手动跳转）、`navigateToPreviousAnsweredQuestion()`（回答时间降序浏览）、`buildPreviousAnsweredIndices()`、`seedRandomNavigationHistory()`、`applyAnsweredHistorySnapshot()`（历史快照叠加） |
-| **PracticeAnswerHandler.kt** | ~213 | 0 | 纯答案判断 | 零副作用的纯函数集合。`isQuestionAnswered()`/`isQuestionCorrect()`（支持选择题和填空题）、`isQuestionPendingForCurrentMode()`（综合全答案模式/要求正确模式判断）、`shouldReopenUnansweredReveal()`（只显示未答的题需重开）、`hasPendingQuestions()`/`findFirstPendingIndex()`/`findResumeIndex()`（起始位置恢复）、`currentSourcePendingIndices()`/`nextFullAnswerCandidateIndices()`/`currentFullAnswerCandidateIndices()`/`isCurrentSourceComplete()`（全答案模式下的同源题目候选计算） |
+| **PracticeNavigationCoordinator.kt** | ~617 | 0 | 导航编排 | 顺序/随机 `next/prev` 与历史浏览 `browseAnsweredHistoryOlder/Newer` 分离；底栏图标走前者，右/左滑走后者 |
+| **PracticeAnswerHandler.kt** | ~213 | 0 | 纯答案判断 | 零副作用的纯函数集合。`isQuestionAnswered()`/`isQuestionCorrect()`（支持选择题和填空题）、`isQuestionPendingForCurrentMode()`（综合全答案模式/要求正确模式判断）、`shouldReopenUnansweredReveal()`（只显示未答的题需重开）、`hasPendingQuestions()`/`findFirstPendingIndex()`/`findResumeIndex()`（起始位置恢复）、`currentSourcePendingIndices()`/`nextFullAnswerCandidateIndices()`/`currentFullAnswerCandidateIndices()`/`findNextSourceEntryIndices()`/`isCurrentSourceComplete()`（全答案模式下同源题目候选；单槽与多轮次统一 pending 判定） |
+| **PracticeFillConfigPipeline.kt** | ~91 | 0 | 练习 Fill 管道 | 无状态管道：`read()` 从 `FontSettingsRepository` 读取动态填空配置；`signature()` 生成进度复用签名；`isFillConfigSensitive()` 判定题库是否受 Fill 设置影响；`applyTransform()` 调用 `transformQuestionVariantsForFillSettings` 生成练习题目变体 |
+| **PracticeQuestionCountPolicy.kt** | ~22 | 0 | 练习题数策略 | `0`=全部；`canReuseSavedOrder` 在「全部」时要求已保存题数覆盖全库 |
+| **PracticeRoundCompletePipeline.kt** | ~15 | 上一轮练习是否已答完 |
+| **PracticeRoundReusePipeline.kt** | ~20 | 轮次完成后禁止复用 `fixedQuestionOrder` |
+| **PracticeQuestionOrderPipeline.kt** | ~50 | 新轮次未答池出题 + recyclePool |
+| **PracticeNewRoundProgressPipeline.kt** | ~25 | 新轮次空白 progress 快照 |
+| **PracticeSessionRestorePipeline.kt** | ~40 | 新轮次不回填；中途/复盘才恢复 map |
+| **PracticeSourceQuestionPipeline.kt** | ~15 | 练习侧源题 ID 归一化 |
+| **PracticeRoundLoadLog.kt** | ~30 | 轮次加载日志（`PracticeRoundLoad`） |
+| **PracticeProgressLifecycleCoordinator.kt** | — | — | 练习进度生命周期 | 题目加载主路径；`scheduleNavigationSave` 防抖导航落盘；`performSaveProgress` 在 Default/IO 合并 map |
+| **PracticeProgressMapPipeline.kt** | ~25 | 0 | 进度 map 合并 | Default 线程将当前会话题态并入 `questionStateMap` |
+| **PracticeReviewReusePipeline.kt** | ~15 | 0 | 复盘复用判定 | 同 progressId 且已加载则跳过 `loadReviewSession` |
+| **PracticeReviewPresentationPipeline.kt** | ~25 | 0 | 复盘展示准备 | Default 线程 `SessionReviewPresentation` + 滑动序 |
+| **LibraryCatalog.kt** | ~8 | 0 | 库列表目录 | `fileNames` + `fileStatistics` 轻量模型 |
+| **ScopedLibraryCatalogPipeline.kt** | ~55 | 0 | 错题/收藏目录聚合 | SQL 计数 + 题型聚合，不经全量题目 |
+| **GetWrongBookLibraryCatalogUseCase.kt** | ~12 | 0 | 错题库目录用例 | |
+| **GetFavoriteLibraryCatalogUseCase.kt** | ~12 | 0 | 收藏库目录用例 | |
+| **PracticeProgressRestorePipeline.kt** | ~45 | 0 | 进度恢复管道 | 合并 `questionStateMap` 字段；补偿缺失 `answerTime` |
+| **PracticeAnsweredHistorySeedPipeline.kt** | ~25 | 0 | 已答历史 seed | 重进练习时从 `questionsWithState` 重建 `answeredHistorySnapshots` |
+| **PracticeAnswerCorrectnessPipeline.kt** | 与 `buildPracticeAnswerResult` 一致判题 |
+| **PracticeSubmitSideEffectsPipeline.kt** | reveal 后延后音效/回调/错题本 |
+| **PracticeSubmitRevealPipeline.kt** | 调用 `revealShowResult`（无同步持久化） |
+| **PracticeAutoAdvanceController.kt** | `advanceOnly` 跳过重复 reveal |
 | **PracticeProgressCoordinator.kt** | ~99 | 0 | 进度工具 | 纯工具函数。`practiceProgressSeed()`（从 sessionId 提取种子）、`buildSessionIdWithFillSignature()`（构建带 Fill 配置签名的进度 ID，格式 `{baseId}_{seed}|fill={signature}`）、`extractFillConfigSignature()`/`canReuseByFillSignature()`（Fill 签名校验复用）、`fillGenerationModeFromSignature()`（从签名恢复 Fill 生成模式）、`buildProgressSnapshotFromState()`（从 sessionState 构建 PracticeProgress 快照） |
 | **PracticeModeCoordinator.kt** | ~394 | 0 | 记忆模式引擎 | 记忆模式全部逻辑。Phase 4 激进提取后直接持有 `_sessionState: MutableStateFlow`、`Mutex`、`persistentQuestionStateMap`、`removedMemoryPoolQuestionIds`。纯函数：`buildMemoryRoundPlan()`（根据错题优先策略构建记忆轮计划）、`MemoryRoundPlan` 数据类。状态变更方法：`buildMemoryRoundStates()`（构建记忆轮题目，含 retainCorrectFillAnswerParts 逻辑）、`refreshMemoryRoundPoolIfNeeded()`（IN_OUT 模式动态补充新题）、`removeCurrentQuestionFromMemoryPool()`（移除并补充，ROUND 模式自动切换下一轮）、`advanceMemoryRoundIfNeeded()`（当前轮次完成后自动推进）、`updatePersistentStateMap()`、`effectiveCurrentMemoryRoundQuestionIds()` |
+| **PracticeUnansweredNavigation.kt** | 顺序模式按锚点前后 pending；随机模式全库 pending（除当前） |
+| **PracticePostAnswerAdvancePipeline.kt** | 批改后：仍有 pending → 继续；否则结束/交卷确认 |
+| **PracticeFullAnswerIconNavigation.kt** | ~55 | 0 | 全答单击轮次池 | 底栏**单击**：同词条各轮次间跳转（含已答）；单槽词条未完成时留在当前题；未完成时不跨词条 |
+| **PracticeFullAnswerIconRetryPipeline.kt** | ~35 | 0 | 全答图标错题重开 | 须全对且当前源未完成时，底栏图标导航优先 `reopenQuestionForFullAnswerRetry`，不跨词条 |
+| **PracticeFullAnswerHistoryNavigation.kt** | ~90 | 0 | 全答滑动历史 | `resolveOlder/NewerTargetIndex` 池内优先 + 全局时间跨词条；`TAG=PracticeHistorySwipe` |
+| **PracticeFullAnswerNavigation.kt** | ~55 | 0 | 全答跳词条 | 底栏**双击**（旧）：`resolveSkipToAdjacentSourceIndex`（顺序/随机相邻词条） |
+| **PracticeFullAnswerUnansweredSourceNavigation.kt** | ~65 | 0 | 全答双击未作答词条 | 退出历史后按题号找前/后**仍有 pending** 的词条；`isSourceIncomplete` / `resolveFirstPendingInSource`（空轮次池回退 entry 自身）；`resolveUnansweredSourceEntryIndex` |
+| **SkipUnansweredSourceResult.kt** | ~6 | 0 | 跳词条结果 | `Navigated` / `NoPrevSource` / `NoNextSource` |
+| **PracticeFontController.kt** | ~65 | 0 | 练习字体持久化 | `practiceFontSize`/`practiceLineSpacing`/`practiceLetterSpacing` 读写（对齐 ExamFontController） |
+| **PracticeSubmitFlow.kt** | ~12 | 0 | 练习交卷判定 | 双击提交图标：已作答→确认交卷；未作答→直接退出 |
+| **PracticeQuestionRetryPipeline.kt** | ~30 | 0 | 批改后重答 | `reopenCurrent` 整题清空；`reopenWrongBlanks` 保留答对填空 |
+| **PracticeQuestionListDialog.kt** | ~65 | 0 | 练习答题卡 | 委托 `AnswerCardDialogContent`；全答词条分组或题型分组 |
 | **PracticeFullAnswerCoordinator.kt** | ~112 | 0 | 全答案模式 | `shouldReuseSavedSourceOrder()`（判断是否复用保存的题目顺序）、`restoreConfiguredQuestionsForProgress()`（根据 Progress 中的 questionStateMap 恢复已配置的 Fill 题目变体）、`shouldApplyDynamicFillTransform()`（检测题目是否需要动态 Fill 变换，仅对 JSON/SQLite 来源的全填空题有效，缓存到 `dynamicFillSensitivityCache`） |
 | **PracticeSessionCoordinator.kt** | ~641 | 4（sub-coordinator）+9 UseCases | 会话管理+持久化 | 最复杂的 Coordinator。持有所有子协调器引用和 UseCase。核心方法：`buildStoredQuestionState()`（构建带 DeepSeek/Spark/Baidu AI 分析和笔记的完整 QuestionWithState）。`saveProgress()`（Mutex 保护的异步保存，含记忆模式下 persistentQuestionStateMap 合并）。`loadProgress()`（从 Flow 恢复进度，含 questionStateMap 恢复、fallbackAnswerTime 补偿、随机模式 smartIndex 计算）。`enqueueSupplementaryRepositoryLoads()`（并行触发 4 个分析载入器：`loadAnalysisFromRepository/loadSparkAnalysisFromRepository/loadBaiduAnalysisFromRepository/loadNotesFromRepository`）。`loadWrongQuestions()`/`loadFavoriteQuestions()`（从错题本/收藏载入会话，含 Fill 签名升级、记忆模式初始化、智能顺序恢复）。`clearProgress()` |
 
@@ -76,22 +111,78 @@ PROJECT_ROOT/
 | **PracticeArtifactCoordinator.kt** | ~180 | **分析产物管理** — 管理三种 AI 分析（DeepSeek/Spark/Baidu）的增删改。`updateAnalysis()`/`updateSparkAnalysis()`/`updateBaiduAnalysis()`（同步更新 `_sessionState` 和持久化存储）。`appendNote()`（Mutex 保护的笔记追加，防并发冲突）。`removeAnalysis()`（清除分析并同步持久化）。`getNote()`/`getAnalysis()`/`getSparkAnalysis()`/`getBaiduAnalysis()`（读取分析） |
 | **PracticeEditorCoordinator.kt** | ~250 | **题目编辑器** — `buildEditableQuestion()`（从当前题目或所有源题目构建可编辑对象）。`commitEdit()`（提交编辑：保存到仓库→从仓库重新载入→更新sessionState）。`applyFillTransformForEdit()`（对编辑后的题目应用Fill变换）。管理 `editedQuestionSnapshotMap` 快照缓存，支持 `clearAllFillEditsForCurrentFile()` |
 
+### ui-common 答题卡管道
+
+| 文件 | 功能描述 |
+|------|----------|
+| **AnswerCardDisplayInfoPipeline.kt** | 词条序号；全答轮次标签 `1①`（圈号） |
+| **AnswerCardEntryGrouping.kt** | 按词条 order 分组题目 index |
+| **AnswerCardEntryCompactLayout.kt** | 紧凑答题卡行：折叠 `1` + 展开 `1①` `1②`；状态聚合 |
+| **AnswerCardEntryGridLines.kt** | 词条 5 列行；展开分题号行带 `anchorColumn` / `startColumn` |
+| **AnswerCardRoundLinePlacement.kt** | 分题号以词条列为中心向两侧排；溢出 chunked 每行仍居中 |
+| **AnswerCardRoundCell.kt** | 分题号格：primary 字色 + 当前题边框 |
+| **AnswerCardEntryCell.kt** | 词条格：单击展开、双击跳转；底部 ExpandMore |
+| **AnswerCardExpandIndicator.kt** | 12dp 展开/折叠箭头（旋转动画） |
+| **AnswerCardCompactEntryGrid.kt** | LazyColumn 分行：词条行 / 分题号行 |
+| **QuestionNavigationControls.kt** | 底栏上一题/提交/下一题；箭头与提交图标均支持 `combinedClickable` 双击 |
+| **AnswerCardCell.kt** | 单格 UI（网格复用） |
+| **AnswerCardDialogContent.kt** | 全答→紧凑网格；否则题型折叠 |
+| **AnswerCardTypeLabels.kt** | 题型分组标题 |
+| **CollapsibleAnswerCardSection.kt** | 可折叠区块 + `AnswerCardGrid` |
+
+### Practice navigation 管道（feature-practice）
+
+| 文件 | 行数 | 功能描述 |
+|------|------|----------|
+| **NavigationHistory.kt** | — | `Active.orderedIndices` 冻结；左/右滑 position 步进；`preferSnapshot` |
+| **PracticeAnsweredBrowseNavigation.kt** | ~60 | `resolveOlder/NewerHistoryPosition` 纯 position 管道 |
+| **PracticeAnsweredBrowseNavigation.kt** | ~48 | 练习右滑历史与 domain `AnsweredBrowseOrder` 衔接；记忆轮优先级；`navigateReadOnly` |
+| **AnsweredHistoryForwardResult.kt** | — | 历史左滑结果：`Navigated` / `AtLatestAnswered` / `NotInHistory` |
+| **AnsweredHistoryBackwardResult.kt** | — | 历史右滑结果：`Navigated` / `AtOldestAnswered` / `NoMoreHistory` |
+| **NavigationController.kt** | — | 编排 next/prev/icon/skip；索引变更 `scheduleNavigationSave`；`skipToUnansweredSource` 委托 `PracticeFullAnswerUnansweredSourceNavigation` |
+
 ### Exam 系列已提取组件
 
 | 文件 | 行数 | 功能描述 |
 |------|------|----------|
 | **ExamState.kt** | — | 考试状态数据类定义 |
-| **ExamFillTransform.kt** | 81 | 考试填空题变换逻辑 |
+| **ExamFillTransform.kt** | 81 | 考试填空题变换逻辑（委托 `ExamFillConfigPipeline`） |
+| **ExamFillConfigPipeline.kt** | ~90 | 考试 Fill 无状态管道：读取配置、签名、应用 `transformQuestionVariantsForFillSettings`（含全答轮次顺序） |
+| **ExamFullAnswerNavigation.kt** | ~300 | 考试全答导航纯函数：pending 判定、同源轮次、顺序下一题；`resolveCandidateIndices` 轮次池优先 |
+| **ExamFullAnswerRoundPoolPipeline.kt** | ~20 | 全答轮次题池：同源+同轮索引 |
+| **ExamFullAnswerRoundUnansweredPipeline.kt** | ~30 | 轮次池未作答槽位（`!showResult`） |
+| **ExamFullAnswerRoundNavigablePipeline.kt** | ~35 | 轮次池可单击导航目标 |
+| **ExamFullAnswerRoundCompletePipeline.kt** | ~20 | 轮次池全部已作答（`showResult`） |
+| **ExamFullAnswerIconNavigation.kt** | ~45 | 全答底栏**单击**：在 navigable 轮次池内上下题 |
+| **ExamFullAnswerIconRetryPipeline.kt** | ~30 | 须全对答错后单击重开 |
+| **ExamFullAnswerReopenPipeline.kt** | ~40 | 重开单题作答态（填空保留已对空） |
+| **ExamReviewSwipePipeline.kt** | ~40 | 答题详情滑动：已答时间序更旧/更新 |
 | **ExamAISyncEffects.kt** | 52 | 考试 AI 分析同步副作用处理，注入 4 个依赖 |
 | **ExamArtifactCoordinator.kt** | — | 考试分析产物管理（对应 Practice 的 PracticeArtifactCoordinator） |
 | **ExamProgressCoordinator.kt** | — | 考试进度持久化协调 |
 | **ExamNavigationHelper.kt** | 130 | 考试导航辅助，状态构建和导航逻辑，1个依赖 |
-| **ExamLoadDelegate.kt** | 182 | 考试题目加载委托（3合1加载），10个依赖注入 |
+| **ExamNavigationCoordinator.kt** | — | `mustStayInRoundPool` 阻断跨词条；索引变更 `scheduleNavigationSave` |
+| **ExamLoadDelegate.kt** | 182 | 考试题目加载；新轮次走 `ExamQuestionOrderPipeline`；复盘 `preserveFinishedProgress` |
 | **ExamMemoryModeEngine.kt** | 48 | 考试记忆轮次引擎，1个依赖 |
 | **ExamAnswerRules.kt** | 20 | 考试答案判断规则，0依赖 |
 | **ExamEndFlow.kt** | 25 | 考试结束流程处理，1个依赖 |
 | **ExamDialogState.kt** | 24 | 考试对话框状态管理，0依赖 |
-| **ExamFontController.kt** | 47 | 考试字体控制，1个依赖 |
+| **ExamFontController.kt** | 62 | 考试字体/行距/字间距读写与持久化（`examFontSize`/`examLineSpacing`/`examLetterSpacing`） |
+| **ExamFontSettingsMenu.kt** | 32 | 考试页三点菜单：字体/行距/字间距调节项 |
+| **ExamSubmitFlow.kt** | 14 | 交卷入口无状态判定（未作答退出 / 弹出交卷确认） |
+| **ExamQuestionCountPolicy.kt** | ~25 | 考试题数截断；「全部」时复用门槛 |
+| **ExamSavedOrderMatchPipeline.kt** | ~12 | 已保存题序与期望序匹配（随机/顺序） |
+| **ExamSourceQuestionPipeline.kt** | ~15 | 变体题号 → 源题号；已答/上轮源题集合 |
+| **ExamRoundCompletePipeline.kt** | ~25 | 轮次结束：finished 或 fixedOrder 变体全 showResult |
+| **ExamRoundLoadLog.kt** | ~30 | 轮次加载/恢复/保存日志（`ExamRoundLoad`） |
+| **ExamQuestionOrderPipeline.kt** | ~70 | 新轮次未答池出题；`recyclePool` 避开上一轮 |
+| **ExamQuestionStateMapPipeline.kt** | ~12 | 跨轮次 `questionStateMap` 合并 |
+| **ExamSessionRestorePipeline.kt** | ~35 | 是否/如何从 map 回填作答；新轮次保持空白题面 |
+| **ExamPendingQuestionPipeline.kt** | ~20 | 考试未作答 pending 判定（`selectedOptions` 空） |
+| **ExamUnansweredNavigation.kt** | ~100 | 考试未答题导航池：随机全库 pending（除当前）；顺序按锚点 |
+| **ExamSequentialNextPipeline.kt** | ~20 | 顺序考试下一目标：后 pending → 前 pending → 顺序下一格 |
+| **ExamPostAnswerAdvancePipeline.kt** | ~15 | 单题作答后：仍有 pending → 继续；否则交卷确认 |
+| **ExamEdgeSwipePipeline.kt** | ~20 | 答题区左滑末缘：可导航下一题 / 未作答退出 / 交卷确认 |
 | **ExamSessionStats.kt** | 30 | 考试会话评分统计，2个依赖 |
 | **ExamGestureNavigator.kt** | 14 | 考试手势导航状态，0依赖 |
 | **ExamAutoAdvanceTimer.kt** | 36 | 考试自动前进计时器，1个依赖 |
@@ -112,16 +203,21 @@ PROJECT_ROOT/
 
 | 文件 | 行数 | 注入依赖 | 功能描述 |
 |------|------|----------|----------|
-| **PracticeViewModel.kt** | ~724 | ~15（含6Coordinator+UseCases） | **练习核心 VM** — 组装所有 Coordinator 的薄委托层。持有 `_sessionState: MutableStateFlow<PracticeSessionState>`（共享于所有协调器），DI 注入所有 UseCase、Coordinator、Context。暴露给 UI 的方法：`onAnswer/onOptionSelect/onOptionToggle/onSubmit/onTextAnswerChanged/onShowResult/onShowAnswer/onRemoveWrong/onPrev/onNext/onGoToQuestion/onExit`。暴露给 UI 的 StateFlow：`questions/currentIndex/selectedOptions/textAnswers/showResultList/analysisList/cumulativeCorrect/cumulativeAnswered/finished/messageResult/totalCount/answeredCount/correctCount/wrongCount/unansweredCount`。管理内存模式常量（MEMORY_WRONG_MODE_RETRY_WRONG_BLANKS/MEMORY_POOL_MODE_IN_OUT 等）|
-| **ExamViewModel.kt** | ~415 | ~12 | **考试核心 VM** — 考试会话全生命周期。持有 `ExamState`，注入 `GetQuestionsUseCase/SaveQuestionsUseCase/AddWrongQuestionUseCase/AddHistoryRecordUseCase/GradeExamUseCase` 和 7 个协调器（`ExamAnswerRules/ExamFillTransform/ExamMemoryModeEngine/ExamNavigationHelper/ExamLoadDelegate/ExamProgressCoordinator/ExamArtifactCoordinator`）。暴露状态：`questions/currentIndex/selectedOptions/textAnswers/showResultList/analysisList/cumulativeCorrect/cumulativeAnswered/finished/messageResult`。核心方法：`selectOption/toggleOption/gradeAnswer/showResult/showAnswer/nextQuestion/prevQuestion/goToQuestion/onExamEnd/submitExam` |
+| **PracticeViewModel.kt** | ~724 | ~15（含6Coordinator+UseCases） | **练习核心 VM** — 复盘：`reviewBrowseSession` 箭头全量顺序；右滑 `reviewAnsweredSwipeOrder` 仅已答 |
+| **ExamViewModel.kt** | ~415 | ~12 | **考试核心 VM** — 考试会话全生命周期。复盘：`SessionReviewPresentation` → `ReviewBrowseSession`（图标）+ `ReviewAnsweredSwipePipeline`（滑动） |
 | **HomeViewModel.kt** | — | 10 | **首页 VM** — 文件列表展示、练习进度聚合、设置持久化。注入 `GetQuestionsUseCase/GetFileStatisticsUseCase/ClearPracticeProgressUseCase/ClearExamProgressUseCase/ClearPracticeProgressByFileNameUseCase/ClearExamProgressByFileNameUseCase/SavePracticeProgressUseCase/GetAllPracticeProgressFlowUseCase/GetPracticeProgressFlowUseCase`。暴露状态：`fileNames/practiceProgress/messageResult/fileStatistics/storedPrefs/homeContentReady` |
 | **SettingsViewModel.kt** | ~416 | 8+ | **设置 VM** — 字体设置、导入导出、Fill 配置的薄委托层。注入 `QuestionRepository/WrongBookRepository/HistoryRepository/FavoriteQuestionRepository/QuestionAnalysisRepository/QuestionAskRepository/QuestionNoteRepository` 和 7 个协调器（`FontSettingsCoordinator/FillQuestionFilterCoordinator/ImportCoordinator/JsonExportCoordinator/ExcelExportCoordinator`）。暴露状态：`isLoading/progress` |
-| **DeepSeekViewModel.kt** | — | — | DeepSeek AI 问答 VM — 调用 DeepSeek API 进行题目分析 |
+| **DeepSeekViewModel.kt** | — | — | DeepSeek AI 解析 VM — 单轮 `analyze` |
+| **DeepSeekAskPersistFormatPipeline.kt** | 多轮编解码；`---` 分隔兼容 |
+| **DeepSeekAskDisplayPipeline.kt** | 多轮 assistant 拼接展示 |
+| **DeepSeekAskSavePipeline.kt** | 落库展示文本（追加后的完整答案） |
+| **DeepSeekAskPersistPipeline.kt** | 加载源解析；兼容旧笔记/`question_ask` |
+| **DeepSeekAskViewModel.kt** | 多轮 turns + `saveAndWait` 持久化 + `getSavedAnswer` |
 | **SparkViewModel.kt** | — | — | 讯飞星火 AI 问答 VM |
 | **SparkAskViewModel.kt** | — | — | 星火提问专用 VM |
 | **BaiduAskViewModel.kt** | — | — | 百度千帆提问 VM |
-| **WrongBookViewModel.kt** | — | — | 错题本 VM — 错题列表管理、按文件分组 |
-| **FavoriteViewModel.kt** | — | — | 收藏夹 VM — 收藏题目管理 |
+| **WrongBookViewModel.kt** | — | — | 错题本 VM — `libraryCatalog` 轻量列表；`ensureFullListLoaded` 按需全量 |
+| **FavoriteViewModel.kt** | — | — | 收藏夹 VM — 同上 catalog 驱动列表 |
 | **FileFolderViewModel.kt** | — | — | 文件/文件夹管理 VM — 文件移动、文件夹创建 |
 | **DragDropViewModel.kt** | — | — | 拖拽导入 VM — 处理屏幕底部拖放区状态 |
 
@@ -131,11 +227,13 @@ PROJECT_ROOT/
 
 | 文件 | 行数 | 功能描述 |
 |------|------|----------|
-| **PracticeScreen.kt** | ~499 | **练习界面** — 完整练习 UI 编排层。组合 `PracticeFontSettingsMenu`、题面显示、选项列表（`AnswerResultRow`/选项 Chip）、文本输入、结果展示、手势导航（水平拖拽前后切换）、`PracticeDialogsHost`（退出/编辑/AI查看对话框）、分析面板。接收 9 个回调（onQuizEnd/onSubmit/onExitWithoutAnswer/onViewDeepSeek/onViewSpark/onViewBaidu/onAskDeepSeek/onAskSpark/onAskBaidu/onEditNote）。注入 `PracticeViewModel/SettingsViewModel/DeepSeekViewModel/SparkViewModel/BaiduQianfanViewModel` |
-| **ExamScreen.kt** | ~390 | **考试界面** — 考试 UI 编排层。组合 `ExamTopBar`、`ExamHeader`（进度条/正确率）、`ExamQuestionBody`（题面）、`ExamOptionsList`、`ExamDialogs`（提交/退出对话框）、`ExamAnalysisArea`（分析面板）、`EditCurrentQuestionDialog`、`PracticeSubmitControls`（提交按钮）、编辑和复制功能。已从 868 行精简约 55% |
+| **PracticeScreen.kt** | ~900 | **练习界面** — `key(currentIndex)` + 切题滚顶；`currentQuestionUi` 窄订阅；图标走未答题导航，滑动手势走历史 |
+| **ExamScreenContent.kt** | — | **考试界面内容** — 题面/顶栏/导航/交卷；底栏与自动跳转按全库 pending（非答题卡末索引）；复盘模式 browse 管道 |
 | **HomeScreen.kt** | ~399 | **首页界面** — 文件卡片网格/Flex 布局、拖拽接收区、文件浏览、点击进入练习/考试、进度指示器。支持新建文件夹、拖拽排序。已从 1068 行精简约 63% |
 | **SettingsScreen.kt** | ~487 | **设置界面** — 字体面板（字号/字体选择）、Fill 配置面板、导入面板（文件/URI）、导出面板（JSON/Excel）、声音暗色面板。已从 1359 行精简约 64% |
-| **ResultScreen.kt** | — | **结果界面** — 答题/考试结果展示（得分/总数/正确率/未答题数） |
+| **ResultScreen.kt** | ~220 | **结果界面** — 得分/统计；「答题详情」→ `exam_review`/`practice_review`（带 `sessionProgressId`） |
+| **FillAnswerRoundLabel.kt** | — | 全答多轮标签（练习/考试共用） |
+| ~~**AnswerReviewScreen.kt**~~ | — | 已删除；复盘改复用 `ExamScreen`/`PracticeScreen` + `isReviewMode` |
 | **QuestionScreen.kt** | — | **题目详情界面** — 单题浏览/编辑 |
 | **WrongBookScreen.kt** | 466 | **错题本界面** — 错题列表、按文件分组、可跳转练习 |
 | **FavoriteScreen.kt** | 463 | **收藏夹界面** — 收藏题目列表、按文件分组、可跳转练习 |
@@ -271,7 +369,8 @@ PROJECT_ROOT/
 | 文件 | 行数 | 注入依赖 | 功能描述 |
 |------|------|----------|----------|
 | **QuestionRepositoryImpl.kt** | ~306（已从1619精简） | 11 DAO + 3 Sub-Repo + 7 Parser | **题库仓库核心** — 实现 `QuestionRepository` 接口。统一导入入口：`importFromFilesWithOrigin()` 调度 5 种格式解析器（TXT/DOCX/SQLite/JSON/Excel）。题目 CRUD、批量操作、文件列表管理、Markdown 清理预览。已提取 7 个 Parser/Extractor（1619→306行 repo + ~1190行 extractor），注入依赖从 16 个降至 ~14（含 sub-repo） |
-| **WrongBookRepositoryImpl.kt** | 394 | 4 | 错题本仓库 — 错题增删查、按文件名/全部获取 |
+| **ScopedLibraryCatalogPipeline.kt** | ~55 | 0 | 错题/收藏目录聚合 | SQL 计数构建 `LibraryCatalog` |
+| **WrongBookRepositoryImpl.kt** | 394 | 4 | 错题本仓库 — `observeLibraryCatalog`；`getAll` 按 ID 批量查题 |
 | **FavoriteQuestionRepositoryImpl.kt** | 273 | — | 收藏仓库 — 收藏增删查、按文件名/全部获取 |
 | **PracticeProgressRepositoryImpl.kt** | — | — | 练习进度持久化 — Flow 监听进度变化、保存/更新/按ID删除/按文件名批量清除 |
 | **ExamProgressRepositoryImpl.kt** | — | — | 考试进度持久化 — 同上，面向考试进度 |
@@ -334,6 +433,16 @@ PROJECT_ROOT/
 | **ExportData.kt** | **导出数据模型** |
 | **AnswerStatus.kt** | **答案状态枚举** — CORRECT/WRONG/UNANSWERED |
 
+### domain/review — 已答浏览管道
+
+| 文件 | 功能描述 |
+|------|----------|
+| **AnsweredBrowseOrder.kt** | 无状态排序：`hasAnswerContent`、`buildAnsweredIndicesByTimeDesc`、`buildReviewDisplayOrder`（已答时间倒序 + 未答置后） |
+| **ReviewBrowseSession.kt** | 不可变 `displayOrder` + `position`；复盘箭头步进 |
+| **ReviewAnsweredSwipePipeline.kt** | 复盘右滑：仅已答时间倒序；`resolveOlder/NewerIndex` |
+| **SessionReviewPresentation.kt** | 复盘入口：`ReviewPresentation(questionsWithState, displayOrder)`，不重排列表，已答强制 `showResult` |
+| **AnswerReviewOrder.kt** | 兼容委托 `AnsweredBrowseOrder` |
+
 ---
 
 ## 十五、domain/ 层 — 仓库接口（Repository Interfaces）
@@ -374,7 +483,12 @@ PROJECT_ROOT/
 | **FontSettingsDataStore.kt** (~374行) | 字体设置 DataStore — 字体族/字体大小/暗色模式等偏好设置的持久化存储 |
 | **HomeProgressRedoHandler.kt** | 首页进度重置处理器 |
 | **BaiduApiService.kt** | 百度千帆 API 服务 |
-| **DeepSeekApiService.kt** | DeepSeek API 服务 |
+| **DeepSeekApiService.kt** | `analyze` 单轮；`chat(messages)` 多轮；`thinking: disabled` |
+| **DeepSeekChatConfig.kt** | `API_URL`、`MODEL=deepseek-v4-flash`、system 提示词、采样参数、多轮纠错指引 |
+| **DeepSeekChatTurn.kt** | 单轮 user/assistant 对 |
+| **DeepSeekMultiTurnMessagesPipeline.kt** | 官方多轮 messages 拼接（system + history + user） |
+| **DeepSeekAskFollowUpPipeline.kt** | 再次提问：改题用新内容，否则注入修正 follow-up |
+| **DeepSeekChatMessages.kt** | 首轮 messages 委托 `DeepSeekMultiTurnMessagesPipeline` |
 | **SparkApiService.kt** | 讯飞星火 API 服务 |
 
 ---

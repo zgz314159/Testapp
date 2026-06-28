@@ -44,6 +44,7 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.material3.MaterialTheme
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
+import com.example.testapp.data.network.deepseek.DeepSeekAskPersistFormatPipeline
 import com.example.testapp.data.datastore.FontSettingsDataStore
 import com.example.testapp.presentation.screen.settings.SettingsViewModel
 import com.example.testapp.presentation.component.ActionModeTextToolbar
@@ -61,7 +62,8 @@ fun DeepSeekAskScreen(
     viewModel: DeepSeekAskViewModel = hiltViewModel(),
     settingsViewModel: SettingsViewModel = hiltViewModel()
 ) {
-    val result by viewModel.result.collectAsState()
+    val displayText by viewModel.displayText.collectAsState()
+    val isParsing by viewModel.isParsing.collectAsState()
     val parsingText = stringResource(com.example.testapp.R.string.parsing)
     val parsingKeyword = parsingText.removeSuffix("...")
     val askText = stringResource(com.example.testapp.R.string.ask)
@@ -118,23 +120,25 @@ fun DeepSeekAskScreen(
         viewModel.reset()
         answer = TextFieldValue("")
         originalAnswer = ""
-        val saved = viewModel.getSavedNote(questionId)
+        val saved = viewModel.loadSaved(questionId, text)
         if (!saved.isNullOrBlank()) {
             answer = TextFieldValue(saved)
             originalAnswer = saved
         }
     }
 
-    LaunchedEffect(result) {
-        if (result.isNotBlank() && result != parsingText && !result.contains(parseFailedKeyword)) {
-            answer = TextFieldValue(result)
-            originalAnswer = result
-            // 移除自动保存，由用户手动控制保存
-            
-        } else if (result.isNotBlank() && result != parsingText) {
-            // 在 UI 上显示解析失败结果
-            answer = TextFieldValue(result)
-            originalAnswer = result
+    LaunchedEffect(displayText, isParsing) {
+        if (isParsing) {
+            val suffix = viewModel.parsingSuffix()
+            answer = TextFieldValue(
+                if (displayText.isBlank()) suffix else "${displayText}${DeepSeekAskPersistFormatPipeline.ASSISTANT_SEPARATOR}$suffix"
+            )
+        } else if (displayText.isNotBlank() && !displayText.contains(parseFailedKeyword)) {
+            answer = TextFieldValue(displayText)
+            originalAnswer = displayText
+        } else if (displayText.isNotBlank()) {
+            answer = TextFieldValue(displayText)
+            originalAnswer = displayText
         }
     }
 
@@ -191,13 +195,12 @@ fun DeepSeekAskScreen(
                 .padding(16.dp)
         ) {
             Button(
-                onClick = {
-                    answer = TextFieldValue(parsingText)
-                    viewModel.ask(question.text)
-                },
-                enabled = answer.text != parsingText,
+                onClick = { viewModel.ask(question.text) },
+                enabled = !isParsing,
             ) {
-                Text(if (answer.text.isBlank() || answer.text == parsingText) askText else askAgainText)
+                Text(
+                    if (displayText.isBlank() || isParsing) askText else askAgainText
+                )
             }
         }
         Box(modifier = Modifier.align(Alignment.TopEnd)) {
@@ -230,7 +233,9 @@ fun DeepSeekAskScreen(
                 confirmButton = {
                     TextButton(onClick = {
                         saveScope.launch {
-                            onSave(answer.text)
+                            val textToSave = if (isParsing) displayText else answer.text
+                            val saved = viewModel.saveAndWait(questionId, textToSave)
+                            if (saved != null) onSave(saved)
                             showSaveDialog = false
                             navController?.popBackStack()
                         }

@@ -36,6 +36,7 @@ class ExamLoadDelegate @Inject constructor(
     private var progressSeedRef: (() -> Long)? = null
     private var setProgressSeedFn: ((Long) -> Unit)? = null
     private var setFullAnswerRequireCorrectFn: ((Boolean) -> Unit)? = null
+    private var onFillConfigAppliedFn: ((ExamFillConfig) -> Unit)? = null
     private var memoryModeActiveRef: (() -> Boolean)? = null
     private var setMemoryModeActiveFn: ((Boolean) -> Unit)? = null
     private var memoryModeEnabledRef: (() -> Boolean)? = null
@@ -59,6 +60,7 @@ class ExamLoadDelegate @Inject constructor(
         progressIdRef: () -> String, setProgressId: (String) -> Unit,
         progressSeedRef: () -> Long, setProgressSeed: (Long) -> Unit,
         setFullAnswerRequireCorrect: (Boolean) -> Unit,
+        onFillConfigApplied: (ExamFillConfig) -> Unit,
         memoryModeActiveRef: () -> Boolean, setMemoryModeActive: (Boolean) -> Unit,
         memoryModeEnabledRef: () -> Boolean, memoryModeBatchSizeRef: () -> Int,
         memoryWrongModeRef: () -> Int, memoryPoolModeRef: () -> Int,
@@ -75,6 +77,7 @@ class ExamLoadDelegate @Inject constructor(
         this.progressIdRef = progressIdRef; this.setProgressIdFn = setProgressId
         this.progressSeedRef = progressSeedRef; this.setProgressSeedFn = setProgressSeed
         this.setFullAnswerRequireCorrectFn = setFullAnswerRequireCorrect
+        this.onFillConfigAppliedFn = onFillConfigApplied
         this.memoryModeActiveRef = memoryModeActiveRef; this.setMemoryModeActiveFn = setMemoryModeActive
         this.memoryModeEnabledRef = memoryModeEnabledRef; this.memoryModeBatchSizeRef = memoryModeBatchSizeRef
         this.memoryWrongModeRef = memoryWrongModeRef; this.memoryPoolModeRef = memoryPoolModeRef
@@ -97,50 +100,121 @@ class ExamLoadDelegate @Inject constructor(
         onProgressLoadedFn!!(false)
     }
 
-    private suspend fun loadCore(originalQuestions: List<Question>, count: Int, random: Boolean) {
+    private var lastLoadParams: Triple<List<Question>, Int, Boolean>? = null
+
+    fun reloadForFillConfig() {
+        val (src, count, random) = lastLoadParams ?: return
+        if (src.isEmpty()) return
+        scope!!.launch { loadCore(src, count, random) }
+    }
+
+    private suspend fun loadCore(
+        originalQuestions: List<Question>,
+        count: Int,
+        random: Boolean,
+        preserveFinishedProgress: Boolean = false
+    ) {
+        lastLoadParams = Triple(originalQuestions, count, random)
         val pid = progressIdRef!!()
         var progress: ExamProgress? = getExamProgressFlowUseCase(pid).firstOrNull()
-        val seed = progress?.timestamp ?: System.currentTimeMillis()
+        val priorFinished = progress?.finished == true
+        val priorComplete = ExamRoundCompletePipeline.isComplete(progress)
+        val savedSourceOrderEarly = progress?.fixedQuestionOrder
+            ?.map(::extractSourceQuestionId)
+            ?.distinct()
+            .orEmpty()
+        val savedSourcesDone = ExamSourceQuestionPipeline.savedSourcesFullyAnswered(
+            savedSourceOrderEarly,
+            progress?.questionStateMap.orEmpty()
+        )
+        val startNewRound = (priorComplete || savedSourcesDone) && !preserveFinishedProgress
+        val seed = if (startNewRound) {
+            System.currentTimeMillis()
+        } else {
+            progress?.timestamp ?: System.currentTimeMillis()
+        }
         setProgressSeedFn!!(seed)
+        if (!memoryModeActiveRef!!()) {
+            persistentQuestionStateMap!!.clear()
+            persistentQuestionStateMap!!.putAll(progress?.questionStateMap.orEmpty())
+        }
         val fillSig = fillTransform.currentFillConfigSignature()
         val genMode = fontSettings.fillQuestionGenerationMode.firstOrNull()
             ?: FillQuestionGenerationMode.SCORE_RANGE_RANDOM
 
-        if (progress?.finished == true) { /* 保留已批改进度，重入时恢复 */ }
-
-        val canReuse = fillTransform.canReuseByFillSignature(progress?.sessionId, fillSig, fillTransform.isFillConfigSensitive(originalQuestions))
+        val canReuseByFill = fillTransform.canReuseByFillSignature(progress?.sessionId, fillSig, fillTransform.isFillConfigSensitive(originalQuestions))
         val savedSig = fillTransform.extractFillConfigSignature(progress?.sessionId)
-        if (progress != null && savedSig.isNullOrBlank() && canReuse) {
+        if (progress != null && savedSig.isNullOrBlank() && canReuseByFill) {
             progress = progress.copy(sessionId = fillTransform.buildSessionIdWithFillSignature(pid, progress.timestamp, fillSig))
             saveExamProgressUseCase(progress)
         }
 
-        val expectedCount = if (count > 0) count.coerceAtMost(originalQuestions.size) else originalQuestions.size
+        val fullPoolSize = originalQuestions.size
+        val expectedCount = ExamQuestionCountPolicy.expectedCount(count, fullPoolSize)
         val expectedSeq = if (count > 0) originalQuestions.take(expectedCount).map { it.id } else originalQuestions.map { it.id }
-        val savedOrder = progress?.fixedQuestionOrder?.let { order ->
+        val savedSourceOrder = progress?.fixedQuestionOrder?.let { order ->
             if (genMode == FillQuestionGenerationMode.FULL_ANSWER) order.map(::extractSourceQuestionId).distinct() else order
-        }?.takeIf { canReuse }.orEmpty()
+        }?.takeIf { canReuseByFill }.orEmpty()
 
-        val finalQuestions = if (navigationHelper.shouldReuseSavedSourceOrder(savedOrder, expectedCount, expectedSeq, random)) {
-            val map = originalQuestions.associateBy { it.id }; savedOrder.mapNotNull { map[it] }
+        val canReuseSavedOrder = if (preserveFinishedProgress && priorFinished) {
+            savedSourceOrder.isNotEmpty() && canReuseByFill
         } else {
-            val ordered = if (random && progress != null) {
-                val answeredIds = progress.questionStateMap.keys.toSet()
-                val un = originalQuestions.filter { it.id !in answeredIds }
-                val an = originalQuestions.filter { it.id in answeredIds }
-                if (un.isNotEmpty()) un.shuffled(java.util.Random(seed)) + an.shuffled(java.util.Random(seed + 1000))
-                else originalQuestions.shuffled(java.util.Random(seed))
-            } else if (random) originalQuestions.shuffled(java.util.Random(seed))
-            else originalQuestions
-            val limited = if (count > 0) ordered.take(count.coerceAtMost(ordered.size)) else ordered
-            saveExamProgressUseCase(ExamProgress(id = pid, currentIndex = 0, selectedOptions = emptyList(),
-                showResultList = emptyList(), analysisList = emptyList(), sparkAnalysisList = emptyList(),
-                baiduAnalysisList = emptyList(), noteList = emptyList(), finished = false, timestamp = seed,
-                sessionId = fillTransform.buildSessionIdWithFillSignature(pid, seed, fillSig),
-                fixedQuestionOrder = limited.map { it.id },
-                questionStateMap = if (progress?.finished == true) progress.questionStateMap else emptyMap()))
-            limited
+            ExamRoundReusePipeline.canReuseSavedOrder(
+                progress = progress,
+                savedSourceOrder = savedSourceOrder,
+                questionCount = count,
+                fullPoolSize = fullPoolSize,
+                expectedSeq = expectedSeq,
+                random = random,
+                canReuseByFill = canReuseByFill
+            )
         }
+
+        val sessionId = fillTransform.buildSessionIdWithFillSignature(pid, seed, fillSig)
+        val answeredSourceIdsForLog = ExamSourceQuestionPipeline.answeredSourceIds(progress?.questionStateMap.orEmpty())
+        val lastRoundSourceIdsForLog = ExamSourceQuestionPipeline.lastRoundSourceIds(progress?.fixedQuestionOrder.orEmpty())
+        val finalQuestions = if (canReuseSavedOrder) {
+            val map = originalQuestions.associateBy { it.id }
+            savedSourceOrder.mapNotNull { map[it] }
+        } else {
+            val lastRoundSourceIds = if (startNewRound) {
+                ExamSourceQuestionPipeline.lastRoundSourceIds(progress?.fixedQuestionOrder.orEmpty())
+            } else {
+                emptySet()
+            }
+            val answeredSourceIds = ExamQuestionOrderPipeline.answeredQuestionIds(progress?.questionStateMap.orEmpty())
+            val ordered = ExamQuestionOrderPipeline.orderForNewRound(
+                originalQuestions = originalQuestions,
+                questionCount = count,
+                random = random,
+                answeredSourceIds = answeredSourceIds,
+                seed = seed,
+                lastRoundSourceIds = lastRoundSourceIds
+            )
+            val newProgress = ExamQuestionOrderPipeline.buildNewRoundProgress(
+                prior = progress,
+                progressId = pid,
+                seed = seed,
+                sessionId = sessionId,
+                questions = ordered
+            )
+            saveExamProgressUseCase(newProgress)
+            progress = newProgress
+            ordered
+        }
+
+        ExamRoundLoadLog.loadCore(
+            priorComplete = priorComplete,
+            startNewRound = startNewRound,
+            canReuseSavedOrder = canReuseSavedOrder,
+            finished = progress?.finished == true,
+            savedOrderSize = savedSourceOrder.size,
+            questionCount = count,
+            orderedIds = finalQuestions.map { it.id },
+            answeredSourceIds = answeredSourceIdsForLog,
+            lastRoundSourceIds = if (startNewRound) lastRoundSourceIdsForLog else emptySet(),
+            savedSourcesDone = savedSourcesDone
+        )
 
         val shuffled = navigationHelper.shuffleOptionsIfNeeded(finalQuestions, random, seed)
 
@@ -150,7 +224,36 @@ class ExamLoadDelegate @Inject constructor(
             if (onInitMemoryModeFn!!(seed)) return
         }
 
-        val configured = fillTransform.applyConfiguredFillQuestions(shuffled, seed, setFullAnswerRequireCorrectFn!!) { }
+        val configured = fillTransform.applyConfiguredFillQuestions(shuffled, seed, { config ->
+            setFullAnswerRequireCorrectFn!!(config.fullAnswerRequireCorrect)
+            onFillConfigAppliedFn!!(config)
+        }) { }
+        if (configured.isNotEmpty() && progress?.finished != true) {
+            val variantOrder = configured.map { it.id }
+            val needsVariantOrder = progress == null ||
+                progress.fixedQuestionOrder != variantOrder ||
+                !canReuseByFill
+            if (needsVariantOrder) {
+                saveExamProgressUseCase(
+                    ExamProgress(
+                        id = pid,
+                        currentIndex = progress?.currentIndex ?: 0,
+                        selectedOptions = progress?.selectedOptions.orEmpty(),
+                        showResultList = progress?.showResultList.orEmpty(),
+                        analysisList = progress?.analysisList.orEmpty(),
+                        sparkAnalysisList = progress?.sparkAnalysisList.orEmpty(),
+                        baiduAnalysisList = progress?.baiduAnalysisList.orEmpty(),
+                        noteList = progress?.noteList.orEmpty(),
+                        finished = false,
+                        timestamp = seed,
+                        sessionId = sessionId,
+                        fixedQuestionOrder = variantOrder,
+                        questionStateMap = if (canReuseByFill) progress?.questionStateMap.orEmpty() else emptyMap()
+                    )
+                )
+                progress = getExamProgressFlowUseCase(pid).firstOrNull()
+            }
+        }
         onQuestionsFn!!(configured)
         val artifacts = navigationHelper.preloadStoredArtifacts(configured, progress,
             { getQuestionAnalysisUseCase(it).getOrNull().orEmpty() },
@@ -193,6 +296,44 @@ class ExamLoadDelegate @Inject constructor(
                 setAllSourceQuestionsFn!!(src)
                 loadCore(src, count, random)
             }
+        }
+    }
+
+    fun loadReviewSession(
+        targetProgressId: String,
+        quizFile: String,
+        count: Int,
+        random: Boolean,
+        wrongBook: Boolean = false,
+        favorite: Boolean = false
+    ) {
+        scope!!.launch {
+            setProgressIdFn!!(targetProgressId)
+            val progress = getExamProgressFlowUseCase(targetProgressId).firstOrNull()
+            if (progress == null) {
+                onQuestionsFn!!(emptyList())
+                onProgressLoadedFn!!(true)
+                return@launch
+            }
+            setProgressSeedFn!!(progress.timestamp)
+            val src = when {
+                wrongBook -> getWrongBookUseCase().firstOrNull()
+                    ?.filter { it.question.fileName == quizFile }
+                    ?.map { it.question }
+                    .orEmpty()
+                favorite -> getFavoriteQuestionsUseCase().firstOrNull()
+                    ?.filter { it.question.fileName == quizFile }
+                    ?.map { it.question }
+                    .orEmpty()
+                else -> getQuestionsUseCase(quizFile).firstOrNull().orEmpty()
+            }
+            if (src.isEmpty()) {
+                onQuestionsFn!!(emptyList())
+                onProgressLoadedFn!!(true)
+                return@launch
+            }
+            setAllSourceQuestionsFn!!(src)
+            loadCore(src, count, random, preserveFinishedProgress = true)
         }
     }
 }

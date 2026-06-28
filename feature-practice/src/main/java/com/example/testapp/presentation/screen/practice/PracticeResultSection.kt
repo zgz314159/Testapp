@@ -1,6 +1,7 @@
 package com.example.testapp.presentation.screen.practice
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -20,6 +21,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.testapp.domain.QuestionTypes
@@ -48,7 +50,8 @@ fun PracticeResultSection(
     retryLabel: String,
     retryWrongLabel: String,
     onRetry: () -> Unit,
-    onRetryWrongBlanks: (() -> Unit)?
+    onRetryWrongBlanks: (() -> Unit)?,
+    onInteraction: () -> Unit = {}
 ) {
     if (!showResult) {
         Spacer(modifier = Modifier.height(16.dp))
@@ -60,6 +63,9 @@ fun PracticeResultSection(
         modifier = Modifier
             .fillMaxWidth()
             .background(Color(0xFFD0E8FF))
+            .pointerInput(Unit) {
+                detectTapGestures(onTap = { onInteraction() })
+            }
             .padding(8.dp)
     ) {
         Column(
@@ -109,7 +115,10 @@ fun PracticeResultSection(
         horizontalArrangement = Arrangement.SpaceBetween
     ) {
         TextButton(
-            onClick = onRetry,
+            onClick = {
+                onInteraction()
+                onRetry()
+            },
             contentPadding = PaddingValues(horizontal = 0.dp, vertical = 0.dp)
         ) {
             Icon(
@@ -126,7 +135,10 @@ fun PracticeResultSection(
 
         if (QuestionTypes.isInlineBlank(question.type) && onRetryWrongBlanks != null) {
             TextButton(
-                onClick = onRetryWrongBlanks,
+                onClick = {
+                    onInteraction()
+                    onRetryWrongBlanks()
+                },
                 contentPadding = PaddingValues(horizontal = 0.dp, vertical = 0.dp)
             ) {
                 Icon(

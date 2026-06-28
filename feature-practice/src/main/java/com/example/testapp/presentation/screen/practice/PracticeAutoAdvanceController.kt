@@ -48,7 +48,8 @@ class PracticeAutoAdvanceController {
         delaySec: Int,
         revealResultFirst: Boolean,
         showResult: (Int, Boolean) -> Unit,
-        onAdvance: suspend () -> Unit
+        onAdvance: suspend () -> Unit,
+        advanceOnly: Boolean = false
     ) {
         job?.cancel()
         if (!_active) return
@@ -58,7 +59,7 @@ class PracticeAutoAdvanceController {
             if (delaySec > 0) pausableDelay(delaySec * 1000L)
             ensureActive()
             if (!_active) return@launch
-            if (!revealResultFirst) showResult(answeredIndex, true)
+            if (!revealResultFirst && !advanceOnly) showResult(answeredIndex, true)
             onAdvance()
         }
     }

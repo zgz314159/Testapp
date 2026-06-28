@@ -175,6 +175,7 @@ private data class AnalyticsRouteParams(val id: Int, val index: Int, val text: S
 internal fun NavHostController.navToResult(
     prefix: String, quizId: String, score: Int, total: Int, unanswered: Int,
     cumulativeCorrect: Int?, cumulativeAnswered: Int?, cumulativeExamCount: Int? = null,
+    sessionProgressId: String? = null,
     popUpTo: String = "home"
 ) {
     val id = "${prefix}_$quizId"
@@ -184,6 +185,9 @@ internal fun NavHostController.navToResult(
         append("?cumulativeCorrect=${cumulativeCorrect ?: -1}")
         append("&cumulativeAnswered=${cumulativeAnswered ?: -1}")
         if (cumulativeExamCount != null) append("&cumulativeExamCount=$cumulativeExamCount")
+        if (!sessionProgressId.isNullOrBlank()) {
+            append("&sessionProgressId=${java.net.URLEncoder.encode(sessionProgressId, "UTF-8")}")
+        }
     }
     navigate(extras) { popUpTo(popUpTo) { inclusive = false } }
 }

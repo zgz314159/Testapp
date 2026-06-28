@@ -3,37 +3,35 @@ package com.example.testapp.data.network.deepseek
 import com.example.testapp.BuildConfig
 import com.example.testapp.domain.model.Question
 import io.ktor.client.HttpClient
-import io.ktor.client.call.body
-import io.ktor.client.statement.bodyAsText
+import io.ktor.client.request.header
 import io.ktor.client.request.post
 import io.ktor.client.request.setBody
-import io.ktor.client.request.header
 import io.ktor.client.request.url
 import io.ktor.client.statement.HttpResponse
+import io.ktor.client.statement.bodyAsText
 import io.ktor.http.ContentType
 import io.ktor.http.HttpHeaders
 import io.ktor.http.isSuccess
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
-import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 
 @Serializable
-private data class Message(
-    val role: String,
-    val content: String
-)
+private data class ThinkingConfig(val type: String)
 
 @Serializable
 private data class RequestBody(
-    val model: String = "deepseek-chat",
-    val messages: List<Message>,
-    @SerialName("max_tokens") val maxTokens: Int = 4096
+    val model: String = DeepSeekChatConfig.MODEL,
+    val messages: List<DeepSeekChatMessage>,
+    @SerialName("max_tokens") val maxTokens: Int = DeepSeekChatConfig.MAX_TOKENS,
+    val temperature: Double = DeepSeekChatConfig.TEMPERATURE,
+    @SerialName("presence_penalty") val presencePenalty: Double = DeepSeekChatConfig.PRESENCE_PENALTY,
+    val thinking: ThinkingConfig = ThinkingConfig(DeepSeekChatConfig.THINKING_DISABLED)
 )
 
 @Serializable
 private data class ResponseChoice(
-    val message: Message
+    val message: DeepSeekChatMessage
 )
 
 @Serializable
@@ -44,75 +42,20 @@ private data class ResponseData(
 class DeepSeekApiService(private val client: HttpClient) {
     private val json = Json { ignoreUnknownKeys = true }
 
-    private fun stripMarkdown(text: String): String {
-        return text.replace("*", "").replace("_", "")
-    }
+    private fun stripMarkdown(text: String): String =
+        text.replace("*", "").replace("_", "")
 
-    suspend fun analyze(question: Question): String {
+    private fun requireApiKey() {
         if (BuildConfig.DEEPSEEK_API_KEY.isBlank()) {
             throw IllegalStateException("未配置 DEEPSEEK_API_KEY，请在项目根目录 local.properties 中添加")
         }
-
-        val totalStart = System.currentTimeMillis()
-
-        val prompt = buildString {
-            appendLine(question.content)
-            question.options.forEachIndexed { index, option ->
-                val letter = ('A' + index)
-                appendLine("$letter. $option")
-            }
-            append("请给出正确答案和解析：")
-        }
-
-        val requestBody = RequestBody(
-            messages = listOf(Message("user", prompt)),
-            maxTokens = 4096
-        )
-
-        val requestStart = System.currentTimeMillis()
-
-        val httpResponse: HttpResponse = try {
-            client.post {
-                url("https://api.deepseek.com/v1/chat/completions")
-                header("Authorization", "Bearer ${BuildConfig.DEEPSEEK_API_KEY}")
-                header(HttpHeaders.ContentType, ContentType.Application.Json)
-                setBody(requestBody)
-            }
-        } catch (e: Exception) {
-            
-            throw e
-        }
-        val networkDuration = System.currentTimeMillis() - requestStart
-
-        val raw: String = httpResponse.bodyAsText()
-        
-        if (!httpResponse.status.isSuccess()) {
-            throw RuntimeException("HTTP ${httpResponse.status.value}: $raw")
-        }
-        val parseStart = System.currentTimeMillis()
-        val response = try {
-            json.decodeFromString<ResponseData>(raw)
-        } catch (e: Exception) {
-            
-            throw e
-        }
-        val parseDuration = System.currentTimeMillis() - parseStart
-
-        val totalDuration = System.currentTimeMillis() - totalStart
-        
-        val result = response.choices.firstOrNull()?.message?.content ?: ""
-        return stripMarkdown(result)
     }
-    suspend fun ask(text: String): String {
-        if (BuildConfig.DEEPSEEK_API_KEY.isBlank()) {
-            throw IllegalStateException("未配置 DEEPSEEK_API_KEY，请在项目根目录 local.properties 中添加")
-        }
-        val requestBody = RequestBody(
-            messages = listOf(Message("user", text)),
-            maxTokens = 4096
-        )
-        val httpResponse = client.post {
-            url("https://api.deepseek.com/v1/chat/completions")
+
+    private suspend fun complete(messages: List<DeepSeekChatMessage>): String {
+        requireApiKey()
+        val requestBody = RequestBody(messages = messages)
+        val httpResponse: HttpResponse = client.post {
+            url(DeepSeekChatConfig.API_URL)
             header("Authorization", "Bearer ${BuildConfig.DEEPSEEK_API_KEY}")
             header(HttpHeaders.ContentType, ContentType.Application.Json)
             setBody(requestBody)
@@ -122,7 +65,25 @@ class DeepSeekApiService(private val client: HttpClient) {
             throw RuntimeException("HTTP ${httpResponse.status.value}: $raw")
         }
         val response = json.decodeFromString<ResponseData>(raw)
-        val result = response.choices.firstOrNull()?.message?.content ?: ""
+        val result = response.choices.firstOrNull()?.message?.content.orEmpty()
         return stripMarkdown(result)
     }
+
+    private suspend fun complete(userContent: String): String =
+        complete(DeepSeekChatMessages.build(userContent))
+
+    suspend fun analyze(question: Question): String {
+        val prompt = buildString {
+            appendLine(question.content)
+            question.options.forEachIndexed { index, option ->
+                appendLine("${('A' + index)}. $option")
+            }
+            append("请给出正确答案和解析：")
+        }
+        return complete(prompt)
+    }
+
+    suspend fun ask(text: String): String = complete(text)
+
+    suspend fun chat(messages: List<DeepSeekChatMessage>): String = complete(messages)
 }

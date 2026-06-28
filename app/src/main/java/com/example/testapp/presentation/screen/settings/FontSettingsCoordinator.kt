@@ -107,6 +107,9 @@ class FontSettingsCoordinator @Inject constructor(
     fun emitFillQuestionGenerationMode(mode: FillQuestionGenerationMode) {
         _fillQuestionGenerationMode.value = mode
         _randomFillBlanks.value = mode == FillQuestionGenerationMode.SCORE_RANGE_RANDOM
+        if (mode == FillQuestionGenerationMode.FULL_ANSWER && _fillBlankCount.value <= 0) {
+            _fillBlankCount.value = 1
+        }
     }
     fun emitFillFullAnswerRandomOrder(enabled: Boolean) { _fillFullAnswerRandomOrder.value = enabled }
     fun emitFillFullAnswerRequireCorrect(enabled: Boolean) { _fillFullAnswerRequireCorrect.value = enabled }
@@ -143,6 +146,9 @@ class FontSettingsCoordinator @Inject constructor(
         _fillBlankCount.value = snapshot.fillBlankCount
         _randomFillBlanks.value = snapshot.randomFillBlanks
         _fillQuestionGenerationMode.value = snapshot.fillQuestionGenerationMode
+        if (_fillQuestionGenerationMode.value == FillQuestionGenerationMode.FULL_ANSWER && _fillBlankCount.value <= 0) {
+            _fillBlankCount.value = 1
+        }
         _fillFullAnswerRandomOrder.value = snapshot.fillFullAnswerRandomOrder
         _fillFullAnswerRequireCorrect.value = snapshot.fillFullAnswerRequireCorrect
         _fillAnswerScoreMin.value = snapshot.fillAnswerScoreMin

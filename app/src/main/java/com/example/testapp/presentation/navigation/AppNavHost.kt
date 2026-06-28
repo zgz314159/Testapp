@@ -27,9 +27,12 @@ import com.example.testapp.presentation.screen.ai.SparkScreen
 import com.example.testapp.presentation.screen.ai.SparkAskScreen
 import com.example.testapp.presentation.screen.ai.BaiduScreen
 import com.example.testapp.presentation.screen.ai.BaiduAskScreen
+import com.example.testapp.presentation.navigation.navToResult
 import com.example.testapp.presentation.screen.exam.ExamViewModel
 import com.example.testapp.presentation.screen.ai.ExplanationScreen
 
+import com.example.testapp.core.common.parseExamReviewTarget
+import com.example.testapp.core.common.parsePracticeReviewTarget
 import com.example.testapp.core.util.safeDecode
 import com.example.testapp.core.util.safeEncode
 
@@ -91,11 +94,16 @@ fun AppNavHost(navController: NavHostController = rememberNavController(), setti
             PracticeScreen(
                 quizId = quizId, settingsViewModel = settingsViewModel, viewModel = globalPracticeViewModel,
                 onQuizEnd = { score, total, unanswered, cumulativeCorrect, cumulativeAnswered ->
-                    val id = "practice_${quizId}"
-                    val e = java.net.URLEncoder.encode(id, "UTF-8")
-                    navController.navigate("result/$score/$total/$unanswered/$e?cumulativeCorrect=${cumulativeCorrect ?: -1}&cumulativeAnswered=${cumulativeAnswered ?: -1}") {
-                        popUpTo("home") { inclusive = false }
-                    }
+                    navController.navToResult(
+                        prefix = "practice",
+                        quizId = quizId,
+                        score = score,
+                        total = total,
+                        unanswered = unanswered,
+                        cumulativeCorrect = cumulativeCorrect,
+                        cumulativeAnswered = cumulativeAnswered,
+                        sessionProgressId = globalPracticeViewModel.currentProgressId
+                    )
                 },
                 onExitWithoutAnswer = { navController.popBackStack() },
                 onViewDeepSeek = { text, id, index -> val encodedText = safeEncode(text); navController.navigate("deepseek/$id/$index/$encodedText") },
@@ -119,11 +127,17 @@ fun AppNavHost(navController: NavHostController = rememberNavController(), setti
             ExamScreen(
                 quizId = quizId, settingsViewModel = settingsViewModel, viewModel = globalExamViewModel,
                 onExamEnd = { score, total, unanswered, cumulativeCorrect, cumulativeAnswered, cumulativeExamCount ->
-                    val id = "exam_${quizId}"
-                    val e = java.net.URLEncoder.encode(id, "UTF-8")
-                    navController.navigate("result/$score/$total/$unanswered/$e?cumulativeCorrect=${cumulativeCorrect ?: -1}&cumulativeAnswered=${cumulativeAnswered ?: -1}&cumulativeExamCount=${cumulativeExamCount ?: -1}") {
-                        popUpTo("home") { inclusive = false }
-                    }
+                    navController.navToResult(
+                        prefix = "exam",
+                        quizId = quizId,
+                        score = score,
+                        total = total,
+                        unanswered = unanswered,
+                        cumulativeCorrect = cumulativeCorrect,
+                        cumulativeAnswered = cumulativeAnswered,
+                        cumulativeExamCount = cumulativeExamCount,
+                        sessionProgressId = globalExamViewModel.currentProgressId
+                    )
                 },
                 onExitWithoutAnswer = { navController.popBackStack() },
                 onViewDeepSeek = { text, id, index -> val encodedText = safeEncode(text); navController.navigate("deepseek/$id/$index/$encodedText") },
@@ -141,12 +155,13 @@ fun AppNavHost(navController: NavHostController = rememberNavController(), setti
             val quizId = com.example.testapp.util.safeDecode(encodedDetail)
             QuestionScreen(quizId = quizId)
         }
-        composable("result/{score}/{total}/{unanswered}/{quizId}?cumulativeCorrect={cumulativeCorrect}&cumulativeAnswered={cumulativeAnswered}&cumulativeExamCount={cumulativeExamCount}",
+        composable("result/{score}/{total}/{unanswered}/{quizId}?cumulativeCorrect={cumulativeCorrect}&cumulativeAnswered={cumulativeAnswered}&cumulativeExamCount={cumulativeExamCount}&sessionProgressId={sessionProgressId}",
             arguments = listOf(
                 navArgument("quizId") { type = NavType.StringType },
                 navArgument("cumulativeCorrect") { type = NavType.IntType; defaultValue = -1 },
                 navArgument("cumulativeAnswered") { type = NavType.IntType; defaultValue = -1 },
-                navArgument("cumulativeExamCount") { type = NavType.IntType; defaultValue = -1 }
+                navArgument("cumulativeExamCount") { type = NavType.IntType; defaultValue = -1 },
+                navArgument("sessionProgressId") { type = NavType.StringType; defaultValue = "" }
             )
         ) { backStackEntry ->
             val score = backStackEntry.arguments?.getString("score")?.toIntOrNull() ?: 0
@@ -156,21 +171,73 @@ fun AppNavHost(navController: NavHostController = rememberNavController(), setti
             val cumulativeCorrect = backStackEntry.arguments?.getInt("cumulativeCorrect")?.takeIf { it != -1 }
             val cumulativeAnswered = backStackEntry.arguments?.getInt("cumulativeAnswered")?.takeIf { it != -1 }
             val cumulativeExamCount = backStackEntry.arguments?.getInt("cumulativeExamCount")?.takeIf { it != -1 }
+            val encodedSessionProgressId = backStackEntry.arguments?.getString("sessionProgressId").orEmpty()
             val quizId = com.example.testapp.util.safeDecode(encodedQuiz)
+            val sessionProgressId = encodedSessionProgressId.takeIf { it.isNotBlank() }?.let(::safeDecode)
             ResultScreen(
                 score = score, total = total, unanswered = unanswered, quizId = quizId,
                 cumulativeCorrect = cumulativeCorrect, cumulativeAnswered = cumulativeAnswered, cumulativeExamCount = cumulativeExamCount,
                 onBackHome = { navController.popBackStack("home", false) },
                 onViewDetail = {
-                    if (encodedQuiz.isNotBlank()) {
-                        val decoded = com.example.testapp.util.safeDecode(encodedQuiz)
-                        val original = when { decoded.startsWith("exam_") -> decoded.removePrefix("exam_"); decoded.startsWith("practice_") -> decoded.removePrefix("practice_"); else -> decoded }
-                        val encodedOriginal = java.net.URLEncoder.encode(original, "UTF-8")
-                        val route = "question/$encodedOriginal"
-                        navController.navigate(route)
-                    }
+                    val progressId = sessionProgressId ?: quizId
+                    if (progressId.isBlank()) return@ResultScreen
+                    val encoded = java.net.URLEncoder.encode(progressId, "UTF-8")
+                    val route = if (quizId.startsWith("exam_")) "exam_review/$encoded" else "practice_review/$encoded"
+                    navController.navigate(route)
                 },
                 onBack = { navController.popBackStack("home", false) }
+            )
+        }
+        composable("exam_review/{progressId}", arguments = listOf(navArgument("progressId") { type = NavType.StringType })) { backStackEntry ->
+            val progressId = safeDecode(backStackEntry.arguments?.getString("progressId").orEmpty())
+            val target = parseExamReviewTarget(progressId)
+            ExamScreen(
+                quizId = target.quizFileName,
+                isWrongBookMode = target.isWrongBookMode,
+                wrongBookFileName = target.quizFileName.takeIf { target.isWrongBookMode },
+                isFavoriteMode = target.isFavoriteMode,
+                favoriteFileName = target.quizFileName.takeIf { target.isFavoriteMode },
+                isReviewMode = true,
+                reviewProgressId = progressId,
+                onReviewBack = { navController.popBackStack() },
+                settingsViewModel = settingsViewModel,
+                viewModel = globalExamViewModel,
+                onExamEnd = { _, _, _, _, _, _ -> },
+                onExitWithoutAnswer = { navController.popBackStack() },
+                onViewDeepSeek = { text, id, index -> val encodedText = safeEncode(text); navController.navigate("deepseek/$id/$index/$encodedText") },
+                onViewSpark = { text, id, index -> val encodedText = safeEncode(text); navController.navigate("spark/$id/$index/$encodedText") },
+                onViewBaidu = { text, id, index -> val encodedText = safeEncode(text); navController.navigate("baidu/$id/$index/$encodedText") },
+                onAskDeepSeek = { text, id, index -> val encodedText = safeEncode(text); navController.navigate("deepseek_ask/$id/$index/$encodedText") },
+                onAskSpark = { text, id, index -> val encodedText = safeEncode(text); navController.navigate("spark_ask/$id/$index/$encodedText") },
+                onAskBaidu = { text, id, index -> val encodedText = safeEncode(text); navController.navigate("baidu_ask/$id/$index/$encodedText") },
+                onViewExplanation = { text -> val encodedText = safeEncode(text); navController.navigate("explanation/$encodedText") },
+                onEditNote = { text, id, index -> val encodedText = safeEncode(text); navController.navigate("note/$id/$index/$encodedText") }
+            )
+        }
+        composable("practice_review/{progressId}", arguments = listOf(navArgument("progressId") { type = NavType.StringType })) { backStackEntry ->
+            val progressId = safeDecode(backStackEntry.arguments?.getString("progressId").orEmpty())
+            val target = parsePracticeReviewTarget(progressId)
+            PracticeScreen(
+                quizId = target.quizFileName,
+                isWrongBookMode = target.isWrongBookMode,
+                wrongBookFileName = target.quizFileName.takeIf { target.isWrongBookMode },
+                isFavoriteMode = target.isFavoriteMode,
+                favoriteFileName = target.quizFileName.takeIf { target.isFavoriteMode },
+                isReviewMode = true,
+                reviewProgressId = progressId,
+                onReviewBack = { navController.popBackStack() },
+                settingsViewModel = settingsViewModel,
+                viewModel = globalPracticeViewModel,
+                onQuizEnd = { _, _, _, _, _ -> },
+                onExitWithoutAnswer = { navController.popBackStack() },
+                onViewDeepSeek = { text, id, index -> val encodedText = safeEncode(text); navController.navigate("deepseek/$id/$index/$encodedText") },
+                onViewSpark = { text, id, index -> val encodedText = safeEncode(text); navController.navigate("spark/$id/$index/$encodedText") },
+                onViewBaidu = { text, id, index -> val encodedText = safeEncode(text); navController.navigate("baidu/$id/$index/$encodedText") },
+                onAskDeepSeek = { text, id, index -> val encodedText = safeEncode(text); navController.navigate("deepseek_ask/$id/$index/$encodedText") },
+                onAskSpark = { text, id, index -> val encodedText = safeEncode(text); navController.navigate("spark_ask/$id/$index/$encodedText") },
+                onAskBaidu = { text, id, index -> val encodedText = safeEncode(text); navController.navigate("baidu_ask/$id/$index/$encodedText") },
+                onViewExplanation = { text -> val encodedText = safeEncode(text); navController.navigate("explanation/$encodedText") },
+                onEditNote = { text, id, index -> val encodedText = safeEncode(text); navController.navigate("note/$id/$index/$encodedText") }
             )
         }
         composable("wrongbook") { WrongBookScreen(navController = navController) }
@@ -184,9 +251,14 @@ fun AppNavHost(navController: NavHostController = rememberNavController(), setti
             val name = com.example.testapp.util.safeDecode(encoded)
             PracticeScreen(
                 isWrongBookMode = true, wrongBookFileName = name, settingsViewModel = settingsViewModel,
+                viewModel = globalPracticeViewModel,
                 onQuizEnd = { score, total, unanswered, cumulativeCorrect, cumulativeAnswered ->
-                    val id = "practice_${name}"; val e = java.net.URLEncoder.encode(id, "UTF-8")
-                    navController.navigate("result/$score/$total/$unanswered/$e?cumulativeCorrect=${cumulativeCorrect ?: -1}&cumulativeAnswered=${cumulativeAnswered ?: -1}") { popUpTo("wrongbook") { inclusive = false } }
+                    navController.navToResult(
+                        prefix = "practice", quizId = name, score = score, total = total, unanswered = unanswered,
+                        cumulativeCorrect = cumulativeCorrect, cumulativeAnswered = cumulativeAnswered,
+                        sessionProgressId = globalPracticeViewModel.currentProgressId,
+                        popUpTo = "wrongbook"
+                    )
                 },
                 onExitWithoutAnswer = { navController.popBackStack() },
                 onViewDeepSeek = { text, id, index -> val encodedText = safeEncode(text); navController.navigate("deepseek/$id/$index/$encodedText") },
@@ -204,9 +276,15 @@ fun AppNavHost(navController: NavHostController = rememberNavController(), setti
             val name = com.example.testapp.util.safeDecode(encoded)
             ExamScreen(
                 quizId = name, isWrongBookMode = true, wrongBookFileName = name, settingsViewModel = settingsViewModel,
+                viewModel = globalExamViewModel,
                 onExamEnd = { score, total, unanswered, cumulativeCorrect, cumulativeAnswered, cumulativeExamCount ->
-                    val id = "exam_${name}"; val e = java.net.URLEncoder.encode(id, "UTF-8")
-                    navController.navigate("result/$score/$total/$unanswered/$e?cumulativeCorrect=${cumulativeCorrect ?: -1}&cumulativeAnswered=${cumulativeAnswered ?: -1}&cumulativeExamCount=${cumulativeExamCount ?: -1}") { popUpTo("wrongbook") { inclusive = false } }
+                    navController.navToResult(
+                        prefix = "exam", quizId = name, score = score, total = total, unanswered = unanswered,
+                        cumulativeCorrect = cumulativeCorrect, cumulativeAnswered = cumulativeAnswered,
+                        cumulativeExamCount = cumulativeExamCount,
+                        sessionProgressId = globalExamViewModel.currentProgressId,
+                        popUpTo = "wrongbook"
+                    )
                 },
                 onExitWithoutAnswer = { navController.popBackStack() },
                 onViewDeepSeek = { text, id, index -> val encodedText = safeEncode(text); navController.navigate("deepseek/$id/$index/$encodedText") },
@@ -231,9 +309,14 @@ fun AppNavHost(navController: NavHostController = rememberNavController(), setti
             val name = com.example.testapp.util.safeDecode(encoded)
             PracticeScreen(
                 isFavoriteMode = true, favoriteFileName = name, settingsViewModel = settingsViewModel,
+                viewModel = globalPracticeViewModel,
                 onQuizEnd = { score, total, unanswered, cumulativeCorrect, cumulativeAnswered ->
-                    val id = "practice_${name}"; val e = java.net.URLEncoder.encode(id, "UTF-8")
-                    navController.navigate("result/$score/$total/$unanswered/$e?cumulativeCorrect=${cumulativeCorrect ?: -1}&cumulativeAnswered=${cumulativeAnswered ?: -1}") { popUpTo("favorite") { inclusive = false } }
+                    navController.navToResult(
+                        prefix = "practice", quizId = name, score = score, total = total, unanswered = unanswered,
+                        cumulativeCorrect = cumulativeCorrect, cumulativeAnswered = cumulativeAnswered,
+                        sessionProgressId = globalPracticeViewModel.currentProgressId,
+                        popUpTo = "favorite"
+                    )
                 },
                 onExitWithoutAnswer = { navController.popBackStack() },
                 onViewDeepSeek = { text, id, index -> val encodedText = safeEncode(text); navController.navigate("deepseek/$id/$index/$encodedText") },
@@ -251,9 +334,15 @@ fun AppNavHost(navController: NavHostController = rememberNavController(), setti
             val name = com.example.testapp.util.safeDecode(encoded)
             ExamScreen(
                 quizId = name, isFavoriteMode = true, favoriteFileName = name, settingsViewModel = settingsViewModel,
+                viewModel = globalExamViewModel,
                 onExamEnd = { score, total, unanswered, cumulativeCorrect, cumulativeAnswered, cumulativeExamCount ->
-                    val id = "exam_${name}"; val e = java.net.URLEncoder.encode(id, "UTF-8")
-                    navController.navigate("result/$score/$total/$unanswered/$e?cumulativeCorrect=${cumulativeCorrect ?: -1}&cumulativeAnswered=${cumulativeAnswered ?: -1}&cumulativeExamCount=${cumulativeExamCount ?: -1}") { popUpTo("favorite") { inclusive = false } }
+                    navController.navToResult(
+                        prefix = "exam", quizId = name, score = score, total = total, unanswered = unanswered,
+                        cumulativeCorrect = cumulativeCorrect, cumulativeAnswered = cumulativeAnswered,
+                        cumulativeExamCount = cumulativeExamCount,
+                        sessionProgressId = globalExamViewModel.currentProgressId,
+                        popUpTo = "favorite"
+                    )
                 },
                 onExitWithoutAnswer = { navController.popBackStack() },
                 onViewDeepSeek = { text, id, index -> val encodedText = safeEncode(text); navController.navigate("deepseek/$id/$index/$encodedText") },
@@ -282,7 +371,7 @@ fun AppNavHost(navController: NavHostController = rememberNavController(), setti
             val isExamMode = remember(backStackEntry) { navController.backQueue.any { entry -> entry.destination.route?.startsWith("exam") == true } }
             val examViewModel = if (isExamMode) globalExamViewModel else null; val practiceViewModel = if (!isExamMode) globalPracticeViewModel else null
             DeepSeekAskScreen(text = text, questionId = id, index = index, navController = navController,
-                onSave = { val note = "【DeepSeek问答】\n$it"; examViewModel?.appendNoteSuspend(id, index, note); practiceViewModel?.appendNoteSuspend(id, index, note) }, settingsViewModel = settingsViewModel)
+                onSave = { examViewModel?.updateAnalysis(index, it); practiceViewModel?.updateAnalysis(index, it) }, settingsViewModel = settingsViewModel)
         }
         composable("spark_ask/{id}/{index}/{text}", arguments = listOf(navArgument("id") { type = NavType.IntType }, navArgument("index") { type = NavType.IntType }, navArgument("text") { type = NavType.StringType })) { backStackEntry ->
             val encoded = backStackEntry.arguments?.getString("text") ?: ""; val text = com.example.testapp.util.safeDecode(encoded)

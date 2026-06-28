@@ -7,10 +7,14 @@ import com.example.testapp.data.local.dao.QuestionNoteDao
 import com.example.testapp.data.mapper.toDomain
 import com.example.testapp.data.mapper.toEntity
 import com.example.testapp.domain.model.FavoriteQuestion
+import com.example.testapp.domain.model.LibraryCatalog
 import com.example.testapp.domain.model.Question
 import com.example.testapp.domain.repository.FavoriteQuestionRepository
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.firstOrNull
+import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.map
 import javax.inject.Inject
 import kotlinx.serialization.decodeFromString
@@ -32,6 +36,15 @@ class FavoriteQuestionRepositoryImpl @Inject constructor(
     }
     override fun getAll(): Flow<List<FavoriteQuestion>> =
         dao.getAll().map { list -> list.map { it.toDomain() } }
+            .flowOn(Dispatchers.Default)
+
+    override fun observeLibraryCatalog(): Flow<LibraryCatalog> =
+        combine(
+            dao.getCountsByFileName(),
+            dao.getTypeCountsByFileName()
+        ) { counts, typeCounts ->
+            ScopedLibraryCatalogPipeline.buildFavoriteCatalog(counts, typeCounts)
+        }.flowOn(Dispatchers.Default)
 
     override suspend fun add(favorite: FavoriteQuestion) =
         dao.add(favorite.toEntity())

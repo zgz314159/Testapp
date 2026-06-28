@@ -17,6 +17,9 @@ interface FavoriteQuestionDao {
     @Query("SELECT q.fileName AS fileName, COUNT(*) AS count FROM favorite_questions f INNER JOIN questions q ON q.id = f.questionId WHERE q.fileName IS NOT NULL AND TRIM(q.fileName) != '' GROUP BY q.fileName")
     fun getCountsByFileName(): Flow<List<FavoriteFileCountRow>>
 
+    @Query("SELECT q.fileName AS fileName, q.type AS type, COUNT(*) AS count FROM favorite_questions f INNER JOIN questions q ON q.id = f.questionId WHERE q.fileName IS NOT NULL AND TRIM(q.fileName) != '' GROUP BY q.fileName, q.type")
+    fun getTypeCountsByFileName(): Flow<List<com.example.testapp.data.local.dao.FileQuestionTypeCountRow>>
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun add(favorite: FavoriteQuestionEntity)
 

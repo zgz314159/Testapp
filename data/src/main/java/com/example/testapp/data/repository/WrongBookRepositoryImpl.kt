@@ -7,14 +7,17 @@ import com.example.testapp.data.local.dao.QuestionNoteDao
 import com.example.testapp.data.local.entity.WrongQuestionEntity
 import com.example.testapp.data.mapper.toDomain
 import com.example.testapp.data.mapper.toEntity
+import com.example.testapp.domain.model.LibraryCatalog
 import com.example.testapp.domain.model.Question
 import com.example.testapp.domain.model.WrongQuestion
 import com.example.testapp.domain.repository.WrongBookRepository
 import com.example.testapp.domain.util.extractSourceQuestionId
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.firstOrNull
-import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.firstOrNull
+import kotlinx.coroutines.flow.flowOn
+import kotlinx.coroutines.flow.transformLatest
 import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
@@ -35,39 +38,36 @@ class WrongBookRepositoryImpl @Inject constructor(
         // Export headers centralized in ExportConstants
     }
     override fun getAll(): Flow<List<WrongQuestion>> =
-        dao.getAll().combine(questionDao.getAll()) { wrongEntities, questionEntities ->
-            val questionMap = questionEntities.associateBy(
-                { it.id },
-                { it.toDomain() }
-            )
-            wrongEntities.mapNotNull { wrongEntity ->
-                val normalizedQuestionId = extractSourceQuestionId(wrongEntity.questionId)
-                questionMap[normalizedQuestionId]?.let { q ->
-                    wrongEntity.toDomain(q)
-                }
+        dao.getAll().transformLatest { wrongEntities ->
+            emit(resolveWrongQuestions(wrongEntities))
+        }.flowOn(Dispatchers.Default)
+
+    override fun observeLibraryCatalog(): Flow<LibraryCatalog> =
+        combine(
+            dao.getCountsByFileName(),
+            dao.getTypeCountsByFileName()
+        ) { counts, typeCounts ->
+            ScopedLibraryCatalogPipeline.buildWrongBookCatalog(counts, typeCounts)
+        }.flowOn(Dispatchers.Default)
+
+    private suspend fun resolveWrongQuestions(
+        wrongEntities: List<WrongQuestionEntity>
+    ): List<WrongQuestion> {
+        if (wrongEntities.isEmpty()) return emptyList()
+        val questionMap = questionDao.getByIds(
+            wrongEntities.map { extractSourceQuestionId(it.questionId) }.distinct()
+        ).associate { it.id to it.toDomain() }
+        return wrongEntities.mapNotNull { wrongEntity ->
+            questionMap[extractSourceQuestionId(wrongEntity.questionId)]?.let { q ->
+                wrongEntity.toDomain(q)
             }
         }
+    }
 
     // 新增：suspend 版本，获取完整错题本
     suspend fun getAllSuspend(): List<WrongQuestion> {
         val wrongEntities = dao.getAll().firstOrNull() ?: return emptyList()
-        val questionEntities = questionDao.getAll().firstOrNull() ?: return emptyList()
-        // 先把 QuestionEntity 转成 Question
-        val questionMap = questionEntities.associateBy(
-            { it.id },
-            {
-                it.toDomain()
-            }
-        )
-        return wrongEntities.mapNotNull { wrongEntity ->
-            val question = questionMap[extractSourceQuestionId(wrongEntity.questionId)]
-            question?.let {
-                WrongQuestion(
-                    question = it,
-                    selected = wrongEntity.selected
-                )
-            }
-        }
+        return resolveWrongQuestions(wrongEntities)
     }
 
     override suspend fun add(wrong: WrongQuestion) {

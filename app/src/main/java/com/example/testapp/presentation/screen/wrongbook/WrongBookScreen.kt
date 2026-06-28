@@ -8,9 +8,9 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Button
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
@@ -24,7 +24,6 @@ import com.example.testapp.presentation.screen.file.FileFolderViewModel
 import com.example.testapp.presentation.screen.library.ScopedQuestionLibraryScreen
 import com.example.testapp.uicommon.component.LocalFontFamily
 import com.example.testapp.uicommon.component.LocalFontSize
-import com.example.testapp.uicommon.util.buildFileStatisticsForQuestions
 
 private const val WRONGBOOK_GROUP_SCOPE = "__wrongbook__"
 private const val WRONGBOOK_HOME_DROP_TARGET = "__WRONGBOOK_HOME__"
@@ -37,10 +36,12 @@ fun WrongBookScreen(
     folderViewModel: FileFolderViewModel = hiltViewModel(),
     dragViewModel: DragDropViewModel = hiltViewModel()
 ) {
-    val wrongQuestions by viewModel.wrongQuestions.collectAsState()
+    val libraryCatalog by viewModel.libraryCatalog.collectAsState()
     val fileNames by viewModel.fileNames.collectAsState()
+    val wrongQuestions by viewModel.wrongQuestions.collectAsState()
 
     if (!fileName.isNullOrEmpty()) {
+        LaunchedEffect(fileName) { viewModel.ensureFullListLoaded() }
         WrongBookDetailContent(
             fileName = fileName,
             wrongQuestions = wrongQuestions.filter { it.question.fileName == fileName },
@@ -49,26 +50,13 @@ fun WrongBookScreen(
         return
     }
 
-    val groupedWrongs = remember(wrongQuestions) {
-        wrongQuestions.groupBy { it.question.fileName.orEmpty() }.filterKeys { it.isNotBlank() }
-    }
-    val fileStatistics = remember(groupedWrongs) {
-        groupedWrongs.mapValues { (_, list) ->
-            buildFileStatisticsForQuestions(
-                questions = list.map { it.question },
-                wrongCount = list.size,
-                favoriteCount = 0
-            )
-        }
-    }
-
     ScopedQuestionLibraryScreen(
         scope = WRONGBOOK_GROUP_SCOPE,
         homeDropTargetKey = WRONGBOOK_HOME_DROP_TARGET,
         rootTitleRes = R.string.wrongbook_title,
         emptyMessageRes = R.string.no_wrong,
         fileNames = fileNames,
-        fileStatistics = fileStatistics,
+        fileStatistics = libraryCatalog.fileStatistics,
         folderViewModel = folderViewModel,
         dragViewModel = dragViewModel,
         onDeleteFile = viewModel::removeByFileName,

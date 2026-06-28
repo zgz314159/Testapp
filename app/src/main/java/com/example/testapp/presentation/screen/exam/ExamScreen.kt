@@ -20,6 +20,9 @@ fun ExamScreen(
     wrongBookFileName: String? = null,
     isFavoriteMode: Boolean = false,
     favoriteFileName: String? = null,
+    isReviewMode: Boolean = false,
+    reviewProgressId: String? = null,
+    onReviewBack: () -> Unit = {},
     viewModel: ExamViewModel = hiltViewModel(),
     settingsViewModel: SettingsViewModel = hiltViewModel(),
     aiViewModel: DeepSeekViewModel = hiltViewModel(),
@@ -41,6 +44,22 @@ fun ExamScreen(
 
     val examCount by settingsViewModel.examQuestionCount.collectAsState()
     val randomExam by settingsViewModel.randomExam.collectAsState()
+    val fillQuestionGenerationMode by settingsViewModel.fillQuestionGenerationMode.collectAsState()
+    val fillBlankCount by settingsViewModel.fillBlankCount.collectAsState()
+    val fillFullAnswerRandomOrder by settingsViewModel.fillFullAnswerRandomOrder.collectAsState()
+    val fillFullAnswerRequireCorrect by settingsViewModel.fillFullAnswerRequireCorrect.collectAsState()
+    val fillAnswerScoreMin by settingsViewModel.fillAnswerScoreMin.collectAsState()
+    val fillAnswerScoreMax by settingsViewModel.fillAnswerScoreMax.collectAsState()
+    val fillAnswerTagFilter by settingsViewModel.fillAnswerTagFilter.collectAsState()
+    val fillConfigVersion = listOf(
+        fillQuestionGenerationMode.storageValue,
+        fillBlankCount,
+        fillFullAnswerRandomOrder,
+        fillFullAnswerRequireCorrect,
+        fillAnswerScoreMin,
+        fillAnswerScoreMax,
+        fillAnswerTagFilter
+    ).joinToString("|")
     val examMemoryMode by settingsViewModel.examMemoryMode.collectAsState()
     val examMemoryBatchSize by settingsViewModel.examMemoryBatchSize.collectAsState()
     val examMemoryWrongMode by settingsViewModel.examMemoryWrongMode.collectAsState()
@@ -49,7 +68,9 @@ fun ExamScreen(
     val examDelay by settingsViewModel.examDelay.collectAsState()
 
     LaunchedEffect(Unit) { settingsViewModel.loadFontSettings() }
-    LaunchedEffect(quizId) { viewModel.resetLoadState() }
+    if (!isReviewMode) {
+        LaunchedEffect(quizId) { viewModel.resetLoadState() }
+    }
 
     val analysisPair by aiViewModel.analysis.collectAsState()
     val sparkPair by sparkViewModel.analysis.collectAsState()
@@ -77,9 +98,15 @@ fun ExamScreen(
     ExamScreenContent(
         quizId = quizId,
         viewModel = viewModel,
+        isReviewMode = isReviewMode,
+        reviewProgressId = reviewProgressId,
+        isWrongBookMode = isWrongBookMode,
+        isFavoriteMode = isFavoriteMode,
+        onReviewBack = onReviewBack,
         externalState = com.example.testapp.presentation.screen.exam.ExternalExamState(
             examCount = examCount,
             randomExam = randomExam,
+            fillConfigVersion = fillConfigVersion,
             examMemoryMode = examMemoryMode,
             examMemoryBatchSize = examMemoryBatchSize,
             examMemoryWrongMode = examMemoryWrongMode,

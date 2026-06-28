@@ -8,6 +8,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
+
 class ExamAnswerCoordinator(
     private val sessionState: MutableStateFlow<PracticeSessionState>,
     private val scope: CoroutineScope,
@@ -35,7 +36,10 @@ class ExamAnswerCoordinator(
                     selected.clear()
                     selected.add(option)
                 }
-                qws.copy(selectedOptions = selected)
+                qws.copy(
+                    selectedOptions = selected,
+                    sessionAnswerTime = if (qws.sessionAnswerTime == 0L && selected.isNotEmpty()) System.currentTimeMillis().also { ExamPipelineLog.answer(idx, it) } else qws.sessionAnswerTime
+                )
             }
         }
 
@@ -48,7 +52,8 @@ class ExamAnswerCoordinator(
             state.updateAt(idx) { qws ->
                 qws.copy(
                     textAnswer = answer,
-                    selectedOptions = if (answer.isNotBlank()) listOf(-1) else emptyList()
+                    selectedOptions = if (answer.isNotBlank()) listOf(-1) else emptyList(),
+                    sessionAnswerTime = if (qws.sessionAnswerTime == 0L && answer.isNotBlank()) System.currentTimeMillis().also { ExamPipelineLog.answer(idx, it) } else qws.sessionAnswerTime
                 )
             }
         }

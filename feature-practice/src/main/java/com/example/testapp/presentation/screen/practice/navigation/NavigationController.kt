@@ -2,6 +2,13 @@ package com.example.testapp.presentation.screen.practice.navigation
 
 import com.example.testapp.domain.model.PracticeSessionState
 import com.example.testapp.domain.model.QuestionWithState
+import com.example.testapp.presentation.screen.practice.PracticeFullAnswerIconNavigation
+import com.example.testapp.presentation.screen.practice.PracticeFullAnswerIconRetryPipeline
+import com.example.testapp.presentation.screen.practice.PracticeFullAnswerNavigation
+import com.example.testapp.presentation.screen.practice.PracticeFullAnswerUnansweredSourceNavigation
+import com.example.testapp.presentation.screen.practice.PracticeUnansweredNavigation
+import com.example.testapp.presentation.screen.practice.SkipUnansweredSourceResult
+import com.example.testapp.presentation.screen.practice.UnansweredNavResult
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.MutableStateFlow
 
@@ -15,6 +22,7 @@ class NavigationController(
     private val history: NavigationHistory,
     // lambda dependencies
     private val isQuestionPendingForCurrentMode: (QuestionWithState) -> Boolean,
+    private val isQuestionAnswered: (QuestionWithState) -> Boolean,
     private val shouldReopenUnansweredReveal: (QuestionWithState) -> Boolean,
     private val currentSourcePendingIndices: (List<QuestionWithState>, Int, List<Int>) -> List<Int>,
     private val isCurrentSourceComplete: (PracticeSessionState) -> Boolean,
@@ -24,7 +32,7 @@ class NavigationController(
     private val nextFullAnswerCandidateIndices: (List<QuestionWithState>, Int, List<Int>) -> List<Int>,
     private val reopenQuestionForPendingRetry: (Int) -> Unit,
     private val reopenQuestionForFullAnswerRetry: (Int) -> Unit,
-    private val saveProgress: () -> Unit,
+    private val scheduleNavigationSave: () -> Unit,
     private val fullAnswerModeActive: () -> Boolean,
     private val fullAnswerRequireCorrect: () -> Boolean,
     private val memoryModeActive: () -> Boolean,
@@ -47,8 +55,140 @@ class NavigationController(
         }
         if (index != currentState.currentIndex) {
             _sessionState.value = currentState.copy(currentIndex = index)
-            saveProgress()
+            scheduleNavigationSave()
         }
+    }
+
+    fun nextQuestionViaIcon(): UnansweredNavResult = navigateUnansweredNext()
+
+    fun prevQuestionViaIcon(): UnansweredNavResult = navigateUnansweredPrev()
+
+    fun canNavigateToPrevUnanswered(): Boolean {
+        val state = prepareStateForUnansweredIconNav(_sessionState.value)
+        if (fullAnswerModeActive()) {
+            return hasPrevInFullAnswerSourcePool(state) ||
+                PracticeUnansweredNavigation.hasPrevUnanswered(
+                    state.currentIndex, state.questionsWithState, ::isPendingAt,
+                    randomPractice = randomPracticeEnabled()
+                )
+        }
+        return PracticeUnansweredNavigation.hasPrevUnanswered(
+            state.currentIndex, state.questionsWithState, ::isPendingAt,
+            randomPractice = randomPracticeEnabled()
+        )
+    }
+
+    fun canNavigateToNextUnanswered(): Boolean {
+        val state = prepareStateForUnansweredIconNav(_sessionState.value)
+        if (fullAnswerModeActive()) {
+            return hasNextInFullAnswerSourcePool(state) ||
+                PracticeUnansweredNavigation.hasNextUnanswered(
+                    state.currentIndex, state.questionsWithState, ::isPendingAt,
+                    randomPractice = randomPracticeEnabled()
+                )
+        }
+        return PracticeUnansweredNavigation.hasNextUnanswered(
+            state.currentIndex, state.questionsWithState, ::isPendingAt,
+            randomPractice = randomPracticeEnabled()
+        )
+    }
+
+    private fun hasPrevInFullAnswerSourcePool(state: PracticeSessionState): Boolean =
+        PracticeFullAnswerIconNavigation.hasPrevInSourcePool(
+            state.currentIndex, state.questions, isCurrentSourceComplete(state)
+        )
+
+    private fun hasNextInFullAnswerSourcePool(state: PracticeSessionState): Boolean =
+        PracticeFullAnswerIconNavigation.hasNextInSourcePool(
+            state.currentIndex, state.questions, isCurrentSourceComplete(state)
+        )
+
+    private fun prepareStateForUnansweredIconNav(currentState: PracticeSessionState): PracticeSessionState =
+        if (history.isInAnsweredHistory) history.exitAnsweredHistoryBrowsing(currentState) else currentState
+
+    private fun isPendingAt(qws: QuestionWithState): Boolean = isQuestionPendingForCurrentMode(qws)
+
+    private fun navigateUnansweredPrev(): UnansweredNavResult {
+        val stateBefore = _sessionState.value
+        val anchorIndex = stateBefore.currentIndex
+        val clearedState = prepareStateForUnansweredIconNav(stateBefore)
+        if (clearedState != stateBefore) {
+            _sessionState.value = clearedState
+        }
+
+        if (fullAnswerModeActive()) {
+            val questions = clearedState.questions
+            val currentIdx = clearedState.currentIndex
+            val sourceComplete = isCurrentSourceComplete(clearedState)
+            PracticeFullAnswerIconNavigation.resolvePrevInSourcePool(
+                currentIdx, questions, sourceComplete
+            )?.let { targetIndex ->
+                if (targetIndex != currentIdx || !sourceComplete) {
+                    navigateToQuestion(targetIndex, reopenWrongFullAnswerRetry = true)
+                    return UnansweredNavResult.Navigated
+                }
+            }
+        }
+
+        val (result, targetIndex) = PracticeUnansweredNavigation.resolvePrevUnansweredIndex(
+            anchorIndex = anchorIndex,
+            questionsWithState = clearedState.questionsWithState,
+            isPending = ::isPendingAt,
+            randomPractice = randomPracticeEnabled()
+        )
+        if (result == UnansweredNavResult.Navigated && targetIndex != null) {
+            navigateToQuestion(targetIndex)
+        } else {
+            scheduleNavigationSave()
+        }
+        return result
+    }
+
+    private fun navigateUnansweredNext(): UnansweredNavResult {
+        val stateBefore = _sessionState.value
+        val anchorIndex = stateBefore.currentIndex
+        val clearedState = prepareStateForUnansweredIconNav(stateBefore)
+        if (clearedState != stateBefore) {
+            _sessionState.value = clearedState
+        }
+
+        if (fullAnswerModeActive()) {
+            val questions = clearedState.questions
+            val currentIdx = clearedState.currentIndex
+            val sourceComplete = isCurrentSourceComplete(clearedState)
+            PracticeFullAnswerIconNavigation.resolveNextInSourcePool(
+                currentIdx, questions, sourceComplete
+            )?.let { targetIndex ->
+                if (targetIndex != currentIdx || !sourceComplete) {
+                    if (targetIndex != currentIdx) {
+                        history.recordRandomNavigationOrigin(currentIdx, randomPracticeEnabled())
+                    }
+                    navigateToQuestion(targetIndex, reopenWrongFullAnswerRetry = true)
+                    return UnansweredNavResult.Navigated
+                }
+            }
+            PracticeFullAnswerIconRetryPipeline.resolveStayIndexForWrongRetry(
+                clearedState,
+                sourceComplete,
+                fullAnswerRequireCorrect()
+            )?.let { targetIndex ->
+                navigateToQuestion(targetIndex, reopenWrongFullAnswerRetry = true)
+                return UnansweredNavResult.Navigated
+            }
+        }
+
+        val (result, targetIndex) = PracticeUnansweredNavigation.resolveNextUnansweredIndex(
+            anchorIndex = anchorIndex,
+            questionsWithState = clearedState.questionsWithState,
+            isPending = ::isPendingAt,
+            randomPractice = randomPracticeEnabled()
+        )
+        if (result == UnansweredNavResult.Navigated && targetIndex != null) {
+            navigateToQuestion(targetIndex)
+        } else {
+            scheduleNavigationSave()
+        }
+        return result
     }
 
     fun nextQuestion() {
@@ -65,7 +205,7 @@ class NavigationController(
                         reopenQuestionForPendingRetry(currentState.currentIndex)
                         return
                     }
-                    saveProgress()
+                    scheduleNavigationSave()
                     return
                 }
             }
@@ -125,7 +265,7 @@ class NavigationController(
             if (targetIndex != currentState.currentIndex) {
                 history.recordRandomNavigationOrigin(currentState.currentIndex, randomPracticeEnabled())
                 _sessionState.value = currentState.copy(currentIndex = targetIndex)
-                saveProgress()
+                scheduleNavigationSave()
             }
             return
         }
@@ -184,34 +324,35 @@ class NavigationController(
                 return
             }
         }
-        saveProgress()
+        scheduleNavigationSave()
     }
 
-    fun prevQuestion() {
+    fun browseAnsweredHistoryOlder(): AnsweredHistoryBackwardResult {
         val currentState = _sessionState.value
-        if (history.navigateToPreviousAnsweredQuestion(
-                currentState = currentState,
-                onUpdateSession = { _sessionState.value = it },
-                onSaveProgress = { saveProgress() },
-                effectiveCurrentMemoryRoundQuestionIds = effectiveCurrentMemoryRoundQuestionIds,
-                memoryModeActive = memoryModeActive(),
-                memoryPoolMode = NavigationHistory.MEMORY_POOL_MODE_ROUND,
-                isQuestionAnswered = isQuestionPendingForCurrentMode
-            )
-        ) return
+        return history.navigateToPreviousAnsweredQuestion(
+            currentState = currentState,
+            onUpdateSession = { _sessionState.value = it },
+            onSaveProgress = { scheduleNavigationSave() },
+            effectiveCurrentMemoryRoundQuestionIds = effectiveCurrentMemoryRoundQuestionIds,
+            memoryModeActive = memoryModeActive(),
+            memoryPoolMode = NavigationHistory.MEMORY_POOL_MODE_ROUND,
+            isQuestionAnswered = isQuestionAnswered,
+            fullAnswerModeActive = fullAnswerModeActive()
+        )
+    }
 
-        findAdjacentDerivedQuestionIndex(currentState, false)?.let { targetIndex ->
-            if (targetIndex != currentState.currentIndex) {
-                _sessionState.value = currentState.copy(currentIndex = targetIndex)
-                saveProgress()
-            }
-            return
-        }
-
-        if (currentState.currentIndex > 0) {
-            _sessionState.value = currentState.copy(currentIndex = currentState.currentIndex - 1)
-            saveProgress()
-        }
+    fun browseAnsweredHistoryNewer(): AnsweredHistoryForwardResult {
+        val currentState = _sessionState.value
+        return history.navigateToNextAnsweredInHistory(
+            currentState = currentState,
+            onUpdateSession = { _sessionState.value = it },
+            onSaveProgress = { scheduleNavigationSave() },
+            effectiveCurrentMemoryRoundQuestionIds = effectiveCurrentMemoryRoundQuestionIds,
+            memoryModeActive = memoryModeActive(),
+            memoryPoolMode = NavigationHistory.MEMORY_POOL_MODE_ROUND,
+            isQuestionAnswered = isQuestionAnswered,
+            fullAnswerModeActive = fullAnswerModeActive()
+        )
     }
 
     fun goToQuestion(index: Int) {
@@ -224,12 +365,89 @@ class NavigationController(
                 reopenQuestionForPendingRetry(index)
             } else {
                 _sessionState.value = currentState.copy(currentIndex = index)
-                saveProgress()
+                scheduleNavigationSave()
             }
         }
     }
 
     fun resetNavigationForManualJump() {
         history.clearAll()
+    }
+
+    fun canSkipToUnansweredSource(forward: Boolean): Boolean {
+        if (!fullAnswerModeActive()) return false
+        val state = prepareStateForUnansweredIconNav(_sessionState.value)
+        val isPendingAt: (Int) -> Boolean = { idx ->
+            state.questionsWithState.getOrNull(idx)?.let { isQuestionPendingForCurrentMode(it) } ?: false
+        }
+        val entryIndex = PracticeFullAnswerUnansweredSourceNavigation.resolveUnansweredSourceEntryIndex(
+            questions = state.questions,
+            currentIndex = state.currentIndex,
+            forward = forward,
+            randomOrder = randomPracticeEnabled(),
+            isSourceIncomplete = { entryIdx ->
+                PracticeFullAnswerUnansweredSourceNavigation.isSourceIncomplete(
+                    state.questions, entryIdx, isPendingAt
+                )
+            }
+        ) ?: return false
+        return PracticeFullAnswerUnansweredSourceNavigation.resolveFirstPendingInSource(
+            state.questions, entryIndex, isPendingAt
+        ) != null
+    }
+
+    fun skipToUnansweredSource(forward: Boolean): SkipUnansweredSourceResult {
+        if (!fullAnswerModeActive()) {
+            return if (forward) SkipUnansweredSourceResult.NoNextSource
+            else SkipUnansweredSourceResult.NoPrevSource
+        }
+        var state = _sessionState.value
+        if (history.isInAnsweredHistory) {
+            state = history.exitAnsweredHistoryBrowsing(state)
+            _sessionState.value = state
+        }
+        val isPendingAt: (Int) -> Boolean = { idx ->
+            state.questionsWithState.getOrNull(idx)?.let { isQuestionPendingForCurrentMode(it) } ?: false
+        }
+        val entryIndex = PracticeFullAnswerUnansweredSourceNavigation.resolveUnansweredSourceEntryIndex(
+            questions = state.questions,
+            currentIndex = state.currentIndex,
+            forward = forward,
+            randomOrder = randomPracticeEnabled(),
+            isSourceIncomplete = { entryIdx ->
+                PracticeFullAnswerUnansweredSourceNavigation.isSourceIncomplete(
+                    state.questions, entryIdx, isPendingAt
+                )
+            }
+        ) ?: return if (forward) SkipUnansweredSourceResult.NoNextSource
+        else SkipUnansweredSourceResult.NoPrevSource
+
+        val targetIndex = PracticeFullAnswerUnansweredSourceNavigation.resolveFirstPendingInSource(
+            state.questions, entryIndex, isPendingAt
+        )
+        if (targetIndex == null) {
+            android.util.Log.d(
+                "PracticeHistorySwipe",
+                "skipToUnansweredSource | forward=$forward | entry=$entryIndex | target=null"
+            )
+            return if (forward) SkipUnansweredSourceResult.NoNextSource
+            else SkipUnansweredSourceResult.NoPrevSource
+        }
+
+        history.clearAnsweredHistoryNavigation()
+        navigateToQuestion(targetIndex, reopenWrongFullAnswerRetry = true)
+        android.util.Log.d(
+            "PracticeHistorySwipe",
+            "skipToUnansweredSource | forward=$forward | entry=$entryIndex | target=$targetIndex"
+        )
+        return SkipUnansweredSourceResult.Navigated
+    }
+
+    @Deprecated("Use canSkipToUnansweredSource")
+    fun canSkipToAdjacentSource(forward: Boolean): Boolean = canSkipToUnansweredSource(forward)
+
+    @Deprecated("Use skipToUnansweredSource")
+    fun skipToAdjacentSource(forward: Boolean) {
+        skipToUnansweredSource(forward)
     }
 }

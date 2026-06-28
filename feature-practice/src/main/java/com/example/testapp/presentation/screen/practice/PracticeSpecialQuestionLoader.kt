@@ -1,5 +1,6 @@
 package com.example.testapp.presentation.screen.practice
 
+import com.example.testapp.core.common.FontSettingsRepository
 import com.example.testapp.domain.model.PracticeProgress
 import com.example.testapp.domain.model.PracticeSessionState
 import com.example.testapp.domain.model.Question
@@ -10,9 +11,11 @@ import kotlinx.coroutines.flow.firstOrNull
 
 class PracticeSpecialQuestionLoader(
     private val facade: PracticeUseCaseFacade,
+    private val fontSettings: FontSettingsRepository,
     private val sessionState: MutableStateFlow<PracticeSessionState>,
     private val progressId: () -> String,
     private val randomPracticeEnabled: () -> Boolean,
+    private val onFillConfigApplied: (PracticeFillConfig) -> Unit,
     private val loadProgress: () -> Unit
 ) {
     suspend fun loadWrongQuestions(fileName: String) {
@@ -59,9 +62,15 @@ class PracticeSpecialQuestionLoader(
         }
     }
 
-    private fun applyQuestions(questions: List<Question>, sessionStartTime: Long) {
+    private suspend fun applyQuestions(
+        sourceQuestions: List<Question>,
+        sessionStartTime: Long
+    ) {
+        val fillConfig = PracticeFillConfigPipeline.read(fontSettings)
+        onFillConfigApplied(fillConfig)
+        val configured = PracticeFillConfigPipeline.applyTransform(sourceQuestions, fillConfig, sessionStartTime)
         sessionState.value = sessionState.value.copy(
-            questionsWithState = questions.map { QuestionWithState(question = it) },
+            questionsWithState = configured.map { QuestionWithState(question = it) },
             sessionStartTime = sessionStartTime
         )
         loadProgress()

@@ -23,11 +23,14 @@
     <string name="copy_question_success">题目已复制</string>
     <string name="no_analysis_result">无解析结果</string>
     <string name="submit_answer">提交答案</string>
+    <string name="submit_exam">交卷</string>
     <string name="question_type_prefix">题型：</string>
     <string name="increase_font">放大字体</string>
     <string name="decrease_font">缩小字体</string>
     <string name="increase_line_spacing">增大行距</string>
     <string name="decrease_line_spacing">减小行距</string>
+    <string name="increase_letter_spacing">增大字间距</string>
+    <string name="decrease_letter_spacing">减小字间距</string>
     <string name="save_success">保存成功</string>
     <string name="edit_current_question">修改本题</string>
     <string name="fill_full_answer_round_template">本题第 %1$d 轮 / 共 %2$d 轮</string>
@@ -61,4 +64,6 @@
     <string name="remove_blank">减少填空</string>
     <string name="paste_fill_answers">粘贴答案</string>
     <string name="clear_fill_answers">清空答案</string>
+    <string name="answered_history_at_latest">已是最后作答题</string>
+    <string name="answered_history_at_oldest">已是最前作答题</string>
 </resources>

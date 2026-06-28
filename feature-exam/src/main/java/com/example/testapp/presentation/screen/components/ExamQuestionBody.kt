@@ -73,6 +73,7 @@ fun ExamQuestionBody(
             question = question,
             questionFontSize = questionFontSize,
             lineSpacingMultiplier = lineSpacingMultiplier,
+            letterSpacing = letterSpacing,
             selectedOption = selectedOption,
             showResult = showResult,
             onOptionClick = onOptionClick

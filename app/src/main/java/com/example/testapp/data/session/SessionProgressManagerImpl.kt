@@ -41,10 +41,45 @@ class SessionProgressManagerImpl @Inject constructor(
         fillSignature: String,
         extras: Map<String, Any>
     ) {
-        val questionStateMap = buildQuestionStateMap(state, memoryActive, allSourceQuestions)
-        val fixedOrder = if (memoryActive && allSourceQuestions.isNotEmpty())
-            allSourceQuestions.map { it.id } else state.questionsWithState.map { it.question.id }
-        val sessionId = if (fillSignature.isNotBlank()) "${progressId}_fill=$fillSignature" else progressId
+        val questionStateMap = when (state.mode) {
+            SessionMode.EXAM -> {
+                @Suppress("UNCHECKED_CAST")
+                (extras["questionStateMap"] as? Map<Int, UnifiedQuestionState>)
+                    ?: buildQuestionStateMap(state, memoryActive, allSourceQuestions)
+            }
+            SessionMode.PRACTICE -> {
+                @Suppress("UNCHECKED_CAST")
+                (extras["questionStateMap"] as? Map<Int, UnifiedQuestionState>)
+                    ?: buildQuestionStateMap(state, memoryActive, allSourceQuestions)
+            }
+            else -> buildQuestionStateMap(state, memoryActive, allSourceQuestions)
+        }
+        val fixedOrder = when (state.mode) {
+            SessionMode.EXAM -> {
+                @Suppress("UNCHECKED_CAST")
+                (extras["fixedQuestionOrder"] as? List<Int>)
+                    ?: if (memoryActive && allSourceQuestions.isNotEmpty()) {
+                        allSourceQuestions.map { it.id }
+                    } else {
+                        state.questionsWithState.map { it.question.id }
+                    }
+            }
+            SessionMode.PRACTICE -> {
+                @Suppress("UNCHECKED_CAST")
+                (extras["fixedQuestionOrder"] as? List<Int>)
+                    ?: state.questionsWithState.map { it.question.id }
+            }
+            else -> if (memoryActive && allSourceQuestions.isNotEmpty()) {
+                allSourceQuestions.map { it.id }
+            } else {
+                state.questionsWithState.map { it.question.id }
+            }
+        }
+        val sessionId = if (fillSignature.isNotBlank()) {
+            "${progressId}_${state.sessionStartTime}|fill=$fillSignature"
+        } else {
+            "${progressId}_${state.sessionStartTime}"
+        }
 
         when (state.mode) {
             SessionMode.PRACTICE -> {

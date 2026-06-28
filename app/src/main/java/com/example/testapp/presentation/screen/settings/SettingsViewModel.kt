@@ -153,7 +153,13 @@ class SettingsViewModel @Inject constructor(
 
     fun setFillQuestionGenerationMode(context: Context, mode: FillQuestionGenerationMode) {
         fontSettings.emitFillQuestionGenerationMode(mode)
-        viewModelScope.launch { fontSettingsRepository.setFillQuestionGenerationMode(mode) }
+        viewModelScope.launch {
+            fontSettingsRepository.setFillQuestionGenerationMode(mode)
+            if (mode == FillQuestionGenerationMode.FULL_ANSWER && fontSettings.fillBlankCount.value <= 0) {
+                fontSettings.emitFillBlankCount(1)
+                fontSettingsRepository.setFillBlankCount(1)
+            }
+        }
     }
 
     fun setFillFullAnswerRandomOrder(context: Context, enabled: Boolean) {

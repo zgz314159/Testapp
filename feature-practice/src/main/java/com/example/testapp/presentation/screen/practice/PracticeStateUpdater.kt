@@ -40,17 +40,34 @@ class PracticeStateUpdater(
         saveProgress()
     }
 
+    /** 立即展示批改区，不触发持久化（由 finalize 统一落盘）。 */
+    fun revealShowResult(index: Int) {
+        sessionState.value = sessionState.value.updateAt(index) { qws ->
+            if (qws.sessionAnswerTime == 0L) {
+                qws.copy(showResult = true, sessionAnswerTime = System.currentTimeMillis())
+            } else {
+                qws.copy(showResult = true)
+            }
+        }
+    }
+
     fun updateAnalysis(index: Int, text: String) {
+        val current = sessionState.value.questionsWithState.getOrNull(index)?.analysis
+        if (current == text) return
         sessionState.value = sessionState.value.updateAt(index) { it.copy(analysis = text) }
         saveProgress()
     }
 
     fun updateSparkAnalysis(index: Int, text: String) {
+        val current = sessionState.value.questionsWithState.getOrNull(index)?.sparkAnalysis
+        if (current == text) return
         sessionState.value = sessionState.value.updateAt(index) { it.copy(sparkAnalysis = text) }
         saveProgress()
     }
 
     fun updateBaiduAnalysis(index: Int, text: String) {
+        val current = sessionState.value.questionsWithState.getOrNull(index)?.baiduAnalysis
+        if (current == text) return
         sessionState.value = sessionState.value.updateAt(index) { it.copy(baiduAnalysis = text) }
         saveProgress()
     }

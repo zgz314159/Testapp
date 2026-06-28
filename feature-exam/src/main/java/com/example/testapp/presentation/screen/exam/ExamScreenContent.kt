@@ -24,12 +24,12 @@ import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.testapp.core.common.LocalizedResult
-import com.example.testapp.core.util.extractDerivedFillQuestionRound
-import com.example.testapp.core.util.extractSourceQuestionId
+import com.example.testapp.core.util.FillQuestionGenerationMode
 import com.example.testapp.domain.QuestionTypes
 import com.example.testapp.domain.model.Question
 import com.example.testapp.feature.exam.R
 import com.example.testapp.presentation.screen.exam.components.*
+import com.example.testapp.uicommon.component.FillAnswerRoundLabel
 import com.example.testapp.uicommon.component.QuestionEditDialog
 import com.example.testapp.uicommon.component.QuestionNavigationControls
 import com.example.testapp.uicommon.component.LocalFontFamily
@@ -47,6 +47,7 @@ import kotlinx.coroutines.launch
 data class ExternalExamState(
     val examCount: Int = 0,
     val randomExam: Boolean = false,
+    val fillConfigVersion: String = "",
     val examMemoryMode: Boolean = false,
     val examMemoryBatchSize: Int = 0,
     val examMemoryWrongMode: Int = 0,
@@ -68,6 +69,11 @@ fun ExamScreenContent(
     quizId: String,
     viewModel: ExamViewModel,
     externalState: ExternalExamState = ExternalExamState(),
+    isReviewMode: Boolean = false,
+    reviewProgressId: String? = null,
+    isWrongBookMode: Boolean = false,
+    isFavoriteMode: Boolean = false,
+    onReviewBack: () -> Unit = {},
     onExamEnd: (score: Int, total: Int, unanswered: Int, cumulativeCorrect: Int?, cumulativeAnswered: Int?, cumulativeExamCount: Int?) -> Unit = { _, _, _, _, _, _ -> },
     onExitWithoutAnswer: () -> Unit = {},
     onViewDeepSeek: (String, Int, Int) -> Unit = { _, _, _ -> },
@@ -86,6 +92,7 @@ fun ExamScreenContent(
     val progressLoaded by viewModel.progressLoaded.collectAsState()
     val emptyQuestionResult by viewModel.emptyQuestionResult.collectAsState()
     val showResultList by viewModel.showResultList.collectAsState()
+    val answerTimeList by viewModel.answerTimeList.collectAsState()
     val finished by viewModel.finished.collectAsState()
     val cumulativeCorrect by viewModel.cumulativeCorrect.collectAsState()
     val cumulativeAnswered by viewModel.cumulativeAnswered.collectAsState()
@@ -114,15 +121,31 @@ fun ExamScreenContent(
     var elapsed by remember { mutableStateOf(0) }
     LaunchedEffect(Unit) { while (true) { delay(1000); elapsed += 1 } }
 
-    LaunchedEffect(quizId, externalState.examCount, externalState.randomExam, progressLoaded) {
-        if (!progressLoaded) {
-            viewModel.setRandomExam(externalState.randomExam)
-            viewModel.setMemoryModeConfig(
-                enabled = externalState.examMemoryMode,
-                batchSize = externalState.examMemoryBatchSize,
-                wrongMode = externalState.examMemoryWrongMode,
-                poolMode = externalState.examMemoryPoolMode
+    LaunchedEffect(isReviewMode, reviewProgressId) {
+        if (isReviewMode && !reviewProgressId.isNullOrBlank()) {
+            viewModel.enterReviewSession(
+                targetProgressId = reviewProgressId,
+                quizFile = quizId,
+                questionCount = externalState.examCount,
+                random = externalState.randomExam,
+                wrongBook = isWrongBookMode,
+                favorite = isFavoriteMode
             )
+        }
+    }
+
+    LaunchedEffect(quizId, externalState.examCount, externalState.randomExam, externalState.fillConfigVersion) {
+        if (isReviewMode) return@LaunchedEffect
+        viewModel.setRandomExam(externalState.randomExam)
+        viewModel.setMemoryModeConfig(
+            enabled = externalState.examMemoryMode,
+            batchSize = externalState.examMemoryBatchSize,
+            wrongMode = externalState.examMemoryWrongMode,
+            poolMode = externalState.examMemoryPoolMode
+        )
+        if (progressLoaded) {
+            viewModel.reloadForFillConfig()
+        } else {
             viewModel.loadQuestions(quizId, externalState.examCount, externalState.randomExam)
         }
     }
@@ -146,6 +169,8 @@ fun ExamScreenContent(
     val endFlow = remember { ExamEndFlow() }
     val fc = remember { ExamFontController(externalState.fontSize, 1.3f, viewModel.fontSettingsRepository) }
     val saveSuccessText = stringResource(R.string.save_success)
+
+    LaunchedEffect(Unit) { fc.loadFromStore() }
 
     LaunchedEffect(Unit) {
         viewModel.saveSuccess.collect {
@@ -190,15 +215,35 @@ fun ExamScreenContent(
         timer.schedule(coroutineScope, afterDelayMs) { onComplete() }
     }
 
+    fun requestSubmitExam() {
+        timer.cancel()
+        focusManager.clearFocus(force = true)
+        when (ExamSubmitFlow.resolve(answeredThisSession)) {
+            ExamSubmitFlow.Action.ExitWithoutAnswer -> onExitWithoutAnswer()
+            ExamSubmitFlow.Action.ShowSubmitDialog -> ds.showExitDialog = true
+        }
+    }
+
+    val postAnswerAdvance: suspend () -> Unit = {
+        when (ExamPostAnswerAdvancePipeline.resolve(viewModel.hasPendingQuestions())) {
+            ExamPostAnswerAdvancePipeline.Action.Advance -> viewModel.nextQuestion()
+            ExamPostAnswerAdvancePipeline.Action.PromptSubmit -> ds.showExitDialog = true
+        }
+    }
+
     BackHandler {
+        if (isReviewMode) {
+            onReviewBack()
+            return@BackHandler
+        }
         when {
             !answeredThisSession -> onExitWithoutAnswer()
-            selectedOptions.count { it.isNotEmpty() } >= questions.size ->
+            viewModel.hasPendingQuestions() -> ds.showExitDialog = true
+            else ->
                 coroutineScope.launch {
                     viewModel.gradeExam()
                     onExamEnd(sessionScore, sessionActualAnswered, 0, cumulativeCorrect, cumulativeAnswered, cumulativeExamCount)
                 }
-            else -> ds.showExitDialog = true
         }
     }
 
@@ -220,6 +265,8 @@ fun ExamScreenContent(
     val textAnswer = textAnswers.getOrElse(currentIndex) { "" }
     val showResult = showResultList.getOrNull(currentIndex) ?: false
     val questionCopyText = remember(question) { formatQuestionForCopy(question) }
+    val answeredHistoryAtLatestText = stringResource(R.string.answered_history_at_latest)
+    val answeredHistoryAtOldestText = stringResource(R.string.answered_history_at_oldest)
 
     Column(
         modifier = Modifier.fillMaxSize().verticalScroll(mainScrollState).padding(16.dp)
@@ -230,15 +277,45 @@ fun ExamScreenContent(
                     onDragStart = { offset -> gesture.dragStartX = offset.x; timer.cancel() },
                     onHorizontalDrag = { _, amount -> gesture.dragAmount += amount },
                     onDragEnd = {
-                        if ((gesture.dragStartX < 20f && gesture.dragAmount > 100f) || (gesture.dragStartX > gesture.containerWidth - 20f && gesture.dragAmount < -100f)) {
+                        if (isReviewMode) {
+                            when {
+                                gesture.dragAmount > 100f -> {
+                                    focusManager.clearFocus(force = true)
+                                    when (viewModel.browseReviewAnsweredOlder()) {
+                                        ExamReviewSwipeOutcome.AtOldest,
+                                        ExamReviewSwipeOutcome.NoHistory -> {
+                                            Toast.makeText(context, answeredHistoryAtOldestText, Toast.LENGTH_SHORT).show()
+                                        }
+                                        else -> Unit
+                                    }
+                                }
+                                gesture.dragAmount < -100f -> {
+                                    focusManager.clearFocus(force = true)
+                                    when (viewModel.browseReviewAnsweredNewer()) {
+                                        ExamReviewSwipeOutcome.AtLatest -> {
+                                            Toast.makeText(context, answeredHistoryAtLatestText, Toast.LENGTH_SHORT).show()
+                                        }
+                                        else -> Unit
+                                    }
+                                }
+                            }
+                        } else if ((gesture.dragStartX < 20f && gesture.dragAmount > 100f) || (gesture.dragStartX > gesture.containerWidth - 20f && gesture.dragAmount < -100f)) {
                             focusManager.clearFocus(force = true)
                             when { !answeredThisSession -> onExitWithoutAnswer(); else -> ds.showExitDialog = true }
                         } else {
-                            if (gesture.dragAmount > 100f && currentIndex > 0) { focusManager.clearFocus(force = true); viewModel.prevQuestion() }
-                            else if (gesture.dragAmount < -100f && currentIndex < questions.size - 1) { focusManager.clearFocus(force = true); viewModel.nextQuestion() }
-                            else if (gesture.dragAmount < -100f) {
+                            if (gesture.dragAmount > 100f && viewModel.canNavigateToPrevUnanswered()) {
                                 focusManager.clearFocus(force = true)
-                                when { !answeredThisSession -> onExitWithoutAnswer(); else -> ds.showExitDialog = true }
+                                viewModel.prevQuestion()
+                            } else if (gesture.dragAmount < -100f) {
+                                focusManager.clearFocus(force = true)
+                                when (ExamEdgeSwipePipeline.resolveForwardSwipe(
+                                    answeredThisSession = answeredThisSession,
+                                    canNavigateNext = viewModel.canNavigateToNextUnanswered()
+                                )) {
+                                    ExamEdgeSwipePipeline.ForwardAction.NextQuestion -> viewModel.nextQuestion()
+                                    ExamEdgeSwipePipeline.ForwardAction.ExitWithoutAnswer -> onExitWithoutAnswer()
+                                    ExamEdgeSwipePipeline.ForwardAction.PromptSubmit -> ds.showExitDialog = true
+                                }
                             }
                         }
                         gesture.resetDrag()
@@ -258,14 +335,29 @@ fun ExamScreenContent(
             settingsMenuExpanded = ds.menuExpanded, onMenuToggle = { ds.menuExpanded = true }, onMenuDismiss = { ds.menuExpanded = false },
             questionsSize = questions.size, hasAnyAnalysis = hasDeepSeekAnalysis || hasSparkAnalysis || hasBaiduAnalysis, hasNote = hasNote,
             settingsMenuContent = {
-                DropdownMenuItem(text = { Text(stringResource(R.string.increase_font)) }, onClick = { fc.increaseFont(coroutineScope); ds.menuExpanded = false })
-                DropdownMenuItem(text = { Text(stringResource(R.string.decrease_font)) }, onClick = { fc.decreaseFont(coroutineScope); ds.menuExpanded = false })
-                DropdownMenuItem(text = { Text(stringResource(R.string.increase_line_spacing)) }, onClick = { fc.increaseSpacing(coroutineScope); ds.menuExpanded = false })
-                DropdownMenuItem(text = { Text(stringResource(R.string.decrease_line_spacing)) }, onClick = { fc.decreaseSpacing(coroutineScope); ds.menuExpanded = false })
-                DropdownMenuItem(text = { Text(stringResource(R.string.edit_current_question)) }, onClick = {
-                    timer.cancel(); focusManager.clearFocus(force = true); viewModel.clearEditableQuestion()
-                    viewModel.prepareEditableQuestion(currentIndex); ds.showEditQuestionDialog = true; ds.menuExpanded = false
-                })
+                ExamFontSettingsMenu(
+                    increaseFontLabel = stringResource(R.string.increase_font),
+                    decreaseFontLabel = stringResource(R.string.decrease_font),
+                    increaseLineSpacingLabel = stringResource(R.string.increase_line_spacing),
+                    decreaseLineSpacingLabel = stringResource(R.string.decrease_line_spacing),
+                    increaseLetterSpacingLabel = stringResource(R.string.increase_letter_spacing),
+                    decreaseLetterSpacingLabel = stringResource(R.string.decrease_letter_spacing),
+                    editQuestionLabel = stringResource(R.string.edit_current_question),
+                    onIncreaseFont = { fc.increaseFont(coroutineScope) },
+                    onDecreaseFont = { fc.decreaseFont(coroutineScope) },
+                    onIncreaseLineSpacing = { fc.increaseSpacing(coroutineScope) },
+                    onDecreaseLineSpacing = { fc.decreaseSpacing(coroutineScope) },
+                    onIncreaseLetterSpacing = { fc.increaseLetterSpacing(coroutineScope) },
+                    onDecreaseLetterSpacing = { fc.decreaseLetterSpacing(coroutineScope) },
+                    onEditQuestion = {
+                        timer.cancel()
+                        focusManager.clearFocus(force = true)
+                        viewModel.clearEditableQuestion()
+                        viewModel.prepareEditableQuestion(currentIndex)
+                        ds.showEditQuestionDialog = true
+                    },
+                    onDismiss = { ds.menuExpanded = false }
+                )
             }
         )
         if (ds.showEditQuestionDialog) {
@@ -285,36 +377,41 @@ fun ExamScreenContent(
                 show = ds.showList, onDismiss = { ds.showList = false }, questions = questions,
                 selectedOptions = selectedOptions, textAnswers = textAnswers,
                 showResultList = showResultList,
+                answerTimes = answerTimeList,
                 displayInfoByQuestionId = remember(questions) { viewModel.buildAnswerCardDisplayInfo(questions) },
+                entryGrouped = remember(questions) { viewModel.answerCardEntryGrouped(questions) },
                 currentIndex = currentIndex,
                 onSelect = { idx -> viewModel.goToQuestion(idx) }
             )
         }
         Spacer(modifier = Modifier.height(8.dp))
-        val fillRound = remember(question.id) { extractDerivedFillQuestionRound(question.id) }
-        val fillRoundTotal = remember(question.id, questions) {
-            if (fillRound == null) null else questions.count { extractSourceQuestionId(it.id) == extractSourceQuestionId(question.id) }
-        }
-        if (fillRound != null && (fillRoundTotal ?: 0) > 1) {
-            Text(text = stringResource(R.string.fill_full_answer_round_template, fillRound, fillRoundTotal ?: 0),
-                style = MaterialTheme.typography.bodyMedium.copy(fontSize = (LocalFontSize.current.value - 1f).coerceAtLeast(12f).sp, fontFamily = LocalFontFamily.current, color = MaterialTheme.colorScheme.primary),
-                modifier = Modifier.padding(bottom = 8.dp))
+        FillAnswerRoundLabel(
+            questionId = question.id,
+            sessionQuestionIds = questions.map { it.id },
+            modifier = Modifier.padding(bottom = 8.dp)
+        ) { round, total ->
+            Text(
+                text = stringResource(R.string.fill_full_answer_round_template, round, total),
+                style = MaterialTheme.typography.bodyMedium.copy(
+                    fontSize = (LocalFontSize.current.value - 1f).coerceAtLeast(12f).sp,
+                    fontFamily = LocalFontFamily.current,
+                    color = MaterialTheme.colorScheme.primary
+                )
+            )
         }
 
         ExamQuestionBody(
             question = question, questionFontSize = fc.questionFontSize, lineSpacingMultiplier = fc.questionLineSpacing,
+            letterSpacing = fc.questionLetterSpacing,
             selectedOption = selectedOption, textAnswer = textAnswer, showResult = showResult,
-            onOptionClick = { idx ->
+            onOptionClick = if (isReviewMode) { {} } else { { idx ->
                 val isSingleOrJudge = QuestionTypes.isSingle(question.type) || QuestionTypes.isJudge(question.type)
                 answeredThisSession = true; viewModel.selectOption(idx, skipAfterChanged = isSingleOrJudge)
                 if (isSingleOrJudge) {
-                    autoAdvance(externalState.examDelay * 1000L) {
-                        if (currentIndex < questions.size - 1) viewModel.nextQuestion()
-                        else { viewModel.gradeExam() }
-                    }
+                    autoAdvance(externalState.examDelay * 1000L) { postAnswerAdvance() }
                 }
-            },
-            onTextAnswerChange = { answeredThisSession = true; viewModel.updateTextAnswer(it) }
+            } },
+            onTextAnswerChange = if (isReviewMode) { {} } else { { answeredThisSession = true; viewModel.updateTextAnswer(it) } }
         )
 
         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
@@ -326,7 +423,7 @@ fun ExamScreenContent(
             }
         }
 
-        if (showResult && QuestionTypes.isInlineBlank(question.type)) {
+        if (!isReviewMode && showResult && QuestionTypes.isInlineBlank(question.type)) {
             Row(modifier = Modifier.fillMaxWidth().padding(top = 6.dp), horizontalArrangement = Arrangement.End) {
                 TextButton(onClick = { timer.cancel(); viewModel.retryWrongFillBlanks(currentIndex); answeredThisSession = true },
                     contentPadding = PaddingValues(horizontal = 0.dp, vertical = 0.dp)) {
@@ -353,13 +450,58 @@ fun ExamScreenContent(
             onSetDeleteTargetAndShow = { target -> timer.cancel(); ds.deleteTarget = target; ds.showDeleteDialog = true }
         )
 
-        QuestionNavigationControls(
-            visible = !QuestionTypes.isSingle(question.type) && !QuestionTypes.isJudge(question.type) && !showResult,
-            onPrev = { focusManager.clearFocus(force = true); if (selectedOption.isNotEmpty()) answeredThisSession = true; viewModel.prevQuestion() },
-            onNext = { focusManager.clearFocus(force = true); if (selectedOption.isNotEmpty()) answeredThisSession = true; viewModel.nextQuestion() },
-            enabledPrev = currentIndex > 0,
-            enabledNext = currentIndex < questions.size - 1
-        )
+        val fullAnswerSkipEnabled = viewModel.isFullAnswerMode && !isReviewMode
+        val canSkipPrevSource = fullAnswerSkipEnabled && viewModel.canSkipToAdjacentSource(forward = false)
+        val canSkipNextSource = fullAnswerSkipEnabled && viewModel.canSkipToAdjacentSource(forward = true)
+        if (!isReviewMode) {
+            QuestionNavigationControls(
+                visible = !showResult,
+                onPrev = {
+                    focusManager.clearFocus(force = true)
+                    if (selectedOption.isNotEmpty()) answeredThisSession = true
+                    viewModel.prevQuestion()
+                },
+                onNext = {
+                    focusManager.clearFocus(force = true)
+                    if (selectedOption.isNotEmpty()) answeredThisSession = true
+                    viewModel.nextQuestion()
+                },
+                onPrevDoubleClick = if (fullAnswerSkipEnabled) {
+                    {
+                        focusManager.clearFocus(force = true)
+                        if (selectedOption.isNotEmpty()) answeredThisSession = true
+                        viewModel.skipToAdjacentSource(forward = false)
+                    }
+                } else null,
+                onNextDoubleClick = if (fullAnswerSkipEnabled) {
+                    {
+                        focusManager.clearFocus(force = true)
+                        if (selectedOption.isNotEmpty()) answeredThisSession = true
+                        viewModel.skipToAdjacentSource(forward = true)
+                    }
+                } else null,
+                onSubmit = ::requestSubmitExam,
+                submitContentDescription = stringResource(R.string.submit_exam),
+                enabledPrev = viewModel.canNavigateToPrevUnanswered() || canSkipPrevSource,
+                enabledNext = viewModel.canNavigateToNextUnanswered() || canSkipNextSource
+            )
+        }
+        if (isReviewMode) {
+            QuestionNavigationControls(
+                visible = true,
+                onPrev = {
+                    focusManager.clearFocus(force = true)
+                    viewModel.prevQuestion()
+                },
+                onNext = {
+                    focusManager.clearFocus(force = true)
+                    viewModel.nextQuestion()
+                },
+                onSubmit = null,
+                enabledPrev = viewModel.canReviewBrowseBack(),
+                enabledNext = viewModel.canReviewBrowseForward()
+            )
+        }
         Spacer(modifier = Modifier.height(8.dp))
     }
 

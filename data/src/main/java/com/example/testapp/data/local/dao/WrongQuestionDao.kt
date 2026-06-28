@@ -20,6 +20,9 @@ interface WrongQuestionDao {
     @Query("SELECT q.fileName AS fileName, COUNT(DISTINCT w.questionId) AS count FROM wrong_questions w INNER JOIN questions q ON q.id = w.questionId WHERE q.fileName IS NOT NULL AND TRIM(q.fileName) != '' GROUP BY q.fileName")
     fun getCountsByFileName(): Flow<List<FileRelatedCountRow>>
 
+    @Query("SELECT q.fileName AS fileName, q.type AS type, COUNT(*) AS count FROM wrong_questions w INNER JOIN questions q ON q.id = w.questionId WHERE q.fileName IS NOT NULL AND TRIM(q.fileName) != '' GROUP BY q.fileName, q.type")
+    fun getTypeCountsByFileName(): Flow<List<com.example.testapp.data.local.dao.FileQuestionTypeCountRow>>
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun add(entity: WrongQuestionEntity)
 

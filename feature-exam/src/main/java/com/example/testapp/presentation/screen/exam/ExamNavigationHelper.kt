@@ -1,13 +1,13 @@
 package com.example.testapp.presentation.screen.exam
 
 import com.example.testapp.domain.model.ExamProgress
+import com.example.testapp.domain.model.QuestionWithState
 import com.example.testapp.domain.model.UnifiedQuestionState
 import com.example.testapp.domain.model.Question
 import com.example.testapp.uicommon.component.AnswerCardDisplayInfo
+import com.example.testapp.uicommon.component.AnswerCardDisplayInfoPipeline
 import com.example.testapp.core.util.answerToOptionIndex
 import com.example.testapp.core.util.answerToOptionIndices
-import com.example.testapp.core.util.extractDerivedFillQuestionRound
-import com.example.testapp.core.util.extractSourceQuestionId
 import com.example.testapp.core.util.resolveDisplayOptions
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -23,10 +23,7 @@ class ExamNavigationHelper @Inject constructor(
 
     fun shouldReuseSavedSourceOrder(
         saved: List<Int>, expectedCount: Int, expectedSeq: List<Int>, random: Boolean
-    ): Boolean {
-        if (saved.isEmpty() || saved.size != expectedCount) return false
-        return if (random) saved != expectedSeq else saved == expectedSeq
-    }
+    ): Boolean = ExamSavedOrderMatchPipeline.matches(saved, expectedSeq, random)
 
     fun buildExamQuestionState(
         questions: List<Question>, idx: Int,
@@ -57,41 +54,58 @@ class ExamNavigationHelper @Inject constructor(
         return result
     }
 
-    fun buildAnswerCardDisplayInfo(questions: List<Question>, allSourceQuestions: List<Question>): Map<Int, AnswerCardDisplayInfo> {
-        val orderById = allSourceQuestions.mapIndexed { i, q -> q.id to (i + 1) }.toMap()
-        return questions.associate { q ->
-            val order = orderById[extractSourceQuestionId(q.id)] ?: questions.indexOf(q) + 1
-            val round = extractDerivedFillQuestionRound(q.id)
-            q.id to AnswerCardDisplayInfo(
-                label = if (round != null) "$order-$round" else order.toString(), order = order, round = round
-            )
-        }
-    }
+    fun buildAnswerCardDisplayInfo(
+        questions: List<Question>,
+        allSourceQuestions: List<Question>,
+        fullAnswerMode: Boolean
+    ): Map<Int, AnswerCardDisplayInfo> =
+        AnswerCardDisplayInfoPipeline.build(questions, allSourceQuestions, fullAnswerMode)
 
     fun currentFullAnswerCandidateIndices(
-        questions: List<Question>, currentIndex: Int, eligible: List<Int>,
-        fullAnswerRequireCorrect: Boolean, buildState: (Int) -> UnifiedQuestionState
-    ): List<Int> {
-        if (eligible.isEmpty()) return emptyList()
-        val cur = questions.getOrNull(currentIndex) ?: return eligible
-        val sourceId = extractSourceQuestionId(cur.id)
-        if (sourceId == cur.id)
-            return eligible.filter { !buildState(it).showResult }.ifEmpty { eligible }
-        val same = eligible.filter { extractSourceQuestionId(questions[it].id) == sourceId }
-        val sameUnrev = same.filter { !buildState(it).showResult }
-        if (sameUnrev.isNotEmpty()) return sameUnrev
-        if (fullAnswerRequireCorrect) {
-            val sameIncorrect = same.filter { i -> val s = buildState(i); s.showResult && !answerRules.isQuestionCorrect(questions[i], s) }
-            if (sameIncorrect.isNotEmpty()) return sameIncorrect
-        }
-        val unrev = eligible.filter { !buildState(it).showResult }
-        if (unrev.isNotEmpty()) return unrev
-        if (fullAnswerRequireCorrect) {
-            val incorrect = eligible.filter { i -> val s = buildState(i); s.showResult && !answerRules.isQuestionCorrect(questions[i], s) }
-            if (incorrect.isNotEmpty()) return incorrect
-        }
-        return eligible
-    }
+        questions: List<Question>,
+        questionsWithState: List<QuestionWithState>,
+        currentIndex: Int,
+        eligible: List<Int>,
+        fullAnswerModeActive: Boolean,
+        fullAnswerRequireCorrect: Boolean,
+        sessionGraded: Boolean,
+        isCorrect: (Question, UnifiedQuestionState) -> Boolean
+    ): List<Int> = ExamFullAnswerNavigation.resolveCandidateIndices(
+        questions = questions,
+        questionsWithState = questionsWithState,
+        currentIndex = currentIndex,
+        eligibleIndices = eligible,
+        fullAnswerModeActive = fullAnswerModeActive,
+        requireCorrect = fullAnswerRequireCorrect,
+        sessionGraded = sessionGraded,
+        isCorrect = isCorrect
+    )
+
+    fun navigateCandidateIndices(
+        questions: List<Question>,
+        questionsWithState: List<QuestionWithState>,
+        currentIndex: Int,
+        fullAnswerModeActive: Boolean,
+        fullAnswerRequireCorrect: Boolean,
+        sessionGraded: Boolean,
+        memoryActive: Boolean,
+        roundIds: Set<Int>,
+        isCorrect: (Question, UnifiedQuestionState) -> Boolean
+    ): List<Int> = currentFullAnswerCandidateIndices(
+        questions = questions,
+        questionsWithState = questionsWithState,
+        currentIndex = currentIndex,
+        eligible = questions.indices.filter { idx ->
+            val q = questions.getOrNull(idx) ?: return@filter false
+            idx != currentIndex && (!memoryActive || roundIds.isEmpty() || q.id in roundIds)
+        },
+        fullAnswerModeActive = fullAnswerModeActive,
+        fullAnswerRequireCorrect = fullAnswerRequireCorrect,
+        sessionGraded = sessionGraded,
+        isCorrect = isCorrect
+    )
+
+    fun normalizeEditedSelectedOptions(sel: List<Int>, q: Question) = sel.distinct().filter { it in q.options.indices }
 
     fun shuffleOptionsIfNeeded(questions: List<Question>, random: Boolean, seed: Long): List<Question> {
         if (!random) return questions
@@ -123,19 +137,4 @@ class ExamNavigationHelper @Inject constructor(
         }
         return QuadLists(an, sp, bd, nt)
     }
-
-    fun navigateCandidateIndices(
-        questions: List<Question>, currentIndex: Int,
-        fullAnswerRequireCorrect: Boolean, memoryActive: Boolean, roundIds: Set<Int>,
-        buildState: (Int) -> UnifiedQuestionState
-    ): List<Int> = currentFullAnswerCandidateIndices(
-        questions = questions, currentIndex = currentIndex,
-        eligible = questions.indices.filter { idx ->
-            val q = questions.getOrNull(idx) ?: return@filter false
-            idx != currentIndex && (!memoryActive || roundIds.isEmpty() || q.id in roundIds)
-        },
-        fullAnswerRequireCorrect = fullAnswerRequireCorrect, buildState = buildState
-    )
-
-    fun normalizeEditedSelectedOptions(sel: List<Int>, q: Question) = sel.distinct().filter { it in q.options.indices }
 }

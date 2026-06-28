@@ -9,20 +9,21 @@ import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.launch
 
 class ExamFontController(
-    defaultFontSize: Float,
-    defaultLineSpacing: Float,
+    private val defaultFontSize: Float,
+    private val defaultLineSpacing: Float,
     private val fontSettings: FontSettingsRepository
 ) {
     var questionFontSize by mutableStateOf(defaultFontSize)
     var questionLineSpacing by mutableStateOf(defaultLineSpacing)
+    var questionLetterSpacing by mutableStateOf(0f)
     var loaded by mutableStateOf(false); private set
 
     suspend fun loadFromStore() {
         if (loaded) return
         val storedSize = fontSettings.examFontSize.firstOrNull() ?: Float.NaN
-        if (!storedSize.isNaN()) questionFontSize = storedSize
-        val storedSpacing = fontSettings.examLineSpacing.firstOrNull() ?: 1.3f
-        questionLineSpacing = storedSpacing
+        questionFontSize = if (!storedSize.isNaN()) storedSize else defaultFontSize
+        questionLineSpacing = fontSettings.examLineSpacing.firstOrNull() ?: defaultLineSpacing
+        questionLetterSpacing = fontSettings.examLetterSpacing.firstOrNull() ?: 0f
         loaded = true
     }
 
@@ -48,5 +49,17 @@ class ExamFontController(
         val newSpacing = (questionLineSpacing - 0.1f).coerceAtLeast(1.0f)
         questionLineSpacing = newSpacing
         scope.launch { fontSettings.setExamLineSpacing(newSpacing) }
+    }
+
+    fun increaseLetterSpacing(scope: CoroutineScope) {
+        val newSpacing = (questionLetterSpacing + 0.1f).coerceAtMost(2.0f)
+        questionLetterSpacing = newSpacing
+        scope.launch { fontSettings.setExamLetterSpacing(newSpacing) }
+    }
+
+    fun decreaseLetterSpacing(scope: CoroutineScope) {
+        val newSpacing = (questionLetterSpacing - 0.1f).coerceAtLeast(0f)
+        questionLetterSpacing = newSpacing
+        scope.launch { fontSettings.setExamLetterSpacing(newSpacing) }
     }
 }

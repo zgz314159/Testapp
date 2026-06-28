@@ -2,6 +2,10 @@
 
 import com.example.testapp.domain.model.PracticeSessionState
 import com.example.testapp.domain.model.QuestionWithState
+import com.example.testapp.presentation.screen.practice.navigation.AnsweredHistoryBackwardResult
+import com.example.testapp.presentation.screen.practice.navigation.AnsweredHistoryForwardResult
+import com.example.testapp.presentation.screen.practice.SkipUnansweredSourceResult
+import com.example.testapp.presentation.screen.practice.UnansweredNavResult
 import com.example.testapp.presentation.screen.practice.navigation.NavigationController
 import com.example.testapp.presentation.screen.practice.navigation.NavigationHistory
 import com.example.testapp.presentation.screen.practice.navigation.PracticeNavigationState
@@ -62,14 +66,22 @@ class PracticeNavigationCoordinator {
     // === 导航状态转换（委托） ===
     fun clearRandomNavigationState() = history.clearRandomNavigationState()
     fun clearAnsweredHistoryNavigation() = history.clearAnsweredHistoryNavigation()
-    fun clearRandomNavigationHistory() = history.clearAll()
+    fun clearRandomNavigationHistory() = history.clearRandomNavigationState()
     fun restoreAnsweredHistoryIfNeeded(sessionState: MutableList<PracticeSessionState>?) = history.restoreAnsweredHistoryIfNeeded()
-    fun updateAnsweredHistoryNavigation(originIndex: Int, historyPosition: Int) =
-        history.updateAnsweredHistoryNavigation(originIndex, historyPosition)
+    fun updateAnsweredHistoryNavigation(
+        originIndex: Int,
+        historyPosition: Int,
+        orderedIndices: List<Int>,
+        anchorPoolIndices: Set<Int> = emptySet()
+    ) =
+        history.updateAnsweredHistoryNavigation(originIndex, historyPosition, orderedIndices, anchorPoolIndices)
     fun prepareStateForForwardNavigation(currentState: PracticeSessionState): PracticeSessionState =
         history.prepareStateForForwardNavigation(currentState)
     fun resumeFromAnsweredHistory(currentState: PracticeSessionState): PracticeSessionState =
         history.resumeFromAnsweredHistory(currentState)
+
+    fun exitAnsweredHistoryBrowsing(currentState: PracticeSessionState): PracticeSessionState =
+        history.exitAnsweredHistoryBrowsing(currentState)
 
     fun buildPreviousAnsweredIndices(
         currentState: PracticeSessionState,
@@ -88,7 +100,7 @@ class PracticeNavigationCoordinator {
         memoryModeActive: Boolean,
         memoryPoolMode: Int,
         isQuestionAnswered: (QuestionWithState) -> Boolean
-    ): Boolean = history.navigateToPreviousAnsweredQuestion(
+    ): AnsweredHistoryBackwardResult = history.navigateToPreviousAnsweredQuestion(
         currentState, onUpdateSession, onSaveProgress,
         effectiveCurrentMemoryRoundQuestionIds, memoryModeActive, memoryPoolMode, isQuestionAnswered
     )
@@ -104,12 +116,23 @@ class PracticeNavigationCoordinator {
         questionsWithState, currentIndex, isQuestionAnswered, randomPracticeEnabled
     )
 
+    fun seedAnsweredHistoryFromRestoredProgress(
+        questionsWithState: List<QuestionWithState>,
+        isQuestionAnswered: (QuestionWithState) -> Boolean
+    ) {
+        PracticeAnsweredHistorySeedPipeline.buildSnapshots(questionsWithState, isQuestionAnswered)
+            .forEach { (questionId, snapshot) ->
+                answeredHistorySnapshots[questionId] = snapshot
+            }
+    }
+
     // === Phase 4: 导航编排（委托给 controller） ===
 
     fun initPhase4(
         _sessionState: MutableStateFlow<PracticeSessionState>,
         scope: CoroutineScope,
         isQuestionPendingForCurrentMode: (QuestionWithState) -> Boolean,
+        isQuestionAnswered: (QuestionWithState) -> Boolean,
         shouldReopenUnansweredReveal: (QuestionWithState) -> Boolean,
         currentSourcePendingIndices: (List<QuestionWithState>, Int, List<Int>) -> List<Int>,
         isCurrentSourceComplete: (PracticeSessionState) -> Boolean,
@@ -119,28 +142,55 @@ class PracticeNavigationCoordinator {
         nextFullAnswerCandidateIndices: (List<QuestionWithState>, Int, List<Int>) -> List<Int>,
         reopenQuestionForPendingRetry: (Int) -> Unit,
         reopenQuestionForFullAnswerRetry: (Int) -> Unit,
-        saveProgress: () -> Unit,
+        scheduleNavigationSave: () -> Unit,
         fullAnswerModeActive: () -> Boolean,
         fullAnswerRequireCorrect: () -> Boolean,
         memoryModeActive: () -> Boolean
     ) {
         controller = NavigationController(
             _sessionState, scope, history,
-            isQuestionPendingForCurrentMode, shouldReopenUnansweredReveal,
+            isQuestionPendingForCurrentMode, isQuestionAnswered, shouldReopenUnansweredReveal,
             currentSourcePendingIndices, isCurrentSourceComplete,
             findNextSourceEntryIndices, findAdjacentDerivedQuestionIndex,
             effectiveCurrentMemoryRoundQuestionIds, nextFullAnswerCandidateIndices,
             reopenQuestionForPendingRetry, reopenQuestionForFullAnswerRetry,
-            saveProgress,
+            scheduleNavigationSave,
             fullAnswerModeActive, fullAnswerRequireCorrect, memoryModeActive
         ) { randomPracticeEnabled }
     }
 
     fun nextQuestion() = controller?.nextQuestion()
-    fun prevQuestion() = controller?.prevQuestion()
+    fun prevQuestionViaIcon(): UnansweredNavResult =
+        controller?.prevQuestionViaIcon() ?: UnansweredNavResult.AtFirstUnanswered
+    fun nextQuestionViaIcon(): UnansweredNavResult =
+        controller?.nextQuestionViaIcon() ?: UnansweredNavResult.AtLastUnanswered
+    fun canNavigateToPrevUnanswered(): Boolean =
+        controller?.canNavigateToPrevUnanswered() == true
+    fun canNavigateToNextUnanswered(): Boolean =
+        controller?.canNavigateToNextUnanswered() == true
+
+    fun browseAnsweredHistoryOlder(): AnsweredHistoryBackwardResult =
+        controller?.browseAnsweredHistoryOlder() ?: AnsweredHistoryBackwardResult.NoMoreHistory
+
+    fun browseAnsweredHistoryNewer(): AnsweredHistoryForwardResult =
+        controller?.browseAnsweredHistoryNewer() ?: AnsweredHistoryForwardResult.NotInHistory
 
     fun goToQuestion(index: Int) = controller?.goToQuestion(index)
     fun resetNavigationForManualJump() = controller?.resetNavigationForManualJump()
+
+    fun canSkipToUnansweredSource(forward: Boolean): Boolean =
+        controller?.canSkipToUnansweredSource(forward) == true
+
+    fun skipToUnansweredSource(forward: Boolean): SkipUnansweredSourceResult =
+        controller?.skipToUnansweredSource(forward)
+            ?: if (forward) SkipUnansweredSourceResult.NoNextSource
+            else SkipUnansweredSourceResult.NoPrevSource
+
+    fun canSkipToAdjacentSource(forward: Boolean): Boolean = canSkipToUnansweredSource(forward)
+
+    fun skipToAdjacentSource(forward: Boolean) {
+        skipToUnansweredSource(forward)
+    }
 
     companion object {
         const val MEMORY_POOL_MODE_ROUND = NavigationHistory.MEMORY_POOL_MODE_ROUND

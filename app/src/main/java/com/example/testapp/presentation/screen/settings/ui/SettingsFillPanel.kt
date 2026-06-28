@@ -101,6 +101,7 @@ fun SettingsFillPanel(
         }
         Spacer(modifier = Modifier.height(8.dp))
         Text(stringResource(R.string.fill_full_answer_completion_help_text), style = MaterialTheme.typography.bodyMedium.copy(fontSize = (fontSize - 2).coerceAtLeast(12f).sp, fontFamily = LocalFontFamily.current))
+        Text(stringResource(R.string.fill_full_answer_exam_completion_note), style = MaterialTheme.typography.bodyMedium.copy(fontSize = (fontSize - 2).coerceAtLeast(12f).sp, fontFamily = LocalFontFamily.current, color = MaterialTheme.colorScheme.secondary))
         Spacer(modifier = Modifier.height(12.dp))
         Text(stringResource(R.string.fill_full_answer_order_label), style = MaterialTheme.typography.bodyLarge.copy(fontSize = fontSize.sp, fontFamily = LocalFontFamily.current))
         Spacer(modifier = Modifier.height(8.dp))

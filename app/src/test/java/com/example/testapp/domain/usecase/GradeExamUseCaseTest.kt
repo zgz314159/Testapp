@@ -1,6 +1,7 @@
 package com.example.testapp.domain.usecase
 
 import com.example.testapp.domain.model.ExamHistoryRecord
+import com.example.testapp.domain.model.LibraryCatalog
 import com.example.testapp.domain.model.Question
 import com.example.testapp.domain.model.WrongQuestion
 import com.example.testapp.domain.repository.ExamHistoryRepository
@@ -14,6 +15,8 @@ import org.junit.Test
 class FakeWrongBookRepository : WrongBookRepository {
     val added = mutableListOf<WrongQuestion>()
     override fun getAll(): Flow<List<WrongQuestion>> = flowOf(emptyList())
+    override fun observeLibraryCatalog(): Flow<LibraryCatalog> =
+        flowOf(LibraryCatalog(emptyList(), emptyMap()))
     override suspend fun add(wrong: WrongQuestion) { added.add(wrong) }
     override suspend fun clear() {}
     override suspend fun importFromFile(file: java.io.File): Int = 0

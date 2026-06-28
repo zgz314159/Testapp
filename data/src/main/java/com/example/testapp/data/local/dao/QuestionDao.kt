@@ -38,6 +38,9 @@ interface QuestionDao {
     @Query("SELECT fileName FROM questions WHERE fileName IS NOT NULL AND TRIM(fileName) != '' GROUP BY fileName ORDER BY MIN(id)")
     fun getOrderedFileNames(): Flow<List<String>>
 
+    @Query("SELECT * FROM questions WHERE id IN (:ids)")
+    suspend fun getByIds(ids: List<Int>): List<QuestionEntity>
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertAll(list: List<QuestionEntity>)
 

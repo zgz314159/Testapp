@@ -1,10 +1,12 @@
 package com.example.testapp.domain.repository
 
+import com.example.testapp.domain.model.LibraryCatalog
 import com.example.testapp.domain.model.WrongQuestion
 import kotlinx.coroutines.flow.Flow
 
 interface WrongBookRepository {
     fun getAll(): Flow<List<WrongQuestion>>
+    fun observeLibraryCatalog(): Flow<LibraryCatalog>
     suspend fun add(wrong: WrongQuestion)
     suspend fun clear()
     suspend fun importFromFile(file: java.io.File): Int

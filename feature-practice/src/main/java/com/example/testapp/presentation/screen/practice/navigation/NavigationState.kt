@@ -15,7 +15,12 @@ sealed interface AnsweredHistoryNavigationState {
 
     data class Active(
         val originIndex: Int,
-        val historyPosition: Int
+        /** [orderedIndices] 中当前浏览项的下标；0 = 最新作答 */
+        val historyPosition: Int,
+        /** 全局作答时间倒序（冻结） */
+        val orderedIndices: List<Int>,
+        /** 进入历史时锚点词条的轮次池 index 集合（全答模式） */
+        val anchorPoolIndices: Set<Int> = emptySet()
     ) : AnsweredHistoryNavigationState
 }
 

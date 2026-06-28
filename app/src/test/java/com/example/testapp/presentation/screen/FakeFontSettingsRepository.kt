@@ -21,6 +21,8 @@ class FakeFontSettingsRepository : FontSettingsRepository {
     override val lastSelectedFile: Flow<String> = flowOf("")
     override val lastSelectedNav: Flow<Int> = flowOf(0)
     override val practiceFontSize: Flow<Float> = flowOf(18f)
+    override val practiceLineSpacing: Flow<Float> = flowOf(1.3f)
+    override val practiceLetterSpacing: Flow<Float> = flowOf(0f)
     override val examFontSize: Flow<Float> = flowOf(18f)
     override val deepSeekFontSize: Flow<Float> = flowOf(18f)
     override val sparkFontSize: Flow<Float> = flowOf(18f)
@@ -35,6 +37,7 @@ class FakeFontSettingsRepository : FontSettingsRepository {
     override val fillAnswerScoreMax: Flow<Int> = flowOf(10)
     override val fillAnswerTagFilter: Flow<String> = flowOf("")
     override val examLineSpacing: Flow<Float> = flowOf(1f)
+    override val examLetterSpacing: Flow<Float> = flowOf(0f)
     override val practiceMemoryMode: Flow<Int> = flowOf(0)
     override val practiceMemoryBatchSize: Flow<Int> = flowOf(10)
     override val practiceMemoryWrongMode: Flow<Int> = flowOf(0)
@@ -58,6 +61,8 @@ class FakeFontSettingsRepository : FontSettingsRepository {
     override suspend fun setLastSelectedFile(fileName: String) = Unit
     override suspend fun setLastSelectedNav(index: Int) = Unit
     override suspend fun setPracticeFontSize(size: Float) = Unit
+    override suspend fun setPracticeLineSpacing(value: Float) = Unit
+    override suspend fun setPracticeLetterSpacing(value: Float) = Unit
     override suspend fun setExamFontSize(size: Float) = Unit
     override suspend fun setDeepSeekFontSize(size: Float) = Unit
     override suspend fun setSparkFontSize(size: Float) = Unit
@@ -71,6 +76,7 @@ class FakeFontSettingsRepository : FontSettingsRepository {
     override suspend fun setFillAnswerScoreMax(value: Int) = Unit
     override suspend fun setFillAnswerTagFilter(value: String) = Unit
     override suspend fun setExamLineSpacing(value: Float) = Unit
+    override suspend fun setExamLetterSpacing(value: Float) = Unit
     override suspend fun setPracticeMemoryMode(value: Int) = Unit
     override suspend fun setPracticeMemoryBatchSize(value: Int) = Unit
     override suspend fun setPracticeMemoryWrongMode(value: Int) = Unit
