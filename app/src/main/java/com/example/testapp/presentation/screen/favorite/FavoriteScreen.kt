@@ -1,29 +1,18 @@
 package com.example.testapp.presentation.screen.favorite
 
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.Button
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.ui.Alignment
-import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import com.example.testapp.R
-import com.example.testapp.domain.model.FavoriteQuestion
 import com.example.testapp.presentation.screen.file.DragDropViewModel
 import com.example.testapp.presentation.screen.file.FileFolderViewModel
+import com.example.testapp.presentation.screen.library.LibraryQuestionDetailScreen
 import com.example.testapp.presentation.screen.library.ScopedQuestionLibraryScreen
-import com.example.testapp.uicommon.component.LocalFontFamily
-import com.example.testapp.uicommon.component.LocalFontSize
+import java.net.URLEncoder
 
 private const val FAVORITE_GROUP_SCOPE = "__favorite__"
 private const val FAVORITE_HOME_DROP_TARGET = "__FAVORITE_HOME__"
@@ -42,10 +31,21 @@ fun FavoriteScreen(
 
     if (!fileName.isNullOrEmpty()) {
         LaunchedEffect(fileName) { viewModel.ensureFullListLoaded() }
-        FavoriteDetailContent(
-            fileName = fileName,
-            favoriteQuestions = favoriteQuestions.filter { it.question.fileName == fileName },
-            navController = navController
+        val items = favoriteQuestions
+            .filter { it.question.fileName == fileName }
+            .mapIndexed { index, favorite ->
+                "${index + 1}. ${favorite.question.content}"
+            }
+        LibraryQuestionDetailScreen(
+            title = "${stringResource(R.string.favorites)} - $fileName",
+            emptyMessage = stringResource(R.string.no_favorites),
+            items = items,
+            actionLabel = stringResource(R.string.practice_file_favorites),
+            onBack = { navController?.popBackStack() },
+            onAction = {
+                val encoded = URLEncoder.encode(fileName, "UTF-8")
+                navController?.navigate("practice_favorite/$encoded")
+            }
         )
         return
     }
@@ -61,54 +61,8 @@ fun FavoriteScreen(
         dragViewModel = dragViewModel,
         onDeleteFile = viewModel::removeByFileName,
         onOpenFile = { name ->
-            val encoded = java.net.URLEncoder.encode(name, "UTF-8")
-            navController?.navigate("practice_favorite/$encoded")
+            val encoded = URLEncoder.encode(name, "UTF-8")
+            navController?.navigate("favorite/$encoded")
         }
     )
-}
-
-@Composable
-private fun FavoriteDetailContent(
-    fileName: String,
-    favoriteQuestions: List<FavoriteQuestion>,
-    navController: NavController?
-) {
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(16.dp)
-    ) {
-        if (favoriteQuestions.isEmpty()) {
-            Text(
-                text = stringResource(R.string.no_favorites),
-                fontSize = LocalFontSize.current,
-                fontFamily = LocalFontFamily.current
-            )
-            return@Column
-        }
-
-        favoriteQuestions.forEachIndexed { index, favorite ->
-            Text(
-                text = "${index + 1}. ${favorite.question.content}",
-                fontSize = LocalFontSize.current,
-                fontFamily = LocalFontFamily.current
-            )
-            Spacer(modifier = Modifier.height(8.dp))
-        }
-
-        Spacer(modifier = Modifier.height(24.dp))
-        Button(
-            onClick = {
-                val encoded = java.net.URLEncoder.encode(fileName, "UTF-8")
-                navController?.navigate("practice_favorite/$encoded")
-            },
-            modifier = Modifier.align(Alignment.CenterHorizontally)
-        ) {
-            Text(
-                text = stringResource(R.string.practice_file_favorites),
-                fontSize = LocalFontSize.current,
-                fontFamily = LocalFontFamily.current
-            )
-        }
-    }
 }

@@ -13,6 +13,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import com.example.testapp.uicommon.design.AnswerChoiceTone
+import com.example.testapp.uicommon.design.answerChoicePalette
+import com.example.testapp.uicommon.design.colorFor
 import androidx.compose.ui.unit.dp
 
 @OptIn(ExperimentalFoundationApi::class)
@@ -48,11 +51,11 @@ fun AnswerCardCell(
 
 @Composable
 fun answerCardStatusColors(): Map<AnswerCardStatus, Color> {
-    val scheme = MaterialTheme.colorScheme
+    val palette = answerChoicePalette()
     return mapOf(
-        AnswerCardStatus.CORRECT to scheme.primary.copy(alpha = 0.3f),
-        AnswerCardStatus.WRONG to scheme.error.copy(alpha = 0.3f),
-        AnswerCardStatus.SELECTED to scheme.secondary.copy(alpha = 0.1f),
+        AnswerCardStatus.CORRECT to palette.colorFor(AnswerChoiceTone.Correct),
+        AnswerCardStatus.WRONG to palette.colorFor(AnswerChoiceTone.Wrong),
+        AnswerCardStatus.SELECTED to palette.colorFor(AnswerChoiceTone.Selected),
         AnswerCardStatus.UNANSWERED to Color.Transparent
     )
 }

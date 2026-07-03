@@ -145,6 +145,7 @@ class PracticeNavigationCoordinator {
         scheduleNavigationSave: () -> Unit,
         fullAnswerModeActive: () -> Boolean,
         fullAnswerRequireCorrect: () -> Boolean,
+        fullAnswerRandomOrder: () -> Boolean,
         memoryModeActive: () -> Boolean
     ) {
         controller = NavigationController(
@@ -155,7 +156,7 @@ class PracticeNavigationCoordinator {
             effectiveCurrentMemoryRoundQuestionIds, nextFullAnswerCandidateIndices,
             reopenQuestionForPendingRetry, reopenQuestionForFullAnswerRetry,
             scheduleNavigationSave,
-            fullAnswerModeActive, fullAnswerRequireCorrect, memoryModeActive
+            fullAnswerModeActive, fullAnswerRequireCorrect, fullAnswerRandomOrder, memoryModeActive
         ) { randomPracticeEnabled }
     }
 
@@ -164,6 +165,13 @@ class PracticeNavigationCoordinator {
         controller?.prevQuestionViaIcon() ?: UnansweredNavResult.AtFirstUnanswered
     fun nextQuestionViaIcon(): UnansweredNavResult =
         controller?.nextQuestionViaIcon() ?: UnansweredNavResult.AtLastUnanswered
+
+    fun prevQuestionViaIconDoubleClick(): Boolean =
+        controller?.prevQuestionViaIconDoubleClick() ?: false
+
+    fun nextQuestionViaIconDoubleClick(): Boolean =
+        controller?.nextQuestionViaIconDoubleClick() ?: false
+
     fun canNavigateToPrevUnanswered(): Boolean =
         controller?.canNavigateToPrevUnanswered() == true
     fun canNavigateToNextUnanswered(): Boolean =

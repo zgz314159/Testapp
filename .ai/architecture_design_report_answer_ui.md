@@ -130,6 +130,27 @@ ExamAnalysisArea
 
 每个区块的交互（`onToggle`, `onDoubleTap`, `onLongPress`）均会 call `timer.cancel()` 防止自动跳转冲突。
 
+### 6.1 AI 提问页对话模式（Phase 24 → Phase 26 Gemini）
+
+```
+DeepSeekAskViewModel.chatTurns (StateFlow)
+  → DeepSeekAskChatTurnMapPipeline
+  → AiChatTurnFlattenPipeline
+  → AiChatMessageList (Gemini：assistant 全宽平铺)
+
+AiChatConversationLayout (Scaffold)
+  ├── content: AiChatMessageList（随 IME 收缩，不被输入栏遮挡）
+  └── bottomBar: AiChatPromptSheet
+        ├── AiChatPromptField（圆角 surfaceContainerHighest）
+        └── AiChatPromptSendButton（圆形 primary）
+
+用户输入 → viewModel.ask() → MultiTurnMessagesPipeline → api.chat()
+```
+
+- **IME**：禁止 prompt 上手动 `imePadding()`；由 `Scaffold.bottomBar` 与系统键盘联动
+- **Gemini 视觉**：底部 sheet + 顶部分割线；user 右侧 pill；assistant 无气泡
+- **DeepSeek / Spark / Baidu** 共用 `AiChatConversationLayout`
+
 ---
 
 ## 7. 题目类型系统
@@ -148,6 +169,87 @@ data class Question(
 ```
 
 运行时包裹在 `QuestionWithState` 中，附加 `selectedOptions`, `textAnswer`, `showResult`, `isCorrect`, `analysis`, `note` 等字段。
+
+---
+
+## 12. 导航与手势（Phase 23 → Phase 29）
+
+> **完整规格（修改前必读）：** [practice_session_navigation_spec.md](./practice_session_navigation_spec.md)
+
+**延时 0 串题:** `PracticeQuestionUiResolvePipeline` 校验 `ui.index == currentIndex`；自动跳题前 `yield()`。
+
+**多轮 vs 单轮全答（Phase 29）:** `FullAnswerMultiRoundSessionPipeline.isMultiRoundSession` — 含第 2 轮及以上才启用轮次池约束。
+
+**轮次槽 pending（Phase 29）:** 全答模式 = 有任意输入即完成该题；须全对 = 批改且答对。
+
+**底栏 ← / → 单击:**
+| 场景 | 行为 |
+|------|------|
+| 多轮全答 | 当前轮次池 pending 题间跳转 → 轮次全部完成 → 跨词条 |
+| 单轮全答 / 普通练习 | 全库未作答题间跳转 |
+
+**底栏 ← / → 双击（全答）:** 强制跨词条。
+
+**横滑:** 仅浏览已答历史（与底栏未答跳转分离）；`QuestionSessionHistorySwipePipeline` 方向判定。
+
+**批改展示:** `rememberPracticeResultDisplayReady` 延迟一帧挂载批改区。
+
+---
+
+## 11. 填空输入与批改色（Phase 22 → Phase 27）
+
+**填空焦点不上移:**
+- `adjustNothing` — 窗口不 resize/pan
+- `QuestionSessionChromeLayout` — Box 层叠：顶栏 `TopCenter`、底栏 `BottomCenter` + `consumeWindowInsets(ime)`，**底栏物理锚定屏幕底部**
+- scroll 区 `padding(top=48dp, bottom=64dp)` 避开 chrome；**无 layout 级 imePadding**
+- `QuestionSessionImeScrollSpacer` — 键盘弹出时 scroll 内容末尾追加可滚高度，用户手动上滑查看挖空
+
+**批改色（Phase 25 — Cursor diff 新增行）:**
+| 元素 | 浅色 | 说明 |
+|------|------|------|
+| 答对容器 | `#DFF7DF` | GitHub/Cursor 新增行背景 |
+| 答对文字 | `#1A7F37` | 新增行前景绿 |
+| 答错容器 | `#FFEBEE` | Material Red 50 |
+| 答错文字 | `#C62828` | Red 800 |
+
+单一数据源：`AnswerCorrectHighlightColorPipeline` → 选项容器 + 填空/结果文字。
+
+**历史记录 sheet:** 与答题卡一致，`AppLazyBottomSheet` 92% 屏高 + 内层 LazyColumn。
+
+---
+
+## 9. 性能与弹层（Phase 21）
+
+**滚动分区** — 顶栏 + `QuestionSessionBodyScroll(weight=1)` + 底栏导航，避免整页 scroll 重组。
+
+**弹层分离** — `QuestionTypographySheet` / 答题卡 / 编辑对话框置于 `ScreenSafeScaffold` 外同级，Modal 不进入 scroll 树。
+
+**Bottom Sheet 分工:**
+| 场景 | 组件 | 说明 |
+|------|------|------|
+| 排版设置 | `AppStaticBottomSheet` | 3 行 stepper，无 scroll |
+| 答题卡 | `AppLazyBottomSheet` | 内层 LazyColumn 自管滚动，92% 屏高 |
+| 长文解析 | `AppScrollBottomSheet` | 保留外层 scroll |
+
+**收藏数据流:**
+```
+FavoriteViewModel.ensureFullListLoaded()
+  → favoriteQuestions Flow
+  → FavoriteSessionPipeline.isFavorite(questionId, list)
+  → PracticeExamTopBar 星标 primary 色
+  → add/remove 同步收藏库
+```
+
+---
+
+## 10. 完整文件清单（Phase 21 新增）
+
+### ui-common
+- `QuestionSessionBodyScroll.kt`
+- `AppLazyBottomSheet.kt` / `AppStaticBottomSheet.kt`
+
+### core
+- `FavoriteSessionPipeline.kt`
 
 ---
 

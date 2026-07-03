@@ -11,6 +11,8 @@ import com.example.testapp.presentation.screen.ai.SparkViewModel
 import com.example.testapp.presentation.screen.favorite.FavoriteViewModel
 import com.example.testapp.presentation.screen.settings.SettingsViewModel
 import com.example.testapp.presentation.viewmodel.BaiduQianfanViewModel
+import com.example.testapp.core.util.FavoriteSessionPipeline
+import com.example.testapp.uicommon.util.formatQuestionForAi
 import com.example.testapp.uicommon.util.formatQuestionForCopy
 
 @Composable
@@ -41,6 +43,7 @@ fun ExamScreen(
     val context = LocalContext.current
     val baiduQianfanViewModel: BaiduQianfanViewModel = hiltViewModel()
     val favoriteViewModel: FavoriteViewModel = hiltViewModel()
+    LaunchedEffect(Unit) { favoriteViewModel.ensureFullListLoaded() }
 
     val examCount by settingsViewModel.examQuestionCount.collectAsState()
     val randomExam by settingsViewModel.randomExam.collectAsState()
@@ -81,9 +84,9 @@ fun ExamScreen(
     val currentIndex by viewModel.currentIndex.collectAsState()
     val question = questions.getOrNull(currentIndex)
 
-    val questionTextForAi = remember(question) { question?.let(::formatQuestionForCopy).orEmpty() }
-    val isFavorite = remember(question, favoriteQuestions) {
-        question != null && favoriteQuestions.any { it.question.id == question.id }
+    val questionTextForAi = remember(question) { question?.let(::formatQuestionForAi).orEmpty() }
+    val isFavorite = remember(question?.id, favoriteQuestions) {
+        question?.id?.let { FavoriteSessionPipeline.isFavorite(it, favoriteQuestions) } ?: false
     }
 
     fun resolveLocalized(res: LocalizedResult?): String {
@@ -144,6 +147,7 @@ fun ExamScreen(
     ExamAISyncEffects(
         currentIndex = currentIndex,
         questionId = question?.id,
+        questionStem = question?.content.orEmpty(),
         showResultForIndex = showResultList.getOrNull(currentIndex),
         pollingText = parsingText,
         analysisPair = analysisPair,

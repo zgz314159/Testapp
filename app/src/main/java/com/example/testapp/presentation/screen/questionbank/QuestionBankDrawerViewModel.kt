@@ -14,6 +14,9 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.firstOrNull
+import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -52,10 +55,35 @@ class QuestionBankDrawerViewModel @Inject constructor(
     private val _searchState = MutableStateFlow(QuestionBankSearchState())
     val searchState: StateFlow<QuestionBankSearchState> = _searchState.asStateFlow()
 
+    private val _searchCollapsedFiles = MutableStateFlow<Set<String>>(emptySet())
+    private val _searchCollapsedFolders = MutableStateFlow<Set<String>>(emptySet())
+
+    val expansionSnapshot: StateFlow<QuestionBankExpansionSnapshot> = combine(
+        searchQuery,
+        expandedFolders,
+        expandedFiles,
+        _searchCollapsedFolders,
+        _searchCollapsedFiles
+    ) { query, folders, files, collapsedFolders, collapsedFiles ->
+        QuestionBankExpansionSnapshot(
+            isSearchMode = query.trim().isNotEmpty(),
+            expandedFolders = folders,
+            expandedFiles = files,
+            searchCollapsedFolders = collapsedFolders,
+            searchCollapsedFiles = collapsedFiles
+        )
+    }.stateIn(
+        scope = viewModelScope,
+        started = SharingStarted.WhileSubscribed(5_000),
+        initialValue = QuestionBankExpansionSnapshot()
+    )
+
     private var searchJob: Job? = null
 
     fun onSearchQueryChange(query: String, fileNames: List<String>) {
         _searchQuery.value = query
+        _searchCollapsedFiles.value = emptySet()
+        _searchCollapsedFolders.value = emptySet()
         searchJob?.cancel()
 
         val normalizedQuery = query.trim()
@@ -105,15 +133,29 @@ class QuestionBankDrawerViewModel @Inject constructor(
         searchJob?.cancel()
         _searchQuery.value = ""
         _searchState.value = QuestionBankSearchState()
+        _searchCollapsedFiles.value = emptySet()
+        _searchCollapsedFolders.value = emptySet()
     }
 
     fun toggleFolder(folderName: String) {
+        if (_searchQuery.value.trim().isNotEmpty()) {
+            _searchCollapsedFolders.update { current ->
+                if (folderName in current) current - folderName else current + folderName
+            }
+            return
+        }
         _expandedFolders.update { current ->
             if (folderName in current) current - folderName else current + folderName
         }
     }
 
     fun toggleFile(fileName: String) {
+        if (_searchQuery.value.trim().isNotEmpty()) {
+            _searchCollapsedFiles.update { current ->
+                if (fileName in current) current - fileName else current + fileName
+            }
+            return
+        }
         val willExpand = fileName !in _expandedFiles.value
         _expandedFiles.update { current ->
             if (fileName in current) current - fileName else current + fileName

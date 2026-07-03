@@ -22,7 +22,7 @@ import androidx.compose.material.icons.filled.Description
 import androidx.compose.material.icons.filled.Folder
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.Search
-import androidx.compose.material3.CircularProgressIndicator
+import com.example.testapp.uicommon.design.AppLoadingIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.ListItem
@@ -40,6 +40,7 @@ import com.example.testapp.domain.model.Question
 
 // ---- Shared constants & helpers ----
 
+internal const val QUESTION_BANK_SEARCH_BAR_HEIGHT_DP = 56
 internal const val MAX_SEARCH_OPTION_PREVIEW_COUNT = 4
 
 internal fun optionLabel(index: Int): String = ('A'.code + index).toChar().toString()
@@ -60,7 +61,7 @@ internal fun QuestionBankSearchBar(
 ) {
     val shape = RoundedCornerShape(24.dp)
     Surface(
-        modifier = modifier.height(44.dp),
+        modifier = modifier.height(QUESTION_BANK_SEARCH_BAR_HEIGHT_DP.dp),
         shape = shape,
         tonalElevation = 1.dp,
         color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.72f)
@@ -187,7 +188,7 @@ internal fun QuestionBankFileRow(
         },
         trailingContent = {
             if (isLoading) {
-                CircularProgressIndicator(modifier = Modifier.size(20.dp))
+                AppLoadingIndicator(modifier = Modifier.size(20.dp))
             } else {
                 Icon(Icons.Filled.Description, contentDescription = null)
             }
@@ -290,10 +291,13 @@ internal fun QuestionBankSearchQuestionRow(
     )
 }
 
+internal fun formatQuestionBankRowIndex(questionIndex: Int): String = "第${questionIndex + 1}题"
+
 @Composable
 internal fun QuestionBankQuestionRow(
     question: Question,
     text: String,
+    questionIndex: Int,
     query: String,
     indent: Int,
     onClick: () -> Unit
@@ -313,7 +317,7 @@ internal fun QuestionBankQuestionRow(
         },
         supportingContent = {
             Text(
-                text = "ID ${question.id}",
+                text = formatQuestionBankRowIndex(questionIndex),
                 style = MaterialTheme.typography.labelSmall
             )
         }

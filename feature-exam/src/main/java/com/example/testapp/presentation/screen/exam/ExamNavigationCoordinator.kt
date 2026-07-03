@@ -1,5 +1,8 @@
 package com.example.testapp.presentation.screen.exam
 
+import com.example.testapp.core.util.FullAnswerMultiRoundSessionPipeline
+import com.example.testapp.core.util.FullAnswerIconNavigationStrategyPipeline
+import com.example.testapp.core.util.FullAnswerIconTapStrategy
 import com.example.testapp.domain.model.PracticeSessionState
 import com.example.testapp.domain.model.QuestionWithState
 import com.example.testapp.domain.model.UnifiedQuestionState
@@ -175,7 +178,99 @@ class ExamNavigationCoordinator(
             questionsWithState = state.questionsWithState,
             isPending = ::isPendingAt,
             randomExam = randomExamEnabled()
-        ) || (!randomExamEnabled() && state.currentIndex > 0)
+        )
+    }
+
+    fun canGoPrevSequential(): Boolean {
+        val state = sessionState.value
+        return state.currentIndex > 0
+    }
+
+    fun canGoNextSequential(): Boolean {
+        val state = sessionState.value
+        return state.currentIndex < state.questionsWithState.size - 1
+    }
+
+    private fun iconTapStrategy(): FullAnswerIconTapStrategy =
+        FullAnswerIconNavigationStrategyPipeline.resolve(
+            fullAnswerModeActive = fullAnswerModeActive(),
+            multiRoundSession = FullAnswerMultiRoundSessionPipeline.isMultiRoundSession(
+                sessionState.value.questions
+            )
+        )
+
+    fun prevQuestionViaIcon() {
+        val strategy = iconTapStrategy()
+        if (FullAnswerIconNavigationStrategyPipeline.singleTapUsesRoundPool(strategy)) {
+            if (tryNavigateWithinRoundPool(forward = false)) return
+            return
+        }
+        val state = sessionState.value
+        val (result, targetIndex) = ExamUnansweredNavigation.resolvePrevUnansweredIndex(
+            anchorIndex = state.currentIndex,
+            questionsWithState = state.questionsWithState,
+            isPending = ::isPendingAt,
+            randomExam = randomExamEnabled()
+        )
+        if (result == ExamUnansweredNavResult.Navigated && targetIndex != null) {
+            navigateToIndex(targetIndex)
+            return
+        }
+        if (ExamIconUnansweredNavigationPipeline.shouldFallbackToAdjacentSource(
+                navigated = false,
+                strategy = strategy
+            )
+        ) {
+            skipToAdjacentSource(forward = false)
+        }
+    }
+
+    fun nextQuestionViaIcon() {
+        val strategy = iconTapStrategy()
+        if (FullAnswerIconNavigationStrategyPipeline.singleTapUsesRoundPool(strategy)) {
+            if (tryNavigateWithinRoundPool(forward = true)) return
+            return
+        }
+        val state = sessionState.value
+        val (result, targetIndex) = ExamUnansweredNavigation.resolveNextUnansweredIndex(
+            anchorIndex = state.currentIndex,
+            questionsWithState = state.questionsWithState,
+            isPending = ::isPendingAt,
+            randomExam = randomExamEnabled()
+        )
+        if (result == ExamUnansweredNavResult.Navigated && targetIndex != null) {
+            navigateToIndex(targetIndex)
+            return
+        }
+        if (ExamIconUnansweredNavigationPipeline.shouldFallbackToAdjacentSource(
+                navigated = false,
+                strategy = strategy
+            )
+        ) {
+            skipToAdjacentSource(forward = true)
+        }
+    }
+
+    fun prevQuestionViaIconDoubleClick(): Boolean {
+        val strategy = iconTapStrategy()
+        return if (FullAnswerIconNavigationStrategyPipeline.doubleTapUsesCrossSource(strategy)) {
+            val before = sessionState.value.currentIndex
+            skipToAdjacentSource(forward = false)
+            sessionState.value.currentIndex != before
+        } else {
+            tryNavigateWithinRoundPool(forward = false)
+        }
+    }
+
+    fun nextQuestionViaIconDoubleClick(): Boolean {
+        val strategy = iconTapStrategy()
+        return if (FullAnswerIconNavigationStrategyPipeline.doubleTapUsesCrossSource(strategy)) {
+            val before = sessionState.value.currentIndex
+            skipToAdjacentSource(forward = true)
+            sessionState.value.currentIndex != before
+        } else {
+            tryNavigateWithinRoundPool(forward = true)
+        }
     }
 
     fun nextQuestion() {
@@ -234,8 +329,21 @@ class ExamNavigationCoordinator(
         if (result == ExamUnansweredNavResult.Navigated && targetIndex != null) {
             sessionState.update { it.copy(currentIndex = targetIndex) }
             scheduleNavigationSave()
-        } else if (state.currentIndex > 0) {
+        }
+    }
+
+    fun prevQuestionSequential() {
+        val state = sessionState.value
+        if (state.currentIndex > 0) {
             sessionState.update { it.copy(currentIndex = state.currentIndex - 1) }
+            scheduleNavigationSave()
+        }
+    }
+
+    fun nextQuestionSequential() {
+        val state = sessionState.value
+        if (state.currentIndex < state.questionsWithState.size - 1) {
+            sessionState.update { it.copy(currentIndex = state.currentIndex + 1) }
             scheduleNavigationSave()
         }
     }

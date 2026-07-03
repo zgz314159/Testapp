@@ -40,7 +40,7 @@ class PracticeStateUpdater(
         saveProgress()
     }
 
-    /** 立即展示批改区，不触发持久化（由 finalize 统一落盘）。 */
+    /** 立即展示批改区，并落盘（含已保存 AI 解析）。 */
     fun revealShowResult(index: Int) {
         sessionState.value = sessionState.value.updateAt(index) { qws ->
             if (qws.sessionAnswerTime == 0L) {
@@ -49,6 +49,7 @@ class PracticeStateUpdater(
                 qws.copy(showResult = true)
             }
         }
+        saveProgress()
     }
 
     fun updateAnalysis(index: Int, text: String) {
@@ -70,6 +71,29 @@ class PracticeStateUpdater(
         if (current == text) return
         sessionState.value = sessionState.value.updateAt(index) { it.copy(baiduAnalysis = text) }
         saveProgress()
+    }
+
+    fun revealAllInputAnswers(): List<Int> {
+        val state = sessionState.value
+        val now = System.currentTimeMillis()
+        val revealed = mutableListOf<Int>()
+        val updated = state.questionsWithState.mapIndexed { index, qws ->
+            if (PracticeFullAnswerRoundSlotPendingPipeline.hasInputContent(qws) && !qws.showResult) {
+                revealed += index
+                if (qws.sessionAnswerTime == 0L) {
+                    qws.copy(showResult = true, sessionAnswerTime = now)
+                } else {
+                    qws.copy(showResult = true)
+                }
+            } else {
+                qws
+            }
+        }
+        if (revealed.isNotEmpty()) {
+            sessionState.value = state.copy(questionsWithState = updated)
+            saveProgress()
+        }
+        return revealed
     }
 
     fun updateTextAnswer(answer: String) {

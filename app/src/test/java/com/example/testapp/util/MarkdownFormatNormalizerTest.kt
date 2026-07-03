@@ -34,4 +34,14 @@ class MarkdownFormatNormalizerTest {
         assertFalse(normalized.lineSequence().any { it.trim() == "*" })
         assertFalse(normalized.lineSequence().any { it.trim() == "**" })
     }
+
+    @Test
+    fun removesOrphanBoldMarkersAfterInlineMathInBulletLine() {
+        val raw = "* ${'$'}8487.05 \\text{ N}${'$'}**（${'$'}866.03 \\text{ kgf}${'$'}）。\n```"
+        val normalized = normalizeRichMarkdownStructure(raw)
+
+        assertTrue(normalized.contains("${'$'}8487.05 \\text{ N}${'$'}（${'$'}866.03 \\text{ kgf}${'$'}）"))
+        assertFalse(normalized.contains("**"))
+        assertFalse(normalized.contains("```"))
+    }
 }

@@ -8,6 +8,1120 @@
 
 > Chronological log for agent continuity. Source: `TASK_LOG.md`.
 
+
+---
+
+## 2026-07-04 — 练习页 AI 问答返回误跳题
+
+**现象：** 未作答题先进入 AI 提问，保存返回后自动跳到其他题。
+
+**根因：** 打开 overlay 路由时 Activity 仍 RESUMED，NavBackStackEntry 的 `ON_PAUSE` 可能滞后；此前答题触发的 `autoAdvance` 延迟任务在 AI 页期间仍可能执行 `nextQuestion()`。
+
+**改动：**
+- `PracticeAutoAdvanceController.setScreenActive` — 页面不可见时禁止调度/执行跳题
+- `PracticeOverlayNavigationPipeline` + `rememberPracticeOverlayNavigation` — 打开 AI/笔记/解析前记录锚点，`ON_RESUME` 若 index 漂移则 `goToQuestion` 恢复
+- 生命周期：`ON_PAUSE`/`ON_RESUME` 改为 `setScreenActive`（移除无意义的 `resume()`）
+- 答题卡选题、所有 overlay 导航统一 cancel / 锚点
+- 单测 `PracticeOverlayNavigationPipelineTest`
+- **排查日志** `PracticeJumpDebugLog`（TAG=`PracticeJump`）— autoAdvance / overlay / lifecycle / index.changed / vm.nextQuestion / vm.goToQuestion / analysis.save / ai.popBack
+- **根因修复** AI 返回后 `QuizInitEffect` 重跑 `reloadForFillConfig` → `loadQuestionsForCurrentSource` 在 `restoreFromMap=false` 时重随机题号；现用 `PracticeQuizInitReloadPipeline` 跳过同 key 重载，并用 `PracticeSessionStartIndexPipeline` 在必须重载时保留 `currentIndex`
+
+---
+
+## 2026-07-04 — AI 解析批改后立即显示（全题型）
+
+**现象：** 计算/论述/画图等文本题保存 AI 后提交批改，AI 区不立即显示；切题再回来才出现。判断/单选/填空同类根因。
+
+**根因：**
+- 从 AI 页返回时 `ON_RESUME` 仅在 `showResult=true` 才同步（保存 AI 时多为 false）
+- 文本题 `revealShowResult` 不落盘，与异步 `saveProgress` 竞态
+- `AnalysisManager` 用 stale snapshot 覆盖会话（丢失内存解析 / showResult）
+- `SessionAnalysisResolvePipeline` 流式占位优先于已保存会话
+
+**改动：**
+- `PracticeScreenAnalysisSyncEffects` — `ON_RESUME` 始终同步；`resultDisplayReady` 时再同步
+- `ExamAISyncEffects` — 同上 + `questionId` 初次同步
+- `PracticeStateUpdater.revealShowResult` — 立即 `saveProgress`
+- `PracticeSessionAnalysisMergePipeline` — 异步载入合并到最新会话
+- `SessionAnalysisResolvePipeline` — 会话/列表优先于流式
+- 单测 2 个
+
+---
+
+## 2026-07-04 — AI 问答上下文（题型/无答案）+ `\(...\)` 公式渲染
+
+**问题 1：** 进入 AI 问答时 `formatQuestionForCopy` 携带「答案:」；system 锚点含「标准答案」。
+
+**问题 2：** DeepSeek 回复常用 `\(...\)` / `\[...\]` 定界符，RichText 仅识别 `$…$`，截图中公式显示为原文。
+
+**改动：**
+- `QuestionAiContextPipeline.formatQuestionForAi` — 含题型+题干+选项，不含答案
+- Practice/Exam 导航 AI 改用 `formatQuestionForAi`
+- `DeepSeekExamPromptPipeline` — 锚点去掉标准答案；system 改为独立推导
+- `RichTextLatexDelimiterPipeline` — `\(...\)` → `$...$`，接入 `prepareRichDisplayText`
+- 单测 3 个
+
+---
+
+## 2026-07-04 — AI 解析即时刷新 + 公式 RichText 渲染
+
+**问题 1：** Practice 保存 AI 后批改区不立即显示，需切题才出现（Exam 已有 showResult 同步，Practice 缺失）。
+
+**问题 2：** 答题页 AI 区与 Exam 模块误用 stub `RichText`（纯 Text），公式/单位无法像计算题批改区一样渲染。
+
+**改动：**
+- `PracticeScreenAnalysisSyncEffects` — showResult / ON_RESUME 时从 DB 同步；`PracticeSessionAnalysisSyncPipeline`
+- `SessionAnalysisResolvePipeline` — 流式/会话/列表多源取非空正文
+- `SessionAnalysisInlineDisplayPipeline` — 结构化持久化 → 展示正文
+- `ExamAnalysisSection`（app + feature-exam）— 改用 ui-common `RichText`；删除 exam stub RichText
+- 单测 2 个
+
+---
+
+## 2026-07-04 — 双击 AI 区域 → DeepSeek 问答全屏 + 历史还原
+
+**问题：** 双击答题页 DeepSeek 解析区进入 `deepseek/` 静态编辑器；路由 `text` 传的是解析正文，导致 `loadSaved()` 无法正确解码多轮历史。
+
+**改动：**
+- 全部 `onViewDeepSeek` 导航改为 `deepseek_ask/`（含 `AppNavHost` / `AppNavRoutes`）
+- 遗留 `deepseek/` 路由同样渲染 `DeepSeekAskScreen`（向后兼容）
+- 双击传 **题干**（`questionCopyText` / `questionTextForAi`），不再传 `analysisText`
+- `DeepSeekAskSessionRestorePipeline` — 首问 fallback 到 exam anchor 题干
+- `DeepSeekAskViewModel.restoreSession()` — 打开页时从持久化解码为 `chatTurns`
+- 单测：`DeepSeekAskSessionRestorePipelineTest`
+
+---
+
+## 2026-07-04 — DeepSeek 问答稳定性（反 Agreement Bias）
+
+**根因：** `DeepSeekChatConfig.SYSTEM_PROMPT` 与 `DeepSeekAskFollowUpPipeline` 默认注入「请修正」追问，temperature 0.7 导致答案随用户质疑漂移。
+
+**改动（复用现有 deepseek/*Pipeline，无新模块）：**
+- `DeepSeekExamPromptPipeline` — 铁路考试 system prompt + 五段输出格式 + 题目锚点
+- `DeepSeekChatHistoryPipeline` — 保留最近 3 轮；识别纯质疑句
+- `DeepSeekAskFollowUpPipeline` — 移除自动修正注入；质疑句走稳定包装
+- `DeepSeekMultiTurnMessagesPipeline` — 接入锚点 + 裁剪历史
+- `DeepSeekChatConfig` — temperature 0.35 / presence_penalty 0
+- `DeepSeekAskViewModel` + `AppNavHost` — 从当前题注入 `DeepSeekExamAnchor`
+- 单测：`DeepSeekAskFollowUpPipelineTest` 等 3 个
+
+---
+
+**P2 PracticeBasicComponents（652→删除）：**
+- `PracticeCollapsibleText` / `PracticeDialogComponents` / `PracticeInlineBlankContent` / `PracticeTextAnswerContent` / `PracticeStemContent` / `PracticeOptionsList` / `PracticeFillAnswerComponents` / `PracticeQuestionTextStyle` / `PracticeBlankTextPipeline`
+- 编译 ✅
+
+**P2 ExcelQuestionParser（602→~95）：**
+- `ExcelParserModels` / `ExcelParserCellPipeline` / `ExcelParserFillPipeline` / `ExcelParserTypePipeline` / `ExcelParserRowPipeline` / `ExcelParserImagePipeline`
+- 全仓库 >500 行 **清零**
+- 编译 ✅
+
+---
+
+## 2026-07-04 — Phase 40：RichText 拆分
+
+**P2 RichText.kt（670→~86）：**
+- `RichTextFormulaPipeline` / `RichTextBitmapPipeline` / `RichTextFormulaViews` / `RichTextInlineLayout` / `RichTextBlockView`
+- 编译 ✅
+
+---
+
+## 2026-07-04 — Phase 38–39：ExamViewModel + PracticeViewModel 拆分
+
+**P1 ExamViewModel（647→~471）：**
+- `ExamViewModelSessionFlows` / `ExamSessionProgressCoordinator` / `ExamReviewSessionCoordinator`
+- 编译 ✅
+
+**P1 PracticeViewModel（608→~461）：**
+- `PracticeViewModelSessionFlows` / `PracticeReviewSessionCoordinator` / `PracticeQuestionReopenPipeline`
+- 门禁：`scripts/check-practice-vm-loc.ps1`
+- 规格：`.ai/practice_viewmodel_decomposition.md`
+- 编译 ✅
+
+---
+
+## 2026-07-04 — Phase 36–37：NavigationController + ExamScreenContent 拆分
+
+**P0 NavigationController（730→~160）：**
+- `NavigationEnvironment` / `NavigationTargetNavigator` / `NavigationMultiRoundIconNav` / `NavigationUnansweredIconNav` / `NavigationSkipSource` / `NavigationSequentialNext`
+- 规格：`.ai/navigation_controller_decomposition.md`
+
+**P1 ExamScreenContent（616→404）：**
+- `ExamScreenGestureModifier` / `ExamScreenBottomBar` / `ExamScreenEffects` / `ExamSessionExitPipeline`
+- 门禁：`scripts/check-exam-screen-loc.ps1`
+- 规格：`.ai/exam_screen_decomposition.md`
+
+**测试：** `ExamSessionExitPipelineTest`；编译 ✅
+
+---
+
+## 2026-07-04 — 全仓库 LOC 扫描 + Agent 守门规则
+
+**扫描:** `scripts/check-loc-over-500.ps1` — 7 个文件 >500 行（见 `.ai/loc_audit.md`）
+
+**新增:**
+- `.cursor/rules/architecture-guard.mdc` — 每轮对话自动加载架构约束
+- `.ai/loc_audit.md` — 超标文件清单与拆分优先级
+
+---
+
+## 2026-07-03 — PracticeScreen Phase 35：拆分 + 防复发门禁
+
+**问题:** `PracticeScreen.kt` 膨胀至 ~1010 行；本地 `DialogsHost` 与 feature-practice 组件未接线。
+
+**拆分:**
+- `components/PracticeScreenBottomBar.kt` — 底栏导航/提交
+- `components/PracticeScreenQuestionScrollContent.kt` — 题目与解析区
+- `components/PracticeScreenHistorySwipeModifier.kt` — 已答历史滑动
+- `components/PracticeScreenEffects.kt` — LaunchedEffect / 生命周期
+- `components/PracticeScreenOverlays.kt` — Sheet / 对话框 / `PracticeDialogsHost`
+- `PracticeSessionExitPipeline` / `PracticeSessionExitConfirmPipeline` — 退出与交卷判定
+
+**防复发:**
+- `scripts/check-practice-screen-loc.ps1` — `PracticeScreen.kt` >500 行 fail
+- `.ai/practice_screen_decomposition.md` — 职责与 LOC 预算
+
+**测试:** `PracticeSessionExitPipelineTest`；`:app:compileDebugKotlin` ✅
+
+---
+
+## 2026-07-03 — 答题页 Phase 30：多轮全答轮次池出池硬阻断
+
+**问题:** 当前题已有输入后单击 ←/→ 仍跨词条；单源多轮第 1 轮完成后误跳下一词条而非同词条第 2 轮。
+
+**根因:** `maySingleTapExitRoundPool` 与 `tryNavigateWithinRoundPool` 分离，池内仍有 pending 时仍可能 `skipToUnansweredSource`；单源单题轮次池完成后直接跨词条。
+
+**新增:**
+- `PracticeFullAnswerRoundIconNavPipeline` — 池内 pending 导航 + 出池前校验
+- `PracticeFullAnswerSameSourceRoundAdvancePipeline` — 同词条换轮
+- `PracticeFullAnswerNextRoundPoolPipeline` — 相邻轮次号池
+
+**调整:**
+- `NavigationController.navigateMultiRoundViaIcon` — 四步决策链；`skipToUnansweredSource` 池内 pending 硬阻断
+- 移除单击路径对 `maySingleTapExitRoundPool` 的依赖
+
+**测试:** `PracticeFullAnswerRoundIconNavPipelineTest`
+
+---
+
+## 2026-07-03 — 答题页 Phase 31：轮次池改回同源同轮（修复跨词条误跳）
+
+**日志根因:** `roundPool` 为全局第 1 轮 170+ 题；随机 `step1_inRoundPool` 从 src=36 跳到 src=95。
+
+**修复:**
+- `PracticeFullAnswerSourceRoundPoolPipeline` — 单击 step1 池 = **同源 + 同轮**
+- `PracticeFullAnswerSourcePendingPipeline` — 跨词条守卫按**整词条** pending
+- 移除单击路径 step3 全局相邻轮次池
+- `PracticeFullAnswerRoundPoolPipeline` 保留为全局轮次号池（守卫/历史）
+
+**测试:** `PracticeFullAnswerSourceRoundPoolPipelineTest`；更新 `PracticeFullAnswerRoundIconNavPipelineTest`
+
+---
+
+## 2026-07-03 — 答题页 Phase 32：双击强制跨词条 + 有输入 pending 修正
+
+**问题:** 双击 ←/→ 被 `skipSource BLOCKED`；同源各轮均有输入仍被判 pending，step2 循环且单击无法出池。
+
+**修复:**
+- `skipToUnansweredSource(forceCrossSource=true)` — 双击绕过同源 pending 守卫
+- `PracticeFullAnswerRoundSlotPendingPipeline` — 须全对：有输入未批改不再 pending；批改答错仍 pending
+
+**测试:** `PracticeFullAnswerRoundSlotPendingPipelineTest`
+
+---
+
+## 2026-07-03 — 答题页 Phase 33：未触碰词条单击直接跨词条
+
+**问题:** 词条各轮均未输入时，单击 ←/→ 在 step2 轮次间循环，无法跳到上下词条。
+
+**修复:**
+- `PracticeFullAnswerSourceTouchPipeline` — 检测同源是否任一轮有输入
+- `navigateMultiRoundViaIcon` step0：未触碰 → 直接 `skipToUnansweredSource`
+- 单击跨词条守卫：仅当 **已有输入且仍有 pending** 时阻断
+
+**测试:** `PracticeFullAnswerSourceTouchPipelineTest`
+
+---
+
+## 2026-07-03 — 答题页 Phase 34：有输入退出交卷确认 + 批量批改
+
+**问题:** 仅输入未点提交时退出练习不弹交卷确认、不自动批改。
+
+**修复:**
+- `PracticeSessionInputPipeline` — 会话内是否有输入
+- `PracticeSubmitFlow.resolve(answered, hasInput)` — 有输入即弹窗
+- `PracticeSessionGradePipeline` + `gradeSessionOnSubmit()` — 交卷确认后批量 reveal
+
+**测试:** `PracticeSubmitFlowTest` / `PracticeSessionGradePipelineTest`
+
+---
+
+**问题:** 同源同轮仅 1 题且 pending（有输入未批改）时 step1 误返 `AtLastUnanswered` / `AtFirstUnanswered`，未进入 step2。
+
+**修复:** step1 无法移动时 fall through → step2 同源其他轮 → step4 跨词条；`canNavigate*` 移除误阻断的 `mustStayInRoundPool`。
+
+---
+
+**新增:** `PracticeFullAnswerIconNavDebugLog`（TAG `PracticeIconNav`）
+
+**埋点:** `PracticeViewModel` 单击入口；`NavigationController` strategy / roundPool 快照 / 四步决策链 / skipSource 阻断 / navigateTo index 变更
+
+**文档:** `.ai/practice_session_navigation_spec.md` §3.4
+
+---
+
+## 2026-07-03 — 答题页 Phase 29：底栏箭头职责澄清 + 导航规格文档
+
+**问题:** 多轮/单轮全答底栏 ←/→ 行为混乱；轮次完成误用 `showResult`；单轮题库被当作整库轮次池。
+
+**规格文档:** `.ai/practice_session_navigation_spec.md`（底栏单击/双击 + 横滑历史，含回归清单）
+
+**根因:**
+1. 「原子/非原子」策略与产品语义不符 → 改为 **多轮 / 单轮**（`FullAnswerMultiRoundSessionPipeline`）
+2. 轮次 pending/完成应看 **是否有输入**（全答）或 **是否答对**（须全对），非 `showResult`
+3. 单轮全答应走 **全局未作答题**，不应锁在轮次池
+
+**新增:**
+- `FullAnswerMultiRoundSessionPipeline` — 是否含第 2 轮及以上
+- `PracticeFullAnswerRoundSlotPendingPipeline` — 轮次槽 pending/完成
+
+**调整:**
+- `FullAnswerIconNavigationStrategyPipeline` — `MULTI_ROUND_POOL_FIRST` / `GLOBAL_UNANSWERED_FIRST`
+- `PracticeFullAnswerRound*Pipeline` — 统一 slot pending 判定
+- `NavigationController` — 多轮：轮次池 → 跨词条；单轮/普通：全局未答；全答双击一律跨词条
+
+**测试:** `FullAnswerMultiRoundSessionPipelineTest` / `PracticeFullAnswerRoundSlotPendingPipelineTest` + 更新策略/跨池测试
+
+---
+
+## 2026-07-03 — 答题页 Phase 28：全答填空底栏箭头轮次池/题库导航
+
+**问题:** 全答多轮填空单击 ←/→ 误弹「已是最后的未答题 / 已是最前的未答题」，题库内仍有大量未作答题。
+
+**根因:**
+1. `PracticeFullAnswerRoundPoolPipeline` 按「同源 + 同轮」建池，第 N 轮通常仅一题 → 无法在同轮跨词条跳转
+2. 非原子全答顺序导航只查 anchor 前/后，无环绕 → 当前题后无 pending 即误判边界
+3. 全答底栏随机/顺序误用练习 `randomPractice`，未读 `fillFullAnswerRandomOrder`
+
+**新增:**
+- `PracticeFullAnswerIconNavOrderPipeline` — 全答 vs 练习随机开关
+- `PracticeFullAnswerIconNavTargetPipeline` — 池内下一/上一（顺序环绕 / 随机）
+- `PracticeFullAnswerIconUnansweredPipeline` — 非原子全答未作答题导航（顺序环绕）
+
+**调整:**
+- `PracticeFullAnswerRoundPoolPipeline` / `ExamFullAnswerRoundPoolPipeline` — 轮次池改为**同轮次跨词条**
+- `PracticeFullAnswerIconNavigation` — 轮次池/词条池委托 NavTarget + 全答随机
+- `NavigationController` — 非原子单击先词条池再未答池；注入 `fullAnswerRandomOrder`
+- `PracticeViewModel` / `PracticeNavigationCoordinator` — 传递全答轮次顺序设置
+
+**测试:** `PracticeFullAnswerRoundPoolPipelineTest` / `PracticeFullAnswerIconNavTargetPipelineTest` / `PracticeFullAnswerIconUnansweredPipelineTest`
+
+---
+
+## 2026-07-03 — 答题页 Phase 27：填空 IME 底栏锚定（Box Chrome）
+
+**根因（截图复现）:** Phase 25 在 scroll Column 上使用 `imePadding()`，Column 流式布局中 weighted 子项 IME 内边距会挤压 siblings，导致底栏（← 提交 →）整体上移遮挡题目。
+
+**方案:** Box 层叠 Chrome — 顶栏/底栏 `align` 锚定，`consumeWindowInsets(ime)` 拒绝 IME 推动；scroll 区仅末尾 `QuestionSessionImeScrollSpacer` 增加可滚空间。
+
+**新增:**
+- `QuestionSessionChromeLayout.kt` — Box 顶/中/底三层
+- `QuestionSessionBottomNavMetrics.kt` / `QuestionSessionChromeInsetsPipeline.kt`
+- `QuestionSessionImeScrollSpacer.kt` — 滚动末尾 IME 占位（非 layout padding）
+
+**删除:** `QuestionSessionScrollImePadding.kt`
+
+**调整:** `PracticeScreen` / `ExamScreenContent` → `QuestionSessionChromeLayout`
+
+**测试:** `QuestionSessionChromeInsetsPipelineTest`
+
+---
+
+## 2026-07-03 — 答题页 Phase 25：填空 IME 底栏遮挡 + Cursor 风格答对色
+
+**根因:**
+- Phase 22 将 `imePadding()` 加在底栏导航 Column 上，键盘弹出时整行提交/翻题图标上移，叠在题目滚动区上
+- 答对容器色 `#E8F5E9` 与错误红对比仍偏弱，未对齐 Cursor diff 新增行绿色
+
+**新增（ui-common/design）:**
+- `QuestionSessionScrollImePadding.kt` — IME 仅作用于中间滚动区（替代 Bottom 版）
+- `AnswerCorrectHighlightColorPipeline` + `AnswerCorrectHighlightTokens` — Cursor/GitHub diff 新增行绿（`#DFF7DF` / `#1A7F37` 等）
+
+**调整:**
+- `QuestionSessionBodyScroll` — 内置 `questionSessionScrollImePadding()`；底栏 Column 不再 imePadding
+- `PracticeScreen` / `ExamScreenContent` — 移除底栏 IME 修饰
+- `AnswerChoiceCorrectColorTokens` / `SessionReadingSectionTokens` — 答对色委托 `AnswerCorrectHighlightTokens`
+
+**测试:** `AnswerCorrectHighlightColorPipelineTest` + 更新既有颜色管道测试
+
+---
+
+## 2026-07-03 — AI 提问页 Phase 26：Gemini 风格 prompt + IME 修复
+
+**根因:**
+- `AiChatInputBar` 手动 `imePadding()` 导致点击输入时整栏上移、遮挡消息区
+- 输入区为 OutlinedTextField + 发送 IconButton，未对齐 Gemini 底部 prompt sheet 设计
+
+**参考:** Gemini App prompt bar（2025）— 底部 sheet、顶部分割阴影、圆角输入容器、圆形发送钮；对话中 assistant 全宽平铺
+
+**新增（ui-common）:**
+- `AiChatPromptDesignTokens` — sheet/field/send 尺寸 token
+- `AiChatSendEnabledPipeline` / `AiChatBubbleLayoutPipeline` — 无状态管道
+- `AiChatPromptField` / `AiChatPromptSendButton` / `AiChatPromptSheet` — Gemini 风格输入区
+
+**调整:**
+- `AiChatConversationLayout` — `Scaffold.bottomBar` 承载 prompt sheet（系统 IME 与底栏联动，消息区自动收缩）
+- `AiChatBubble` / `AiChatTypingBubble` — Gemini 模式：assistant 无气泡全宽；user 圆角 pill
+- 占位符 → `问问 AI…`
+
+**测试:** `AiChatSendEnabledPipelineTest` / `AiChatBubbleLayoutPipelineTest`
+
+---
+
+## 2026-07-03 — AI 提问页 Phase 24：DeepSeek 式对话 UI
+
+**需求:** AI 问答界面对齐 DeepSeek App 对话模式（气泡列表 + 底部输入栏 + 多轮追问）。
+
+**新增（ui-common/model）:**
+- `AiChatMessage` / `AiChatMessageRole` / `AiChatTurn` — 展示模型
+
+**新增（ui-common/design）:**
+- `AiChatTurnFlattenPipeline` — 多轮 → 气泡序列
+- `AiChatSingleTurnPipeline` — 单轮问答气泡
+- `AiChatBubbleColorPipeline` — 角色 → 容器/文字色
+- `AiChatScrollTargetPipeline` — 自动滚到底部索引
+- `AiChatSaveGatePipeline` — 返回键保存确认判定
+
+**新增（ui-common/component）:**
+- `AiChatBubble` / `AiChatTypingBubble` / `AiChatMessageList` / `AiChatInputBar` / `AiChatConversationLayout`
+
+**新增（app/ai）:**
+- `DeepSeekAskChatTurnMapPipeline` — DeepSeek 多轮 → ui-common 模型
+- `AiAskFontMenu` / `AiAskSaveConfirmDialog` — 共用顶栏字号与保存对话框
+
+**调整:**
+- `DeepSeekAskViewModel` — 暴露 `chatTurns` / `errorMessage`；失败走 error 气泡而非拼接 `displayText`
+- `DeepSeekAskScreen` / `SparkAskScreen` / `BaiduAskScreen` — 改用 `AiChatConversationLayout`（DeepSeek 完整多轮；Spark/Baidu 单轮气泡）
+- `SparkAskViewModel` / `BaiduAskViewModel` — `restoreSaved()` 恢复历史展示
+
+**测试:** `AiChatTurnFlattenPipelineTest` / `AiChatSingleTurnPipelineTest` / `AiChatScrollTargetPipelineTest` / `AiChatSaveGatePipelineTest`
+
+---
+
+## 2026-07-03 — 答题页 Phase 23：延时 0 串题 / 轮次池导航 / 批改卡顿 / 滑动冲突
+
+**根因:**
+- 延时为 0 时自动跳题与 `currentQuestionUi` 快照 index 错位，选项态串到下一题
+- 练习全答原子模式误用**词条池**而非**轮次池**导航，未作答轮次单击越池
+- 批改区与跳题同帧重组导致卡顿
+- 纵向滚动时水平位移累计触发历史滑动
+
+**新增:**
+- `PracticeQuestionUiResolvePipeline` — index 对齐的 UI 态解析
+- `PracticeFullAnswerRound*Pipeline` — 轮次池导航/跨池判定（对齐考试侧）
+- `QuestionSessionHistorySwipePipeline` — 水平主导才触发历史滑动
+- `rememberPracticeResultDisplayReady` — 批改区晚一帧展示
+
+**调整:**
+- `PracticeAutoAdvanceController` / `ExamAutoAdvanceTimer` — delay≤0 时 `yield()` 再跳题
+- `NavigationController` — 原子全答单击轮次池内循环；轮次全部作答后才允许单击跨词条
+- `PracticeScreen` / `ExamScreenContent` — 方向感知滑动
+
+**测试:** `PracticeQuestionUiResolvePipelineTest` / `PracticeFullAnswerRoundCrossSourcePipelineTest` / `QuestionSessionHistorySwipePipelineTest`
+
+---
+
+## 2026-07-03 — 答题页 Phase 22：填空焦点/批改色/历史记录 sheet
+
+**根因:**
+- 键盘弹出时 `adjustResize`/`adjustPan` 使整个题目区上移；焦点还会触发 scroll 区自动滚入视口
+- 选项批改色 `tertiaryContainer` 与 `errorContainer` 对比度不足
+- `ResultHistorySheet` 沿用 `AppScrollBottomSheet` + `heightIn(400dp)` 仅半屏
+
+**新增（ui-common/design）:**
+- `QuestionSessionScrollImePadding.kt` — IME 仅作用于中间滚动区（Phase 25 替代 Bottom 版）
+- `AnswerCorrectHighlightColorPipeline.kt` — Cursor diff 新增行答对高亮色
+
+**调整:**
+- `AndroidManifest` — `windowSoftInputMode=adjustNothing`，题目区顶锚固定；**滚动区** `imePadding` 避让键盘（底栏固定不 overlay 题目）
+- `SessionReadingSectionTokens` — 答对色委托 `AnswerCorrectHighlightTokens`（Cursor 新增行绿）
+- `AnswerChoiceColorPipeline` — 批改选项改用独立绿/红容器色
+- `ResultHistorySheet` — 改用 `AppLazyBottomSheet` + `LazyColumn(fillMaxSize)`
+
+**测试:** `AnswerChoiceCorrectColorPipelineTest` + 更新 `SessionReadingSectionColorPipelineTest`
+
+**验证:** `:app:compileDebugKotlin` + 单元测试
+
+---
+
+## 2026-07-03 — 答题页 Phase 21：滚动/弹层性能 + 收藏状态修复
+
+**根因:**
+- 整页 `verticalScroll` 包裹顶栏/底栏/弹层，滑动时全树重组导致卡顿
+- `FavoriteViewModel.ensureFullListLoaded()` 未在答题页调用，收藏图标永不变色
+- 答题卡 `AnswerCardListDialogShell` 外层 `verticalScroll` + 内层 `LazyColumn` 嵌套滚动，且 `heightIn(520dp)` 仅占用半屏
+- 排版设置走 `AppScrollBottomSheet` 对小内容多余
+
+**新增（ui-common/design）:**
+- `QuestionSessionBodyScroll.kt` — 中间可滚动区（顶栏/底栏固定）
+- `AppLazyBottomSheet.kt` — LazyColumn 专用底 sheet（无外层 scroll）
+- `AppStaticBottomSheet.kt` — 小内容底 sheet
+
+**新增（core/util）:**
+- `FavoriteSessionPipeline.kt` — 无状态收藏判定
+
+**调整:**
+- `PracticeScreen` / `ExamScreenContent` — 拆分 scroll 区域；弹层移出 scroll 树；答题卡数据按需构建
+- `ExamScreen` / `PracticeScreen` — 进入时 `ensureFullListLoaded()`
+- `PracticeExamTopBar` — 收藏星标 `primary` 着色
+- `AnswerCardListDialogShell` — 改用 `AppLazyBottomSheet`，全高 92%
+- `QuestionTypographySheet` — 改用 `AppStaticBottomSheet`
+
+**测试:** `FavoriteSessionPipelineTest`
+
+**验证:** `:app:compileDebugKotlin` + 单元测试
+
+---
+
+## 2026-06-28 — 答题页 Phase 20：原子全答箭头单击/双击职责回归
+
+**根因:** Phase 18 将「轮次池内跳转」与「跨词条」对调后，未区分原子/非原子全答，导致原子题库单击直接跨词条。
+
+**新增（core/util）:**
+- `AtomicFullAnswerSessionPipeline.kt` — 会话含衍生轮次题（负 id + round）
+- `FullAnswerIconNavigationStrategyPipeline.kt` — `ATOMIC_ROUND_POOL_FIRST` vs `NON_ATOMIC_UNANSWERED_FIRST`
+
+**策略:**
+| 类型 | 单击 | 双击 |
+|------|------|------|
+| 原子全答 | 本轮轮次池内 | 跨词条 |
+| 非原子全答 | 全局未答 → 跨词条 | 轮次池内 |
+
+**调整:**
+- `NavigationController` / `ExamNavigationCoordinator` — 按 strategy 分支 icon 单击/双击
+- `PracticeIconUnansweredNavigationPipeline` / `ExamIconUnansweredNavigationPipeline` — 委托 core strategy
+
+**测试:** `FullAnswerIconNavigationStrategyPipelineTest` + 更新 `PracticeIconUnansweredNavigationPipelineTest`
+
+**验证:** 全模块 `compileDebugKotlin`
+
+---
+
+## 2026-06-28 — 答题页 Phase 19：笔记/AI 全屏页系统栏 inset
+
+**根因:** `MainActivity.enableEdgeToEdge()` 后，笔记/AI 全屏页 `Box(fillMaxSize)` 未处理 `WindowInsets`，右上角菜单被状态栏遮挡。
+
+**新增:**
+- `ArtifactFullscreenShell.kt` — 委托 `ScreenSafeScaffold`（`WindowInsets.safeDrawing`）+ 顶栏/底栏 action 槽
+
+**接入（8 页）:**
+- `NoteScreen` / `DeepSeekScreen` / `SparkScreen` / `BaiduScreen` / `ExplanationScreen`
+- `DeepSeekAskScreen` / `SparkAskScreen` / `BaiduAskScreen`
+
+**验证:** 全模块 `compileDebugKotlin`
+
+---
+
+## 2026-06-28 — 答题页 Phase 18：操作行对齐 + 护眼字色 + 箭头单击未答
+
+**操作行（复制 / 重答）：**
+- `QuestionSessionActionRow.kt` — 三栏：左「重答该题」/ 中复制 / 右「重答错题」
+- `QuestionCopyActionRow.kt` — 薄封装委托 `QuestionSessionActionRow`
+- `PracticeResultSection.kt` — 移除独立重答按钮行
+- `PracticeScreen` / `ExamScreenContent` — 接入统一操作行
+- `ExamQuestionRetryPipeline.kt` — 整题重答 / 保留已对空；`ExamViewModel.retryCurrentQuestion`
+
+**护眼字色：**
+- `SessionReadingSectionTokens.kt` — 统一暖灰正文色；正误字色降饱和；新增 `incorrectHintLight/Dark`
+- `AnswerFeedbackColors.incorrectHintText` — 填空括号提示弃用 `MaterialTheme.error`
+
+**箭头单击未答（非原子/全答库回归）：**
+- `PracticeIconUnansweredNavigationPipeline.kt` — 单击：全局 pending → 跨词条 fallback
+- `ExamIconUnansweredNavigationPipeline.kt` — 单击：全局未答 → `skipToAdjacentSource`
+- `NavigationController` — 轮次池跳转移至 `*ViaIconDoubleClick`
+- `ExamNavigationCoordinator` — 新增 `prev/nextQuestionViaIcon` + 双击轮次池
+
+**测试:** `PracticeIconUnansweredNavigationPipelineTest`
+
+**验证:** 全模块 `compileDebugKotlin`
+
+---
+
+## 2026-06-28 — 答题页 Phase 17：正误结果区可折叠
+
+**新增（ui-common/design）:**
+- `ReadingCollapsibleSection.kt` — 会话阅读区共用折叠壳：点击切换展开/收起，`resetKey` 换题重置为收起，展开态底部 `KeyboardArrowUp` 折叠
+- `AnswerResultPreviewPipeline.kt` — 无状态单行预览：`resolveAnswerResultPreviewLine`（空白归一 + 96 字截断）
+
+**新增（feature-exam）:**
+- `ExamAnswerResultSummaryPipeline.kt` — 无状态：`resolveExamAnswerResultWrongToken`（Composable 侧再套 `answer_wrong_format`）
+
+**调整:**
+- `PracticeResultSection.kt` — 正误结果区委托 `ReadingCollapsibleSection`；收起=预览行，展开=完整 `FillAnswerResultText` / `RichText` / `TextResponseAnswerContent`
+- `AnswerResultRow.kt` — 同上；正文提取 `ExamAnswerResultBody`
+
+**测试:** `AnswerResultPreviewPipelineTest`
+
+**验证:** 全模块 `compileDebugKotlin` + 单元测试
+
+---
+
+## 2026-06-28 — 答题页 Phase 16：顶栏 SpaceEvenly + 会话区护眼色
+
+**顶栏:**
+- `PracticeExamTopBarShell` — `SpaceEvenly` 六槽均分整行：`← ✨ 计时 ★ 📝 ⋮`
+- `PracticeExamTopBar` — 扁平 6 槽布局
+
+**会话阅读色（护眼 + 区块区分）:**
+- `SessionReadingSectionTokens.kt` — 暖色低饱和 container/content 常量（浅/深）
+- `SessionReadingSectionColorPipeline.kt` — 解析/笔记/DeepSeek/Spark/Baidu 分区色
+- `SessionReadingAnswerFeedbackPipeline.kt` — 正误结果区 muted 绿/陶土红
+- `AnalysisSectionColorPipeline` / `AnswerFeedbackColorPipeline` — 委托会话阅读管道
+
+**区块间距:**
+- `ExamAnalysisSection` / 考试 `ExamAnalysisSection` / `PracticeResultSection` / `AnswerResultRow` — `AppSpacing.xs` 垂直间距 + `AppSpacing.sm` 内边距
+
+**测试:** `SessionReadingSectionColorPipelineTest`
+
+**验证:** 全模块 `compileDebugKotlin`
+
+---
+
+## 2026-06-28 — 答题顶栏 Phase 15：紧凑高度 + 计时居中 + AI 左邻
+
+**新增:**
+- `PracticeExamTopBarMetrics.kt` — 顶栏 48dp / IconButton 36dp 常量
+- `PracticeExamTopBarShell.kt` — 三栏布局：左区（退出 + AI 贴计时左侧）/ 居中计时 / 右区 actions
+
+**调整:**
+- `PracticeExamTopBar` — 弃用 `CenterAlignedTopAppBar`；AI 移入 `leadingOfTimer`
+- `AppTopBarIconButton` — 可选 `size` 参数（答题顶栏 36dp）
+
+**布局:** `[←] … [✨][05:32] [★][📝][⋮]`（计时屏幕正中，AI 紧贴其左）
+
+**验证:** 全模块 `compileDebugKotlin`
+
+---
+
+## 2026-06-28 — 答题顶栏 Phase 14：计时器专用 + 笔记外置
+
+**顶栏 title:**
+- `PracticeExamSessionTitlePipeline` → `PracticeExamTimerPipeline` — 仅格式化 `MM:SS` 计时
+- 移除题型 · 进度/总题（由 `QuestionSessionHeader` / `ExamHeader` 承担）
+
+**PracticeExamTopBar 菜单精简:**
+- 移除三点菜单「共几题 / 题目列表」
+- 笔记 `StickyNote2` 移至顶栏 actions（★ 与 AI 之间）；有笔记时 primary 高亮
+- 三点菜单保留：排版设置、编辑题目
+
+**测试:** `PracticeExamTimerPipelineTest` 替代 `PracticeExamSessionTitlePipelineTest`
+
+**验证:** 全模块 `compileDebugKotlin`
+
+---
+
+## 2026-06-28 — UX 三方向审查 Phase 13：护眼 surface + 顶栏紧凑 + 抽屉规范
+
+**护眼阅读（主题）:**
+- `Color.kt` — `ReadingSurface` (#FBF8F2) / `ReadingOnSurface` (#1A1A1A)；浅色 `surface` 改暖米白
+- `Theme.kt` — Card/顶栏自动跟随护眼 surface
+
+**答题顶栏（方案 C + CenterAligned）:**
+- `PracticeExamSessionTitlePipeline.kt` — 无状态：`题型 · 进度 · 计时` 紧凑 title
+- `AppCenterAlignedTopBar.kt` — 居中 TopBar + 左侧退出
+- `PracticeExamTopBar` — 委托居中顶栏；新增 `onRequestExit` / 会话 title 参数
+- `PracticeScreen` / `ExamScreenContent` — 提取 `requestSessionExit`；BackHandler 与顶栏共用
+
+**主页抽屉:**
+- `HomeNavigationDrawer` — 恢复 M3 默认 scrim 动画；删除手动遮罩
+- 删除 `HomeDrawerContentArea.kt`
+- `QuestionBankDrawerWidthPipeline.kt` — `min(85%屏宽, 屏宽-56dp, 320dp)`
+- `QuestionBankDrawerHeader.kt` — 56dp Row 替代嵌套 `AppTopBar`
+- `QuestionBankDrawerRows` — 搜索框 56dp；题目行 supporting 改「第 N 题」
+
+**测试:** `PracticeExamSessionTitlePipelineTest` / `QuestionBankDrawerWidthPipelineTest`
+
+**验证:** 全模块 `compileDebugKotlin`
+
+---
+
+## 2026-06-28 — 设计语言 Phase 12：AI 子菜单图标 + 设置步进器 a11y 管道
+
+**新增（ui-common/design）:**
+- `PracticeExamAiMenuAction.kt` — AI 下拉动作枚举（DeepSeek / SparkAsk）
+- `PracticeExamAiMenuIconPipeline.kt` — 无状态：`iconForPracticeExamAiMenuAction()` → Psychology / Forum
+- `PracticeExamAiDropdown.kt` — AI 解析下拉（两项均带 leadingIcon）
+
+**新增（app/settings/ui）:**
+- `SettingsStepperAccessibilityPipeline.kt` — 无状态：步进器 label ↔ contentDescription 对齐
+- `SettingsStepperAccessibilityPipelineTest.kt` — 管道单元测试
+
+**迁移:**
+- `PracticeExamTopBar` — AI 菜单委托 `PracticeExamAiDropdown`
+- `SettingsStepperRow` — 必填 `contentDescription` → `CapsuleStepperInput`
+- `SettingsScoreRangeStepperRow` — `minContentDescription` / `maxContentDescription`
+- `SettingsAnswerSettingsCard` / `SettingsMemoryCardSection` / `SettingsFillPanel` — 调用管道生成 a11y 文案
+- `strings.xml` — `settings_stepper_score_min` / `settings_stepper_score_max`
+
+**设计语言统一计划:** Phase 1–12 全部完成；可选后续项已闭合。
+
+**验证:** 全模块 `compileDebugKotlin` + `SettingsStepperAccessibilityPipelineTest`
+
+---
+
+## 2026-06-28 — 设计语言 Phase 11：首页空态 + Sheet 列表高度 + 步进器 a11y（计划收尾）
+
+**新增（app/home）:**
+- `HomeLibraryEmptyPipeline.kt` — 无状态：`resolveHomeLibraryEmpty()` → `NO_QUIZ_FILES` / `ROOT_EMPTY_WITH_FOLDERS`
+- `HomeEmptyLibraryPanel.kt` — 根目录无题库时 `AppEmptyState` 引导（导入 / 进文件夹）
+
+**新增（ui-common/design）:**
+- `AppScrollBottomSheetDefaults.kt` — Sheet 内 `LazyColumn` 统一 `listMaxHeight = 400.dp`
+
+**迁移:**
+- `HomeScreen` — `homeContentReady` 且根目录无文件/文件夹时展示 `HomeEmptyLibraryPanel`
+- `ResultHistorySheet` — 历史列表 `heightIn(max = AppScrollBottomSheetDefaults.listMaxHeight)`
+- `CapsuleStepperInput` — 可选 `contentDescription` + `semantics`
+- `QuestionTypographyStepperRow` — 步进器传入 label 作 contentDescription
+- `strings.xml` — `home_empty_no_quiz` / `home_empty_root`
+
+**设计语言统一计划:** Phase 1–11 全部完成；分析报告 83→90 缺口已闭合。`Color.kt`/`Theme.kt` 为应用级主题令牌；`PracticeExamTopBar` AI 子菜单图标为后续可选优化。
+
+**验证:** 全模块 `compileDebugKotlin`
+
+---
+
+## 2026-06-28 — 答题页三点菜单重构（方案 C）
+
+**问题:** MoreVert 9 项混杂、图标不一致、排版操作点击成本高。
+
+**新增（ui-common/design）:**
+- `QuestionTypographyStepPipeline.kt` — 无状态：字体/行距/字间距 step ↔ 值转换
+- `QuestionTypographyStepperRow.kt` — 排版 Sheet 单行步进器
+- `QuestionTypographySheet.kt` — `AppScrollBottomSheet` 排版设置（字体/行距/字间距）
+
+**PracticeExamTopBar 重构:**
+- 移除 `settingsMenuContent` 插槽；菜单固定 4 项（全 leadingIcon）
+- 导航：题目列表 + 笔记（StickyNote2）
+- `HorizontalDivider` 分隔
+- 功能：排版设置…（FormatSize）+ 编辑题目（Edit）
+
+**迁移:**
+- `PracticeScreen` / `ExamScreenContent` — 排版改 BottomSheet；删除 `ExamFontSettingsMenu`
+- `PracticeFontController` / `ExamFontController` — 新增 `applyFontSize/LineSpacing/LetterSpacing`
+- `ExamDialogState` — `showTypographySheet`
+
+**验证:** 全模块 `compileDebugKotlin`
+
+---
+
+## 2026-06-28 — 练习/考试答题界面 UI 对齐
+
+**新增（ui-common/design）:**
+- `QuestionSessionHeader.kt` — 进度条 + 题型/进度/答题卡入口 Card（练习/考试共用）
+- `QuestionCopyActionRow.kt` — 题目复制 IconButton 行
+- `AppTopBarIconButton.kt` — 40dp 紧凑顶栏 IconButton
+
+**布局对齐:**
+- `PracticeScreen` — 拆分为 Header Card + 题目 AppCard + 复制行（与考试一致）
+- `ExamScreenContent` — 复制行改 `QuestionCopyActionRow`
+- `ExamHeader` — 薄封装委托 `QuestionSessionHeader`
+
+**顶栏/Header 融合:**
+- `QuestionCardHeaderRow` — 答题卡入口改为 36dp 列表 IconButton（替代宽 TextButton）
+- `PracticeExamTopBar` — actions 改 `AppTopBarIconButton`
+
+**验证:** 全模块 `compileDebugKotlin`
+
+---
+
+## 2026-06-28 — 设计语言 Phase 10：选项高亮色管道 + 会话空态分流
+
+**新增管道（ui-common/design）:**
+- `AnswerChoiceTonePipeline.kt` — 无状态 `resolveAnswerChoiceTone(showResult, isSelected, isCorrectOption)`
+- `AnswerChoiceColorPipeline.kt` — `answerChoicePalette()` → surface/secondaryContainer/tertiaryContainer/errorContainer
+
+**迁移:**
+- `PracticeBasicComponents` / `ExamOptionsList` — 选项行背景色改走管道（移除 alpha 硬编码）
+- `AnswerCardCell.answerCardStatusColors()` — 正误/已选改走同一 palette（未答保持 Transparent）
+- `PracticeScreen` / `ExamScreenContent` — 加载中 `AppLoadingContent`；已加载无题 `AppEmptyState`
+
+**设计语言统一计划:** Phase 1–11 收尾；剩余 `Color.kt`/`Theme.kt` 为应用级主题令牌，非 UI 散落硬编码。
+
+**验证:** 全模块 `compileDebugKotlin`
+
+---
+
+## 2026-06-28 — 设计语言 Phase 9：内联填空编辑态语义色管道
+
+**新增:**
+- `InlineBlankEditColorPipeline.kt` — `inlineBlankEditColors()` → 填空编辑下划线文字色 + 自定义光标色（`primary`）
+
+**迁移:**
+- 删除 `InlineBlankTokenizer` 硬编码 `EditingBlue`
+- `InlineBlankVisualTransformation` / `buildInlineBlankTransformedText` — 增加 `blankEditColor` 参数（无状态数据流）
+- `PracticeBasicComponents` / `ExamBasicRenderers` — 编辑态走管道
+
+**验证:** `:ui-common:compileDebugKotlin`、`:feature-practice:compileDebugKotlin`、`:feature-exam:compileDebugKotlin`
+
+---
+
+## 2026-06-28 — 设计语言 Phase 8：遗留空状态 + 设置 FilterChip 统一
+
+**扩展 `AppEmptyState.kt`:**
+- `appEmptyStateTextStyle(compact)` — 共享空状态文案样式管道
+- `AppEmptyStateInline` — 列表/Sheet 内嵌空状态（`bodyMedium` + `onSurfaceVariant`）
+
+**设置交互:**
+- `SettingsFillTagClearChip.kt` — 标签清除 `FilterChip`（替代 `AssistChip`，与同区标签 Chip 一致）
+- `SettingsFillPanel` — 委托 `SettingsFillTagClearChip`
+
+**遗留页空状态迁移:**
+- `QuestionScreen` — 详情/浏览模式 → `AppEmptyState` + `R.string.no_questions`
+- `HistoryScreen` — → `AppEmptyState`
+- `SettingsExportBottomSheet` / `QuizFileBrowser` / `ResultHistorySheet` — → `AppEmptyStateInline`
+
+**验证:** `:ui-common:compileDebugKotlin`、`:app:compileDebugKotlin`
+
+---
+
+## 2026-06-28 — 设计语言 Phase 7：空状态 + 文件卡主题色 + 首页 Sheet
+
+**新增（ui-common / app）:**
+- `AppEmptyState.kt` — 居中空状态文案（`onSurfaceVariant` + `bodyLarge`）
+- `FileCardTonePipeline.kt` — 无状态：题型/混合/占位 → `FileCardTone`
+- `FileCardColorPipeline.kt` — `fileCardPalette(tone)` → M3 container/outline 色
+- `HomeStartQuizSheet.kt` — 首页「开始练习/考试」BottomSheet（AppSpacing，无固定 44dp 高度）
+
+**迁移:**
+- `OptimizedFileCard` — 移除 20+ 处 hex 调色板，改走 Tone + Color 管道（支持深色模式）
+- `ScopedQuestionLibraryScreen` / `LibraryQuestionDetailScreen` / `ResultHistorySheet` → `AppEmptyState`
+- `HomeActionOverlays` — Sheet 委托 `HomeStartQuizSheet`；保留 `persistHomeSelection` 于回调层
+
+**验证:** 全模块 `compileDebugKotlin`
+
+---
+
+## 2026-06-28 — 设计语言 Phase 6：答题反馈 + 文件统计颜色管道
+
+**新增管道（ui-common / app）:**
+- `AnswerFeedbackColorPipeline.kt` — `answerFeedbackColors()`：结果区背景、正误文字、填空字段背景
+- `FileStatColorPipeline.kt` — `fileStatPalette()`：首页文件卡统计色（primary/error/secondary/tertiary）
+
+**迁移（移除硬编码）:**
+- `AnswerResultRow` / `PracticeResultSection` — `0xFFD0E8FF` → `primaryContainer`
+- `PracticeBasicComponents` — 填空正误背景、FillAnswerResultText、`buildResultQuestionAnnotatedString` 走管道
+- `ExamBasicRenderers` — 内联填空结果渲染走管道；删除 `CorrectGreen`
+- `InlineBlankTokenizer` — `appendResultBlankText` 增加 `correctColor` 参数
+- `OptimizedFileCard` — `Color.Red` / `Color.Cyan` → 主题色
+- `RichText` — 公式溢出警告色 → `tertiary`
+
+**布局:**
+- `ExamScreenContent` — `ExamQuestionBody` 外包 `AppCard`（与练习页题目 Card 对齐）
+
+**验证:** 全模块 `compileDebugKotlin`
+
+---
+
+## 2026-06-28 — 全应用设计语言统一（Design System Phase 1–2）
+
+**目标:** 按审查报告 Top 30 建立共享设计原语并迁移关键页面；原则：文件单一功能、短小、无状态、单一数据流、面向管道。
+
+**新增 `ui-common/design/`（共享原语）:**
+- `AppSpacing.kt` — xs/sm/md/lg/xl 间距常量
+- `AppCard.kt` — ElevatedCard 12dp 圆角、1dp elevation
+- `AppTopBar.kt` — 标准 M3 TopAppBar（可选返回 + actions）
+- `AppContentText.kt` — 正文（LocalFontSize/LocalFontFamily）
+- `AppScrollBottomSheet.kt` — 可滚动 ModalBottomSheet 壳
+
+**页面迁移（P1–P20 优先项）:**
+- `SettingsTopBar` / `SettingsCardGroup` — 委托 `AppTopBar` / `AppCard`
+- `ResultScreen` — AppTopBar + AppCard + AppSpacing；固定 Typography；M3 默认 Button
+- `WrongBookScreen` / `FavoriteScreen` — 详情页 `LibraryQuestionDetailScreen`（TopAppBar + Card 列表 + bottomBar）
+- `ScopedQuestionLibraryScreen` — 根/文件夹视图统一 AppTopBar
+- `QuestionBankDrawer` — 自定义 Row 标题 → AppTopBar（关闭 action）
+- `PracticeScreen` — 题目区 AppCard；题型/进度 bodyMedium；解析 Dialog → AppScrollBottomSheet
+- `AnswerCardListDialogShell` — Dialog → AppScrollBottomSheet（练习/考试答题卡）
+- `FillSettingsScreen` — 帮助文本折叠（`showDetailedHelp` 开关）；bottom padding 16dp
+
+**验证:** `:ui-common:compileDebugKotlin`、`:app:compileDebugKotlin`
+
+---
+
+## 2026-06-28 — 设计语言统一 Phase 3（P21–P30 收尾）
+
+**目标:** 完成审查报告剩余项：历史记录 BottomSheet、Loading 抽取、TopBar 统一、间距收尾。
+
+**新增/扩展:**
+- `AppTopBar` — 支持 `scrollBehavior` + 自定义 `navigation`（Home 抽屉菜单）
+- `AppLoadingOverlay.kt` — 全屏遮罩 + AppCard 内容区
+- `PracticeExamTopBar.kt` — 练习/考试共用顶栏（AppTopBar + AssistChip 题数）
+- `ResultHistoryLinePipeline.kt` — 无状态历史行格式化（修正正确率 ×100）
+- `ResultHistorySheet.kt` — 历史记录 ModalBottomSheet
+
+**迁移/删除:**
+- `ResultScreen` — 内嵌 LazyColumn →「查看历史记录」+ BottomSheet
+- `HomeTopBar` — 委托 AppTopBar（固定 titleLarge）
+- `PracticeScreen` / `ExamScreenContent` — `PracticeExamTopBar` 替代重复 `ExamTopBar`
+- 删除 `app/.../ExamTopBar.kt`、`feature-exam/.../ExamTopBar.kt`
+- `SettingsImportProgressOverlay` — 薄封装 `AppLoadingOverlay`
+- `PracticeScreen` — Spacer 统一 AppSpacing
+
+**验证:** `:app:compileDebugKotlin`、`:feature-exam:compileDebugKotlin`、`ResultHistoryLinePipelineTest`
+
+---
+
+## 2026-06-28 — 设计语言 Phase 4：ExamHeader + 全局 Loading
+
+**ExamHeader（考试页）:**
+- `ExamHeader.kt` — 外包 `AppCard`；题型/进度 `bodyMedium`；支持 `extraContent` 槽（全答轮次标签）
+- `ExamScreenContent` — 轮次标签移入 Header Card；页面 padding 统一 `AppSpacing.md`
+
+**全局 Loading 复用:**
+- `AppLoadingIndicator.kt` — 40dp 主色 spinner + `AppLoadingContent`（居中 + 可选文案）
+- `HomeActionOverlays` — 自定义 Box → `AppLoadingOverlay`
+- `PracticeScreen` / `ExamScreenContent` — 加载态 → `AppLoadingContent`
+- `SettingsImportProgressOverlay` / `QuestionEditDialog` / `PracticeChatGptDialog` / 题库抽屉 — `AppLoadingIndicator`
+
+**验证:** `:ui-common:compileDebugKotlin`、`:app:compileDebugKotlin`、`:feature-exam:compileDebugKotlin`、`:feature-practice:compileDebugKotlin`
+
+---
+
+## 2026-06-28 — 设计语言 Phase 5：M3 合规 + 深色模式颜色管道
+
+**P0 — 硬编码颜色:**
+- `AnalysisSectionTone` + `AnalysisSectionColorPipeline` — 解析/笔记/AI 区块主题色
+- `ResultStatColorPipeline` — 结果页统计/折线图轴色
+- 练习/考试全部分析区块改走管道（移除 9 处硬编码）
+
+**P0 — TopAppBar M3:**
+- `PracticeExamTopBar` — actions 仅 Star + AI + MoreVert；题数/笔记移入 MoreVert
+- `QuestionCardHeaderRow` — 题目 Card 顶行答题卡入口
+
+**P1 — 设置/Card 打磨:**
+- 题目 AppCard 进度条顶置全宽；记忆模式 Switch 标签区分；Section/Card/Slider 间距；导入 Sheet 图标；导出 Sheet 最大高度
+
+**P2:** `AppScrollBottomSheet` 85% 高度上限
+
+**验证:** 全模块 `compileDebugKotlin` 通过
+
+---
+
+## 2026-06-28 — 设置页遗留清理 + 导入 Snackbar 管道
+
+**目标:** 删除 M3 重构后无引用的旧 UI；Side effect 移出 Composable，管道化导入反馈。
+
+**删除（零引用遗留）:**
+- `SettingsFontSection` / `SettingsExamPanel` / `SettingsPracticePanel` / `SettingsBasicPanel`
+- `SettingsSoundDarkPanel` / `SettingsImportExportPanel` / `ExportSourceSelectionDialog`
+- `SettingsLoadingOverlay` / `SettingsMemoryPanel` / `SettingsImportSection` / `SettingsExportSection`
+- `SettingsFillPanel` 废弃 wrapper
+
+**新增/迁移（单一职责）:**
+- `SettingsImportProgressOverlay.kt` — 自 `SettingsImportSection` 拆出
+- `SettingsImportSnackbarPipeline.kt` — 无状态 `resolveImportSnackbarResult` + `ImportSnackbarMessages`
+- `SettingsImportSnackbarMessages.kt` — Context → 文案映射（UI 边界）
+- `SettingsExportRequestPipeline.buildExportOutputName` — 导出文件名格式化
+
+**验证:** `:app:compileDebugKotlin`、`SettingsImportSnackbarPipelineTest`、`SettingsExportRequestPipelineTest`
+
+---
+
+## 2026-06-28 — 设置页重构续：记忆模式 + 主题色 + 导出管道
+
+**补全项（审查报告 P11/P12 及 UX 优化）:**
+- `SettingsMemoryCardSection` — 记忆模式接入答题 Card；SegmentedButton 替代 RadioButton；`setMemoryMode` 同步练习/考试
+- `Color.kt` / `Theme.kt` — 浅色 background/surface/surfaceVariant/primary 按 M3 推荐值
+- `SettingsExportRequestPipeline` — 单文件导出跳过 BottomSheet
+
+**验证:** `:app:compileDebugKotlin`、`SettingsExportRequestPipelineTest`
+
+---
+
+## 2026-06-28 — 设置页 M3 UI/UX 全面重构
+
+**目标:** 按 UI/UX 审查报告 Top20 项落地：TopAppBar、ElevatedCard 分组、ListItem 标准行、SegmentedButton、Slider 延迟/字号、填空题独立子页、数据管理 Card + BottomSheet。
+
+**新增（settings/ui/ 单一职责 / 无状态 / 管道）:**
+- `SettingsSectionHeader` / `SettingsCardGroup` / `SettingsUserText` — 视觉分组与统一二级文本
+- `SettingsListSwitchRow` / `SettingsListSliderRow` / `SettingsSegmentedChoiceRow` — M3 标准设置行
+- `SettingsExpandableCardSection` — AnimatedVisibility 展开/折叠
+- `SettingsAppearanceCard` / `SettingsAnswerSettingsCard` / `SettingsDataGroupCard` — 外观/答题/数据 Card
+- `SettingsBottomSheets` — 导出选文件 + 导入题库入口 ModalBottomSheet
+- `SettingsTopBar` — 固定 typography 的 TopAppBar
+- `FillSettingsScreen` — 填空题详细设置子页（路由 `settings/fill`）
+- `SettingsStepperDisplay.kt` — 公共 `formatCountStepperDisplay`
+
+**修改:**
+- `SettingsScreen` — Scaffold + 三区 Card 布局；移除 7 按钮平铺；导入题库合并 BottomSheet 入口
+- `SettingsFillPanel` — 提取 `SettingsFillPanelContent`；帮助文本统一走 `SettingsHelpText`
+- `AppNavHost` — 注册 `settings/fill` 路由
+- `strings.xml` — 区域标题、短标签、BottomSheet 文案
+
+**验证:** `:app:compileDebugKotlin`
+
+---
+
+## 2026-06-28 — 分值范围双步进器等宽修复
+
+**问题:** `SettingsScoreRangeStepperRow` 左右胶囊步进器宽度不一致，右侧被父级 `Row` 挤压缩小。
+
+**修改:**
+- `CapsuleStepperDefaults.kt` — 统一 `WIDTH_DP=130` / `HEIGHT=40.dp`
+- `CapsuleStepperInput` — `.width()` 改 `.requiredWidth()`，防止父布局压缩
+- `SettingsScoreRangeStepperRow` — 标签上置、步进器行右对齐；两侧均用 `CapsuleStepperDefaults.WIDTH_DP`
+
+**验证:** `:ui-common:compileDebugKotlin`、`:app:compileDebugKotlin`
+
+---
+
+## 2026-06-28 — 设置页分值范围双胶囊步进器
+
+**问题:** Fill 设置中「答案级别分值范围」仍使用 `RangeSlider`。
+
+**修改（单一功能 / 无状态 / 管道）:**
+- `StepperScoreRangePipeline.kt` — `normalize` / `withMin` / `withMax`，保证 min≤max 且 1..10
+- `SettingsScoreRangeStepperRow.kt` — 标签 + `min ~ max` 双 `CapsuleStepperInput`
+- `SettingsFillPanel` — 移除 `RangeSlider`，改挂 `SettingsScoreRangeStepperRow`
+
+**验证:** `:app:compileDebugKotlin`、`StepperScoreRangePipelineTest`
+
+---
+
+## 2026-06-28 — 设置页胶囊步进器（M3 一体化输入）
+
+**目标:** 设置页数值调节由 Slider 改为 M3 胶囊步进器 + 文本输入，含位移动效与编辑态微交互。
+
+**新增（ui-common / 单一职责 / 管道）:**
+- `StepperInputParsePipeline.kt` — 数字过滤与 clamp，无状态
+- `StepperAnimatedValue.kt` — 加减时上下滑入/淡出
+- `CapsuleStepperInput.kt` — 全圆角胶囊、`BasicTextField` 沉浸式输入、编辑态背景动画
+- `SettingsStepperRow.kt` — 标签 + 步进器行布局（app settings ui）
+
+**替换 Slider 为步进器:**
+- `SettingsFontSection` — 字号、题量（0=∞）、答题延迟
+- `SettingsFillPanel` — 填空题量、**答案级别分值范围**（双步进器 `min ~ max`）；RangeSlider 已移除
+- `SettingsBasicPanel` / `SettingsPracticePanel` / `SettingsExamPanel` / `SettingsMemoryPanel`
+
+**验证:** `:app:compileDebugKotlin`、`:ui-common:compileDebugKotlin`、`StepperInputParsePipelineTest`
+
+---
+
+## 2026-06-28 — 抽屉遮罩收起（二次）、返回主页流畅性
+
+**问题:**
+1. 仅设 `gesturesEnabled=true` 后，点击抽屉外遮罩仍无法收起
+2. 从错题库/收藏库/设置/记录页返回主页有卡顿
+
+**根因:**
+1. M3 内置 scrim 与主页 `pointerInput`/拖拽层叠，遮罩点击未可靠触发 `close()`
+2. 子页 `navigate()` 未 `saveState/restoreState`；pop 回主页时整页重绘 + 转场动画与拖拽/手势 Modifier 同帧挂载
+
+**修改（单一功能 / 无状态 / 管道）:**
+- `HomeDrawerContentArea.kt`：抽屉打开时在内容区叠可点击 scrim（`DrawerDefaults.scrimColor`），单一 dismiss 出口
+- `HomeNavigationDrawer.kt`：内置 scrim 透明 + `BackHandler`；内容区走 `HomeDrawerContentArea`
+- `AppNavHomePipeline.kt`：`navigateFromHome`（save/restore state）+ `popBackToHome`
+- `AppNavHost.kt`：主页子路由改走 `AppNavHomePipeline`（`launchSingleTop` + `restoreState`）
+- `HomeResumeDeferGate.kt`：首帧后再挂拖拽/长按 Modifier；抽屉打开时跳过
+
+**验证:** `:app:compileDebugKotlin`
+
+---
+
+## 2026-06-28 — 抽屉遮罩收起、答题卡滚动流畅性
+
+**问题:**
+1. 主页抽屉展开后，点击抽屉外区域无法收缩
+2. 答题页/考试页顶栏答题卡弹窗上下滑动卡顿、掉帧
+
+**根因:**
+1. `HomeScreen` 的 `ModalNavigationDrawer` 设 `gesturesEnabled = false`，禁用了遮罩点击收起
+2. `AlertDialog` 自带滚动容器 + 内部 `LazyColumn`/`LazyVerticalGrid` 嵌套懒加载，滚动争抢导致掉帧；`answerCardStatusColors()` 与展开箭头动画在每格重复计算
+
+**修改（单一功能 / 无状态 / 管道）:**
+- `HomeNavigationDrawer.kt`：薄封装，`gesturesEnabled = true`，遮罩点击走 `drawerState.close()`
+- `AnswerCardListDialogShell.kt`：`Dialog` + `Surface` 单一滚动根，替代 `AlertDialog`
+- `PracticeQuestionListDialog` / `QuestionListDialog` 改挂 `AnswerCardListDialogShell`
+- `AnswerCardGrid.kt`：`LazyVerticalGrid` → 静态 5 列 Row，消除外层 `LazyColumn` 嵌套懒滚
+- `AnswerCardCompactEntryGrid.kt`：`contentType` + 顶层 hoist `statusColors`
+- `AnswerCardCell.kt`：`answerCardStatusColors()` 加 `remember(scheme)`
+- `AnswerCardExpandIndicator.kt`：滚动列表内去掉 `animateFloatAsState`，静态旋转
+
+**验证:** `:ui-common:compileDebugKotlin`、`:app:compileDebugKotlin`、`:feature-exam:compileDebugKotlin`、`:feature-practice:compileDebugKotlin`
+
+---
+
+## 2026-06-28 — 抽屉搜索折叠/状态栏 insets 二次修复
+
+**根因:**
+1. 搜索折叠：`toggleFile` 更新了 `_searchCollapsedFiles`，但 Compose 未 `collectAsState`，UI 不重组，点击题库行无收缩效果
+2. 状态栏：`statusBarsPadding()` 单独加在 scroll Column 上不可靠；设置页 overlay `Box(fillMaxSize)` 与内容并列，未统一 inset
+
+**修改（单一数据流 / 管道）:**
+- `QuestionBankDrawerExpansion.kt`：无状态 snapshot + `isFileExpanded`/`isFolderExpanded` 纯判定
+- `QuestionBankDrawerViewModel.expansionSnapshot`：`combine` 五路 StateFlow → 单一出口；Drawer `collectAsState` 驱动重组
+- `ScreenSafeScaffold.kt`：`WindowInsets.safeDrawing` + Material3 `Scaffold` 统一安全区
+- `PracticeScreen` / `ExamScreenContent` / `SettingsScreen` 改用 `ScreenSafeScaffold`；抽屉 Column 加 `statusBarsPadding()`
+- 单元测试 `QuestionBankDrawerExpansionTest`
+
+**验证:** `:app:compileDebugKotlin`、`:feature-exam:compileDebugKotlin`、`QuestionBankDrawerExpansionTest`
+
+---
+
+## 2026-06-28 — 抽屉搜索折叠、状态栏安全区、Markdown 公式修复
+
+**问题:**
+1. 主页抽屉搜索模式下，点击题库行无法收缩已展开的搜索结果
+2. 答题页（练习/考试）与设置页内容侵入系统状态栏，遮挡顶栏图标
+3. 题库解析内容含 `* $8487.05 \text{ N}$**（$866.03 \text{ kgf}$）` 及孤立 ``` 行时 RichText 渲染异常
+
+**修改（按单一功能/无状态/管道原则）:**
+- `QuestionBankDrawerViewModel`：搜索模式默认展开，用 `searchCollapsedFiles/Folders` 记录用户手动折叠；`isFileExpanded`/`isFolderExpanded`/`toggleFile`/`toggleFolder` 统一分支
+- `QuestionBankDrawer`：展开态改读 ViewModel 判定，不再 `isSearchMode || expanded*` 硬编码
+- `ScreenSafeInsets.kt`（ui-common）：`Modifier.screenTopSafePadding()` 单一职责
+- `MainActivity`：`enableEdgeToEdge()`；`PracticeScreen`/`ExamScreenContent`/`SettingsScreen` 根布局加 `screenTopSafePadding()`
+- `MarkdownFormatNormalizer`：去除 `$...$**` 孤立粗体标记；过滤孤立 code fence 行
+- `MarkdownFormatNormalizerTest`：新增 N/kgf 场景用例
+
+**说明:** logcat 中 `Finsky ... Failed getting com.example.testapp` 来自 Google Play 商店查询 sideload 包，与应用代码无关，可忽略。
+
+**验证:** `:app:testDebugUnitTest`（MarkdownFormatNormalizerTest）、`:app:compileDebugKotlin`、`:feature-exam:compileDebugKotlin`
+
+---
+
+## 2026-06-28 — 考试答题页箭头/滑动导航职责分离
+
+**问题:** 考试答题页非原子题库题型（非全答模式）点击左右箭头图标会浏览历史（查看已答题目），而非仅跳转未作答题；同时滑动屏幕也跳转未作答题，与箭头功能重叠。
+
+**根因:**
+- `ExamNavigationCoordinator.prevQuestion()` 在无未答题导航目标时回退到 `currentIndex - 1`，导致箭头点击可浏览已答历史
+- `canNavigateToPrevUnanswered()` 含 `|| (!randomExamEnabled() && state.currentIndex > 0)` 旁路，使箭头始终启用以触发回退
+- `ExamScreenContent` 滑动处理器调用 `prevQuestion()`/`nextQuestion()`，与箭头功能重复
+
+**修改（按单一功能/无状态/管道原则）:**
+- `ExamNavigationCoordinator`：移除 `prevQuestion()` 的 `currentIndex - 1` 回退；移除 `canNavigateToPrevUnanswered()` 的 `currentIndex > 0` 旁路；新增 `prevQuestionSequential()` / `nextQuestionSequential()` / `canGoPrevSequential()` / `canGoNextSequential()` — 纯顺序浏览供滑动使用
+- `ExamViewModel`：暴露 4 个顺序导航方法转发（单行委托，无状态）
+- `ExamScreenContent`：非复盘模式滑动改用 `prevQuestionSequential()` / `nextQuestionSequential()`，末尾左滑仍走 `ExamEdgeSwipePipeline`；箭头保持 `prevQuestion()` / `nextQuestion()`（现仅未答题导航）
+
+**验证:** `:feature-exam:compileDebugKotlin` `:app:compileDebugKotlin`
+
+---
+
+## 2026-06-28 — 考试非原子题库题型箭头变灰修复
+
+**问题:** 考试答题页非原子题库题型（单选/多选/判断等）左右箭头图标均变灰。
+
+**根因:**
+- `ExamNavigationCoordinator.fullAnswerModeActive` 与 UI 的 `isFullAnswerMode` 判定不一致：前者仅读 `activeFillConfig`，后者虽加了 inline-blank 校验但未回灌协调器；非填空题型下 `mustStayInRoundPool` 误阻断 `canNavigate*`
+- `ExamScreenContent` 导航栏 `visible = !showResult` 与 `enabledPrev/Next` 缺少 `|| showResult` 回退，与实践页不一致
+
+**修改:**
+- `ExamFullAnswerModeActivePipeline`：无状态统一全答生效判定（FULL_ANSWER + 含 inline-blank）
+- `ExamViewModel`：`fullAnswerModeActiveNow()` 单一出口供协调器与 `isFullAnswerMode` 共用
+- `ExamScreenContent` 导航栏：`visible = true`、`onSubmit` 按 `!showResult` 条件显隐、`enabledPrev/Next` 增加 `|| showResult` 回退
+
+**验证:** `:feature-exam:compileDebugKotlin` `:app:compileDebugKotlin`
+
 ---
 ## 2026-06-28 — 答题详情 / 错题库·收藏库入口卡顿优化
 

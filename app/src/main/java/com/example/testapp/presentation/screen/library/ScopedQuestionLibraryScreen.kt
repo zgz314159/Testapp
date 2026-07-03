@@ -26,6 +26,7 @@ import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
@@ -57,8 +58,11 @@ import com.example.testapp.presentation.screen.home.components.DraggingFileOverl
 import com.example.testapp.presentation.screen.home.components.HomeFileList
 import com.example.testapp.uicommon.component.LocalFontFamily
 import com.example.testapp.uicommon.component.LocalFontSize
+import com.example.testapp.uicommon.design.AppEmptyState
+import com.example.testapp.uicommon.design.AppSpacing
+import com.example.testapp.uicommon.design.AppTopBar
 
-@OptIn(ExperimentalFoundationApi::class)
+@OptIn(ExperimentalFoundationApi::class, ExperimentalMaterial3Api::class)
 @Composable
 fun ScopedQuestionLibraryScreen(
     scope: String,
@@ -121,7 +125,18 @@ fun ScopedQuestionLibraryScreen(
 
     fun scoped(value: String) = scopedLibraryName(scope, value)
 
-    Scaffold { innerPadding ->
+    Scaffold(
+        topBar = {
+            if (currentFolder == null) {
+                AppTopBar(title = stringResource(rootTitleRes))
+            } else {
+                AppTopBar(
+                    title = currentFolder.orEmpty(),
+                    onBack = { currentFolder = null }
+                )
+            }
+        }
+    ) { innerPadding ->
         Box(
             modifier = Modifier
                 .fillMaxSize()
@@ -130,34 +145,12 @@ fun ScopedQuestionLibraryScreen(
             Column(
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(horizontal = 16.dp, vertical = 12.dp)
+                    .padding(horizontal = AppSpacing.md, vertical = AppSpacing.md)
             ) {
-                if (currentFolder == null) {
-                    Text(
-                        text = stringResource(rootTitleRes),
-                        modifier = Modifier.align(Alignment.CenterHorizontally),
-                        fontSize = LocalFontSize.current,
-                        fontFamily = LocalFontFamily.current
-                    )
-                } else {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        IconButton(onClick = { currentFolder = null }) {
-                            Icon(Icons.Filled.ArrowBack, contentDescription = stringResource(R.string.back))
-                        }
-                        Text(
-                            text = currentFolder.orEmpty(),
-                            fontSize = LocalFontSize.current,
-                            fontFamily = LocalFontFamily.current
-                        )
-                    }
-                }
-                Spacer(modifier = Modifier.height(12.dp))
-
                 if (currentFolder == null && layout.rootDisplayFileNames.isEmpty() && layout.visibleFolderCards.isEmpty()) {
-                    Text(
-                        text = stringResource(emptyMessageRes),
-                        fontSize = LocalFontSize.current,
-                        fontFamily = LocalFontFamily.current
+                    AppEmptyState(
+                        message = stringResource(emptyMessageRes),
+                        modifier = Modifier.fillMaxSize()
                     )
                 } else {
                     HomeFileList(

@@ -1,27 +1,22 @@
 package com.example.testapp.presentation.screen.exam
 
-import com.example.testapp.domain.review.ReviewBrowseSession
-import com.example.testapp.domain.review.ReviewAnsweredSwipePipeline
-import com.example.testapp.domain.review.SessionReviewPresentation
-import com.example.testapp.domain.model.PracticeSessionState
-import com.example.testapp.domain.model.Question
-import com.example.testapp.domain.model.QuestionWithState
-import com.example.testapp.domain.model.SessionMode
-import com.example.testapp.domain.model.UnifiedQuestionState
-import com.example.testapp.domain.model.UnifiedSessionState
-import com.example.testapp.domain.model.updateAt
-import com.example.testapp.domain.usecase.ExamUseCaseFacade
-import androidx.lifecycle.ViewModel
-import androidx.lifecycle.viewModelScope
 import com.example.testapp.core.common.FontSettingsRepository
 import com.example.testapp.core.common.LocalizedResult
 import com.example.testapp.core.session.NavigationSaveScheduler
 import com.example.testapp.core.session.SessionEngine
-import com.example.testapp.core.util.*
+import com.example.testapp.domain.model.PracticeSessionState
+import com.example.testapp.domain.model.Question
+import com.example.testapp.domain.model.QuestionWithState
+import com.example.testapp.domain.model.UnifiedQuestionState
+import com.example.testapp.domain.model.updateAt
+import com.example.testapp.domain.usecase.ExamUseCaseFacade
 import com.example.testapp.uicommon.component.AnswerCardDisplayInfoPipeline
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
-import kotlinx.coroutines.*
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.*
+import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 @HiltViewModel
@@ -36,28 +31,23 @@ class ExamViewModel @Inject constructor(
     private val loadDelegate: ExamLoadDelegate
 ) : ViewModel() {
 
-    // ================================================================
-    // 核心会话状态
-    // ================================================================
-
     private val _sessionState = MutableStateFlow(PracticeSessionState(finished = false))
     val sessionState: StateFlow<PracticeSessionState> = _sessionState.asStateFlow()
 
-    // 派生 StateFlow，供界面订阅
-    val questions: StateFlow<List<Question>> = _sessionState.map { it.questions }.stateIn(viewModelScope, SharingStarted.Lazily, emptyList())
-    val currentIndex: StateFlow<Int> = _sessionState.map { it.currentIndex }.stateIn(viewModelScope, SharingStarted.Lazily, 0)
-    val selectedOptions: StateFlow<List<List<Int>>> = _sessionState.map { s -> s.questionsWithState.map { it.selectedOptions } }.stateIn(viewModelScope, SharingStarted.Lazily, emptyList())
-    val textAnswers: StateFlow<List<String>> = _sessionState.map { s -> s.questionsWithState.map { it.textAnswer } }.stateIn(viewModelScope, SharingStarted.Lazily, emptyList())
-    val showResultList: StateFlow<List<Boolean>> = _sessionState.map { s -> s.questionsWithState.map { it.showResult } }.stateIn(viewModelScope, SharingStarted.Lazily, emptyList())
-    val answerTimeList: StateFlow<List<Long>> = _sessionState.map { s -> s.questionsWithState.map { it.sessionAnswerTime } }.stateIn(viewModelScope, SharingStarted.Lazily, emptyList())
-    val analysisList: StateFlow<List<String>> = _sessionState.map { s -> s.questionsWithState.map { it.analysis } }.stateIn(viewModelScope, SharingStarted.Lazily, emptyList())
-    val sparkAnalysisList: StateFlow<List<String>> = _sessionState.map { s -> s.questionsWithState.map { it.sparkAnalysis } }.stateIn(viewModelScope, SharingStarted.Lazily, emptyList())
-    val baiduAnalysisList: StateFlow<List<String>> = _sessionState.map { s -> s.questionsWithState.map { it.baiduAnalysis } }.stateIn(viewModelScope, SharingStarted.Lazily, emptyList())
-    val noteList: StateFlow<List<String>> = _sessionState.map { s -> s.questionsWithState.map { it.note } }.stateIn(viewModelScope, SharingStarted.Lazily, emptyList())
-    val progressLoaded: StateFlow<Boolean> = _sessionState.map { it.progressLoaded }.stateIn(viewModelScope, SharingStarted.Lazily, false)
-    val finished: StateFlow<Boolean> = _sessionState.map { it.finished }.stateIn(viewModelScope, SharingStarted.Lazily, false)
+    private val sessionFlows = ExamViewModelSessionFlows.create(_sessionState, viewModelScope)
+    val questions = sessionFlows.questions
+    val currentIndex = sessionFlows.currentIndex
+    val selectedOptions = sessionFlows.selectedOptions
+    val textAnswers = sessionFlows.textAnswers
+    val showResultList = sessionFlows.showResultList
+    val answerTimeList = sessionFlows.answerTimeList
+    val analysisList = sessionFlows.analysisList
+    val sparkAnalysisList = sessionFlows.sparkAnalysisList
+    val baiduAnalysisList = sessionFlows.baiduAnalysisList
+    val noteList = sessionFlows.noteList
+    val progressLoaded = sessionFlows.progressLoaded
+    val finished = sessionFlows.finished
 
-    // 累计考试统计
     private val _cumulativeCorrect = MutableStateFlow(0)
     val cumulativeCorrect: StateFlow<Int> = _cumulativeCorrect.asStateFlow()
     private val _cumulativeAnswered = MutableStateFlow(0)
@@ -75,10 +65,7 @@ class ExamViewModel @Inject constructor(
 
     val totalCount: Int get() = _sessionState.value.totalCount
     val answeredCount: Int get() = _sessionState.value.answeredCount
-    val correctCount: Int get() {
-        val s = _sessionState.value
-        return s.questionsWithState.count { it.isCorrect == true }
-    }
+    val correctCount: Int get() = _sessionState.value.questionsWithState.count { it.isCorrect == true }
     val wrongCount: Int get() = answeredCount - correctCount
     val unansweredCount: Int get() = totalCount - answeredCount
 
@@ -105,114 +92,169 @@ class ExamViewModel @Inject constructor(
     private var activeFillConfig: ExamFillConfig = ExamFillConfig.default
     private val _reviewModeActive = MutableStateFlow(false)
     val reviewModeActive: StateFlow<Boolean> = _reviewModeActive.asStateFlow()
-    private var reviewBrowseSession: ReviewBrowseSession? = null
-    private var reviewAnsweredSwipeOrder: List<Int> = emptyList()
 
     private val navigationSaveScheduler = NavigationSaveScheduler(viewModelScope)
 
-    private val navigationCoordinator = ExamNavigationCoordinator(
-        sessionState = _sessionState,
-        scope = viewModelScope,
-        navHelper = navHelper,
-        answerRules = answerRules,
-        fullAnswerModeActive = { activeFillConfig.isFullAnswerMode },
-        fullAnswerRequireCorrect = { fullAnswerRequireCorrect },
-        randomExamEnabled = { randomExamEnabled },
-        memoryModeActive = { memoryModeActive },
-        effectiveCurrentMemoryRoundQuestionIds = ::effectiveCurrentMemoryRoundQuestionIdsB,
-        buildExamQuestionState = ::buildExamQuestionState,
-        advanceMemoryRoundIfNeeded = ::advanceMemoryRoundIfNeeded,
-        reopenQuestionForFullAnswerRetry = ::reopenQuestionForFullAnswerRetry,
-        scheduleNavigationSave = ::scheduleNavigationSave,
-        saveProgressInternal = ::saveProgressInternal
-    )
-    private val answerCoordinator = ExamAnswerCoordinator(
-        sessionState = _sessionState,
-        scope = viewModelScope,
-        memoryModeActive = { memoryModeActive },
-        randomExamEnabled = { randomExamEnabled },
-        currentFullAnswerCandidateIndices = ::currentFullAnswerCandidateIndicesB,
-        refreshMemoryRoundPoolIfNeeded = ::refreshMemoryRoundPoolIfNeeded,
-        navigateToRandomUnansweredOrAdvanceRound = ::navigateToRandomUnansweredOrAdvanceRound,
-        calculateCumulativeStats = ::calculateCumulativeStats,
-        saveProgress = ::saveProgress,
-        saveProgressInternal = ::saveProgressInternal
-    )
-    private val memoryModeCoordinator = ExamMemoryModeCoordinator(
-        sessionState = _sessionState,
-        facade = facade,
-        memoryModeEngine = memoryModeEngine,
-        answerRules = answerRules,
-        persistentQuestionStateMap = persistentQuestionStateMap,
-        memoryModeActive = { memoryModeActive },
-        memoryModeBatchSize = { memoryModeBatchSize },
-        memoryWrongMode = { memoryWrongMode },
-        memoryPoolMode = { memoryPoolMode },
-        randomExamEnabled = { randomExamEnabled },
-        allSourceQuestions = { allSourceQuestions },
-        currentMemoryRoundQuestionIds = { currentMemoryRoundQuestionIds },
-        setCurrentMemoryRoundQuestionIds = { currentMemoryRoundQuestionIds = it },
-        applyConfiguredFillQuestions = ::applyConfiguredFillQuestions,
-        mergeCurrentStateToPersistentMap = ::mergeCurrentStateToPersistentMap,
-        saveProgressInternal = ::saveProgressInternal
-    )
-    private val editCoordinator = ExamQuestionEditCoordinator(
-        sessionState = _sessionState,
-        editableQuestion = _editableQuestion,
-        messageResult = _messageResult,
-        saveSuccess = _saveSuccess,
-        scope = viewModelScope,
-        facade = facade,
-        fillTransform = fillTransform,
-        navHelper = navHelper,
-        editedQuestionSnapshotMap = editedQuestionSnapshotMap,
-        allSourceQuestions = { allSourceQuestions },
-        setAllSourceQuestions = { allSourceQuestions = it },
-        progressSeed = { progressSeed },
-        saveProgressInternal = ::saveProgressInternal
-    )
-    private val statisticsCoordinator = ExamStatisticsCoordinator(
-        sessionState = _sessionState,
-        cumulativeCorrect = _cumulativeCorrect,
-        cumulativeAnswered = _cumulativeAnswered,
-        cumulativeExamCount = _cumulativeExamCount,
-        scope = viewModelScope,
-        fontSettingsRepository = fontSettingsRepository
-    )
-    private val gradeCoordinator = ExamGradeCoordinator(
-        sessionState = _sessionState,
-        messageResult = _messageResult,
-        facade = facade,
-        progressSeed = { progressSeed },
-        quizIdInternal = { quizIdInternal },
-        memoryModeActive = { memoryModeActive },
-        advanceMemoryRoundIfNeeded = ::advanceMemoryRoundIfNeeded,
-        incrementExamCount = ::incrementExamCount,
-        saveProgressInternal = ::saveProgressInternal
-    )
-    private val artifactCoordinator = ExamArtifactStateCoordinator(
-        scope = viewModelScope,
-        facade = facade,
-        sessionEngine = sessionEngine,
-        sessionState = _sessionState,
-        messageResult = _messageResult,
-        saveProgress = ::saveProgress
-    )
-    private val progressResetCoordinator = ExamProgressResetCoordinator(
-        scope = viewModelScope,
-        sessionEngine = sessionEngine,
-        sessionState = _sessionState,
-        progressId = { progressId },
-        setProgressSeed = { progressSeed = it },
-        resetArtifactLoadedFlags = ::resetArtifactLoadedFlags,
-        loadProgress = ::loadProgress
-    )
+    private lateinit var progressCoordinator: ExamSessionProgressCoordinator
+    private lateinit var reviewCoordinator: ExamReviewSessionCoordinator
+    private lateinit var navigationCoordinator: ExamNavigationCoordinator
+    private lateinit var answerCoordinator: ExamAnswerCoordinator
+    private lateinit var memoryModeCoordinator: ExamMemoryModeCoordinator
+    private lateinit var editCoordinator: ExamQuestionEditCoordinator
+    private lateinit var statisticsCoordinator: ExamStatisticsCoordinator
+    private lateinit var gradeCoordinator: ExamGradeCoordinator
+    private lateinit var artifactCoordinator: ExamArtifactStateCoordinator
+    private lateinit var progressResetCoordinator: ExamProgressResetCoordinator
 
     init {
+        progressCoordinator = ExamSessionProgressCoordinator(
+            sessionState = _sessionState,
+            scope = viewModelScope,
+            sessionEngine = sessionEngine,
+            facade = facade,
+            fillTransform = fillTransform,
+            navHelper = navHelper,
+            persistentQuestionStateMap = persistentQuestionStateMap,
+            progressId = { progressId },
+            progressSeedRef = { progressSeed },
+            setProgressSeed = { progressSeed = it },
+            randomExamEnabled = { randomExamEnabled },
+            memoryModeActive = { memoryModeActive },
+            allSourceQuestions = { allSourceQuestions },
+            reviewModeActive = { _reviewModeActive.value },
+            messageResult = _messageResult,
+            currentFullAnswerCandidateIndices = { candidates ->
+                navigationCoordinator.currentFullAnswerCandidateIndices(candidates)
+            },
+            onCalculateCumulativeStats = ::calculateCumulativeStats,
+            onLoadAnalysis = { artifactCoordinator.loadAnalysisFromRepository() },
+            onLoadSparkAnalysis = { artifactCoordinator.loadSparkAnalysisFromRepository() },
+            onLoadBaiduAnalysis = { artifactCoordinator.loadBaiduAnalysisFromRepository() },
+            onLoadNotes = { artifactCoordinator.loadNotesFromRepository() },
+            isAnalysisLoaded = { analysisLoaded },
+            isSparkAnalysisLoaded = { sparkAnalysisLoaded },
+            isBaiduAnalysisLoaded = { baiduAnalysisLoaded },
+            isNotesLoaded = { notesLoaded },
+            markAnalysisLoaded = { analysisLoaded = true },
+            markSparkAnalysisLoaded = { sparkAnalysisLoaded = true },
+            markBaiduAnalysisLoaded = { baiduAnalysisLoaded = true },
+            markNotesLoaded = { notesLoaded = true }
+        )
+        reviewCoordinator = ExamReviewSessionCoordinator(
+            sessionState = _sessionState,
+            reviewModeActive = _reviewModeActive,
+            scope = viewModelScope,
+            progressId = { progressId },
+            setProgressId = { progressId = it },
+            resetArtifactLoadedFlags = ::resetArtifactLoadedFlags,
+            loadReviewSession = { id, quiz, count, random, wrong, fav ->
+                loadDelegate.loadReviewSession(id, quiz, count, random, wrong, fav)
+            },
+            scheduleNavigationSave = ::scheduleNavigationSave
+        )
+        navigationCoordinator = ExamNavigationCoordinator(
+            sessionState = _sessionState,
+            scope = viewModelScope,
+            navHelper = navHelper,
+            answerRules = answerRules,
+            fullAnswerModeActive = ::fullAnswerModeActiveNow,
+            fullAnswerRequireCorrect = { fullAnswerRequireCorrect },
+            randomExamEnabled = { randomExamEnabled },
+            memoryModeActive = { memoryModeActive },
+            effectiveCurrentMemoryRoundQuestionIds = ::effectiveCurrentMemoryRoundQuestionIdsB,
+            buildExamQuestionState = ::buildExamQuestionState,
+            advanceMemoryRoundIfNeeded = ::advanceMemoryRoundIfNeeded,
+            reopenQuestionForFullAnswerRetry = ::reopenQuestionForFullAnswerRetry,
+            scheduleNavigationSave = ::scheduleNavigationSave,
+            saveProgressInternal = ::saveProgressInternal
+        )
+        answerCoordinator = ExamAnswerCoordinator(
+            sessionState = _sessionState,
+            scope = viewModelScope,
+            memoryModeActive = { memoryModeActive },
+            randomExamEnabled = { randomExamEnabled },
+            currentFullAnswerCandidateIndices = ::currentFullAnswerCandidateIndicesB,
+            refreshMemoryRoundPoolIfNeeded = ::refreshMemoryRoundPoolIfNeeded,
+            navigateToRandomUnansweredOrAdvanceRound = ::navigateToRandomUnansweredOrAdvanceRound,
+            calculateCumulativeStats = ::calculateCumulativeStats,
+            saveProgress = ::saveProgress,
+            saveProgressInternal = ::saveProgressInternal
+        )
+        memoryModeCoordinator = ExamMemoryModeCoordinator(
+            sessionState = _sessionState,
+            facade = facade,
+            memoryModeEngine = memoryModeEngine,
+            answerRules = answerRules,
+            persistentQuestionStateMap = persistentQuestionStateMap,
+            memoryModeActive = { memoryModeActive },
+            memoryModeBatchSize = { memoryModeBatchSize },
+            memoryWrongMode = { memoryWrongMode },
+            memoryPoolMode = { memoryPoolMode },
+            randomExamEnabled = { randomExamEnabled },
+            allSourceQuestions = { allSourceQuestions },
+            currentMemoryRoundQuestionIds = { currentMemoryRoundQuestionIds },
+            setCurrentMemoryRoundQuestionIds = { currentMemoryRoundQuestionIds = it },
+            applyConfiguredFillQuestions = ::applyConfiguredFillQuestions,
+            mergeCurrentStateToPersistentMap = progressCoordinator::mergeCurrentStateToPersistentMap,
+            saveProgressInternal = ::saveProgressInternal
+        )
+        editCoordinator = ExamQuestionEditCoordinator(
+            sessionState = _sessionState,
+            editableQuestion = _editableQuestion,
+            messageResult = _messageResult,
+            saveSuccess = _saveSuccess,
+            scope = viewModelScope,
+            facade = facade,
+            fillTransform = fillTransform,
+            navHelper = navHelper,
+            editedQuestionSnapshotMap = editedQuestionSnapshotMap,
+            allSourceQuestions = { allSourceQuestions },
+            setAllSourceQuestions = { allSourceQuestions = it },
+            progressSeed = { progressSeed },
+            saveProgressInternal = ::saveProgressInternal
+        )
+        statisticsCoordinator = ExamStatisticsCoordinator(
+            sessionState = _sessionState,
+            cumulativeCorrect = _cumulativeCorrect,
+            cumulativeAnswered = _cumulativeAnswered,
+            cumulativeExamCount = _cumulativeExamCount,
+            scope = viewModelScope,
+            fontSettingsRepository = fontSettingsRepository
+        )
+        gradeCoordinator = ExamGradeCoordinator(
+            sessionState = _sessionState,
+            messageResult = _messageResult,
+            facade = facade,
+            progressSeed = { progressSeed },
+            quizIdInternal = { quizIdInternal },
+            memoryModeActive = { memoryModeActive },
+            advanceMemoryRoundIfNeeded = ::advanceMemoryRoundIfNeeded,
+            incrementExamCount = ::incrementExamCount,
+            saveProgressInternal = ::saveProgressInternal
+        )
+        artifactCoordinator = ExamArtifactStateCoordinator(
+            scope = viewModelScope,
+            facade = facade,
+            sessionEngine = sessionEngine,
+            sessionState = _sessionState,
+            messageResult = _messageResult,
+            saveProgress = ::saveProgress
+        )
+        progressResetCoordinator = ExamProgressResetCoordinator(
+            scope = viewModelScope,
+            sessionEngine = sessionEngine,
+            sessionState = _sessionState,
+            progressId = { progressId },
+            setProgressSeed = { progressSeed = it },
+            resetArtifactLoadedFlags = ::resetArtifactLoadedFlags,
+            loadProgress = ::loadProgress
+        )
         viewModelScope.launch(Dispatchers.IO) {
             try {
                 _cumulativeExamCount.value = fontSettingsRepository.cumulativeExamCount.firstOrNull() ?: 0
-            } catch (_: Exception) { _cumulativeExamCount.value = 0 }
+            } catch (_: Exception) {
+                _cumulativeExamCount.value = 0
+            }
         }
         loadDelegate.init(
             vmScope = viewModelScope,
@@ -226,15 +268,19 @@ class ExamViewModel @Inject constructor(
             allSourceQuestionsRef = { allSourceQuestions }, setAllSourceQuestions = { allSourceQuestions = it },
             setCurrentMemoryRoundQuestionIds = { currentMemoryRoundQuestionIds = it },
             persistentQuestionStateMap = persistentQuestionStateMap,
-            onQuestions = { qs -> _sessionState.update { it.copy(questionsWithState = qs.map { q -> QuestionWithState(question = q) }) } },
+            onQuestions = { qs ->
+                _sessionState.update { it.copy(questionsWithState = qs.map { q -> QuestionWithState(question = q) }) }
+            },
             onProgressLoaded = { loaded -> _sessionState.update { it.copy(progressLoaded = loaded) } },
             onPostArtifacts = { arts ->
                 _sessionState.update { s ->
                     val upd = s.questionsWithState.mapIndexed { i, qws ->
-                        qws.copy(analysis = arts.analysis.getOrElse(i) { qws.analysis },
+                        qws.copy(
+                            analysis = arts.analysis.getOrElse(i) { qws.analysis },
                             sparkAnalysis = arts.sparkAnalysis.getOrElse(i) { qws.sparkAnalysis },
                             baiduAnalysis = arts.baiduAnalysis.getOrElse(i) { qws.baiduAnalysis },
-                            note = arts.notes.getOrElse(i) { qws.note })
+                            note = arts.notes.getOrElse(i) { qws.note }
+                        )
                     }
                     s.copy(questionsWithState = upd)
                 }
@@ -243,10 +289,6 @@ class ExamViewModel @Inject constructor(
             onLoadProgress = { loadProgress() }
         )
     }
-
-    // ================================================================
-    // State builders
-    // ================================================================
 
     private fun buildExamQuestionState(idx: Int): UnifiedQuestionState {
         val qws = _sessionState.value.questionsWithState.getOrNull(idx)
@@ -274,8 +316,7 @@ class ExamViewModel @Inject constructor(
 
     private suspend fun applyConfiguredFillQuestions(qs: List<Question>) =
         fillTransform.applyConfiguredFillQuestions(
-            qs,
-            progressSeed,
+            qs, progressSeed,
             { config ->
                 activeFillConfig = config
                 fullAnswerRequireCorrect = config.fullAnswerRequireCorrect
@@ -287,15 +328,8 @@ class ExamViewModel @Inject constructor(
         loadDelegate.reloadForFillConfig()
     }
 
-    // ================================================================
-    // Mode config
-    // ================================================================
-
     fun setRandomExam(enabled: Boolean) { randomExamEnabled = enabled }
-
-    fun resetLoadState() {
-        _sessionState.update { it.copy(progressLoaded = false) }
-    }
+    fun resetLoadState() { _sessionState.update { it.copy(progressLoaded = false) } }
     fun setMemoryModeConfig(enabled: Boolean, batchSize: Int, wrongMode: Int, poolMode: Int) {
         memoryModeEnabled = enabled
         if (!enabled) memoryModeActive = false
@@ -304,53 +338,75 @@ class ExamViewModel @Inject constructor(
         memoryPoolMode = poolMode
     }
 
-    // ================================================================
-    // Memory mode
-    // ================================================================
-
-    private fun unansweredCountB(): Int = _sessionState.value.unansweredCount
-
-    private fun buildMemoryRoundPlan(src: List<Question>, seed: Long) =
-        memoryModeCoordinator.buildMemoryRoundPlan(src, seed)
-
     private suspend fun initializeMemoryModeIfNeeded(seed: Long): Boolean =
         memoryModeCoordinator.initializeMemoryModeIfNeeded(seed)
 
-    suspend fun refreshMemoryRoundPoolIfNeeded(answeredIndex: Int): Boolean {
-        return memoryModeCoordinator.refreshMemoryRoundPoolIfNeeded(answeredIndex)
-    }
+    suspend fun refreshMemoryRoundPoolIfNeeded(answeredIndex: Int): Boolean =
+        memoryModeCoordinator.refreshMemoryRoundPoolIfNeeded(answeredIndex)
 
-    suspend fun advanceMemoryRoundIfNeeded(): Boolean {
-        return memoryModeCoordinator.advanceMemoryRoundIfNeeded()
-    }
+    suspend fun advanceMemoryRoundIfNeeded(): Boolean =
+        memoryModeCoordinator.advanceMemoryRoundIfNeeded()
 
     private fun effectiveCurrentMemoryRoundQuestionIdsB() =
         memoryModeCoordinator.effectiveCurrentMemoryRoundQuestionIds()
 
-    // ================================================================
-    // Navigation
-    // ================================================================
-
     private fun currentFullAnswerCandidateIndicesB(candidates: List<Int>): List<Int> =
         navigationCoordinator.currentFullAnswerCandidateIndices(candidates)
-
-    private fun navigateCandidateIndicesB(): List<Int> =
-        navigationCoordinator.navigateCandidateIndices()
 
     private suspend fun navigateToRandomUnansweredOrAdvanceRound() =
         navigationCoordinator.navigateToRandomUnansweredOrAdvanceRound()
 
     fun nextQuestion() {
-        if (tryNavigateReviewBrowse(1)) return
+        if (reviewCoordinator.tryNavigateReviewBrowse(1)) return
         navigationCoordinator.nextQuestion()
     }
 
     fun prevQuestion() {
-        if (tryNavigateReviewBrowse(-1)) return
+        if (reviewCoordinator.tryNavigateReviewBrowse(-1)) return
         navigationCoordinator.prevQuestion()
     }
 
+    fun prevQuestionViaIcon() {
+        if (reviewCoordinator.tryNavigateReviewBrowse(-1)) return
+        navigationCoordinator.prevQuestionViaIcon()
+    }
+
+    fun nextQuestionViaIcon() {
+        if (reviewCoordinator.tryNavigateReviewBrowse(1)) return
+        navigationCoordinator.nextQuestionViaIcon()
+    }
+
+    fun prevQuestionViaIconDoubleClick(): Boolean = navigationCoordinator.prevQuestionViaIconDoubleClick()
+    fun nextQuestionViaIconDoubleClick(): Boolean = navigationCoordinator.nextQuestionViaIconDoubleClick()
+
+    fun retryCurrentQuestion(index: Int) {
+        _sessionState.update { s ->
+            if (index !in s.questionsWithState.indices) return@update s
+            val updated = s.questionsWithState.mapIndexed { idx, qws ->
+                if (idx == index) ExamQuestionRetryPipeline.reopenCurrent(qws) else qws
+            }
+            s.copy(questionsWithState = updated, currentIndex = index, finished = false)
+        }
+        viewModelScope.launch { saveProgressInternal() }
+    }
+
+    fun retryWrongFillBlanks(index: Int) {
+        _sessionState.update { s ->
+            if (index !in s.questionsWithState.indices) return@update s
+            val updated = s.questionsWithState.mapIndexed { idx, qws ->
+                if (idx == index) ExamQuestionRetryPipeline.reopenWrongBlanks(qws) else qws
+            }
+            s.copy(questionsWithState = updated, currentIndex = index, finished = false)
+        }
+        viewModelScope.launch { saveProgressInternal() }
+    }
+
+    private fun reopenQuestionForFullAnswerRetry(index: Int) = retryWrongFillBlanks(index)
+
     fun hasPendingQuestions(): Boolean = navigationCoordinator.hasPendingQuestions()
+    private fun fullAnswerModeActiveNow(): Boolean =
+        ExamFullAnswerModeActivePipeline.isActive(activeFillConfig, _sessionState.value.questions)
+    val isFullAnswerMode: Boolean get() = fullAnswerModeActiveNow()
 
     fun canNavigateToNextUnanswered(): Boolean =
         navigationCoordinator.canNavigateToNextUnanswered() ||
@@ -360,17 +416,10 @@ class ExamViewModel @Inject constructor(
         navigationCoordinator.canNavigateToPrevUnanswered() ||
             (isFullAnswerMode && canSkipToAdjacentSource(forward = false))
 
-    val isFullAnswerMode: Boolean get() = activeFillConfig.isFullAnswerMode
-
     fun canSkipToAdjacentSource(forward: Boolean): Boolean =
         navigationCoordinator.canSkipToAdjacentSource(forward)
 
-    fun skipToAdjacentSource(forward: Boolean) =
-        navigationCoordinator.skipToAdjacentSource(forward)
-
-    // ================================================================
-    // Load entry points
-    // ================================================================
+    fun skipToAdjacentSource(forward: Boolean) = navigationCoordinator.skipToAdjacentSource(forward)
 
     fun loadQuestions(quizId: String, count: Int, random: Boolean) {
         quizIdInternal = quizId
@@ -387,78 +436,19 @@ class ExamViewModel @Inject constructor(
         loadDelegate.loadFavoriteExam(fileName, count, random)
     }
 
-    // ================================================================
-    // Answer interaction
-    // ================================================================
-
-    fun selectOption(option: Int, skipAfterChanged: Boolean = false) = answerCoordinator.selectOption(option, skipAfterChanged)
+    fun selectOption(option: Int, skipAfterChanged: Boolean = false) =
+        answerCoordinator.selectOption(option, skipAfterChanged)
 
     fun updateTextAnswer(answer: String) = answerCoordinator.updateTextAnswer(answer)
 
-    // ================================================================
-    // Edit question
-    // ================================================================
-
     fun prepareEditableQuestion(index: Int) = editCoordinator.prepareEditableQuestion(index)
-
     fun clearEditableQuestion() = editCoordinator.clearEditableQuestion()
-
     fun normalizeEditedSelectedOptions(sel: List<Int>, q: Question) =
         editCoordinator.normalizeEditedSelectedOptions(sel, q)
-
     fun saveEditedQuestion(index: Int, newContent: String, newAnswer: String, newOptions: List<String>) =
         editCoordinator.saveEditedQuestion(index, newContent, newAnswer, newOptions)
 
-    // ================================================================
-    // Progress persistence
-    // ================================================================
-
-    private fun mergeCurrentStateToPersistentMap() {
-        val s = _sessionState.value
-        persistentQuestionStateMap.putAll(navHelper.buildCurrentStateMapByQuestionId(
-            s.questions, s.questionsWithState.map { it.selectedOptions }, s.questionsWithState.map { it.textAnswer },
-            s.questionsWithState.map { it.showResult }, s.questionsWithState.map { it.analysis },
-            s.questionsWithState.map { it.sparkAnalysis }, s.questionsWithState.map { it.baiduAnalysis },
-            s.questionsWithState.map { it.note }
-        ))
-    }
-
-    private suspend fun saveProgressInternal() = withContext(Dispatchers.Default) {
-        mergeCurrentStateToPersistentMap()
-        val fs = fillTransform.currentFillConfigSignature()
-        val s = _sessionState.value
-        val fo = s.questionsWithState.map { it.question.id }
-        val ffo = if (memoryModeActive && allSourceQuestions.isNotEmpty()) {
-            allSourceQuestions.map { it.id }
-        } else {
-            fo
-        }
-        val fsm = persistentQuestionStateMap.toMap()
-        val state = UnifiedSessionState(
-            questionsWithState = s.questionsWithState,
-            currentIndex = s.currentIndex,
-            sessionStartTime = s.sessionStartTime,
-            mode = SessionMode.EXAM,
-            progressId = progressId,
-            questionsSource = "",
-            isRandomMode = randomExamEnabled,
-            progressLoaded = s.progressLoaded,
-            finished = s.finished,
-            sessionId = fillTransform.buildSessionIdWithFillSignature(progressId, progressSeed, fs)
-        )
-        ExamPipelineLog.save(s.questionsWithState.map { it.sessionAnswerTime })
-        sessionEngine.progressManager.saveProgress(
-            progressId = progressId,
-            state = state,
-            memoryActive = memoryModeActive,
-            allSourceQuestions = allSourceQuestions,
-            fillSignature = fs,
-            extras = mapOf("questionStateMap" to fsm, "fixedQuestionOrder" to ffo)
-        )
-        ExamRoundLoadLog.save(mapSize = fsm.size, finished = s.finished, fixedOrderSize = ffo.size)
-        _messageResult.value = LocalizedResult(com.example.testapp.domain.IOConstants.SAVE_SUCCESS)
-    }
-
+    private suspend fun saveProgressInternal() = progressCoordinator.saveProgressInternal()
     private fun saveProgress() {
         navigationSaveScheduler.flushAndSave { saveProgressInternal() }
     }
@@ -467,97 +457,30 @@ class ExamViewModel @Inject constructor(
         navigationSaveScheduler.schedule { saveProgressInternal() }
     }
 
-    // ================================================================
-    // Load progress
-    // ================================================================
+    private fun loadProgress() = progressCoordinator.loadProgress(onSaveProgress = ::saveProgress)
 
-    private fun loadProgress() {
-        viewModelScope.launch {
-            facade.progress.getFlow(progressId).collect { progress ->
-                val s = _sessionState.value
-                if (progress != null && !s.progressLoaded) {
-                    val size = s.questionsWithState.size; if (size == 0) return@collect
-                    progressSeed = progress.timestamp
-                    val nci = progress.currentIndex.coerceAtMost(size - 1)
-                    val sci = if (randomExamEnabled && !progress.finished) {
-                        val cand = currentFullAnswerCandidateIndicesB(s.questionsWithState.indices.filter { it != nci })
-                        if (cand.isNotEmpty()) cand.random(kotlin.random.Random(progressSeed)) else nci
-                    } else nci
-                    val restoreFromMap = ExamSessionRestorePipeline.shouldRestoreAnswersFromStateMap(
-                        progress = progress,
-                        reviewMode = _reviewModeActive.value
-                    )
-                    ExamRoundLoadLog.restore(
-                        restoreFromMap = restoreFromMap,
-                        reviewMode = _reviewModeActive.value,
-                        progressFinished = progress.finished,
-                        mapSize = progress.questionStateMap.size
-                    )
-                    persistentQuestionStateMap.clear()
-                    persistentQuestionStateMap.putAll(progress.questionStateMap)
-                    val qws = ExamSessionRestorePipeline.resolveSessionQuestions(
-                        sessionQuestions = s.questionsWithState,
-                        progress = progress,
-                        restoreFromMap = restoreFromMap
-                    )
-                    ExamPipelineLog.load(qws.map { it.sessionAnswerTime })
-                    val resumeIndex = if (randomExamEnabled && s.questionsWithState.isNotEmpty() && !restoreFromMap) {
-                        (0 until s.questionsWithState.size).random(kotlin.random.Random(progressSeed))
-                    } else if (restoreFromMap) {
-                        sci
-                    } else {
-                        0
-                    }
-                    _sessionState.value = s.copy(
-                        questionsWithState = qws,
-                        currentIndex = resumeIndex,
-                        finished = false
-                    )
-                    if (progress.selectedOptions.size < size) saveProgressInternal()
-                } else if (progress == null && !s.progressLoaded) {
-                    val nci = if (randomExamEnabled && s.questionsWithState.isNotEmpty()) (0 until s.questionsWithState.size).random(kotlin.random.Random(progressSeed)) else 0
-                    _sessionState.update { it.copy(currentIndex = nci) }
-                    saveProgress()
-                }
-                _sessionState.update { it.copy(progressLoaded = true) }; calculateCumulativeStats()
-                if (!analysisLoaded) { loadAnalysisFromRepository(); analysisLoaded = true }
-                if (!sparkAnalysisLoaded) { loadSparkAnalysisFromRepository(); sparkAnalysisLoaded = true }
-                if (!baiduAnalysisLoaded) { loadBaiduAnalysisFromRepository(); baiduAnalysisLoaded = true }
-                if (!notesLoaded) { loadNotesFromRepository(); notesLoaded = true }
-            }
-        }
-    }
-
-    // ================================================================
-    // GoTo + show result
-    // ================================================================
-
+    fun prevQuestionSequential() = navigationCoordinator.prevQuestionSequential()
+    fun nextQuestionSequential() = navigationCoordinator.nextQuestionSequential()
+    fun canGoPrevSequential(): Boolean = navigationCoordinator.canGoPrevSequential()
+    fun canGoNextSequential(): Boolean = navigationCoordinator.canGoNextSequential()
     fun goToQuestion(index: Int) = navigationCoordinator.goToQuestion(index)
 
     fun updateShowResult(index: Int, value: Boolean) {
-        _sessionState.update { s -> s.updateAt(index) { qws ->
-            if (value && qws.sessionAnswerTime == 0L) qws.copy(showResult = true, sessionAnswerTime = System.currentTimeMillis())
-            else qws.copy(showResult = value)
-        }}
+        _sessionState.update { s ->
+            s.updateAt(index) { qws ->
+                if (value && qws.sessionAnswerTime == 0L) {
+                    qws.copy(showResult = true, sessionAnswerTime = System.currentTimeMillis())
+                } else {
+                    qws.copy(showResult = value)
+                }
+            }
+        }
         saveProgress()
     }
 
-    // ================================================================
-    // Analysis update
-    // ================================================================
-
-    fun updateAnalysis(index: Int, text: String) =
-        artifactCoordinator.updateAnalysis(index, text)
-
-    fun updateSparkAnalysis(index: Int, text: String) =
-        artifactCoordinator.updateSparkAnalysis(index, text)
-
-    fun updateBaiduAnalysis(index: Int, text: String) =
-        artifactCoordinator.updateBaiduAnalysis(index, text)
-
-    // ================================================================
-    // Note CRUD
-    // ================================================================
+    fun updateAnalysis(index: Int, text: String) = artifactCoordinator.updateAnalysis(index, text)
+    fun updateSparkAnalysis(index: Int, text: String) = artifactCoordinator.updateSparkAnalysis(index, text)
+    fun updateBaiduAnalysis(index: Int, text: String) = artifactCoordinator.updateBaiduAnalysis(index, text)
 
     suspend fun saveNoteAndWait(questionId: Int, index: Int, text: String): Boolean =
         artifactCoordinator.saveNoteAndWait(questionId, index, text)
@@ -571,15 +494,9 @@ class ExamViewModel @Inject constructor(
     suspend fun appendNoteSuspend(questionId: Int, index: Int, text: String): Boolean =
         artifactCoordinator.appendNoteSuspend(questionId, index, text)
 
-    suspend fun getNote(questionId: Int): String? =
-        artifactCoordinator.getNote(questionId)
-
-    // ================================================================
-    // Grade exam
-    // ================================================================
+    suspend fun getNote(questionId: Int): String? = artifactCoordinator.getNote(questionId)
 
     fun scheduleGradeExamAfterDispose() = gradeCoordinator.scheduleGradeExamAfterDispose()
-
     suspend fun gradeExam(): Int = gradeCoordinator.gradeExam()
 
     fun enterReviewSession(
@@ -589,100 +506,17 @@ class ExamViewModel @Inject constructor(
         random: Boolean,
         wrongBook: Boolean = false,
         favorite: Boolean = false
-    ) {
-        viewModelScope.launch {
-            _reviewModeActive.value = true
-            if (progressId == targetProgressId && _sessionState.value.questionsWithState.isNotEmpty()) {
-                applyReviewPresentation()
-                return@launch
-            }
-            progressId = targetProgressId
-            resetArtifactLoadedFlags()
-            _sessionState.update { it.copy(progressLoaded = false) }
-            loadDelegate.loadReviewSession(
-                targetProgressId, quizFile, questionCount, random, wrongBook, favorite
-            )
-            _sessionState.first { it.progressLoaded }
-            applyReviewPresentation()
-        }
-    }
+    ) = reviewCoordinator.enterReviewSession(
+        targetProgressId, quizFile, questionCount, random, wrongBook, favorite
+    )
 
-    private fun applyReviewPresentation() {
-        val state = _sessionState.value
-        val presentation = SessionReviewPresentation.prepare(state.questionsWithState)
-        reviewBrowseSession = ReviewBrowseSession(presentation.displayOrder)
-        reviewAnsweredSwipeOrder = ReviewAnsweredSwipePipeline.buildOrder(presentation.questionsWithState)
-        _sessionState.value = state.copy(
-            questionsWithState = presentation.questionsWithState,
-            currentIndex = reviewBrowseSession!!.currentIndex,
-            finished = true,
-            progressLoaded = true
-        )
-    }
-
-    fun canReviewBrowseBack(): Boolean = reviewBrowseSession?.canStepBack() == true
-
-    fun canReviewBrowseForward(): Boolean = reviewBrowseSession?.canStepForward() == true
-
-    private fun tryNavigateReviewBrowse(delta: Int): Boolean {
-        val session = reviewBrowseSession ?: return false
-        val stepped = session.step(delta) ?: return true
-        reviewBrowseSession = stepped
-        _sessionState.update { it.copy(currentIndex = stepped.currentIndex) }
-        scheduleNavigationSave()
-        return true
-    }
-
-    fun browseReviewAnsweredOlder(): ExamReviewSwipeOutcome {
-        if (reviewBrowseSession == null) return ExamReviewSwipeOutcome.NoHistory
-        val (outcome, target) = ExamReviewSwipePipeline.browseOlder(
-            reviewAnsweredSwipeOrder,
-            _sessionState.value.currentIndex
-        )
-        if (target != null) {
-            _sessionState.update { it.copy(currentIndex = target) }
-            scheduleNavigationSave()
-        }
-        return outcome
-    }
-
-    fun browseReviewAnsweredNewer(): ExamReviewSwipeOutcome {
-        if (reviewBrowseSession == null) return ExamReviewSwipeOutcome.AtLatest
-        val (outcome, target) = ExamReviewSwipePipeline.browseNewer(
-            reviewAnsweredSwipeOrder,
-            _sessionState.value.currentIndex
-        )
-        if (target != null) {
-            _sessionState.update { it.copy(currentIndex = target) }
-            scheduleNavigationSave()
-        }
-        return outcome
-    }
-
-    // ================================================================
-    // Analysis loaders
-    // ================================================================
-
-    private suspend fun loadNotesFromRepository() =
-        artifactCoordinator.loadNotesFromRepository()
-
-    private suspend fun loadAnalysisFromRepository() =
-        artifactCoordinator.loadAnalysisFromRepository()
-
-    private suspend fun loadSparkAnalysisFromRepository() =
-        artifactCoordinator.loadSparkAnalysisFromRepository()
-
-    private suspend fun loadBaiduAnalysisFromRepository() =
-        artifactCoordinator.loadBaiduAnalysisFromRepository()
-
-    // ================================================================
-    // Clear / reset
-    // ================================================================
+    fun canReviewBrowseBack(): Boolean = reviewCoordinator.canReviewBrowseBack()
+    fun canReviewBrowseForward(): Boolean = reviewCoordinator.canReviewBrowseForward()
+    fun browseReviewAnsweredOlder(): ExamReviewSwipeOutcome = reviewCoordinator.browseReviewAnsweredOlder()
+    fun browseReviewAnsweredNewer(): ExamReviewSwipeOutcome = reviewCoordinator.browseReviewAnsweredNewer()
 
     fun clearProgressAndReload() = progressResetCoordinator.clearProgressAndReload()
-
     fun resetAllStates() = progressResetCoordinator.resetAllStates()
-
     fun clearProgress() = progressResetCoordinator.clearProgress()
 
     private fun resetArtifactLoadedFlags() {
@@ -692,25 +526,6 @@ class ExamViewModel @Inject constructor(
         notesLoaded = false
     }
 
-    fun retryWrongFillBlanks(index: Int) {
-        reopenQuestionForFullAnswerRetry(index)
-    }
-
-    private fun reopenQuestionForFullAnswerRetry(index: Int) {
-        _sessionState.update { s ->
-            val updated = ExamFullAnswerReopenPipeline.reopenAt(s.questionsWithState, index) ?: return@update s
-            s.copy(questionsWithState = updated, currentIndex = index, finished = false)
-        }
-        viewModelScope.launch { saveProgressInternal() }
-    }
-
-    // ================================================================
-    // Statistics
-    // ================================================================
-
     private fun calculateCumulativeStats() = statisticsCoordinator.calculateCumulativeStats()
-
     private fun incrementExamCount() = statisticsCoordinator.incrementExamCount()
 }
-
-

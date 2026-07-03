@@ -44,6 +44,7 @@ import androidx.activity.compose.BackHandler
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.navigation.NavController
 import com.example.testapp.uicommon.component.LocalFontFamily
+import com.example.testapp.uicommon.layout.ArtifactFullscreenShell
 import com.example.testapp.uicommon.component.LocalFontSize
 import com.example.testapp.data.datastore.FontSettingsDataStore
 import com.example.testapp.presentation.screen.settings.SettingsViewModel
@@ -129,30 +130,8 @@ fun DeepSeekScreen(
             navController?.popBackStack()
         }
     }
-    Box(modifier = Modifier.fillMaxSize()) {
-
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .verticalScroll(rememberScrollState())
-                .padding(16.dp)
-        ) {
-            CompositionLocalProvider(LocalTextToolbar provides toolbar) {
-                BasicTextField(
-                    value = editableText,
-                    onValueChange = { editableText = it },
-                    modifier = Modifier.fillMaxWidth(),
-                    textStyle = TextStyle(
-                        fontSize = screenFontSize.sp,
-                        fontFamily = LocalFontFamily.current,
-                        lineHeight = (screenFontSize * screenLineSpacing).sp,
-                        letterSpacing = screenLetterSpacing.sp
-                    )
-                )
-            }
-
-        }
-        Box(modifier = Modifier.align(Alignment.TopEnd)) {
+    ArtifactFullscreenShell(
+        topEndActions = {
             IconButton(onClick = { menuExpanded = true }) {
                 Icon(Icons.Filled.MoreVert, contentDescription = settingsText)
             }
@@ -176,7 +155,30 @@ fun DeepSeekScreen(
                 })
             }
         }
-        if (showSaveDialog) {
+    ) { contentModifier ->
+        Column(
+            modifier = contentModifier
+                .fillMaxSize()
+                .verticalScroll(rememberScrollState())
+                .padding(16.dp)
+        ) {
+            CompositionLocalProvider(LocalTextToolbar provides toolbar) {
+                BasicTextField(
+                    value = editableText,
+                    onValueChange = { editableText = it },
+                    modifier = Modifier.fillMaxWidth(),
+                    textStyle = TextStyle(
+                        fontSize = screenFontSize.sp,
+                        fontFamily = LocalFontFamily.current,
+                        lineHeight = (screenFontSize * screenLineSpacing).sp,
+                        letterSpacing = screenLetterSpacing.sp
+                    )
+                )
+            }
+
+        }
+    }
+    if (showSaveDialog) {
             AlertDialog(
                 onDismissRequest = { showSaveDialog = false },
                 confirmButton = {
@@ -196,8 +198,6 @@ fun DeepSeekScreen(
                 },
                 text = { Text(stringResource(R.string.confirm_save_changes)) }
             )
-        }
-
     }
 }
 

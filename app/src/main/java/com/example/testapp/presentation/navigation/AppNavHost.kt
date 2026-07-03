@@ -16,12 +16,14 @@ import com.example.testapp.presentation.screen.question.QuestionScreen
 import com.example.testapp.presentation.screen.result.ResultScreen
 import com.example.testapp.presentation.screen.wrongbook.WrongBookScreen
 import com.example.testapp.presentation.screen.history.HistoryScreen
+import com.example.testapp.presentation.screen.settings.FillSettingsScreen
 import com.example.testapp.presentation.screen.settings.SettingsScreen
 import com.example.testapp.presentation.screen.favorite.FavoriteScreen
 import com.example.testapp.presentation.screen.practice.PracticeScreen
 import com.example.testapp.presentation.screen.exam.ExamScreen
 import com.example.testapp.presentation.screen.ai.DeepSeekScreen
 import com.example.testapp.presentation.screen.ai.DeepSeekAskScreen
+import com.example.testapp.data.network.deepseek.DeepSeekExamAnchorPipeline
 import com.example.testapp.presentation.screen.note.NoteScreen
 import com.example.testapp.presentation.screen.ai.SparkScreen
 import com.example.testapp.presentation.screen.ai.SparkAskScreen
@@ -68,23 +70,23 @@ fun AppNavHost(navController: NavHostController = rememberNavController(), setti
                     val encoded = java.net.URLEncoder.encode(name, "UTF-8")
                     navController.navigate("exam_favorite/$encoded")
                 },
-                onSettings = { navController.navigate("settings") },
+                onSettings = { navController.navigateFromHome("settings") },
                 onViewQuestionDetail = { quizId ->
                     val encoded = java.net.URLEncoder.encode(quizId, "UTF-8")
                     navController.navigate("question_detail/$encoded")
                 },
                 onWrongBook = { fileName ->
-                    if (fileName.isBlank()) { navController.navigate("wrongbook") }
-                    else { val encoded = java.net.URLEncoder.encode(fileName, "UTF-8"); navController.navigate("wrongbook/$encoded") }
+                    if (fileName.isBlank()) { navController.navigateFromHome("wrongbook") }
+                    else { val encoded = java.net.URLEncoder.encode(fileName, "UTF-8"); navController.navigateFromHome("wrongbook/$encoded") }
                 },
                 onFavoriteBook = { fileName ->
-                    if (fileName.isBlank()) { navController.navigate("favorite") }
-                    else { val encoded = java.net.URLEncoder.encode(fileName, "UTF-8"); navController.navigate("favorite/$encoded") }
+                    if (fileName.isBlank()) { navController.navigateFromHome("favorite") }
+                    else { val encoded = java.net.URLEncoder.encode(fileName, "UTF-8"); navController.navigateFromHome("favorite/$encoded") }
                 },
                 onViewResult = { fileName ->
                     val encoded = java.net.URLEncoder.encode(fileName, "UTF-8"); navController.navigate("result/0/0/0/$encoded")
                 },
-                onHistory = { navController.navigate("history") },
+                onHistory = { navController.navigateFromHome("history") },
                 settingsViewModel = settingsViewModel
             )
         }
@@ -106,7 +108,7 @@ fun AppNavHost(navController: NavHostController = rememberNavController(), setti
                     )
                 },
                 onExitWithoutAnswer = { navController.popBackStack() },
-                onViewDeepSeek = { text, id, index -> val encodedText = safeEncode(text); navController.navigate("deepseek/$id/$index/$encodedText") },
+                onViewDeepSeek = { text, id, index -> val encodedText = safeEncode(text); navController.navigate("deepseek_ask/$id/$index/$encodedText") },
                 onViewSpark = { text, id, index -> val encodedText = safeEncode(text); navController.navigate("spark/$id/$index/$encodedText") },
                 onViewBaidu = { text, id, index -> val encodedText = safeEncode(text); navController.navigate("baidu/$id/$index/$encodedText") },
                 onAskDeepSeek = { text, id, index -> val encodedText = safeEncode(text); navController.navigate("deepseek_ask/$id/$index/$encodedText") },
@@ -140,7 +142,7 @@ fun AppNavHost(navController: NavHostController = rememberNavController(), setti
                     )
                 },
                 onExitWithoutAnswer = { navController.popBackStack() },
-                onViewDeepSeek = { text, id, index -> val encodedText = safeEncode(text); navController.navigate("deepseek/$id/$index/$encodedText") },
+                onViewDeepSeek = { text, id, index -> val encodedText = safeEncode(text); navController.navigate("deepseek_ask/$id/$index/$encodedText") },
                 onViewSpark = { text, id, index -> val encodedText = safeEncode(text); navController.navigate("spark/$id/$index/$encodedText") },
                 onViewBaidu = { text, id, index -> val encodedText = safeEncode(text); navController.navigate("baidu/$id/$index/$encodedText") },
                 onAskDeepSeek = { text, id, index -> val encodedText = safeEncode(text); navController.navigate("deepseek_ask/$id/$index/$encodedText") },
@@ -204,7 +206,7 @@ fun AppNavHost(navController: NavHostController = rememberNavController(), setti
                 viewModel = globalExamViewModel,
                 onExamEnd = { _, _, _, _, _, _ -> },
                 onExitWithoutAnswer = { navController.popBackStack() },
-                onViewDeepSeek = { text, id, index -> val encodedText = safeEncode(text); navController.navigate("deepseek/$id/$index/$encodedText") },
+                onViewDeepSeek = { text, id, index -> val encodedText = safeEncode(text); navController.navigate("deepseek_ask/$id/$index/$encodedText") },
                 onViewSpark = { text, id, index -> val encodedText = safeEncode(text); navController.navigate("spark/$id/$index/$encodedText") },
                 onViewBaidu = { text, id, index -> val encodedText = safeEncode(text); navController.navigate("baidu/$id/$index/$encodedText") },
                 onAskDeepSeek = { text, id, index -> val encodedText = safeEncode(text); navController.navigate("deepseek_ask/$id/$index/$encodedText") },
@@ -230,7 +232,7 @@ fun AppNavHost(navController: NavHostController = rememberNavController(), setti
                 viewModel = globalPracticeViewModel,
                 onQuizEnd = { _, _, _, _, _ -> },
                 onExitWithoutAnswer = { navController.popBackStack() },
-                onViewDeepSeek = { text, id, index -> val encodedText = safeEncode(text); navController.navigate("deepseek/$id/$index/$encodedText") },
+                onViewDeepSeek = { text, id, index -> val encodedText = safeEncode(text); navController.navigate("deepseek_ask/$id/$index/$encodedText") },
                 onViewSpark = { text, id, index -> val encodedText = safeEncode(text); navController.navigate("spark/$id/$index/$encodedText") },
                 onViewBaidu = { text, id, index -> val encodedText = safeEncode(text); navController.navigate("baidu/$id/$index/$encodedText") },
                 onAskDeepSeek = { text, id, index -> val encodedText = safeEncode(text); navController.navigate("deepseek_ask/$id/$index/$encodedText") },
@@ -261,7 +263,7 @@ fun AppNavHost(navController: NavHostController = rememberNavController(), setti
                     )
                 },
                 onExitWithoutAnswer = { navController.popBackStack() },
-                onViewDeepSeek = { text, id, index -> val encodedText = safeEncode(text); navController.navigate("deepseek/$id/$index/$encodedText") },
+                onViewDeepSeek = { text, id, index -> val encodedText = safeEncode(text); navController.navigate("deepseek_ask/$id/$index/$encodedText") },
                 onViewSpark = { text, id, index -> val encodedText = safeEncode(text); navController.navigate("spark/$id/$index/$encodedText") },
                 onViewBaidu = { text, id, index -> val encodedText = safeEncode(text); navController.navigate("baidu/$id/$index/$encodedText") },
                 onAskDeepSeek = { text, id, index -> val encodedText = safeEncode(text); navController.navigate("deepseek_ask/$id/$index/$encodedText") },
@@ -287,7 +289,7 @@ fun AppNavHost(navController: NavHostController = rememberNavController(), setti
                     )
                 },
                 onExitWithoutAnswer = { navController.popBackStack() },
-                onViewDeepSeek = { text, id, index -> val encodedText = safeEncode(text); navController.navigate("deepseek/$id/$index/$encodedText") },
+                onViewDeepSeek = { text, id, index -> val encodedText = safeEncode(text); navController.navigate("deepseek_ask/$id/$index/$encodedText") },
                 onViewSpark = { text, id, index -> val encodedText = safeEncode(text); navController.navigate("spark/$id/$index/$encodedText") },
                 onViewBaidu = { text, id, index -> val encodedText = safeEncode(text); navController.navigate("baidu/$id/$index/$encodedText") },
                 onAskDeepSeek = { text, id, index -> val encodedText = safeEncode(text); navController.navigate("deepseek_ask/$id/$index/$encodedText") },
@@ -297,7 +299,19 @@ fun AppNavHost(navController: NavHostController = rememberNavController(), setti
             )
         }
         composable("history") { HistoryScreen() }
-        composable("settings") { SettingsScreen(viewModel = settingsViewModel, onNavigateHome = { navController.popBackStack() }) }
+        composable("settings") {
+            SettingsScreen(
+                viewModel = settingsViewModel,
+                onNavigateHome = { navController.popBackToHome() },
+                onNavigateFillSettings = { navController.navigate("settings/fill") }
+            )
+        }
+        composable("settings/fill") {
+            FillSettingsScreen(
+                viewModel = settingsViewModel,
+                onBack = { navController.popBackStack() }
+            )
+        }
         composable("favorite") { FavoriteScreen(navController = navController) }
         composable("favorite/{fileName}") { backStackEntry ->
             val encodedFav = backStackEntry.arguments?.getString("fileName") ?: ""
@@ -319,7 +333,7 @@ fun AppNavHost(navController: NavHostController = rememberNavController(), setti
                     )
                 },
                 onExitWithoutAnswer = { navController.popBackStack() },
-                onViewDeepSeek = { text, id, index -> val encodedText = safeEncode(text); navController.navigate("deepseek/$id/$index/$encodedText") },
+                onViewDeepSeek = { text, id, index -> val encodedText = safeEncode(text); navController.navigate("deepseek_ask/$id/$index/$encodedText") },
                 onViewSpark = { text, id, index -> val encodedText = safeEncode(text); navController.navigate("spark/$id/$index/$encodedText") },
                 onViewBaidu = { text, id, index -> val encodedText = safeEncode(text); navController.navigate("baidu/$id/$index/$encodedText") },
                 onAskDeepSeek = { text, id, index -> val encodedText = safeEncode(text); navController.navigate("deepseek_ask/$id/$index/$encodedText") },
@@ -345,7 +359,7 @@ fun AppNavHost(navController: NavHostController = rememberNavController(), setti
                     )
                 },
                 onExitWithoutAnswer = { navController.popBackStack() },
-                onViewDeepSeek = { text, id, index -> val encodedText = safeEncode(text); navController.navigate("deepseek/$id/$index/$encodedText") },
+                onViewDeepSeek = { text, id, index -> val encodedText = safeEncode(text); navController.navigate("deepseek_ask/$id/$index/$encodedText") },
                 onViewSpark = { text, id, index -> val encodedText = safeEncode(text); navController.navigate("spark/$id/$index/$encodedText") },
                 onViewBaidu = { text, id, index -> val encodedText = safeEncode(text); navController.navigate("baidu/$id/$index/$encodedText") },
                 onAskDeepSeek = { text, id, index -> val encodedText = safeEncode(text); navController.navigate("deepseek_ask/$id/$index/$encodedText") },
@@ -358,20 +372,61 @@ fun AppNavHost(navController: NavHostController = rememberNavController(), setti
         composable("deepseek/{id}/{index}/{text}", arguments = listOf(navArgument("id") { type = NavType.IntType }, navArgument("index") { type = NavType.IntType }, navArgument("text") { type = NavType.StringType })) { backStackEntry ->
             val encoded = backStackEntry.arguments?.getString("text") ?: ""; val text = com.example.testapp.util.safeDecode(encoded)
             val id = backStackEntry.arguments?.getInt("id") ?: 0; val index = backStackEntry.arguments?.getInt("index") ?: 0
-            val parentEntry = remember(backStackEntry) { navController.previousBackStackEntry }
-            val parentRoute = parentEntry?.destination?.route.orEmpty()
-            val examViewModel: ExamViewModel? = if (parentRoute.startsWith("exam")) parentEntry?.let { hiltViewModel(it) } else null
-            val practiceViewModel: PracticeViewModel? = if (!parentRoute.startsWith("exam")) parentEntry?.let { hiltViewModel(it) } else null
-            DeepSeekScreen(text = text, questionId = id, index = index, navController = navController,
-                onSave = { examViewModel?.updateAnalysis(index, it); practiceViewModel?.updateAnalysis(index, it) }, settingsViewModel = settingsViewModel)
+            val isExamMode = remember(backStackEntry) { navController.backQueue.any { entry -> entry.destination.route?.startsWith("exam") == true } }
+            val examViewModel = if (isExamMode) globalExamViewModel else null
+            val practiceViewModel = if (!isExamMode) globalPracticeViewModel else null
+            val examAnchor = remember(examViewModel, practiceViewModel, index) {
+                DeepSeekExamAnchorPipeline.fromQuestion(
+                    examViewModel?.questions?.value?.getOrNull(index)
+                        ?: practiceViewModel?.questions?.value?.getOrNull(index)
+                )
+            }
+            DeepSeekAskScreen(
+                text = text,
+                questionId = id,
+                index = index,
+                navController = navController,
+                examAnchor = examAnchor,
+                onSave = {
+                    com.example.testapp.presentation.screen.practice.PracticeJumpDebugLog.analysisSave(
+                        routeIndex = index,
+                        practiceCurrentIndex = practiceViewModel?.currentIndex?.value,
+                        questionId = id
+                    )
+                    examViewModel?.updateAnalysis(index, it)
+                    practiceViewModel?.updateAnalysis(index, it)
+                },
+                settingsViewModel = settingsViewModel
+            )
         }
         composable("deepseek_ask/{id}/{index}/{text}", arguments = listOf(navArgument("id") { type = NavType.IntType }, navArgument("index") { type = NavType.IntType }, navArgument("text") { type = NavType.StringType })) { backStackEntry ->
             val encoded = backStackEntry.arguments?.getString("text") ?: ""; val text = com.example.testapp.util.safeDecode(encoded)
             val id = backStackEntry.arguments?.getInt("id") ?: 0; val index = backStackEntry.arguments?.getInt("index") ?: 0
             val isExamMode = remember(backStackEntry) { navController.backQueue.any { entry -> entry.destination.route?.startsWith("exam") == true } }
             val examViewModel = if (isExamMode) globalExamViewModel else null; val practiceViewModel = if (!isExamMode) globalPracticeViewModel else null
-            DeepSeekAskScreen(text = text, questionId = id, index = index, navController = navController,
-                onSave = { examViewModel?.updateAnalysis(index, it); practiceViewModel?.updateAnalysis(index, it) }, settingsViewModel = settingsViewModel)
+            val examAnchor = remember(examViewModel, practiceViewModel, index) {
+                DeepSeekExamAnchorPipeline.fromQuestion(
+                    examViewModel?.questions?.value?.getOrNull(index)
+                        ?: practiceViewModel?.questions?.value?.getOrNull(index)
+                )
+            }
+            DeepSeekAskScreen(
+                text = text,
+                questionId = id,
+                index = index,
+                navController = navController,
+                examAnchor = examAnchor,
+                onSave = {
+                    com.example.testapp.presentation.screen.practice.PracticeJumpDebugLog.analysisSave(
+                        routeIndex = index,
+                        practiceCurrentIndex = practiceViewModel?.currentIndex?.value,
+                        questionId = id
+                    )
+                    examViewModel?.updateAnalysis(index, it)
+                    practiceViewModel?.updateAnalysis(index, it)
+                },
+                settingsViewModel = settingsViewModel
+            )
         }
         composable("spark_ask/{id}/{index}/{text}", arguments = listOf(navArgument("id") { type = NavType.IntType }, navArgument("index") { type = NavType.IntType }, navArgument("text") { type = NavType.StringType })) { backStackEntry ->
             val encoded = backStackEntry.arguments?.getString("text") ?: ""; val text = com.example.testapp.util.safeDecode(encoded)

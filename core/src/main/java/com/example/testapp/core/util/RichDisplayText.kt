@@ -31,6 +31,7 @@ fun normalizeRichDisplayBullets(text: String): String {
 
 fun prepareRichDisplayText(raw: String): String {
     return unwrapMarkdownCodeFence(raw)
+        .let(RichTextLatexDelimiterPipeline::normalize)
         .let(::normalizeRichDisplayBullets)
         .let(::normalizeRichMarkdownStructure)
 }

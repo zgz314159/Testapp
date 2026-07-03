@@ -192,7 +192,14 @@ fun HomeScreen(
 
     val displayFolders = if (currentFolder == null) visibleHomeFolders else emptyList()
 
-
+    val homeLibraryEmptyReason = remember(currentFolder, displayFileNames, displayFolders, fileNames) {
+        resolveHomeLibraryEmpty(
+            currentFolder = currentFolder,
+            displayFileNames = displayFileNames,
+            visibleFolders = displayFolders,
+            totalFileCount = fileNames.size
+        )
+    }
 
     LaunchedEffect(storedFileName, fileNames) {
 
@@ -302,6 +309,15 @@ fun HomeScreen(
 
     val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
 
+    val drawerOpen by remember {
+        derivedStateOf {
+            drawerState.currentValue == DrawerValue.Open ||
+                drawerState.targetValue == DrawerValue.Open
+        }
+    }
+
+    val homeInteractionReady = rememberHomeInteractionReady()
+
     val homeRootCoordsRef = remember { HomeRootCoordsRef() }
 
     val dragFinishRef = remember { HomeDragFinishRef() }
@@ -360,11 +376,9 @@ fun HomeScreen(
 
 
 
-    ModalNavigationDrawer(
+    HomeNavigationDrawer(
 
         drawerState = drawerState,
-
-        gesturesEnabled = false,
 
         drawerContent = {
 
@@ -444,9 +458,23 @@ fun HomeScreen(
 
                     .onGloballyPositioned { homeRootCoordsRef.value = it }
 
-                    .then(homeRootDragModifier)
+                    .then(
+                        if (homeInteractionReady && draggingFile == null && !drawerOpen) {
+                            homeRootDragModifier
+                        } else {
+                            Modifier
+                        }
+                    )
 
-                    .pointerInput(Unit) { detectTapGestures(onLongPress = { showAddFolderDialog = true }) }
+                    .then(
+                        if (homeInteractionReady && !drawerOpen) {
+                            Modifier.pointerInput(Unit) {
+                                detectTapGestures(onLongPress = { showAddFolderDialog = true })
+                            }
+                        } else {
+                            Modifier
+                        }
+                    )
 
             ) {
 
@@ -486,7 +514,16 @@ fun HomeScreen(
 
 
 
-                    HomeFileListContainer(
+                    if (homeContentReady && homeLibraryEmptyReason != null) {
+                        HomeEmptyLibraryPanel(
+                            reason = homeLibraryEmptyReason,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .weight(1f)
+                                .padding(bottom = 8.dp)
+                        )
+                    } else {
+                        HomeFileListContainer(
 
                         viewModel = viewModel,
 
@@ -662,7 +699,8 @@ fun HomeScreen(
 
                             .padding(bottom = 8.dp)
 
-                    )
+                        )
+                    }
 
                 }
 

@@ -14,4 +14,12 @@
     <string name="uicommon_answer_label">答案</string>
     <string name="uicommon_cancel">取消</string>
     <string name="uicommon_save_changes">保存修改</string>
+    <string name="uicommon_copy_question">复制本题</string>
+    <string name="uicommon_copy_question_success">题目已复制</string>
+    <string name="uicommon_typography_settings_title">排版设置</string>
+    <string name="uicommon_typography_font_size">字体大小</string>
+    <string name="uicommon_typography_line_spacing">行距</string>
+    <string name="uicommon_typography_letter_spacing">字间距</string>
+    <string name="uicommon_typography_settings">排版设置…</string>
+    <string name="uicommon_edit_current_question">编辑当前题目</string>
 </resources>

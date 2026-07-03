@@ -5,12 +5,13 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.height
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import com.example.testapp.domain.model.Question
 import com.example.testapp.presentation.screen.components.ExamAnalysisSection
 import com.example.testapp.presentation.screen.components.PracticeExplanationBox
 import com.example.testapp.presentation.screen.components.PracticeNoteBox
+import com.example.testapp.uicommon.design.AnalysisSectionTone
+import com.example.testapp.uicommon.design.analysisSectionColors
 
 @Composable
 fun PracticeAnalysisSections(
@@ -38,7 +39,6 @@ fun PracticeAnalysisSections(
     onLongPressSpark: () -> Unit,
     onLongPressBaidu: () -> Unit
 ) {
-    // Explanation
     if (question.explanation.isNotBlank() && showResult) {
         val collapsed = expandedSection != 0
         PracticeExplanationBox(
@@ -50,7 +50,6 @@ fun PracticeAnalysisSections(
         )
     }
 
-    // Note
     if (showResult && !note.isNullOrBlank()) {
         val collapsed = expandedSection != 1
         PracticeNoteBox(
@@ -64,7 +63,6 @@ fun PracticeAnalysisSections(
         )
     }
 
-    // AI Analysis sections
     if (showResult && (!analysisText.isNullOrBlank() || !sparkText.isNullOrBlank() || !baiduText.isNullOrBlank())) {
         if (!analysisText.isNullOrBlank()) {
             val collapsed = expandedSection != 2
@@ -72,7 +70,7 @@ fun PracticeAnalysisSections(
                 text = analysisText,
                 collapsed = collapsed,
                 scrollState = deepSeekScroll,
-                backgroundColor = Color(0xFFE8F6FF),
+                backgroundColor = analysisSectionColors(AnalysisSectionTone.DeepSeek).container,
                 onToggle = { onSectionToggle(if (collapsed) 2 else -1) },
                 onDoubleTap = onDoubleTapDeepSeek,
                 onLongPress = onLongPressDeepSeek
@@ -84,7 +82,7 @@ fun PracticeAnalysisSections(
                 text = sparkText,
                 collapsed = collapsed,
                 scrollState = sparkScroll,
-                backgroundColor = Color(0xFFEDE7FF),
+                backgroundColor = analysisSectionColors(AnalysisSectionTone.Spark).container,
                 onToggle = { onSectionToggle(if (collapsed) 3 else -1) },
                 onDoubleTap = onDoubleTapSpark,
                 onLongPress = onLongPressSpark
@@ -96,7 +94,7 @@ fun PracticeAnalysisSections(
                 text = baiduText,
                 collapsed = collapsed,
                 scrollState = baiduScroll,
-                backgroundColor = Color(0xFFF0F8E7),
+                backgroundColor = analysisSectionColors(AnalysisSectionTone.Baidu).container,
                 onToggle = { onSectionToggle(if (collapsed) 4 else -1) },
                 onDoubleTap = onDoubleTapBaidu,
                 onLongPress = onLongPressBaidu

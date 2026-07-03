@@ -63,18 +63,20 @@
 3. **Device route smoke**: Exam route still needs manual verification
 4. **Gesture deprecation migration**: Swipeable/FractionalThreshold replacement deferred; it changes gesture behavior
 
-## Size hotspots (2026-06-14 — 重构后)
+## Size hotspots (2026-07-04 — Phase 42 后)
 
-| File | Lines | Priority |
-|------|-------|----------|
-| `PracticeViewModel.kt` | ~400 | 🟢 LOW-MEDIUM — progress lifecycle extracted |
-| `ExamViewModel.kt` | ~590 | 🟢 LOW — artifact/reset residual contexts extracted |
-| `PracticeScreen.kt` | ~414 | 🟡 MEDIUM |
-| `SettingsScreen.kt` | ~487 | 🟠 HIGH |
-| `SettingsViewModel.kt` | ~407 | 🟢 LOW — facade + action pipeline applied |
-| `FontSettingsDataStore.kt` | ~247 | 🟢 LOW — delegate layer applied |
+全仓库 >500 行文件 **已清零**。近期拆分：
 
-Full ranking → `.ai/refactor_candidates.md`
+| 文件 | 行数 | Phase |
+|------|------|-------|
+| `ExcelQuestionParser.kt` | ~95 | 42 |
+| `PracticeBasicComponents.kt` | 已拆 | 41 |
+| `RichText.kt` | ~80 | 40 |
+| `PracticeViewModel.kt` | ~461 | 39 |
+| `ExamViewModel.kt` | ~471 | 38 |
+| `PracticeScreen.kt` | ~390 | 35 |
+
+全量清单 → `.ai/loc_audit.md`
 
 ## Modules (Gradle)
 

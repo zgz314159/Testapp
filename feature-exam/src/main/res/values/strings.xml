@@ -25,6 +25,8 @@
     <string name="submit_answer">提交答案</string>
     <string name="submit_exam">交卷</string>
     <string name="question_type_prefix">题型：</string>
+    <string name="exam_exit_session">退出考试</string>
+    <string name="review_back">返回复盘</string>
     <string name="increase_font">放大字体</string>
     <string name="decrease_font">缩小字体</string>
     <string name="increase_line_spacing">增大行距</string>
@@ -34,6 +36,7 @@
     <string name="save_success">保存成功</string>
     <string name="edit_current_question">修改本题</string>
     <string name="fill_full_answer_round_template">本题第 %1$d 轮 / 共 %2$d 轮</string>
+    <string name="retry_current_question">重答该题</string>
     <string name="retry_wrong_blanks">重答错题</string>
     <string name="ai_name_deepseek">DeepSeek</string>
     <string name="ai_name_spark">Spark</string>

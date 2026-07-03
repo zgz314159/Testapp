@@ -45,6 +45,7 @@ import com.example.testapp.presentation.screen.practice.PracticeViewModel
 import com.example.testapp.presentation.screen.settings.SettingsViewModel
 import com.example.testapp.presentation.component.ActionModeTextToolbar
 import com.example.testapp.uicommon.component.LocalFontFamily
+import com.example.testapp.uicommon.layout.ArtifactFullscreenShell
 import com.example.testapp.uicommon.component.LocalFontSize
 import kotlinx.coroutines.launch
 import androidx.compose.ui.res.stringResource
@@ -214,30 +215,8 @@ fun NoteScreen(
             navController?.popBackStack()
         }
     }
-    Box(modifier = Modifier.fillMaxSize()) {
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .verticalScroll(rememberScrollState())
-                .padding(16.dp)
-        ) {
-            CompositionLocalProvider(LocalTextToolbar provides toolbar) {
-                Box(modifier = Modifier.fillMaxWidth().heightIn(min = 200.dp)) {
-                    BasicTextField(
-                        value = editableText,
-                        onValueChange = { editableText = it },
-                        modifier = Modifier.fillMaxWidth().heightIn(min = 200.dp),
-                        textStyle = TextStyle(
-                            fontSize = screenFontSize.sp,
-                            fontFamily = LocalFontFamily.current,
-                            lineHeight = (screenFontSize * screenLineSpacing).sp,
-                            letterSpacing = screenLetterSpacing.sp
-                        )
-                    )
-                }
-            }
-        }
-        Box(modifier = Modifier.align(Alignment.TopEnd)) {
+    ArtifactFullscreenShell(
+        topEndActions = {
             IconButton(onClick = { menuExpanded = true }) {
                 Icon(Icons.Filled.MoreVert, contentDescription = stringResource(R.string.settings))
             }
@@ -261,24 +240,47 @@ fun NoteScreen(
                 })
             }
         }
-        if (showSaveDialog) {
-            AlertDialog(
-                onDismissRequest = { showSaveDialog = false },
-                confirmButton = {
-                    TextButton(onClick = {
-                        onSave(editableText.text)
-                        showSaveDialog = false
-                        navController?.popBackStack()
-                    }) { Text(stringResource(R.string.save)) }
-                },
-                dismissButton = {
-                    TextButton(onClick = {
-                        showSaveDialog = false
-                        navController?.popBackStack()
-                    }) { Text(stringResource(R.string.cancel)) }
-                },
-                text = { Text(stringResource(R.string.confirm_save_changes)) }
-            )
+    ) { contentModifier ->
+        Column(
+            modifier = contentModifier
+                .fillMaxSize()
+                .verticalScroll(rememberScrollState())
+                .padding(16.dp)
+        ) {
+            CompositionLocalProvider(LocalTextToolbar provides toolbar) {
+                Box(modifier = Modifier.fillMaxWidth().heightIn(min = 200.dp)) {
+                    BasicTextField(
+                        value = editableText,
+                        onValueChange = { editableText = it },
+                        modifier = Modifier.fillMaxWidth().heightIn(min = 200.dp),
+                        textStyle = TextStyle(
+                            fontSize = screenFontSize.sp,
+                            fontFamily = LocalFontFamily.current,
+                            lineHeight = (screenFontSize * screenLineSpacing).sp,
+                            letterSpacing = screenLetterSpacing.sp
+                        )
+                    )
+                }
+            }
         }
+    }
+    if (showSaveDialog) {
+        AlertDialog(
+            onDismissRequest = { showSaveDialog = false },
+            confirmButton = {
+                TextButton(onClick = {
+                    onSave(editableText.text)
+                    showSaveDialog = false
+                    navController?.popBackStack()
+                }) { Text(stringResource(R.string.save)) }
+            },
+            dismissButton = {
+                TextButton(onClick = {
+                    showSaveDialog = false
+                    navController?.popBackStack()
+                }) { Text(stringResource(R.string.cancel)) }
+            },
+            text = { Text(stringResource(R.string.confirm_save_changes)) }
+        )
     }
 }

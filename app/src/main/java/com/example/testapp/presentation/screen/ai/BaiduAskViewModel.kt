@@ -30,6 +30,10 @@ class BaiduAskViewModel @Inject constructor(
         _result.value = ""
     }
 
+    fun restoreSaved(note: String) {
+        _result.value = note
+    }
+
     suspend fun getSavedNote(questionId: Int): String? = getResultUseCase(questionId)
 
     fun save(questionId: Int, note: String) {

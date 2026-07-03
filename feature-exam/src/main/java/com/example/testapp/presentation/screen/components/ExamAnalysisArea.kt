@@ -1,18 +1,19 @@
 package com.example.testapp.presentation.screen.exam.components
 
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.height
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.height
+import com.example.testapp.domain.model.Question
 import com.example.testapp.feature.exam.R
-
+import com.example.testapp.uicommon.design.AnalysisSectionTone
+import com.example.testapp.uicommon.design.analysisSectionColors
 
 @Composable
 fun ExamAnalysisArea(
-    question: com.example.testapp.domain.model.Question,
+    question: Question,
     currentIndex: Int,
     selectedOption: List<Int>,
     textAnswer: String,
@@ -29,6 +30,7 @@ fun ExamAnalysisArea(
     analysisText: String?,
     sparkText: String?,
     baiduText: String?,
+    questionTextForAi: String,
     onEditNote: (String, Int, Int) -> Unit,
     onViewDeepSeek: (String, Int, Int) -> Unit,
     onViewSpark: (String, Int, Int) -> Unit,
@@ -38,7 +40,6 @@ fun ExamAnalysisArea(
     onSetDeleteTargetAndShow: (String) -> Unit
 ) {
     val analysisLabel = stringResource(R.string.analysis_prefix)
-    val noteLabel = stringResource(R.string.note_prefix)
     if (showResult) {
         com.example.testapp.presentation.screen.exam.components.AnswerResultRow(
             question = question,
@@ -49,11 +50,13 @@ fun ExamAnalysisArea(
         if (question.explanation.isNotBlank()) {
             val collapsed = expandedSection != 0
             val explanationText = analysisLabel + question.explanation
+            val explanationColors = analysisSectionColors(AnalysisSectionTone.Explanation)
             ExamExplanation(
                 text = explanationText,
                 collapsed = collapsed,
                 scrollState = explanationScroll,
-                backgroundColor = Color(0xFFFFF5C0),
+                backgroundColor = explanationColors.container,
+                contentColor = explanationColors.content,
                 onToggle = { onToggleSection(if (collapsed) 0 else -1) },
                 onDoubleTap = { onViewExplanation(explanationText) }
             )
@@ -63,11 +66,13 @@ fun ExamAnalysisArea(
         val note = noteList.getOrNull(currentIndex)
         if (!note.isNullOrBlank()) {
             val collapsed = expandedSection != 1
+            val noteColors = analysisSectionColors(AnalysisSectionTone.Note)
             ExamNoteSection(
                 text = stringResource(R.string.note_prefix) + note,
                 collapsed = collapsed,
                 scrollState = noteScroll,
-                backgroundColor = Color(0xFFE0FFE0),
+                backgroundColor = noteColors.container,
+                contentColor = noteColors.content,
                 onToggle = { onToggleSection(if (collapsed) 1 else -1) },
                 onDoubleTap = { val noteText = note.takeIf { it.isNotBlank() } ?: " "; onEditNote(noteText, question.id, currentIndex) },
                 onLongPress = { onShowDeleteNoteDialog() }
@@ -76,23 +81,27 @@ fun ExamAnalysisArea(
         if (!analysisText.isNullOrBlank() || !sparkText.isNullOrBlank() || !baiduText.isNullOrBlank()) {
             if (!analysisText.isNullOrBlank()) {
                 val collapsed = expandedSection != 2
+                val deepSeekColors = analysisSectionColors(AnalysisSectionTone.DeepSeek)
                 ExamAIResults(
                     text = analysisText,
                     collapsed = collapsed,
                     scrollState = deepSeekScroll,
-                    backgroundColor = Color(0xFFE8F6FF),
+                    backgroundColor = deepSeekColors.container,
+                    contentColor = deepSeekColors.content,
                     onToggle = { onToggleSection(if (collapsed) 2 else -1) },
-                    onDoubleTap = { onViewDeepSeek(analysisText, question.id, currentIndex) },
+                    onDoubleTap = { onViewDeepSeek(questionTextForAi, question.id, currentIndex) },
                     onLongPress = { onSetDeleteTargetAndShow("deepseek") }
                 )
             }
             if (!sparkText.isNullOrBlank()) {
                 val collapsed = expandedSection != 3
+                val sparkColors = analysisSectionColors(AnalysisSectionTone.Spark)
                 ExamAIResults(
                     text = sparkText,
                     collapsed = collapsed,
                     scrollState = sparkScroll,
-                    backgroundColor = Color(0xFFEDE7FF),
+                    backgroundColor = sparkColors.container,
+                    contentColor = sparkColors.content,
                     onToggle = { onToggleSection(if (collapsed) 3 else -1) },
                     onDoubleTap = { onViewSpark(sparkText, question.id, currentIndex) },
                     onLongPress = { onSetDeleteTargetAndShow("spark") }
@@ -100,11 +109,13 @@ fun ExamAnalysisArea(
             }
             if (!baiduText.isNullOrBlank()) {
                 val collapsed = expandedSection != 4
+                val baiduColors = analysisSectionColors(AnalysisSectionTone.Baidu)
                 ExamAIResults(
                     text = baiduText,
                     collapsed = collapsed,
                     scrollState = baiduScroll,
-                    backgroundColor = Color(0xFFF0F8E7),
+                    backgroundColor = baiduColors.container,
+                    contentColor = baiduColors.content,
                     onToggle = { onToggleSection(if (collapsed) 4 else -1) },
                     onDoubleTap = { onViewBaidu(baiduText, question.id, currentIndex) },
                     onLongPress = { onSetDeleteTargetAndShow("baidu") }

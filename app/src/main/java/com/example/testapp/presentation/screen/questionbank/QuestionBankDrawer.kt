@@ -11,18 +11,13 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.rememberLazyListState
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Close
-import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalDrawerSheet
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -34,6 +29,8 @@ import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.example.testapp.domain.usecase.FileStatistics
+import com.example.testapp.uicommon.design.AppLoadingIndicator
+import com.example.testapp.uicommon.design.AppSpacing
 import kotlin.math.abs
 
 // ---- Tree model ----
@@ -98,6 +95,7 @@ private fun androidx.compose.foundation.lazy.LazyListScope.QuestionBankQuestionI
                 QuestionBankQuestionRow(
                     question = question,
                     text = question.content.firstDisplayLine(index),
+                    questionIndex = index,
                     query = query,
                     indent = indent,
                     onClick = { onQuestionSelected(fileName, question.id) }
@@ -109,6 +107,7 @@ private fun androidx.compose.foundation.lazy.LazyListScope.QuestionBankQuestionI
 
 // ---- Main composable ----
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun QuestionBankDrawer(
     fileNames: List<String>,
@@ -121,14 +120,13 @@ fun QuestionBankDrawer(
     viewModel: QuestionBankDrawerViewModel = hiltViewModel()
 ) {
     val searchQuery by viewModel.searchQuery.collectAsState()
-    val expandedFolders by viewModel.expandedFolders.collectAsState()
-    val expandedFiles by viewModel.expandedFiles.collectAsState()
     val questionsByFile by viewModel.questionsByFile.collectAsState()
     val loadingFiles by viewModel.loadingFiles.collectAsState()
     val searchState by viewModel.searchState.collectAsState()
+    val expansion by viewModel.expansionSnapshot.collectAsState()
 
     val query = searchQuery.trim()
-    val isSearchMode = query.isNotEmpty()
+    val isSearchMode = expansion.isSearchMode
     val tree = remember(fileNames, folders, folderNames) { buildQuestionBankTree(fileNames, folders, folderNames) }
     val fileNameMatches = remember(fileNames, query) {
         if (query.isBlank()) emptySet() else fileNames.filter { it.contains(query, ignoreCase = true) }.toSet()
@@ -149,7 +147,7 @@ fun QuestionBankDrawer(
         }
     }
     val listState = rememberLazyListState()
-    val drawerWidth = (LocalConfiguration.current.screenWidthDp.dp * 0.88f).coerceAtMost(380.dp)
+    val drawerWidth = resolveQuestionBankDrawerWidth(LocalConfiguration.current.screenWidthDp)
 
     ModalDrawerSheet(
         modifier = modifier
@@ -178,29 +176,22 @@ fun QuestionBankDrawer(
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(horizontal = 16.dp, vertical = 14.dp)
+                .statusBarsPadding()
+                .padding(horizontal = AppSpacing.md, vertical = AppSpacing.md)
         ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = androidx.compose.foundation.layout.Arrangement.SpaceBetween
-            ) {
-                Text(
-                    text = "题库浏览",
-                    style = MaterialTheme.typography.titleLarge
-                )
-                IconButton(onClick = onClose) {
-                    Icon(Icons.Filled.Close, contentDescription = "关闭题库抽屉")
-                }
-            }
-            Spacer(Modifier.height(8.dp))
+            QuestionBankDrawerHeader(
+                title = "题库浏览",
+                closeContentDescription = "关闭题库抽屉",
+                onClose = onClose
+            )
+            Spacer(Modifier.height(AppSpacing.sm))
             QuestionBankSearchBar(
                 value = searchQuery,
                 onValueChange = { viewModel.onSearchQueryChange(it, fileNames) },
                 onClear = viewModel::clearSearch,
                 modifier = Modifier.fillMaxWidth()
             )
-            Spacer(Modifier.height(10.dp))
+            Spacer(Modifier.height(AppSpacing.md))
             HorizontalDivider()
             Box(modifier = Modifier.weight(1f)) {
                 LazyColumn(
@@ -217,7 +208,7 @@ fun QuestionBankDrawer(
                             QuestionBankFileRow(
                                 fileName = fileName,
                                 query = query,
-                                isExpanded = isSearchMode || fileName in expandedFiles,
+                                isExpanded = expansion.isFileExpanded(fileName),
                                 isLoading = fileName in loadingFiles,
                                 matchCount = searchState.matchCountByFile[fileName],
                                 totalCount = totalCountByFile[fileName],
@@ -228,7 +219,7 @@ fun QuestionBankDrawer(
                             fileName = fileName,
                             query = query,
                             isSearchMode = isSearchMode,
-                            isExpanded = isSearchMode || fileName in expandedFiles,
+                            isExpanded = expansion.isFileExpanded(fileName),
                             questions = questionsByFile[fileName].orEmpty(),
                             matches = searchState.resultsByFile[fileName].orEmpty(),
                             onQuestionSelected = onQuestionSelected
@@ -246,7 +237,7 @@ fun QuestionBankDrawer(
                             folderFiles
                         }
                         if (visibleFolderFiles.isNotEmpty()) {
-                            val isExpanded = isSearchMode || folderName in expandedFolders
+                            val isExpanded = expansion.isFolderExpanded(folderName)
                             item(key = "folder_$folderName") {
                                 QuestionBankFolderRow(
                                     folderName = folderName,
@@ -262,7 +253,7 @@ fun QuestionBankDrawer(
                                         QuestionBankFileRow(
                                             fileName = fileName,
                                             query = query,
-                                            isExpanded = isSearchMode || fileName in expandedFiles,
+                                            isExpanded = expansion.isFileExpanded(fileName),
                                             isLoading = fileName in loadingFiles,
                                             matchCount = searchState.matchCountByFile[fileName],
                                             totalCount = totalCountByFile[fileName],
@@ -274,7 +265,7 @@ fun QuestionBankDrawer(
                                         fileName = fileName,
                                         query = query,
                                         isSearchMode = isSearchMode,
-                                        isExpanded = isSearchMode || fileName in expandedFiles,
+                                        isExpanded = expansion.isFileExpanded(fileName),
                                         questions = questionsByFile[fileName].orEmpty(),
                                         matches = searchState.resultsByFile[fileName].orEmpty(),
                                         onQuestionSelected = onQuestionSelected,
@@ -287,10 +278,10 @@ fun QuestionBankDrawer(
                 }
 
                 if (searchState.isSearching) {
-                    CircularProgressIndicator(
+                    AppLoadingIndicator(
                         modifier = Modifier
                             .align(Alignment.TopCenter)
-                            .padding(top = 12.dp)
+                            .padding(top = AppSpacing.md)
                             .size(28.dp)
                     )
                 }

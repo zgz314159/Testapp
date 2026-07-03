@@ -26,67 +26,16 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.res.stringResource
 import com.example.testapp.R
-import com.example.testapp.domain.QuestionTypes
 import com.example.testapp.domain.usecase.FileStatistics
 import com.example.testapp.uicommon.component.LocalFontFamily
 import com.example.testapp.uicommon.component.LocalFontSize
 
-private data class FileCardPalette(
-    val containerColor: Color,
-    val borderColor: Color
-)
-
-private fun placeholderFileCardPalette(fileName: String): FileCardPalette {
-    return when (fileName.trim().hashCode().ushr(1) % 5) {
-        0 -> FileCardPalette(Color(0xFFE5F0FF), Color(0xFF4A7BD1))
-        1 -> FileCardPalette(Color(0xFFE8F6E8), Color(0xFF4D9A57))
-        2 -> FileCardPalette(Color(0xFFFFECD9), Color(0xFFC97A30))
-        3 -> FileCardPalette(Color(0xFFFFE4E6), Color(0xFFD45D72))
-        else -> FileCardPalette(Color(0xFFEAF2E0), Color(0xFF6F8F3A))
-    }
-}
-
 @Composable
 private fun rememberFileCardPalette(fileName: String, statistics: FileStatistics): FileCardPalette {
-    val primaryType = statistics.primaryQuestionType.trim()
-    val placeholderPalette = remember(fileName) { placeholderFileCardPalette(fileName) }
-    return remember(fileName, primaryType, statistics.questionTypeStats.size, placeholderPalette) {
-        when {
-            statistics.questionTypeStats.size > 1 -> FileCardPalette(
-                containerColor = Color(0xFFF6EFE2),
-                borderColor = Color(0xFFC69A54)
-            )
-            primaryType == QuestionTypes.SINGLE -> FileCardPalette(
-                containerColor = Color(0xFFFFF4CC),
-                borderColor = Color(0xFFD4A62A)
-            )
-            primaryType == QuestionTypes.MULTI -> FileCardPalette(
-                containerColor = Color(0xFFE0F7F1),
-                borderColor = Color(0xFF1D8F7A)
-            )
-            primaryType == QuestionTypes.JUDGE -> FileCardPalette(
-                containerColor = Color(0xFFFFE4E6),
-                borderColor = Color(0xFFD45D72)
-            )
-            primaryType == QuestionTypes.BLANK -> FileCardPalette(
-                containerColor = Color(0xFFE5F0FF),
-                borderColor = Color(0xFF4A7BD1)
-            )
-            primaryType == "简答题" -> FileCardPalette(
-                containerColor = Color(0xFFE8F6E8),
-                borderColor = Color(0xFF4D9A57)
-            )
-            primaryType == "综合题" -> FileCardPalette(
-                containerColor = Color(0xFFFFECD9),
-                borderColor = Color(0xFFC97A30)
-            )
-            primaryType == "论述题" -> FileCardPalette(
-                containerColor = Color(0xFFE8F1D9),
-                borderColor = Color(0xFF6F8F3A)
-            )
-            else -> placeholderPalette
-        }
+    val tone = remember(fileName, statistics.primaryQuestionType, statistics.questionTypeStats.size) {
+        resolveFileCardTone(fileName, statistics)
     }
+    return fileCardPalette(tone)
 }
 
 @OptIn(ExperimentalFoundationApi::class)
@@ -125,6 +74,7 @@ fun OptimizedFileCard(
     
     val displayName = folderDisplayName?.let { "$it/$fileName" } ?: fileName
     val palette = rememberFileCardPalette(fileName, statistics)
+    val statColors = fileStatPalette()
     val cardBorder = if (isDropTarget) {
         BorderStroke(2.dp, MaterialTheme.colorScheme.primary)
     } else {
@@ -230,22 +180,22 @@ fun OptimizedFileCard(
                 OptimizedFileStatBlock(
                     label = stringResource(R.string.label_total_questions),
                     value = statistics.questionCount.toString(),
-                    valueColor = MaterialTheme.colorScheme.primary
+                    valueColor = statColors.total
                 )
                 OptimizedFileStatBlock(
                     label = stringResource(R.string.label_wrong_questions),
                     value = statistics.wrongCount.toString(),
-                    valueColor = Color.Red
+                    valueColor = statColors.wrong
                 )
                 OptimizedFileStatBlock(
                     label = stringResource(R.string.label_favorite_count),
                     value = statistics.favoriteCount.toString(),
-                    valueColor = Color.Cyan
+                    valueColor = statColors.favorite
                 )
                 OptimizedFileStatBlock(
                     label = stringResource(R.string.label_progress_count),
                     value = progressCount.toString(),
-                    valueColor = MaterialTheme.colorScheme.tertiary
+                    valueColor = statColors.progress
                 )
             }
         }
@@ -295,6 +245,7 @@ fun DraggingFileCard(
 ) {
     val displayName = folderDisplayName?.let { "$it/$fileName" } ?: fileName
     val palette = rememberFileCardPalette(fileName, statistics)
+    val statColors = fileStatPalette()
     
     Card(
         modifier = modifier,
@@ -323,22 +274,22 @@ fun DraggingFileCard(
                 OptimizedFileStatBlock(
                     label = stringResource(R.string.label_total_questions),
                     value = statistics.questionCount.toString(),
-                    valueColor = MaterialTheme.colorScheme.primary
+                    valueColor = statColors.total
                 )
                 OptimizedFileStatBlock(
                     label = stringResource(R.string.label_wrong_questions),
                     value = statistics.wrongCount.toString(),
-                    valueColor = Color.Red
+                    valueColor = statColors.wrong
                 )
                 OptimizedFileStatBlock(
                     label = stringResource(R.string.label_favorite_count),
                     value = statistics.favoriteCount.toString(),
-                    valueColor = Color.Cyan
+                    valueColor = statColors.favorite
                 )
                 OptimizedFileStatBlock(
                     label = stringResource(R.string.label_progress_count),
                     value = progressCount.toString(),
-                    valueColor = MaterialTheme.colorScheme.tertiary
+                    valueColor = statColors.progress
                 )
             }
         }

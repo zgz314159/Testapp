@@ -12,9 +12,11 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.res.stringResource
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.example.testapp.R
+import com.example.testapp.uicommon.design.AppEmptyState
 import com.example.testapp.uicommon.component.LocalFontSize
 import com.example.testapp.uicommon.component.LocalFontFamily
 import com.example.testapp.presentation.screen.practice.PracticeViewModel
@@ -44,6 +46,12 @@ fun QuestionScreen(
         if (isDetailMode) {
             Text("题目详情（共${questions.size}题）", fontSize = LocalFontSize.current, fontFamily = LocalFontFamily.current)
             Spacer(modifier = Modifier.height(8.dp))
+            if (questions.isEmpty()) {
+                AppEmptyState(
+                    message = stringResource(R.string.no_questions),
+                    modifier = Modifier.weight(1f).fillMaxWidth()
+                )
+            } else {
             androidx.compose.foundation.lazy.LazyColumn(
                 modifier = Modifier.weight(1f).fillMaxWidth()
             ) {
@@ -142,12 +150,16 @@ fun QuestionScreen(
                     }
                 }
             }
+            }
         } else {
             Text("题目 ${currentIndex + 1}", fontSize = LocalFontSize.current, fontFamily = LocalFontFamily.current)
             if (questions.isNotEmpty()) {
                 Text(questions[currentIndex].content, fontSize = LocalFontSize.current, fontFamily = LocalFontFamily.current)
             } else {
-                Text("暂无题目", fontSize = LocalFontSize.current)
+                AppEmptyState(
+                    message = stringResource(R.string.no_questions),
+                    modifier = Modifier.weight(1f).fillMaxWidth()
+                )
             }
             // ...原有的上一题/下一题/提交等按钮...
         }

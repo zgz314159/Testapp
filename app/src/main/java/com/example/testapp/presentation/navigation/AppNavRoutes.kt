@@ -13,6 +13,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.navArgument
 import com.example.testapp.presentation.screen.ai.BaiduAskScreen
 import com.example.testapp.presentation.screen.ai.BaiduScreen
+import com.example.testapp.data.network.deepseek.DeepSeekExamAnchorPipeline
 import com.example.testapp.presentation.screen.ai.DeepSeekAskScreen
 import com.example.testapp.presentation.screen.ai.DeepSeekScreen
 import com.example.testapp.presentation.screen.exam.ExamViewModel
@@ -28,7 +29,7 @@ import com.example.testapp.core.util.safeEncode
 /** Creates the 7 standard analysis/edit callbacks shared across all Practice/Exam route instances. */
 internal fun NavHostController.createAnalysisCallbacks(): AnalysisCallbacks = AnalysisCallbacks(
     onViewDeepSeek = { text, id, index ->
-        navToEncoded("deepseek/$id/$index", text)
+        navToEncoded("deepseek_ask/$id/$index", text)
     },
     onViewSpark = { text, id, index ->
         navToEncoded("spark/$id/$index", text)
@@ -71,15 +72,35 @@ internal fun NavGraphBuilder.registerAnalysisRoutes(
     settingsViewModel: com.example.testapp.presentation.screen.settings.SettingsViewModel
 ) {
     registerScreenRoute("deepseek", navController, resolveOwners, settingsViewModel) { pvm, evm, params ->
-        DeepSeekScreen(
-            text = params.text, questionId = params.id, index = params.index, navController = navController,
+        val examAnchor = remember(pvm, evm, params.index) {
+            DeepSeekExamAnchorPipeline.fromQuestion(
+                evm?.questions?.value?.getOrNull(params.index)
+                    ?: pvm?.questions?.value?.getOrNull(params.index)
+            )
+        }
+        DeepSeekAskScreen(
+            text = params.text,
+            questionId = params.id,
+            index = params.index,
+            navController = navController,
+            examAnchor = examAnchor,
             onSave = { v -> evm?.updateAnalysis(params.index, v); pvm?.updateAnalysis(params.index, v) },
             settingsViewModel = settingsViewModel
         )
     }
     registerScreenRoute("deepseek_ask", navController, resolveOwners, settingsViewModel) { pvm, evm, params ->
+        val examAnchor = remember(pvm, evm, params.index) {
+            DeepSeekExamAnchorPipeline.fromQuestion(
+                evm?.questions?.value?.getOrNull(params.index)
+                    ?: pvm?.questions?.value?.getOrNull(params.index)
+            )
+        }
         DeepSeekAskScreen(
-            text = params.text, questionId = params.id, index = params.index, navController = navController,
+            text = params.text,
+            questionId = params.id,
+            index = params.index,
+            navController = navController,
+            examAnchor = examAnchor,
             onSave = { v -> evm?.updateAnalysis(params.index, v); pvm?.updateAnalysis(params.index, v) },
             settingsViewModel = settingsViewModel
         )

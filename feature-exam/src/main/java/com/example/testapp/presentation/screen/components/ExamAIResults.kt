@@ -9,6 +9,7 @@ fun ExamAIResults(
     collapsed: Boolean,
     scrollState: androidx.compose.foundation.ScrollState,
     backgroundColor: Color,
+    contentColor: Color,
     onToggle: () -> Unit,
     onDoubleTap: () -> Unit,
     onLongPress: () -> Unit
@@ -18,6 +19,7 @@ fun ExamAIResults(
         collapsed = collapsed,
         scrollState = scrollState,
         backgroundColor = backgroundColor,
+        contentColor = contentColor,
         onToggle = { onToggle() },
         onDoubleTap = { onDoubleTap() },
         onLongPress = { onLongPress() }

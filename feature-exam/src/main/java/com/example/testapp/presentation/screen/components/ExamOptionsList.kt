@@ -10,6 +10,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.testapp.uicommon.design.answerChoicePalette
+import com.example.testapp.uicommon.design.colorFor
+import com.example.testapp.uicommon.design.resolveAnswerChoiceTone
 import com.example.testapp.uicommon.component.LocalFontFamily
 import com.example.testapp.uicommon.component.LocalFontSize
 import com.example.testapp.core.util.answerLettersToIndices
@@ -24,18 +27,15 @@ fun ExamOptionsList(
     showResult: Boolean,
     onOptionClick: (Int) -> Unit
 ) {
+    val palette = answerChoicePalette()
     question.options.forEachIndexed { idx, option ->
         val correctIndices = answerLettersToIndices(question.answer)
         val isSelected = selectedOption.contains(idx)
         val isCorrect = showResult && correctIndices.contains(idx)
-        val isWrong = showResult && isSelected && !isCorrect
 
-        val backgroundColor = when {
-            isCorrect -> MaterialTheme.colorScheme.primary.copy(alpha = 0.2f)
-            isWrong -> MaterialTheme.colorScheme.error.copy(alpha = 0.2f)
-            isSelected -> MaterialTheme.colorScheme.secondary.copy(alpha = 0.1f)
-            else -> MaterialTheme.colorScheme.surface
-        }
+        val backgroundColor = palette.colorFor(
+            resolveAnswerChoiceTone(showResult, isSelected, isCorrect)
+        )
 
         Row(
             modifier = Modifier

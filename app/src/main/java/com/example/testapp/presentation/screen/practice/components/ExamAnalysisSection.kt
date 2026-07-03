@@ -19,17 +19,20 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.testapp.uicommon.component.LocalFontFamily
+import com.example.testapp.uicommon.component.RichText
+import com.example.testapp.uicommon.design.AnalysisSectionTone
+import com.example.testapp.uicommon.design.AppSpacing
+import com.example.testapp.uicommon.design.analysisSectionColors
 
 @Composable
 fun ExamAnalysisSection(
     text: String?,
-    backgroundColor: Color,
+    tone: AnalysisSectionTone,
     label: String,
     fontSize: Float = 16f,
     lineHeight: Float = 1.3f,
@@ -40,22 +43,15 @@ fun ExamAnalysisSection(
 ) {
     if (text.isNullOrBlank()) return
 
-    val textColor = when (backgroundColor) {
-        Color(0xFFFFF5C0) -> Color(0xFF835C00)
-        Color(0xFFE0FFE0) -> Color(0xFF004B00)
-        Color(0xFFE8F6FF) -> Color(0xFF004B6B)
-        Color(0xFFEDE7FF) -> Color(0xFF3A006A)
-        Color(0xFFF0F8E7) -> Color(0xFF3B6E0A)
-        else -> MaterialTheme.colorScheme.onSurface
-    }
-
-    var collapsed by remember { mutableStateOf(true) }
+    val colors = analysisSectionColors(tone)
+    var collapsed by remember(text) { mutableStateOf(true) }
 
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .background(backgroundColor)
-            .padding(8.dp)
+            .padding(vertical = AppSpacing.xs)
+            .background(colors.container)
+            .padding(AppSpacing.sm)
             .pointerInput(text) {
                 detectTapGestures(
                     onTap = {
@@ -74,25 +70,34 @@ fun ExamAnalysisSection(
             }
     ) {
         if (collapsed) {
-            Text(
+            RichText(
                 text = "$label$text",
-                color = textColor,
+                color = colors.content,
                 fontSize = fontSize.sp,
                 fontFamily = LocalFontFamily.current,
-                lineHeight = (fontSize * lineHeight).sp,
-                letterSpacing = letterSpacing.sp,
+                lineSpacingMultiplier = lineHeight,
+                letterSpacing = letterSpacing,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
                 modifier = Modifier.fillMaxWidth()
             )
         } else {
             Text(
-                text = "$label$text",
-                color = textColor,
+                text = label,
+                color = colors.content,
                 fontSize = fontSize.sp,
                 fontFamily = LocalFontFamily.current,
                 lineHeight = (fontSize * lineHeight).sp,
                 letterSpacing = letterSpacing.sp,
+                modifier = Modifier.fillMaxWidth()
+            )
+            RichText(
+                text = text,
+                color = colors.content,
+                fontSize = fontSize.sp,
+                fontFamily = LocalFontFamily.current,
+                lineSpacingMultiplier = lineHeight,
+                letterSpacing = letterSpacing,
                 modifier = Modifier.fillMaxWidth()
             )
             Row(
@@ -106,7 +111,7 @@ fun ExamAnalysisSection(
                     Icon(
                         imageVector = Icons.Filled.KeyboardArrowUp,
                         contentDescription = "折叠",
-                        tint = textColor
+                        tint = colors.content
                     )
                 }
             }

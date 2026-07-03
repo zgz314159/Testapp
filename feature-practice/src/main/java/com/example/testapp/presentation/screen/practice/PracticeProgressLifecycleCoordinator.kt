@@ -41,12 +41,23 @@ internal class PracticeProgressLifecycleCoordinator(
     private var loadQuestionsJob: Job? = null
     private var loadProgressJob: Job? = null
     private var lastQuestionCount: Int = 0
+    private var lastAppliedInitKey: String? = null
     private var sourceCatalogQuestions: List<Question> = emptyList()
     private val cumulativeQuestionStateMap = mutableMapOf<Int, com.example.testapp.domain.model.UnifiedQuestionState>()
 
     fun sourceCatalog(): List<Question> = sourceCatalogQuestions
 
     fun lastAppliedQuestionCount(): Int = lastQuestionCount
+
+    fun shouldReloadForQuizInit(initKey: String): Boolean {
+        val state = sessionState.value
+        val sessionActive = state.progressLoaded && state.questionsWithState.isNotEmpty()
+        return PracticeQuizInitReloadPipeline.shouldReloadFillConfig(
+            sessionActive = sessionActive,
+            appliedInitKey = lastAppliedInitKey,
+            currentInitKey = initKey
+        )
+    }
 
     fun setProgressId(
         id: String,
@@ -59,6 +70,7 @@ internal class PracticeProgressLifecycleCoordinator(
         setQuestionSourceId(questionsId)
         setRandomPracticeEnabled(random)
         lastQuestionCount = questionCount
+        lastAppliedInitKey = null
         android.util.Log.d("PracticeViewModel", "setProgressId: randomPracticeEnabled=${randomPracticeEnabled()}, randomParam=$random")
         val newSessionStartTime = System.currentTimeMillis()
 
@@ -76,9 +88,12 @@ internal class PracticeProgressLifecycleCoordinator(
         }
     }
 
-    fun reloadForFillConfig(questionCount: Int = lastQuestionCount) {
+    fun reloadForFillConfig(questionCount: Int = lastQuestionCount, initKey: String? = null) {
         if (questionSourceId().isBlank()) return
         lastQuestionCount = questionCount
+        val preserveIndex = sessionState.value.takeIf {
+            it.progressLoaded && it.questionsWithState.isNotEmpty()
+        }?.currentIndex
         loadQuestionsJob?.cancel()
         loadQuestionsJob = scope.launch {
             val newSessionStartTime = System.currentTimeMillis()
@@ -86,14 +101,20 @@ internal class PracticeProgressLifecycleCoordinator(
                 progressLoaded = false,
                 sessionStartTime = newSessionStartTime
             )
-            loadQuestionsForCurrentSource(questionCount, newSessionStartTime)
+            loadQuestionsForCurrentSource(
+                questionCount = questionCount,
+                newSessionStartTime = newSessionStartTime,
+                preserveCurrentIndex = preserveIndex
+            )
+            initKey?.let { lastAppliedInitKey = it }
         }
     }
 
     private suspend fun loadQuestionsForCurrentSource(
         questionCount: Int,
         newSessionStartTime: Long,
-        sourceQuestions: List<Question>? = null
+        sourceQuestions: List<Question>? = null,
+        preserveCurrentIndex: Int? = null
     ) {
         val sourceId = questionSourceId()
         val originalQuestions = sourceQuestions ?: loadOriginalQuestions(sourceId)
@@ -233,24 +254,42 @@ internal class PracticeProgressLifecycleCoordinator(
             restoreFromMap = restoreFromMap,
             sessionStartTime = newSessionStartTime
         )
-        val startIndex = if (restoreFromMap) {
-            existingProgress?.currentIndex?.coerceIn(0, (questionsWithState.size - 1).coerceAtLeast(0)) ?: 0
-        } else if (randomPracticeEnabled() && questionsWithState.isNotEmpty()) {
-            (0 until questionsWithState.size).random(kotlin.random.Random(newSessionStartTime))
-        } else {
-            0
-        }
+        val startIndex = PracticeSessionStartIndexPipeline.resolve(
+            questionCount = questionsWithState.size,
+            restoreFromMap = restoreFromMap,
+            savedCurrentIndex = existingProgress?.currentIndex,
+            randomPracticeEnabled = randomPracticeEnabled(),
+            sessionStartTime = newSessionStartTime,
+            preserveCurrentIndex = preserveCurrentIndex
+        )
+        val prevIndex = sessionState.value.currentIndex
         sessionState.value = sessionState.value.copy(
             questionsWithState = questionsWithState,
             sessionStartTime = newSessionStartTime,
             questionCount = questionCount,
             currentIndex = startIndex
         )
+        if (prevIndex != startIndex) {
+            PracticeJumpDebugLog.sessionIndexMutation(
+                prevIndex,
+                startIndex,
+                "loadQuestionsForCurrentSource restoreFromMap=$restoreFromMap preserve=$preserveCurrentIndex"
+            )
+        }
         if (restoreFromMap) {
             onProgressRestored(questionsWithState, startIndex)
         }
+        markAppliedInitKey(questionCount, curFillSignature)
         scope.launch { repositoryContentLoader.loadOnce() }
         loadProgress()
+    }
+
+    private fun markAppliedInitKey(questionCount: Int, fillConfigVersion: String) {
+        lastAppliedInitKey = PracticeQuizInitReloadPipeline.buildInitKey(
+            fillConfigVersion = fillConfigVersion,
+            practiceCount = questionCount,
+            randomPractice = randomPracticeEnabled()
+        )
     }
 
     private suspend fun loadOriginalQuestions(sourceId: String): List<Question> =

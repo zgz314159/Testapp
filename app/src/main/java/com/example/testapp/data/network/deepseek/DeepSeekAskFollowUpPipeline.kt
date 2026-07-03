@@ -1,21 +1,31 @@
 package com.example.testapp.data.network.deepseek
 
-/** 再次提问时：用户改题则用新内容；否则注入「先前回答需修正」的 follow-up。 */
+/** 再次提问：传递用户原话；禁止无依据的自动「请修正」注入。 */
 object DeepSeekAskFollowUpPipeline {
 
-    private const val DEFAULT_FOLLOW_UP =
-        "你刚才的回答可能不够严谨，或与题目中给出的正确答案不一致。请结合我们之前的对话，重新仔细分析并给出修正后的解答。"
+    /** 历史持久化解码占位，不再向模型发送。 */
+    const val LEGACY_FOLLOW_UP_PLACEHOLDER = "（继续讨论本题）"
 
+    /**
+     * @return 发往模型的 user 内容；null 表示不应发起请求（如无新输入的重复发送）。
+     */
     fun resolveNextUserContent(
         firstQuestion: String,
         currentQuestionInput: String,
-        isFollowUp: Boolean
-    ): String {
+        isFollowUp: Boolean,
+        examAnchor: DeepSeekExamAnchor?
+    ): String? {
         val trimmed = currentQuestionInput.trim()
-        if (!isFollowUp) return trimmed
-        if (trimmed.isNotEmpty() && trimmed != firstQuestion.trim()) return trimmed
-        return DEFAULT_FOLLOW_UP
+        if (!isFollowUp) {
+            return DeepSeekExamPromptPipeline.wrapFirstUserTurn(trimmed, examAnchor)
+        }
+        if (trimmed.isEmpty()) return null
+        if (trimmed == firstQuestion.trim()) return null
+        if (DeepSeekChatHistoryPipeline.isChallengeOnlyMessage(trimmed)) {
+            return DeepSeekExamPromptPipeline.wrapChallengeTurn(trimmed)
+        }
+        return DeepSeekExamPromptPipeline.wrapFollowUpUserTurn(trimmed)
     }
 
-    fun restoredFollowUpUser(): String = DEFAULT_FOLLOW_UP
+    fun restoredFollowUpUser(): String = LEGACY_FOLLOW_UP_PLACEHOLDER
 }

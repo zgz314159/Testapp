@@ -1,5 +1,6 @@
 package com.example.testapp.presentation.screen.practice.session
 
+import com.example.testapp.presentation.screen.practice.PracticeSessionAnalysisMergePipeline
 import com.example.testapp.domain.model.PracticeSessionState
 import com.example.testapp.domain.model.QuestionWithState
 import com.example.testapp.domain.usecase.GetBaiduAnalysisUseCase
@@ -57,7 +58,16 @@ class AnalysisManager(
                 else qws
             } else qws
         }
-        if (changed) { _sessionState.value = currentState.copy(questionsWithState = updated); saveProgress() }
+        if (changed) {
+            val latest = _sessionState.value
+            _sessionState.value = latest.copy(
+                questionsWithState = PracticeSessionAnalysisMergePipeline.mergeSupplementaryLoad(
+                    latest.questionsWithState,
+                    updated
+                )
+            )
+            saveProgress()
+        }
     }
 
     private suspend fun loadSparkAnalysisFromRepository() {
@@ -72,7 +82,16 @@ class AnalysisManager(
                 else qws
             } else qws
         }
-        if (changed) { _sessionState.value = currentState.copy(questionsWithState = updated); saveProgress() }
+        if (changed) {
+            val latest = _sessionState.value
+            _sessionState.value = latest.copy(
+                questionsWithState = PracticeSessionAnalysisMergePipeline.mergeSupplementaryLoad(
+                    latest.questionsWithState,
+                    updated
+                )
+            )
+            saveProgress()
+        }
     }
 
     private suspend fun loadBaiduAnalysisFromRepository() {
@@ -87,7 +106,16 @@ class AnalysisManager(
                 else qws
             } else qws
         }
-        if (changed) { _sessionState.value = currentState.copy(questionsWithState = updated); saveProgress() }
+        if (changed) {
+            val latest = _sessionState.value
+            _sessionState.value = latest.copy(
+                questionsWithState = PracticeSessionAnalysisMergePipeline.mergeSupplementaryLoad(
+                    latest.questionsWithState,
+                    updated
+                )
+            )
+            saveProgress()
+        }
     }
 
     private suspend fun loadNotesFromRepository() {
@@ -100,7 +128,16 @@ class AnalysisManager(
             if (text != null && text != qws.note) { changed = true; qws.copy(note = text) }
             else qws
         }
-        if (changed) { _sessionState.value = currentState.copy(questionsWithState = updated); saveProgress() }
+        if (changed) {
+            val latest = _sessionState.value
+            _sessionState.value = latest.copy(
+                questionsWithState = PracticeSessionAnalysisMergePipeline.mergeSupplementaryLoad(
+                    latest.questionsWithState,
+                    updated
+                )
+            )
+            saveProgress()
+        }
     }
 
     private fun postParseError(ex: Throwable?) {

@@ -18,6 +18,8 @@ private val NumberedHeadingTextRegex = Regex("""^\d+[.)]\s*[^*\n]{1,40}[\uFF1A:]
 private val SectionHeadingTextRegex = Regex("""^[^*\n]{1,30}[\uFF1A:]$""")
 private val EmptyBulletPlaceholderLineRegex = Regex("""^(?:\*[ \t\u00A0\u3000]*){1,4}$""")
 private val LeadingStarLineRegex = Regex("""^\*{1,3}$HWS(.+)$""")
+private val OrphanBoldAfterInlineMathRegex = Regex("""(\$[^$\n]+?\$)\*\*""")
+private val OrphanCodeFenceLineRegex = Regex("""^\s*```[A-Za-z0-9_-]*\s*$""")
 
 fun normalizeRichMarkdownStructure(source: String): String {
     return source
@@ -25,6 +27,7 @@ fun normalizeRichMarkdownStructure(source: String): String {
         .replace('\r', '\n')
         .splitCompressedMarkdown()
         .normalizeMarkdownLines()
+        .stripOrphanMarkdownCodeFenceLines()
 }
 
 private fun String.splitCompressedMarkdown(): String {
@@ -39,6 +42,7 @@ private fun String.splitCompressedMarkdown(): String {
         .replace(NumberedHeadingBeforeSectionRegex, "$1\n")
         .replace(BrokenStarBoldHeadingRegex, "**$1**")
         .replace(BrokenStarSectionHeadingRegex, "**$1$2**")
+        .replace(OrphanBoldAfterInlineMathRegex, "$1")
 }
 
 private fun String.normalizeMarkdownLines(): String {
@@ -79,5 +83,12 @@ private fun String.normalizeMarkdownLines(): String {
 
 private fun pendingStarHeadingCandidate(value: String): Boolean {
     return NumberedHeadingTextRegex.matches(value) || SectionHeadingTextRegex.matches(value)
+}
+
+private fun String.stripOrphanMarkdownCodeFenceLines(): String {
+    return lineSequence()
+        .filterNot { line -> OrphanCodeFenceLineRegex.matches(line) }
+        .joinToString("\n")
+        .trim()
 }
 

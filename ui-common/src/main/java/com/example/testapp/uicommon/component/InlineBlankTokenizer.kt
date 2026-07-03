@@ -18,8 +18,6 @@ import com.example.testapp.core.util.splitFillAnswerParts
 
 private val FILL_PART_REGEX = Regex("[|｜/；;，,、]")
 private val FILL_ACCEPTED_VARIANT_REGEX = Regex("[|｜/／；;\\n\\r]+")
-val CorrectGreen = Color(0xFF16A34A)
-val EditingBlue = Color(0xFF2563EB)
 const val DEFAULT_INLINE_BLANK_CHARS = 6
 const val MIN_INLINE_BLANK_CHARS = 4
 const val BLANK_PLACEHOLDER_CHAR = '\u00A0'
@@ -40,12 +38,14 @@ data class InlineBlankEditorSpec(
 }
 
 class InlineBlankVisualTransformation(
-    private val editorSpec: InlineBlankEditorSpec
+    private val editorSpec: InlineBlankEditorSpec,
+    private val blankEditColor: Color
 ) : VisualTransformation {
     override fun filter(text: AnnotatedString): TransformedText {
         return buildInlineBlankTransformedText(
             rawText = text.text,
-            editorSpec = editorSpec
+            editorSpec = editorSpec,
+            blankEditColor = blankEditColor
         )
     }
 }
@@ -137,7 +137,8 @@ fun clampCompositionRange(range: TextRange?, text: String): TextRange? {
 
 fun buildInlineBlankTransformedText(
     rawText: String,
-    editorSpec: InlineBlankEditorSpec
+    editorSpec: InlineBlankEditorSpec,
+    blankEditColor: Color
 ): TransformedText {
     val rawParts = splitInlineEditorRawText(rawText, editorSpec.blankCount)
     val normalizedRawText = buildInlineEditorRawText(rawParts, editorSpec.blankCount)
@@ -174,7 +175,7 @@ fun buildInlineBlankTransformedText(
 
             withStyle(
                 SpanStyle(
-                    color = EditingBlue,
+                    color = blankEditColor,
                     textDecoration = TextDecoration.Underline
                 )
             ) {
@@ -299,6 +300,7 @@ fun buildResultQuestionAnnotatedString(
     userParts: List<String>,
     correctParts: List<String>,
     questionFontSize: Float,
+    correctColor: Color,
     errorColor: Color
 ) = buildAnnotatedString {
     var cursor = 0
@@ -312,6 +314,7 @@ fun buildResultQuestionAnnotatedString(
             userAnswer = userPart,
             correctAnswer = correctPart,
             questionFontSize = questionFontSize,
+            correctColor = correctColor,
             errorColor = errorColor
         )
         append(LINE_BREAK_OPPORTUNITY_CHAR)
@@ -326,11 +329,12 @@ fun AnnotatedString.Builder.appendResultBlankText(
     userAnswer: String,
     correctAnswer: String,
     questionFontSize: Float,
+    correctColor: Color,
     errorColor: Color
 ) {
     val normalizedUser = normalizeFillAnswer(userAnswer)
     val isCorrect = matchesDisplayedFillAnswer(userAnswer, correctAnswer)
-    val resultColor = if (isCorrect) CorrectGreen else errorColor
+    val resultColor = if (isCorrect) correctColor else errorColor
 
     when {
         normalizedUser.isBlank() -> {

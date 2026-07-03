@@ -16,6 +16,7 @@ class ExamDialogState {
     var showDeleteNoteDialog by mutableStateOf(false)
     var aiMenuExpanded by mutableStateOf(false)
     var menuExpanded by mutableStateOf(false)
+    var showTypographySheet by mutableStateOf(false)
     var showEditQuestionDialog by mutableStateOf(false)
     var editedQuestionContent by mutableStateOf("")
     var editedQuestionAnswer by mutableStateOf("")

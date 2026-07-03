@@ -9,6 +9,8 @@ import com.example.testapp.data.network.deepseek.DeepSeekAskPersistFormatPipelin
 import com.example.testapp.data.network.deepseek.DeepSeekAskPersistPipeline
 import com.example.testapp.data.network.deepseek.DeepSeekAskSavePipeline
 import com.example.testapp.data.network.deepseek.DeepSeekChatTurn
+import com.example.testapp.data.network.deepseek.DeepSeekExamAnchor
+import com.example.testapp.data.network.deepseek.DeepSeekAskSessionRestorePipeline
 import com.example.testapp.data.network.deepseek.DeepSeekMultiTurnMessagesPipeline
 import com.example.testapp.domain.usecase.GetDeepSeekAskResultUseCase
 import com.example.testapp.domain.usecase.GetQuestionAnalysisUseCase
@@ -37,24 +39,38 @@ class DeepSeekAskViewModel @Inject constructor(
     private val _displayText = MutableStateFlow("")
     val displayText: StateFlow<String> = _displayText.asStateFlow()
 
+    private val _chatTurns = MutableStateFlow<List<DeepSeekChatTurn>>(emptyList())
+    val chatTurns: StateFlow<List<DeepSeekChatTurn>> = _chatTurns.asStateFlow()
+
+    private val _errorMessage = MutableStateFlow<String?>(null)
+    val errorMessage: StateFlow<String?> = _errorMessage.asStateFlow()
+
     private val _isParsing = MutableStateFlow(false)
     val isParsing: StateFlow<Boolean> = _isParsing.asStateFlow()
 
     private val turns = mutableListOf<DeepSeekChatTurn>()
     private var firstQuestion: String = ""
+    private var examAnchor: DeepSeekExamAnchor? = null
+
+    fun setExamAnchor(anchor: DeepSeekExamAnchor?) {
+        examAnchor = anchor
+    }
 
     fun reset() {
         _displayText.value = ""
+        _chatTurns.value = emptyList()
+        _errorMessage.value = null
         _isParsing.value = false
         turns.clear()
         firstQuestion = ""
+        examAnchor = null
     }
 
     fun restoreSession(questionText: String, savedText: String) {
-        firstQuestion = questionText.trim()
+        firstQuestion = DeepSeekAskSessionRestorePipeline.firstQuestionText(questionText, examAnchor)
         turns.clear()
         turns.addAll(DeepSeekAskPersistFormatPipeline.decode(firstQuestion, savedText))
-        publishDisplay()
+        publishTurns()
     }
 
     suspend fun loadSaved(questionId: Int, questionText: String, note: String? = null): String? {
@@ -92,26 +108,32 @@ class DeepSeekAskViewModel @Inject constructor(
     fun ask(questionText: String) {
         viewModelScope.launch {
             _isParsing.value = true
+            _errorMessage.value = null
             val isFollowUp = turns.isNotEmpty()
-            if (!isFollowUp) firstQuestion = questionText.trim()
+            if (!isFollowUp) {
+                firstQuestion = DeepSeekAskSessionRestorePipeline.firstQuestionText(questionText, examAnchor)
+            }
             val nextUser = DeepSeekAskFollowUpPipeline.resolveNextUserContent(
                 firstQuestion = firstQuestion,
                 currentQuestionInput = questionText,
-                isFollowUp = isFollowUp
+                isFollowUp = isFollowUp,
+                examAnchor = examAnchor
+            ) ?: run {
+                _isParsing.value = false
+                return@launch
+            }
+            val messages = DeepSeekMultiTurnMessagesPipeline.build(
+                priorTurns = turns.toList(),
+                nextUserContent = nextUser,
+                examAnchor = examAnchor
             )
-            val messages = DeepSeekMultiTurnMessagesPipeline.build(turns.toList(), nextUser)
             runCatching { api.chat(messages) }
                 .onSuccess { response ->
                     turns.add(DeepSeekChatTurn(user = nextUser, assistant = response))
-                    publishDisplay()
+                    publishTurns()
                 }
                 .onFailure {
-                    val message = "${PARSE_FAILED_PREFIX}: ${it.message ?: "未知错误"}"
-                    _displayText.value = if (_displayText.value.isBlank()) {
-                        message
-                    } else {
-                        "${_displayText.value}${DeepSeekAskPersistFormatPipeline.ASSISTANT_SEPARATOR}$message"
-                    }
+                    _errorMessage.value = "${PARSE_FAILED_PREFIX}: ${it.message ?: "未知错误"}"
                 }
             _isParsing.value = false
         }
@@ -119,7 +141,8 @@ class DeepSeekAskViewModel @Inject constructor(
 
     fun parsingSuffix(): String = PARSING
 
-    private fun publishDisplay() {
+    private fun publishTurns() {
+        _chatTurns.value = turns.toList()
         _displayText.value = DeepSeekAskDisplayPipeline.fromTurns(turns)
     }
 }

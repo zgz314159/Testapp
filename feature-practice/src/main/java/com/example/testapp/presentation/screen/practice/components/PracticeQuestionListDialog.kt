@@ -1,7 +1,7 @@
 package com.example.testapp.presentation.screen.practice.components
 
-import androidx.compose.foundation.layout.heightIn
-import androidx.compose.material3.AlertDialog
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -14,6 +14,7 @@ import com.example.testapp.domain.model.Question
 import com.example.testapp.feature.practice.R
 import com.example.testapp.uicommon.component.AnswerCardDialogContent
 import com.example.testapp.uicommon.component.AnswerCardDisplayInfo
+import com.example.testapp.uicommon.component.AnswerCardListDialogShell
 import com.example.testapp.uicommon.component.AnswerCardTypeLabels
 
 @Composable
@@ -36,7 +37,7 @@ fun PracticeQuestionListDialog(
         sectionCollapsed = if (name in sectionCollapsed) sectionCollapsed - name else sectionCollapsed + name
     }
 
-    AlertDialog(onDismissRequest = onDismiss, confirmButton = {}, text = {
+    AnswerCardListDialogShell(onDismiss = onDismiss) {
         AnswerCardDialogContent(
             questions = questions,
             selectedOptions = selectedOptions,
@@ -58,7 +59,9 @@ fun PracticeQuestionListDialog(
                 fill = stringResource(R.string.fill_blank),
                 text = stringResource(R.string.short_answer)
             ),
-            modifier = Modifier.heightIn(max = 500.dp)
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(horizontal = 4.dp, vertical = 4.dp)
         )
-    })
+    }
 }

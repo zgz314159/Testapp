@@ -1,0 +1,70 @@
+package com.example.testapp.presentation.screen.components
+
+import androidx.compose.foundation.layout.Column
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.runtime.Composable
+import com.example.testapp.core.common.LocalizedResult
+import com.example.testapp.uicommon.design.AppLoadingIndicator
+
+@Composable
+fun PracticeConfirmDialog(
+    show: Boolean,
+    onDismiss: () -> Unit,
+    message: String,
+    confirmLabel: String,
+    dismissLabel: String,
+    onConfirm: () -> Unit
+) {
+    if (!show) return
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        confirmButton = {
+            TextButton(onClick = {
+                onDismiss()
+                onConfirm()
+            }) { Text(confirmLabel) }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) { Text(dismissLabel) }
+        },
+        text = { Text(message) }
+    )
+}
+
+@Composable
+fun PracticeChatGptDialog(
+    show: Boolean,
+    onDismiss: () -> Unit,
+    loading: Boolean,
+    resultPair: Pair<Int, LocalizedResult>?,
+    currentIndex: Int,
+    onSaveToAnalysis: (String) -> Unit
+) {
+    if (!show) return
+    val resultText = resultPair?.second?.toString().orEmpty()
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        confirmButton = {
+            TextButton(onClick = {
+                if (resultPair?.first == currentIndex && resultText.isNotBlank()) {
+                    onSaveToAnalysis(resultText)
+                }
+                onDismiss()
+            }) { Text("OK") }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) { Text("Cancel") }
+        },
+        text = {
+            Column {
+                if (loading) {
+                    AppLoadingIndicator()
+                } else {
+                    Text(resultText)
+                }
+            }
+        }
+    )
+}

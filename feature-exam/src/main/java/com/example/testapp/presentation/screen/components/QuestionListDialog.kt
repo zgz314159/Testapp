@@ -1,7 +1,7 @@
 package com.example.testapp.presentation.screen.exam.components
 
-import androidx.compose.foundation.layout.heightIn
-import androidx.compose.material3.AlertDialog
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -15,6 +15,7 @@ import com.example.testapp.feature.exam.R
 import com.example.testapp.presentation.screen.exam.ExamPipelineLog
 import com.example.testapp.uicommon.component.AnswerCardDialogContent
 import com.example.testapp.uicommon.component.AnswerCardDisplayInfo
+import com.example.testapp.uicommon.component.AnswerCardListDialogShell
 import com.example.testapp.uicommon.component.AnswerCardTypeLabels
 
 @Composable
@@ -48,7 +49,7 @@ fun QuestionListDialog(
         }
     }
 
-    AlertDialog(onDismissRequest = { onDismiss() }, confirmButton = {}, text = {
+    AnswerCardListDialogShell(onDismiss = onDismiss) {
         AnswerCardDialogContent(
             questions = questions,
             selectedOptions = selectedOptions,
@@ -69,10 +70,12 @@ fun QuestionListDialog(
                 judge = stringResource(R.string.judge_choice),
                 fill = stringResource(R.string.fill_blank)
             ),
-            modifier = Modifier.heightIn(max = 500.dp),
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(horizontal = 4.dp, vertical = 4.dp),
             sortIndices = sortIndices
         )
-    })
+    }
 }
 
 private fun answeredFirstByTime(

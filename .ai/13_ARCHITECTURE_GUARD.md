@@ -96,6 +96,16 @@ Agent MUST respond with:
 | 🟠 Danger | 801–1000 | Must split before adding |
 | 🔴 Forbidden | >1000 | Split mandatory |
 
+### PracticeScreen enforced budget (Phase 35+)
+
+| Rule | Detail |
+|------|--------|
+| LOC redline | **500** (stricter than generic Screen 1000) |
+| Gate script | `scripts/check-practice-screen-loc.ps1` — run before PR / after edits |
+| 全仓库扫描 | `scripts/check-loc-over-500.ps1` — 报告见 `.ai/loc_audit.md` |
+| Decomposition spec | `.ai/practice_screen_decomposition.md` |
+| Forbidden | New `private fun DialogsHost` in `PracticeScreen.kt`; inline >30-line composable blocks |
+
 ### Coordinator / Delegate
 
 | Level | Lines | Action |
@@ -304,7 +314,7 @@ This guard is bypassed AFTER:
 | PracticeSessionCoordinator | 641 | 600 (danger) | ⏸️ Suspended |
 | FontSettingsDataStore | 555 | 1000 (repo) | ⏸️ Suspended |
 | PracticeViewModel | 724 | 800 (VM) | ⚠️ Warning zone |
-| PracticeScreen | 499 | 1000 (Screen) | ✅ Safe |
+| PracticeScreen | 390 | 500 (Screen enforced) | ✅ Safe |
 | HomeScreen | 399 | 1000 (Screen) | ✅ Safe |
 
 ### Current dependency hotspots

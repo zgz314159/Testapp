@@ -58,6 +58,9 @@ class ExamAutoAdvanceTimer {
             scope.launch {
                 ensureActive()
                 if (!_active) return@launch
+                kotlinx.coroutines.yield()
+                ensureActive()
+                if (!_active) return@launch
                 onAdvance()
             }
         } else {

@@ -1,12 +1,14 @@
 package com.example.testapp.uicommon.component
 
-import androidx.compose.foundation.layout.heightIn
-import androidx.compose.foundation.lazy.grid.GridCells
-import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
-import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.unit.dp
+import androidx.compose.ui.graphics.Color
+
+private const val GRID_COLUMNS = 5
 
 @Composable
 fun AnswerCardGrid(
@@ -14,15 +16,35 @@ fun AnswerCardGrid(
     onClick: (Int) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    LazyVerticalGrid(
-        columns = GridCells.Fixed(5),
-        modifier = modifier.heightIn(max = 300.dp)
-    ) {
-        items(
-            items = items,
-            key = { "card_${it.index}" }
-        ) { item ->
-            AnswerCardCell(item = item, onClick = { onClick(item.index) })
+    val statusColors = answerCardStatusColors()
+    Column(modifier = modifier) {
+        items.chunked(GRID_COLUMNS).forEach { rowItems ->
+            AnswerCardGridRow(
+                rowItems = rowItems,
+                statusColors = statusColors,
+                onClick = onClick
+            )
+        }
+    }
+}
+
+@Composable
+private fun AnswerCardGridRow(
+    rowItems: List<AnswerCardItemState>,
+    statusColors: Map<AnswerCardStatus, Color>,
+    onClick: (Int) -> Unit
+) {
+    Row(modifier = Modifier.fillMaxWidth()) {
+        rowItems.forEach { item ->
+            AnswerCardCell(
+                item = item,
+                onClick = { onClick(item.index) },
+                modifier = Modifier.weight(1f),
+                statusColors = statusColors
+            )
+        }
+        repeat(GRID_COLUMNS - rowItems.size) {
+            Spacer(modifier = Modifier.weight(1f))
         }
     }
 }

@@ -45,7 +45,7 @@ import com.example.testapp.uicommon.component.defaultInlineEditorSelection
 import com.example.testapp.uicommon.component.encodeUserAnswers
 import com.example.testapp.uicommon.component.normalizeInlineEditorValue
 import com.example.testapp.uicommon.component.splitInlineEditorRawText
-import com.example.testapp.uicommon.component.EditingBlue
+import com.example.testapp.uicommon.design.inlineBlankEditColors
 import com.example.testapp.uicommon.component.RichText
 import androidx.compose.foundation.layout.size
 import androidx.compose.ui.draw.drawBehind
@@ -63,29 +63,9 @@ import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.geometry.Offset
 
-internal val CorrectGreen = Color(0xFF16A34A)
-private val BlankRegex = Regex("_{2,}|（\\s*）|\\(\\s*\\)|【\\s*】|\\[\\s*]")
+import com.example.testapp.uicommon.design.answerFeedbackColors
 
-@Composable
-fun RichText(
-    text: String,
-    modifier: Modifier = Modifier,
-    color: Color = MaterialTheme.colorScheme.onSurface,
-    fontSize: TextUnit = LocalFontSize.current,
-    fontFamily: FontFamily? = LocalFontFamily.current,
-    maxLines: Int = Int.MAX_VALUE,
-    overflow: TextOverflow = TextOverflow.Clip
-) {
-    Text(
-        text = text,
-        modifier = modifier,
-        color = color,
-        fontSize = fontSize,
-        fontFamily = fontFamily,
-        maxLines = maxLines,
-        overflow = overflow
-    )
-}
+private val BlankRegex = Regex("_{2,}|（\\s*）|\\(\\s*\\)|【\\s*】|\\[\\s*]")
 
 @Composable
 fun ExamAnalysisSection(
@@ -93,6 +73,7 @@ fun ExamAnalysisSection(
     collapsed: Boolean,
     scrollState: ScrollState,
     backgroundColor: Color,
+    contentColor: Color = MaterialTheme.colorScheme.onSurface,
     onToggle: () -> Unit,
     onDoubleTap: (() -> Unit)? = null,
     onLongPress: (() -> Unit)? = null
@@ -102,8 +83,9 @@ fun ExamAnalysisSection(
     Box(
         modifier = Modifier
             .fillMaxWidth()
+            .padding(vertical = com.example.testapp.uicommon.design.AppSpacing.xs)
             .background(backgroundColor)
-            .padding(8.dp)
+            .padding(com.example.testapp.uicommon.design.AppSpacing.sm)
             .then(
                 if (!collapsed) {
                     Modifier.heightIn(max = 400.dp).verticalScroll(scrollState)
@@ -119,9 +101,9 @@ fun ExamAnalysisSection(
                 )
             }
     ) {
-        Text(
+        RichText(
             text = text,
-            color = MaterialTheme.colorScheme.onSurface,
+            color = contentColor,
             fontSize = LocalFontSize.current,
             fontFamily = LocalFontFamily.current,
             maxLines = if (collapsed) 1 else Int.MAX_VALUE,
@@ -182,11 +164,13 @@ fun InlineBlankQuestionContent(
     val blankCount = matches.size
     val userParts = remember(answerText, blankCount) { decodeUserAnswers(answerText, blankCount) }
     val correctParts = remember(correctAnswer, blankCount) { decodeCorrectAnswers(correctAnswer, blankCount) }
-    val errorColor = MaterialTheme.colorScheme.error
+    val feedbackColors = answerFeedbackColors()
+    val errorColor = feedbackColors.incorrectText
+    val correctColor = feedbackColors.correctText
 
     if (showResult) {
-        val resultAnnotatedText = remember(content, matches, userParts, correctParts, questionFontSize, errorColor) {
-            buildResultQuestionAnnotatedString(content = content, matches = matches, userParts = userParts, correctParts = correctParts, questionFontSize = questionFontSize, errorColor = errorColor)
+        val resultAnnotatedText = remember(content, matches, userParts, correctParts, questionFontSize, correctColor, errorColor) {
+            buildResultQuestionAnnotatedString(content = content, matches = matches, userParts = userParts, correctParts = correctParts, questionFontSize = questionFontSize, correctColor = correctColor, errorColor = errorColor)
         }
         Text(text = resultAnnotatedText, style = baseTextStyle, modifier = modifier.fillMaxWidth())
         return
@@ -217,7 +201,8 @@ private fun InlineBlankSingleEditor(
     var editorValue by remember(content) {
         mutableStateOf(TextFieldValue(text = externalRawText, selection = defaultInlineEditorSelection(externalRawText, editorSpec.blankCount)))
     }
-    val visualTransformation = remember(editorSpec) { InlineBlankVisualTransformation(editorSpec) }
+    val editColors = inlineBlankEditColors()
+    val visualTransformation = remember(editorSpec, editColors.blankText) { InlineBlankVisualTransformation(editorSpec, editColors.blankText) }
     val transformedEditorText = remember(editorValue.text, visualTransformation) { visualTransformation.filter(AnnotatedString(editorValue.text)) }
     val cursorHeightPx = with(density) { questionTextStyle.fontSize.toPx() }
     var isFocused by remember { mutableStateOf(false) }
@@ -257,7 +242,7 @@ private fun InlineBlankSingleEditor(
                 val transformedCursorOffset = transformedEditorText.offsetMapping.originalToTransformed(editorValue.selection.end)
                 val cursorRect = layout.getCursorRect(transformedCursorOffset)
                 val cursorTop = cursorRect.top + ((cursorRect.height - cursorHeightPx) / 2f).coerceAtLeast(0f)
-                drawLine(color = EditingBlue, start = Offset(cursorRect.left, cursorTop), end = Offset(cursorRect.left, cursorTop + cursorHeightPx.coerceAtMost(cursorRect.height)), strokeWidth = 2f)
+                drawLine(color = editColors.cursor, start = Offset(cursorRect.left, cursorTop), end = Offset(cursorRect.left, cursorTop + cursorHeightPx.coerceAtMost(cursorRect.height)), strokeWidth = 2f)
             },
         visualTransformation = visualTransformation,
         onTextLayout = { textLayoutResult = it }

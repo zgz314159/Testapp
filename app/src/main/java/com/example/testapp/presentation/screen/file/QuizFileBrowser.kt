@@ -43,6 +43,7 @@ import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import androidx.core.content.ContextCompat
 import com.example.testapp.R
+import com.example.testapp.uicommon.design.AppEmptyStateInline
 import java.io.File
 
 /** Quiz file extensions the in-app browser will show and the importer can parse. */
@@ -134,11 +135,8 @@ fun QuizFileBrowserDialog(
                 LazyColumn(modifier = Modifier.weight(1f).fillMaxWidth()) {
                     if (entries.isEmpty()) {
                         item {
-                            Text(
-                                text = stringResource(R.string.file_browser_empty),
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                modifier = Modifier.padding(16.dp),
+                            AppEmptyStateInline(
+                                message = stringResource(R.string.file_browser_empty)
                             )
                         }
                     }

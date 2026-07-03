@@ -28,6 +28,27 @@ class PracticeFontController(
         loaded = true
     }
 
+    fun applyFontSize(size: Float, scope: CoroutineScope) {
+        val newSize = size.coerceIn(12f, 42f)
+        if (newSize == questionFontSize) return
+        questionFontSize = newSize
+        scope.launch { fontSettings.setPracticeFontSize(newSize) }
+    }
+
+    fun applyLineSpacing(spacing: Float, scope: CoroutineScope) {
+        val newSpacing = spacing.coerceIn(1.0f, 2.2f)
+        if (newSpacing == questionLineSpacing) return
+        questionLineSpacing = newSpacing
+        scope.launch { fontSettings.setPracticeLineSpacing(newSpacing) }
+    }
+
+    fun applyLetterSpacing(spacing: Float, scope: CoroutineScope) {
+        val newSpacing = spacing.coerceIn(0f, 2.0f)
+        if (newSpacing == questionLetterSpacing) return
+        questionLetterSpacing = newSpacing
+        scope.launch { fontSettings.setPracticeLetterSpacing(newSpacing) }
+    }
+
     fun increaseFont(scope: CoroutineScope) {
         val newSize = (questionFontSize + 2f).coerceAtMost(42f)
         questionFontSize = newSize

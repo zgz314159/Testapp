@@ -17,7 +17,7 @@ fun PracticeDialogsHost(
     onDismissDelete: () -> Unit,
     onConfirmDelete: () -> Unit,
     showExitDialog: Boolean,
-    sessionAnsweredCount: Int,
+    sessionInputCount: Int,
     totalCount: Int,
     onDismissExit: () -> Unit,
     onConfirmExit: () -> Unit,
@@ -59,7 +59,7 @@ fun PracticeDialogsHost(
     PracticeConfirmDialog(
         show = showExitDialog,
         onDismiss = onDismissExit,
-        message = if (sessionAnsweredCount < totalCount) stringResource(R.string.confirm_submit_unfinished) else stringResource(R.string.confirm_submit),
+        message = if (sessionInputCount < totalCount) stringResource(R.string.confirm_submit_unfinished) else stringResource(R.string.confirm_submit),
         confirmLabel = stringResource(R.string.confirm),
         dismissLabel = stringResource(R.string.cancel),
         onConfirm = onConfirmExit

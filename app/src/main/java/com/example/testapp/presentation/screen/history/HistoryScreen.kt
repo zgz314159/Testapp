@@ -12,6 +12,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import java.time.format.DateTimeFormatter
+import com.example.testapp.uicommon.design.AppEmptyState
 import com.example.testapp.uicommon.component.LocalFontSize
 import com.example.testapp.uicommon.component.LocalFontFamily
 
@@ -23,13 +24,9 @@ fun HistoryScreen(viewModel: HistoryViewModel = hiltViewModel()) {
         Text(stringResource(R.string.history_title), modifier = Modifier.align(Alignment.CenterHorizontally), fontSize = LocalFontSize.current, fontFamily = LocalFontFamily.current)
         Spacer(modifier = Modifier.height(16.dp))
         if (historyList.value.isEmpty()) {
-            Text(
-                stringResource(R.string.no_history),
-                style = MaterialTheme.typography.bodyMedium.copy(
-                    fontSize = LocalFontSize.current,
-                    fontFamily = LocalFontFamily.current
-                ),
-                color = MaterialTheme.colorScheme.primary
+            AppEmptyState(
+                message = stringResource(R.string.no_history),
+                modifier = Modifier.weight(1f).fillMaxWidth()
             )
         } else {
             historyList.value.forEachIndexed { idx, record ->

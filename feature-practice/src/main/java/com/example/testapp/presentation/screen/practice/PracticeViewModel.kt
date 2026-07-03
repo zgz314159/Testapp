@@ -1,33 +1,23 @@
-package com.example.testapp.presentation.screen.practice
-
+﻿package com.example.testapp.presentation.screen.practice
 import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.testapp.core.common.FontSettingsRepository
-import com.example.testapp.domain.review.ReviewBrowseSession
-import com.example.testapp.domain.review.ReviewAnsweredSwipePipeline
 import com.example.testapp.presentation.screen.practice.navigation.AnsweredHistoryBackwardResult
 import com.example.testapp.presentation.screen.practice.navigation.AnsweredHistoryForwardResult
 import com.example.testapp.presentation.screen.practice.UnansweredNavResult
-import com.example.testapp.core.common.parsePracticeReviewTarget
 import com.example.testapp.domain.model.*
 import com.example.testapp.domain.usecase.PracticeUseCaseFacade
 import com.example.testapp.domain.usecase.QuestionFlowCache
-import com.example.testapp.domain.QuestionTypes
 import com.example.testapp.core.session.SessionEngine
 import com.example.testapp.core.util.FillQuestionGenerationMode
-import com.example.testapp.core.util.retainCorrectFillAnswerParts
-import com.example.testapp.core.util.resolveFillCorrectAnswer
 import com.example.testapp.uicommon.component.AnswerCardDisplayInfo
 import com.example.testapp.uicommon.component.AnswerCardDisplayInfoPipeline
 import com.example.testapp.uicommon.model.QuestionUiModel
 import dagger.hilt.android.lifecycle.HiltViewModel
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 import javax.inject.Inject
-
 @HiltViewModel
 class PracticeViewModel @Inject constructor(
     private val sessionEngine: SessionEngine,
@@ -48,88 +38,31 @@ class PracticeViewModel @Inject constructor(
     private val navigationCoordinator = PracticeNavigationCoordinator()
     private val questionEditCoordinator = PracticeQuestionEditCoordinator(facade, _sessionState)
     private val noteCoordinator = PracticeNoteCoordinator(facade, _sessionState)
-
-    val questions: StateFlow<List<Question>> = _sessionState.map { it.questions }.stateIn(
-        viewModelScope, SharingStarted.Lazily, emptyList()
-    )
-
-    val uiQuestions: StateFlow<List<QuestionUiModel>> = _sessionState.map { state ->
-        state.questionsWithState.map { questionWithState ->
-            QuestionUiModel(
-                question = questionWithState.question,
-                status = when {
-                    !questionWithState.isAnswered -> AnswerStatus.UNANSWERED
-                    !questionWithState.showResult -> AnswerStatus.UNANSWERED
-                    questionWithState.isCorrect == true -> AnswerStatus.CORRECT
-                    else -> AnswerStatus.INCORRECT
-                },
-                selectedOptions = questionWithState.selectedOptions
-            )
-        }
-    }.stateIn(viewModelScope, SharingStarted.Lazily, emptyList())
-
-    val currentIndex: StateFlow<Int> = _sessionState.map { it.currentIndex }.distinctUntilChanged().stateIn(
-        viewModelScope, SharingStarted.Lazily, 0
-    )
-
-    val sessionAnsweredCountFlow: StateFlow<Int> = _sessionState.map { it.sessionAnsweredCount }
-        .distinctUntilChanged()
-        .stateIn(viewModelScope, SharingStarted.Lazily, 0)
-
-    val sessionCorrectCountFlow: StateFlow<Int> = _sessionState.map { it.sessionCorrectCount }
-        .distinctUntilChanged()
-        .stateIn(viewModelScope, SharingStarted.Lazily, 0)
-
-    val currentQuestionUi: StateFlow<PracticeCurrentQuestionUi?> = _sessionState
-        .map { PracticeCurrentQuestionUiPipeline.snapshot(it) }
-        .distinctUntilChanged()
-        .stateIn(viewModelScope, SharingStarted.Lazily, null)
-
-    val answeredList: StateFlow<List<Int>> = _sessionState.map { it.answeredIndices }.stateIn(
-        viewModelScope, SharingStarted.Lazily, emptyList()
-    )
-
-    val selectedOptions: StateFlow<List<List<Int>>> = _sessionState.map { state ->
-        state.questionsWithState.map { it.selectedOptions }
-    }.stateIn(viewModelScope, SharingStarted.Lazily, emptyList())
-
-    val progressLoaded: StateFlow<Boolean> = _sessionState.map { it.progressLoaded }.stateIn(
-        viewModelScope, SharingStarted.Lazily, false
-    )
-
-    val showResultList: StateFlow<List<Boolean>> = _sessionState.map { state ->
-        state.questionsWithState.map { it.showResult }
-    }.stateIn(viewModelScope, SharingStarted.Lazily, emptyList())
-
-    val analysisList: StateFlow<List<String>> = _sessionState.map { state ->
-        state.questionsWithState.map { it.analysis }
-    }.stateIn(viewModelScope, SharingStarted.Lazily, emptyList())
-
-    val sparkAnalysisList: StateFlow<List<String>> = _sessionState.map { state ->
-        state.questionsWithState.map { it.sparkAnalysis }
-    }.stateIn(viewModelScope, SharingStarted.Lazily, emptyList())
-
-    val baiduAnalysisList: StateFlow<List<String>> = _sessionState.map { state ->
-        state.questionsWithState.map { it.baiduAnalysis }
-    }.stateIn(viewModelScope, SharingStarted.Lazily, emptyList())
-
-    val noteList: StateFlow<List<String>> = _sessionState.map { state ->
-        state.questionsWithState.map { it.note }
-    }.stateIn(viewModelScope, SharingStarted.Lazily, emptyList())
-
-    val textAnswers: StateFlow<List<String>> = _sessionState.map { state ->
-        state.questionsWithState.map { it.textAnswer }
-    }.stateIn(viewModelScope, SharingStarted.Lazily, emptyList())
-
+    private val sessionFlows = PracticeViewModelSessionFlows.create(_sessionState, viewModelScope)
+    val questions = sessionFlows.questions
+    val uiQuestions: StateFlow<List<QuestionUiModel>> = sessionFlows.uiQuestions
+    val currentIndex = sessionFlows.currentIndex
+    val sessionAnsweredCountFlow = sessionFlows.sessionAnsweredCountFlow
+    val sessionCorrectCountFlow = sessionFlows.sessionCorrectCountFlow
+    val hasAnyInputInSessionFlow = sessionFlows.hasAnyInputInSessionFlow
+    val sessionInputCountFlow = sessionFlows.sessionInputCountFlow
+    val currentQuestionUi = sessionFlows.currentQuestionUi
+    val answeredList = sessionFlows.answeredList
+    val selectedOptions = sessionFlows.selectedOptions
+    val progressLoaded = sessionFlows.progressLoaded
+    val showResultList = sessionFlows.showResultList
+    val analysisList = sessionFlows.analysisList
+    val sparkAnalysisList = sessionFlows.sparkAnalysisList
+    val baiduAnalysisList = sessionFlows.baiduAnalysisList
+    val noteList = sessionFlows.noteList
+    val textAnswers = sessionFlows.textAnswers
     val totalCount: Int get() = _sessionState.value.totalCount
     val answeredCount: Int get() = _sessionState.value.answeredCount
     val correctCount: Int get() = _sessionState.value.correctCount
     val wrongCount: Int get() = _sessionState.value.wrongCount
     val unansweredCount: Int get() = _sessionState.value.unansweredCount
-
     private var progressId: String = ""
     val currentProgressId: String get() = progressId
-
     private var questionSourceId: String = ""
     private var randomPracticeEnabled: Boolean = false
     private var activeFillConfig: PracticeFillConfig = PracticeFillConfig.default
@@ -137,9 +70,6 @@ class PracticeViewModel @Inject constructor(
     val reviewModeActive: StateFlow<Boolean> = _reviewModeActive.asStateFlow()
     private val _reviewReady = MutableStateFlow(false)
     val reviewReady: StateFlow<Boolean> = _reviewReady.asStateFlow()
-    private var reviewBrowseSession: ReviewBrowseSession? = null
-    private var reviewAnsweredSwipeOrder: List<Int> = emptyList()
-
     private val progressLifecycle = PracticeProgressLifecycleCoordinator(
         scope = viewModelScope,
         sessionEngine = sessionEngine,
@@ -167,7 +97,15 @@ class PracticeViewModel @Inject constructor(
             )
         }
     )
-
+    private val reviewCoordinator = PracticeReviewSessionCoordinator(
+        sessionState = _sessionState,
+        reviewModeActive = _reviewModeActive,
+        reviewReady = _reviewReady,
+        scope = viewModelScope,
+        progressId = { progressId },
+        loadReviewSession = progressLifecycle::loadReviewSession,
+        scheduleNavigationSave = ::scheduleNavigationSave
+    )
     private val specialQuestionLoader = PracticeSpecialQuestionLoader(
         facade = facade,
         fontSettings = fontSettings,
@@ -177,7 +115,6 @@ class PracticeViewModel @Inject constructor(
         onFillConfigApplied = { activeFillConfig = it },
         loadProgress = progressLifecycle::loadProgress
     )
-
     init {
         navigationCoordinator.randomPracticeEnabled = randomPracticeEnabled
         navigationCoordinator.initPhase4(
@@ -233,73 +170,43 @@ class PracticeViewModel @Inject constructor(
                 activeFillConfig.generationMode == FillQuestionGenerationMode.FULL_ANSWER
             },
             fullAnswerRequireCorrect = { activeFillConfig.fullAnswerRequireCorrect },
+            fullAnswerRandomOrder = { activeFillConfig.fullAnswerRandomOrder },
             memoryModeActive = { false }
         )
         viewModelScope.launch {
             facade.progress.clear("practice_default")
         }
-    }
-
-    fun reloadForFillConfig(questionCount: Int? = null) {
-        progressLifecycle.reloadForFillConfig(
-            questionCount ?: progressLifecycle.lastAppliedQuestionCount()
-        )
-    }
-
-    fun enterReviewSession(targetProgressId: String) {
         viewModelScope.launch {
-            _reviewModeActive.value = true
-            _reviewReady.value = false
-            if (PracticeReviewReusePipeline.canReuse(progressId, targetProgressId, _sessionState.value)) {
-                applyReviewPresentation()
-                return@launch
-            }
-            val target = parsePracticeReviewTarget(targetProgressId)
-            progressLifecycle.loadReviewSession(
-                targetProgressId = target.progressId,
-                sourceId = target.quizFileName,
-                questionCount = target.questionCount,
-                wrongBook = target.isWrongBookMode,
-                favorite = target.isFavoriteMode
-            ) {
-                applyReviewPresentation()
+            var prevIndex = _sessionState.value.currentIndex
+            _sessionState.collect { state ->
+                val cur = state.currentIndex
+                if (cur != prevIndex) {
+                    PracticeJumpDebugLog.sessionIndexMutation(
+                        prevIndex,
+                        cur,
+                        Exception().stackTraceToString().take(1200)
+                    )
+                    prevIndex = cur
+                }
             }
         }
     }
-
-    private suspend fun applyReviewPresentation() {
-        val state = _sessionState.value
-        val prepared = withContext(Dispatchers.Default) {
-            PracticeReviewPresentationPipeline.prepare(state)
-        }
-        reviewBrowseSession = prepared.reviewBrowseSession
-        reviewAnsweredSwipeOrder = prepared.reviewAnsweredSwipeOrder
-        _sessionState.value = state.copy(
-            questionsWithState = prepared.questionsWithState,
-            currentIndex = prepared.currentIndex,
-            progressLoaded = true
+    fun reloadForFillConfig(questionCount: Int? = null, initKey: String? = null) {
+        progressLifecycle.reloadForFillConfig(
+            questionCount ?: progressLifecycle.lastAppliedQuestionCount(),
+            initKey
         )
-        _reviewReady.value = true
     }
-
-    fun canReviewBrowseBack(): Boolean = reviewBrowseSession?.canStepBack() == true
-
-    fun canReviewBrowseForward(): Boolean = reviewBrowseSession?.canStepForward() == true
-
-    private fun tryNavigateReviewBrowse(delta: Int): Boolean {
-        val session = reviewBrowseSession ?: return false
-        val stepped = session.step(delta) ?: return true
-        reviewBrowseSession = stepped
-        _sessionState.update { it.copy(currentIndex = stepped.currentIndex) }
-        scheduleNavigationSave()
-        return true
-    }
-
+    fun shouldReloadForQuizInit(initKey: String): Boolean =
+        progressLifecycle.shouldReloadForQuizInit(initKey)
+    fun enterReviewSession(targetProgressId: String) =
+        reviewCoordinator.enterReviewSession(targetProgressId)
+    fun canReviewBrowseBack(): Boolean = reviewCoordinator.canReviewBrowseBack()
+    fun canReviewBrowseForward(): Boolean = reviewCoordinator.canReviewBrowseForward()
     fun setRandomPractice(enabled: Boolean) {
         randomPracticeEnabled = enabled
         navigationCoordinator.randomPracticeEnabled = enabled
     }
-
     fun setProgressId(
         id: String,
         questionsId: String = id,
@@ -307,72 +214,65 @@ class PracticeViewModel @Inject constructor(
         questionCount: Int = 0,
         random: Boolean = randomPracticeEnabled
     ) = progressLifecycle.setProgressId(id, questionsId, loadQuestions, questionCount, random)
-
     fun answerQuestion(option: Int) {
         stateUpdater.answerQuestion(option)
     }
-
     fun toggleOption(option: Int) {
         stateUpdater.toggleOption(option)
     }
-
     fun updateTextAnswer(answer: String) {
         stateUpdater.updateTextAnswer(answer)
     }
-
     fun nextQuestion() {
-        if (tryNavigateReviewBrowse(1)) return
-        Log.d("JUMP_DEBUG", "[nextQuestion] called, stack: ${Exception().stackTraceToString().take(500)}")
+        if (reviewCoordinator.tryNavigateReviewBrowse(1)) return
+        PracticeJumpDebugLog.vmNextQuestion(_sessionState.value.currentIndex)
         navigationCoordinator.nextQuestion()
     }
-
     fun prevQuestionViaIcon(): UnansweredNavResult {
-        if (tryNavigateReviewBrowse(-1)) return UnansweredNavResult.Navigated
+        if (reviewCoordinator.tryNavigateReviewBrowse(-1)) return UnansweredNavResult.Navigated
+        val idx = _sessionState.value.currentIndex
+        val qws = _sessionState.value.questionsWithState.getOrNull(idx)
+        PracticeFullAnswerIconNavDebugLog.tapEntry(
+            forward = false,
+            source = "VM.prevQuestionViaIcon",
+            detail = "idx=$idx fullAnswer=$isFullAnswerMode textLen=${qws?.textAnswer?.length ?: 0} " +
+                "showResult=${qws?.showResult} id=${_sessionState.value.questions.getOrNull(idx)?.id}"
+        )
         return navigationCoordinator.prevQuestionViaIcon()
     }
-
     fun nextQuestionViaIcon(): UnansweredNavResult {
-        if (tryNavigateReviewBrowse(1)) return UnansweredNavResult.Navigated
+        if (reviewCoordinator.tryNavigateReviewBrowse(1)) return UnansweredNavResult.Navigated
+        val idx = _sessionState.value.currentIndex
+        val qws = _sessionState.value.questionsWithState.getOrNull(idx)
+        PracticeFullAnswerIconNavDebugLog.tapEntry(
+            forward = true,
+            source = "VM.nextQuestionViaIcon",
+            detail = "idx=$idx fullAnswer=$isFullAnswerMode textLen=${qws?.textAnswer?.length ?: 0} " +
+                "showResult=${qws?.showResult} id=${_sessionState.value.questions.getOrNull(idx)?.id}"
+        )
         return navigationCoordinator.nextQuestionViaIcon()
     }
-
+    fun prevQuestionViaIconDoubleClick(): Boolean =
+        navigationCoordinator.prevQuestionViaIconDoubleClick()
+    fun nextQuestionViaIconDoubleClick(): Boolean =
+        navigationCoordinator.nextQuestionViaIconDoubleClick()
     fun canNavigateToPrevUnanswered(): Boolean =
         navigationCoordinator.canNavigateToPrevUnanswered() ||
             (isFullAnswerMode && navigationCoordinator.canSkipToUnansweredSource(forward = false))
-
     fun canNavigateToNextUnanswered(): Boolean =
         navigationCoordinator.canNavigateToNextUnanswered() ||
             (isFullAnswerMode && navigationCoordinator.canSkipToUnansweredSource(forward = true))
-
     fun hasPendingQuestions(): Boolean = answerHandler.hasPendingQuestions(
         _sessionState.value.questionsWithState,
         fullAnswerModeActive = activeFillConfig.generationMode == FillQuestionGenerationMode.FULL_ANSWER,
         fullAnswerRequireCorrect = activeFillConfig.fullAnswerRequireCorrect
     )
-
     fun prevQuestion() {
-        if (tryNavigateReviewBrowse(-1)) return
+        if (reviewCoordinator.tryNavigateReviewBrowse(-1)) return
     }
-
     fun isInAnsweredHistory(): Boolean = navigationCoordinator.isInAnsweredHistory
-
     fun browseAnsweredHistoryOlder(): AnsweredHistoryBackwardResult {
-        if (reviewBrowseSession != null) {
-            val ordered = reviewAnsweredSwipeOrder
-            if (ordered.isEmpty()) return AnsweredHistoryBackwardResult.NoMoreHistory
-            val currentIndex = _sessionState.value.currentIndex
-            val target = ReviewAnsweredSwipePipeline.resolveOlderIndex(ordered, currentIndex)
-            if (target == null) {
-                return if (ReviewAnsweredSwipePipeline.isAtOldest(ordered, currentIndex)) {
-                    AnsweredHistoryBackwardResult.AtOldestAnswered
-                } else {
-                    AnsweredHistoryBackwardResult.NoMoreHistory
-                }
-            }
-            _sessionState.update { it.copy(currentIndex = target) }
-            scheduleNavigationSave()
-            return AnsweredHistoryBackwardResult.Navigated
-        }
+        reviewCoordinator.browseAnsweredHistoryOlder()?.let { return it }
         val result = navigationCoordinator.browseAnsweredHistoryOlder()
         android.util.Log.d(
             "PracticeHistorySwipe",
@@ -380,20 +280,8 @@ class PracticeViewModel @Inject constructor(
         )
         return result
     }
-
     fun browseAnsweredHistoryNewer(): AnsweredHistoryForwardResult {
-        if (reviewBrowseSession != null) {
-            val ordered = reviewAnsweredSwipeOrder
-            if (ordered.isEmpty()) return AnsweredHistoryForwardResult.AtLatestAnswered
-            val currentIndex = _sessionState.value.currentIndex
-            val target = ReviewAnsweredSwipePipeline.resolveNewerIndex(ordered, currentIndex)
-            if (target == null) {
-                return AnsweredHistoryForwardResult.AtLatestAnswered
-            }
-            _sessionState.update { it.copy(currentIndex = target) }
-            scheduleNavigationSave()
-            return AnsweredHistoryForwardResult.Navigated
-        }
+        reviewCoordinator.browseAnsweredHistoryNewer()?.let { return it }
         val result = navigationCoordinator.browseAnsweredHistoryNewer()
         android.util.Log.d(
             "PracticeHistorySwipe",
@@ -401,48 +289,39 @@ class PracticeViewModel @Inject constructor(
         )
         return result
     }
-
-    fun goToQuestion(index: Int) {
+    fun goToQuestion(index: Int, source: String = "goToQuestion") {
+        val from = _sessionState.value.currentIndex
+        if (from != index) {
+            PracticeJumpDebugLog.vmGoToQuestion(from, index, source)
+        }
         navigationCoordinator.goToQuestion(index)
     }
-
     val isFullAnswerMode: Boolean
         get() = activeFillConfig.generationMode == FillQuestionGenerationMode.FULL_ANSWER
-
     fun canSkipToUnansweredSource(forward: Boolean): Boolean =
         navigationCoordinator.canSkipToUnansweredSource(forward)
-
     fun skipToUnansweredSource(forward: Boolean): SkipUnansweredSourceResult =
         navigationCoordinator.skipToUnansweredSource(forward)
-
     fun canSkipToAdjacentSource(forward: Boolean): Boolean = canSkipToUnansweredSource(forward)
-
     fun skipToAdjacentSource(forward: Boolean) = skipToUnansweredSource(forward)
-
     fun buildAnswerCardDisplayInfo(questions: List<Question>): Map<Int, AnswerCardDisplayInfo> =
         AnswerCardDisplayInfoPipeline.build(
             sessionQuestions = questions,
             sourceCatalog = progressLifecycle.sourceCatalog(),
             fullAnswerMode = isFullAnswerMode
         )
-
     fun answerCardEntryGrouped(questions: List<Question>): Boolean =
         AnswerCardDisplayInfoPipeline.useEntryGroupedLayout(
             buildAnswerCardDisplayInfo(questions),
             isFullAnswerMode
         )
-
     fun saveProgress() = progressLifecycle.saveProgress()
-
     fun scheduleNavigationSave() = progressLifecycle.scheduleNavigationSave()
-
     fun clearProgress() = progressLifecycle.clearProgress()
-
     fun updateShowResult(index: Int, value: Boolean) {
         stateUpdater.updateShowResult(index, value)
         if (value) rememberAnsweredHistorySnapshot(index)
     }
-
     fun revealShowResult(index: Int) {
         stateUpdater.revealShowResult(index)
         viewModelScope.launch {
@@ -450,7 +329,17 @@ class PracticeViewModel @Inject constructor(
             saveProgress()
         }
     }
-
+    /** 浜ゅ嵎纭锛氭壒閲?reveal 鏈夎緭鍏ユ湭鎵规敼鐨勯锛屽苟鍐欏叆鍘嗗彶蹇収銆?*/
+    suspend fun gradeSessionOnSubmit(): PracticeSessionGradeSnapshot {
+        val revealed = stateUpdater.revealAllInputAnswers()
+        revealed.forEach { index -> rememberAnsweredHistorySnapshot(index) }
+        val state = _sessionState.value
+        return PracticeSessionGradeSnapshot(
+            sessionCorrectCount = state.sessionCorrectCount,
+            sessionAnsweredCount = state.sessionAnsweredCount,
+            answeredCount = state.answeredCount
+        )
+    }
     fun retryCurrentQuestion(index: Int) {
         val state = _sessionState.value
         if (index !in state.questionsWithState.indices) return
@@ -463,7 +352,6 @@ class PracticeViewModel @Inject constructor(
         )
         saveProgress()
     }
-
     fun retryWrongBlanks(index: Int) {
         val state = _sessionState.value
         if (index !in state.questionsWithState.indices) return
@@ -476,19 +364,15 @@ class PracticeViewModel @Inject constructor(
         )
         saveProgress()
     }
-
     fun updateAnalysis(index: Int, text: String) {
         stateUpdater.updateAnalysis(index, text)
     }
-
     fun updateSparkAnalysis(index: Int, text: String) {
         stateUpdater.updateSparkAnalysis(index, text)
     }
-
     fun updateBaiduAnalysis(index: Int, text: String) {
         stateUpdater.updateBaiduAnalysis(index, text)
     }
-
     fun addHistoryRecord(score: Int, total: Int, unanswered: Int) {
         viewModelScope.launch {
             val id = "practice_${questionSourceId}"
@@ -496,15 +380,12 @@ class PracticeViewModel @Inject constructor(
             if (actualAnswered > 0) facade.history.add(HistoryRecord(score, total, unanswered, id))
         }
     }
-
     fun saveNote(questionId: Int, index: Int, text: String) {
         viewModelScope.launch { facade.notes.save(questionId, text) }
         noteCoordinator.saveNoteLocally(index, text)
     }
-
     suspend fun saveNoteAndWait(questionId: Int, index: Int, text: String): Boolean =
         noteCoordinator.saveNoteAndWait(questionId, index, text)
-
     fun appendNote(questionId: Int, index: Int, text: String) {
         viewModelScope.launch {
             try {
@@ -512,12 +393,9 @@ class PracticeViewModel @Inject constructor(
             } catch (_: Exception) { }
         }
     }
-
     suspend fun appendNoteSuspend(questionId: Int, index: Int, text: String): Unit =
         noteCoordinator.appendNote(questionId, index, text)
-
     suspend fun getNote(questionId: Int): String? = noteCoordinator.getNote(questionId)
-
     fun updateQuestionContent(index: Int, newContent: String) {
         val currentState = _sessionState.value
         if (index in currentState.questionsWithState.indices) {
@@ -532,7 +410,6 @@ class PracticeViewModel @Inject constructor(
             }
         }
     }
-
     fun updateQuestionAllFields(index: Int, newContent: String, newOptions: List<String>, newAnswer: String, newExplanation: String) {
         val currentState = _sessionState.value
         if (index in currentState.questionsWithState.indices) {
@@ -551,7 +428,6 @@ class PracticeViewModel @Inject constructor(
             }
         }
     }
-
     fun clearExplanation(index: Int, question: Question) {
         val currentState = _sessionState.value
         if (index !in currentState.questionsWithState.indices) return
@@ -566,84 +442,41 @@ class PracticeViewModel @Inject constructor(
             if (existingQuestions.isNotEmpty()) { facade.questions.save(fileName, questionsToSave) }
         }
     }
-
     fun loadWrongQuestions(fileName: String) {
         viewModelScope.launch { specialQuestionLoader.loadWrongQuestions(fileName) }
     }
-
     fun loadFavoriteQuestions(fileName: String) {
         viewModelScope.launch { specialQuestionLoader.loadFavoriteQuestions(fileName) }
     }
-
     val editableQuestion: StateFlow<Question?> = questionEditCoordinator.editableQuestion
     val saveSuccess: StateFlow<Boolean> = questionEditCoordinator.saveSuccess
-
     fun prepareEditableQuestion(questionId: Int) =
         questionEditCoordinator.prepareEditableQuestion(questionId)
-
     fun clearEditableQuestion() =
         questionEditCoordinator.clearEditableQuestion()
-
     suspend fun saveEditedQuestion(edited: Question): Boolean =
         questionEditCoordinator.saveEditedQuestion(edited)
-
     fun indexOfQuestionBySourceId(sourceId: Int?): Int =
         questionEditCoordinator.indexOfQuestionBySourceId(sourceId)
-
     private fun rememberAnsweredHistorySnapshot(index: Int) {
         _sessionState.value.questionsWithState.getOrNull(index)?.let {
             navigationCoordinator.rememberAnsweredHistorySnapshot(it)
         }
     }
-
     private fun reopenQuestionForPendingRetry(index: Int) {
-        val currentState = _sessionState.value
-        if (index !in currentState.questionsWithState.indices) return
-        navigationCoordinator.rememberAnsweredHistorySnapshot(currentState.questionsWithState[index])
-        _sessionState.value = currentState.copy(
-            currentIndex = index,
-            questionsWithState = currentState.questionsWithState.mapIndexed { idx, questionWithState ->
-                if (idx == index) {
-                    questionWithState.copy(showResult = false, sessionAnswerTime = 0L)
-                } else {
-                    questionWithState
-                }
-            }
+        PracticeQuestionReopenPipeline.reopenForPendingRetry(
+            sessionState = _sessionState,
+            index = index,
+            onSnapshot = ::rememberAnsweredHistorySnapshot,
+            onSaved = ::saveProgress
         )
-        saveProgress()
     }
-
     private fun reopenQuestionForFullAnswerRetry(index: Int) {
-        val currentState = _sessionState.value
-        if (index !in currentState.questionsWithState.indices) return
-        navigationCoordinator.rememberAnsweredHistorySnapshot(currentState.questionsWithState[index])
-        val targetQuestion = currentState.questionsWithState[index]
-        _sessionState.value = currentState.copy(
-            currentIndex = index,
-            questionsWithState = currentState.questionsWithState.mapIndexed { idx, questionWithState ->
-                if (idx != index) {
-                    questionWithState
-                } else if (QuestionTypes.isFill(questionWithState.question.type)) {
-                    val retainedAnswer = retainCorrectFillAnswerParts(
-                        userAnswer = targetQuestion.textAnswer,
-                        correctAnswer = resolveFillCorrectAnswer(targetQuestion.question)
-                    )
-                    questionWithState.copy(
-                        textAnswer = retainedAnswer,
-                        selectedOptions = if (retainedAnswer.isNotBlank()) listOf(-1) else emptyList(),
-                        showResult = false,
-                        sessionAnswerTime = 0L
-                    )
-                } else {
-                    questionWithState.copy(
-                        selectedOptions = emptyList(),
-                        textAnswer = "",
-                        showResult = false,
-                        sessionAnswerTime = 0L
-                    )
-                }
-            }
+        PracticeQuestionReopenPipeline.reopenForFullAnswerRetry(
+            sessionState = _sessionState,
+            index = index,
+            onSnapshot = ::rememberAnsweredHistorySnapshot,
+            onSaved = ::saveProgress
         )
-        saveProgress()
     }
 }

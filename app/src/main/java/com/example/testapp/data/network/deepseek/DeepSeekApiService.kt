@@ -73,13 +73,7 @@ class DeepSeekApiService(private val client: HttpClient) {
         complete(DeepSeekChatMessages.build(userContent))
 
     suspend fun analyze(question: Question): String {
-        val prompt = buildString {
-            appendLine(question.content)
-            question.options.forEachIndexed { index, option ->
-                appendLine("${('A' + index)}. $option")
-            }
-            append("请给出正确答案和解析：")
-        }
+        val prompt = DeepSeekExamPromptPipeline.buildAnalyzeUserContent(question)
         return complete(prompt)
     }
 

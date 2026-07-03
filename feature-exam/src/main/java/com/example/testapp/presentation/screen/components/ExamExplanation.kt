@@ -9,6 +9,7 @@ fun ExamExplanation(
     collapsed: Boolean,
     scrollState: androidx.compose.foundation.ScrollState,
     backgroundColor: Color,
+    contentColor: Color,
     onToggle: () -> Unit,
     onDoubleTap: (() -> Unit)? = null
 ) {
@@ -17,6 +18,7 @@ fun ExamExplanation(
         collapsed = collapsed,
         scrollState = scrollState,
         backgroundColor = backgroundColor,
+        contentColor = contentColor,
         onToggle = { onToggle() },
         onDoubleTap = onDoubleTap
     )

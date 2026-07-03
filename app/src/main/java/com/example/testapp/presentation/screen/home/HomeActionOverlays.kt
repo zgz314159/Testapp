@@ -1,32 +1,26 @@
 package com.example.testapp.presentation.screen.home
 
 import android.content.Context
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.LinearProgressIndicator
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.unit.IntSize
-import androidx.compose.ui.unit.dp
 import com.example.testapp.data.datastore.FontSettingsDataStore
 import com.example.testapp.presentation.screen.home.components.HomeDraggingFileOverlay
-import com.example.testapp.uicommon.component.LocalFontFamily
-import com.example.testapp.uicommon.component.LocalFontSize
+import com.example.testapp.uicommon.design.AppLoadingOverlay
+import com.example.testapp.uicommon.design.AppSpacing
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -69,17 +63,23 @@ fun HomeActionOverlays(
     onDismissDeleteFolder: () -> Unit,
     onConfirmDeleteFolder: () -> Unit
 ) {
-    if (isLoading) {
-        Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-            Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                CircularProgressIndicator(progress = { importProgress })
-                Spacer(Modifier.height(8.dp))
-                Text(
-                    "正在处理，请稍后",
-                    fontSize = LocalFontSize.current,
-                    fontFamily = LocalFontFamily.current
-                )
-            }
+    AppLoadingOverlay(visible = isLoading) {
+        if (importProgress > 0f) {
+            CircularProgressIndicator(progress = { importProgress.coerceIn(0f, 1f) })
+        } else {
+            CircularProgressIndicator()
+        }
+        Spacer(modifier = Modifier.height(AppSpacing.sm))
+        Text(
+            text = "正在处理，请稍后",
+            style = MaterialTheme.typography.bodyMedium
+        )
+        if (importProgress > 0f) {
+            Spacer(modifier = Modifier.height(AppSpacing.sm))
+            LinearProgressIndicator(
+                progress = { importProgress.coerceIn(0f, 1f) },
+                modifier = Modifier.fillMaxWidth()
+            )
         }
     }
 
@@ -97,48 +97,36 @@ fun HomeActionOverlays(
     }
 
     if (showSheet) {
-        ModalBottomSheet(onDismissRequest = onDismissSheet) {
-            Column(
-                Modifier
-                    .padding(top = 16.dp, bottom = 28.dp, start = 24.dp, end = 24.dp)
-                    .fillMaxWidth(),
-                horizontalAlignment = Alignment.CenterHorizontally
-            ) {
-                Text(pendingFileName, fontSize = LocalFontSize.current, fontFamily = LocalFontFamily.current)
-                Spacer(Modifier.height(20.dp))
-                Button(
-                    onClick = {
-                        onDismissSheet()
-                        persistHomeSelection(context, pendingFileName, bottomNavIndex)
-                        when (bottomNavIndex) {
-                            0 -> onStartWrongBookQuiz(pendingFileName)
-                            1 -> onStartFavoriteQuiz(pendingFileName)
-                            else -> onStartQuiz(pendingFileName)
-                        }
-                    },
-                    Modifier
-                        .fillMaxWidth()
-                        .height(44.dp)
-                ) { Text("开始练习") }
-                Spacer(Modifier.height(14.dp))
-                Button(
-                    onClick = {
-                        onDismissSheet()
-                        persistHomeSelection(context, pendingFileName, bottomNavIndex)
-                        when (bottomNavIndex) {
-                            0 -> onStartWrongBookExam(pendingFileName)
-                            1 -> onStartFavoriteExam(pendingFileName)
-                            else -> onStartExam(pendingFileName)
-                        }
-                    },
-                    Modifier
-                        .fillMaxWidth()
-                        .height(44.dp)
-                ) { Text("开始考试") }
-                Spacer(Modifier.height(12.dp))
-                TextButton(onClick = onDismissSheet, Modifier.fillMaxWidth()) { Text("取消") }
+        HomeStartQuizSheet(
+            visible = true,
+            pendingFileName = pendingFileName,
+            bottomNavIndex = bottomNavIndex,
+            onDismiss = onDismissSheet,
+            onStartQuiz = { name ->
+                persistHomeSelection(context, name, bottomNavIndex)
+                onStartQuiz(name)
+            },
+            onStartExam = { name ->
+                persistHomeSelection(context, name, bottomNavIndex)
+                onStartExam(name)
+            },
+            onStartWrongBookQuiz = { name ->
+                persistHomeSelection(context, name, bottomNavIndex)
+                onStartWrongBookQuiz(name)
+            },
+            onStartWrongBookExam = { name ->
+                persistHomeSelection(context, name, bottomNavIndex)
+                onStartWrongBookExam(name)
+            },
+            onStartFavoriteQuiz = { name ->
+                persistHomeSelection(context, name, bottomNavIndex)
+                onStartFavoriteQuiz(name)
+            },
+            onStartFavoriteExam = { name ->
+                persistHomeSelection(context, name, bottomNavIndex)
+                onStartFavoriteExam(name)
             }
-        }
+        )
     }
 
     HomeDialogs(

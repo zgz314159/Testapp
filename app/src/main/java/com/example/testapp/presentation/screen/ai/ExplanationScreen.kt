@@ -37,6 +37,7 @@ import com.example.testapp.R
 import com.example.testapp.data.datastore.FontSettingsDataStore
 import com.example.testapp.presentation.screen.settings.SettingsViewModel
 import com.example.testapp.uicommon.component.LocalFontFamily
+import com.example.testapp.uicommon.layout.ArtifactFullscreenShell
 import kotlinx.coroutines.launch
 
 @Composable
@@ -87,25 +88,8 @@ fun ExplanationScreen(
         navController?.popBackStack()
     }
 
-    Box(modifier = Modifier.fillMaxSize()) {
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .verticalScroll(rememberScrollState())
-                .padding(16.dp)
-        ) {
-            Text(
-                text = text,
-                style = TextStyle(
-                    fontSize = screenFontSize.sp,
-                    fontFamily = LocalFontFamily.current,
-                    lineHeight = (screenFontSize * screenLineSpacing).sp,
-                    letterSpacing = screenLetterSpacing.sp
-                )
-            )
-        }
-
-        Box(modifier = Modifier.align(Alignment.TopEnd)) {
+    ArtifactFullscreenShell(
+        topEndActions = {
             IconButton(onClick = { menuExpanded = true }) {
                 Icon(Icons.Filled.MoreVert, contentDescription = settingsText)
             }
@@ -128,6 +112,23 @@ fun ExplanationScreen(
                     menuExpanded = false
                 })
             }
+        }
+    ) { contentModifier ->
+        Column(
+            modifier = contentModifier
+                .fillMaxSize()
+                .verticalScroll(rememberScrollState())
+                .padding(16.dp)
+        ) {
+            Text(
+                text = text,
+                style = TextStyle(
+                    fontSize = screenFontSize.sp,
+                    fontFamily = LocalFontFamily.current,
+                    lineHeight = (screenFontSize * screenLineSpacing).sp,
+                    letterSpacing = screenLetterSpacing.sp
+                )
+            )
         }
     }
 }

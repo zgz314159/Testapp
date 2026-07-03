@@ -7,6 +7,6 @@ object PracticeSubmitFlow {
         data object ShowSubmitDialog : Action()
     }
 
-    fun resolve(answeredThisSession: Boolean): Action =
-        if (answeredThisSession) Action.ShowSubmitDialog else Action.ExitWithoutAnswer
+    fun resolve(answeredThisSession: Boolean, hasAnyInputInSession: Boolean): Action =
+        if (answeredThisSession || hasAnyInputInSession) Action.ShowSubmitDialog else Action.ExitWithoutAnswer
 }
