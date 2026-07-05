@@ -5,13 +5,12 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import com.example.testapp.domain.model.Question
 import com.example.testapp.feature.practice.R
 import com.example.testapp.uicommon.component.LocalFontFamily
 import com.example.testapp.uicommon.component.LocalFontSize
-import com.example.testapp.presentation.screen.practice.localizedQuestionTypeLabel
-import androidx.compose.ui.res.stringResource
-import com.example.testapp.domain.model.Question
 
 @Composable
 fun PracticeProgressIndicator(

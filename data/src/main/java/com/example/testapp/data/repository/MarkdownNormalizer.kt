@@ -1,8 +1,8 @@
 package com.example.testapp.data.repository
 
+import com.example.testapp.core.util.normalizeRichMarkdownStructure
 import com.example.testapp.data.local.dao.QuestionDao
 import com.example.testapp.data.local.entity.QuestionEntity
-import com.example.testapp.core.util.normalizeRichMarkdownStructure
 import com.example.testapp.domain.model.Question
 import com.example.testapp.domain.repository.MarkdownCleanupPreview
 import javax.inject.Inject

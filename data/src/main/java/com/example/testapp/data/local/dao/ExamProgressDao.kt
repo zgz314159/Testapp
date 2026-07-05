@@ -2,10 +2,10 @@ package com.example.testapp.data.local.dao
 
 import androidx.room.Dao
 import androidx.room.Insert
+import androidx.room.OnConflictStrategy
 import androidx.room.Query
 import com.example.testapp.data.local.entity.ExamProgressEntity
 import kotlinx.coroutines.flow.Flow
-import androidx.room.OnConflictStrategy
 
 @Dao
 interface ExamProgressDao {

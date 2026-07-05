@@ -4,9 +4,52 @@ root = true
 charset = utf-8
 end_of_line = lf
 insert_final_newline = true
+indent_size = 4
+indent_style = space
+max_line_length = 120
+trim_trailing_whitespace = true
 
-[*.{kt,kts,java,xml,properties,gradle}]
-charset = utf-8
+[*.{kt,kts}]
+ktlint_standard_no-wildcard-imports = disabled
+ktlint_standard_max-line-length = disabled
+# Jetpack Compose: @Composable 使用 PascalCase
+ktlint_standard_function-naming = disabled
+# Pipeline / 单对象文件命名与类名不一致为项目惯例
+ktlint_standard_filename = disabled
+ktlint_standard_property-naming = disabled
+ktlint_standard_discouraged-comment-location = disabled
+# if-else-wrapping 依赖 discouraged-comment-location，一并关闭
+ktlint_standard_if-else-wrapping = disabled
+# P45 增量收紧：遗留代码未全量 format，先关闭需大规模重排的规则
+ktlint_standard_function-signature = disabled
+ktlint_standard_trailing-comma-on-call-site = disabled
+ktlint_standard_trailing-comma-on-declaration-site = disabled
+ktlint_standard_multiline-expression-wrapping = disabled
+ktlint_standard_argument-list-wrapping = disabled
+ktlint_standard_statement-wrapping = disabled
+ktlint_standard_blank-line-before-declaration = disabled
+ktlint_standard_no-blank-line-in-list = disabled
+ktlint_standard_parameter-list-wrapping = disabled
+ktlint_standard_indent = disabled
+ktlint_standard_no-blank-line-before-rbrace = disabled
+ktlint_standard_no-empty-first-line-in-class-body = disabled
+ktlint_standard_multiline-if-else = disabled
+ktlint_standard_no-empty-first-line-in-method-block = disabled
+ktlint_standard_no-consecutive-blank-lines = disabled
+ktlint_standard_if-else-bracing = disabled
+ktlint_standard_property-wrapping = disabled
+ktlint_standard_annotation = disabled
+ktlint_standard_wrapping = disabled
+ktlint_standard_class-signature = disabled
+ktlint_standard_string-template-indent = disabled
+ktlint_standard_parameter-list-spacing = disabled
+ktlint_standard_spacing-between-declarations-with-comments = disabled
+ktlint_standard_spacing-between-declarations-with-annotations = disabled
+ktlint_standard_annotation-spacing = disabled
+ktlint_standard_modifier-list-spacing = disabled
+ktlint_standard_try-catch-finally-spacing = disabled
+ktlint_standard_parameter-wrapping = disabled
+# 仍强制：import-ordering、no-unused-imports、no-trailing-spaces、final-newline
 
-[*.md]
-charset = utf-8
+[*.gradle.kts]
+ktlint = disabled

@@ -13,7 +13,7 @@ interface ExamHistoryRecordDao {
 
     @Insert
     suspend fun insert(entity: ExamHistoryRecordEntity)
-    
+
     @Query("DELETE FROM exam_history_records WHERE fileName = :fileName")
     suspend fun deleteByFileName(fileName: String)
 }

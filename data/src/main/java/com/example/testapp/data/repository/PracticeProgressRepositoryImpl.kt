@@ -1,7 +1,6 @@
 package com.example.testapp.data.repository
 
 import com.example.testapp.data.local.dao.PracticeProgressDao
-import com.example.testapp.data.local.entity.PracticeProgressEntity
 import com.example.testapp.data.mapper.toDomain
 import com.example.testapp.data.mapper.toEntity
 import com.example.testapp.domain.model.PracticeProgress
@@ -26,11 +25,11 @@ class PracticeProgressRepositoryImpl @Inject constructor(
     }
 
     override suspend fun clearProgress(id: String) {
-        
+
         dao.deleteProgress(id)
-        
+
     }
-    
+
     override suspend fun clearProgressByFileNamePattern(fileNamePattern: String) {
         dao.deleteProgressByFileNamePattern(fileNamePattern)
     }

@@ -6,7 +6,6 @@ import com.example.testapp.domain.QuestionTypes
 import com.example.testapp.domain.model.Question
 import org.apache.poi.xwpf.usermodel.XWPFDocument
 import java.io.File
-
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -61,7 +60,7 @@ class DocxQuestionParser @Inject constructor() : SimpleQuestionFileParser {
                             val picData = pic.pictureData
                             if (picData != null) {
                                 val ext = picData.suggestFileExtension() ?: "png"
-                                val imgFile = File(imageDir, "img_${globalPictureIndex}.$ext")
+                                val imgFile = File(imageDir, "img_$globalPictureIndex.$ext")
                                 imgFile.writeBytes(picData.data)
                                 paragraphPicturesMap.getOrPut(pIdx) { mutableListOf() }.add(imgFile.absolutePath)
                                 globalPictureIndex++

@@ -14,5 +14,6 @@ data class QuestionEntity(
     val isFavorite: Boolean = false,
     val isWrong: Boolean = false,
     val fileName: String? = null,
-    val stemImages: String = "[]" // JSON: List<String>
+    // JSON: List<String>
+    val stemImages: String = "[]",
 )

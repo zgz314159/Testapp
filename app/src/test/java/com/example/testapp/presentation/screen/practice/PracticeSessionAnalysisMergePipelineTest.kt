@@ -1,9 +1,9 @@
 package com.example.testapp.presentation.screen.practice
 
-import org.junit.Assert.assertEquals
-import org.junit.Test
 import com.example.testapp.domain.model.Question
 import com.example.testapp.domain.model.QuestionWithState
+import org.junit.Assert.assertEquals
+import org.junit.Test
 
 class PracticeSessionAnalysisMergePipelineTest {
 

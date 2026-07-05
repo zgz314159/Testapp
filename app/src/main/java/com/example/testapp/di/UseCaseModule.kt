@@ -1,10 +1,10 @@
 package com.example.testapp.di
 
+import com.example.testapp.domain.repository.QuestionRepository
 import com.example.testapp.domain.usecase.AddExamHistoryRecordUseCase
 import com.example.testapp.domain.usecase.AddWrongQuestionUseCase
-import com.example.testapp.domain.usecase.GradeExamUseCase
-import com.example.testapp.domain.repository.QuestionRepository
 import com.example.testapp.domain.usecase.GetQuestionsUseCase
+import com.example.testapp.domain.usecase.GradeExamUseCase
 import com.example.testapp.domain.usecase.QuestionFlowCache
 import dagger.Module
 import dagger.Provides

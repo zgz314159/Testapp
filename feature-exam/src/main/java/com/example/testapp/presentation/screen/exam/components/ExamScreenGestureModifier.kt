@@ -6,10 +6,12 @@ import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.input.pointer.positionChange
+import com.example.testapp.domain.session.SessionCommand
 import com.example.testapp.presentation.screen.exam.ExamEdgeSwipePipeline
 import com.example.testapp.presentation.screen.exam.ExamGestureNavigator
 import com.example.testapp.presentation.screen.exam.ExamReviewSwipeOutcome
-import com.example.testapp.presentation.screen.exam.ExamViewModel
+import com.example.testapp.presentation.session.exam.ExamCommandOutcome
+import com.example.testapp.presentation.session.exam.ExamScreenBindings
 import com.example.testapp.uicommon.design.QuestionSessionHistorySwipeDirection
 import com.example.testapp.uicommon.design.QuestionSessionHistorySwipePipeline
 
@@ -19,13 +21,14 @@ fun Modifier.examScreenGesture(
     timer: com.example.testapp.presentation.screen.exam.ExamAutoAdvanceTimer,
     isReviewMode: Boolean,
     answeredThisSession: Boolean,
-    viewModel: ExamViewModel,
+    bindings: ExamScreenBindings,
+    dispatchCommand: (SessionCommand) -> ExamCommandOutcome?,
     clearFocus: () -> Unit,
     context: android.content.Context,
     atOldestText: String,
     atLatestText: String,
     onExitWithoutAnswer: () -> Unit,
-    onPromptSubmit: () -> Unit
+    onPromptSubmit: () -> Unit,
 ): Modifier = pointerInput(currentIndex, gesture.containerWidth) {
     awaitEachGesture {
         val down = awaitFirstDown(requireUnconsumed = false)
@@ -52,16 +55,23 @@ fun Modifier.examScreenGesture(
             clearFocus()
             when (swipe) {
                 QuestionSessionHistorySwipeDirection.Older -> {
-                    when (viewModel.browseReviewAnsweredOlder()) {
+                    when (
+                        (dispatchCommand(SessionCommand.BrowseAnsweredHistoryOlder) as? ExamCommandOutcome.ReviewHistoryOlder)
+                            ?.result
+                    ) {
                         ExamReviewSwipeOutcome.AtOldest,
-                        ExamReviewSwipeOutcome.NoHistory -> {
+                        ExamReviewSwipeOutcome.NoHistory,
+                        -> {
                             Toast.makeText(context, atOldestText, Toast.LENGTH_SHORT).show()
                         }
                         else -> Unit
                     }
                 }
                 QuestionSessionHistorySwipeDirection.Newer -> {
-                    when (viewModel.browseReviewAnsweredNewer()) {
+                    when (
+                        (dispatchCommand(SessionCommand.BrowseAnsweredHistoryNewer) as? ExamCommandOutcome.ReviewHistoryNewer)
+                            ?.result
+                    ) {
                         ExamReviewSwipeOutcome.AtLatest -> {
                             Toast.makeText(context, atLatestText, Toast.LENGTH_SHORT).show()
                         }
@@ -80,20 +90,20 @@ fun Modifier.examScreenGesture(
             }
         } else when (swipe) {
             QuestionSessionHistorySwipeDirection.Older -> {
-                if (viewModel.canGoPrevSequential()) {
+                if (bindings.canGoPrevSequential()) {
                     clearFocus()
-                    viewModel.prevQuestionSequential()
+                    dispatchCommand(SessionCommand.NavPrevSequential)
                 }
             }
             QuestionSessionHistorySwipeDirection.Newer -> {
                 clearFocus()
-                if (viewModel.canGoNextSequential()) {
-                    viewModel.nextQuestionSequential()
+                if (bindings.canGoNextSequential()) {
+                    dispatchCommand(SessionCommand.NavNextSequential)
                 } else {
                     when (
                         ExamEdgeSwipePipeline.resolveForwardSwipe(
                             answeredThisSession = answeredThisSession,
-                            canNavigateNext = false
+                            canNavigateNext = false,
                         )
                     ) {
                         ExamEdgeSwipePipeline.ForwardAction.ExitWithoutAnswer -> onExitWithoutAnswer()

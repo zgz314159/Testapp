@@ -1,10 +1,6 @@
 ﻿package com.example.testapp.presentation.screen.practice
 
-import com.example.testapp.core.common.buildExamProgressId
-import com.example.testapp.core.common.buildPracticeProgressId
-import com.example.testapp.core.common.examProgressBaseId
 import com.example.testapp.core.common.practiceProgressBaseId
-import com.example.testapp.core.common.stripProgressScope
 import com.example.testapp.domain.model.PracticeProgress
 
 fun practiceProgressMatchesFile(progressId: String, fileName: String): Boolean {

@@ -7,7 +7,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.rotate
-import androidx.compose.ui.unit.dp
 
 /** M3 惯例：ExpandMore + 0°/180° 旋转表示折叠/展开（滚动列表内不做动画，避免掉帧）。 */
 @Composable

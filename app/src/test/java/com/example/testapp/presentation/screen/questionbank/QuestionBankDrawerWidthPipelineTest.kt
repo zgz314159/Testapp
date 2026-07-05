@@ -1,5 +1,6 @@
 package com.example.testapp.presentation.screen.questionbank
 
+import com.example.testapp.uicommon.screen.questionbank.resolveQuestionBankDrawerWidth
 import org.junit.Assert.assertEquals
 import org.junit.Test
 

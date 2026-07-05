@@ -2,10 +2,10 @@ package com.example.testapp.data.session
 
 import com.example.testapp.core.session.SessionAnalysisLoader
 import com.example.testapp.domain.model.QuestionWithState
-import com.example.testapp.domain.usecase.GetQuestionAnalysisUseCase
-import com.example.testapp.domain.usecase.GetSparkAnalysisUseCase
 import com.example.testapp.domain.usecase.GetBaiduAnalysisUseCase
+import com.example.testapp.domain.usecase.GetQuestionAnalysisUseCase
 import com.example.testapp.domain.usecase.GetQuestionNoteUseCase
+import com.example.testapp.domain.usecase.GetSparkAnalysisUseCase
 import javax.inject.Inject
 import javax.inject.Singleton
 

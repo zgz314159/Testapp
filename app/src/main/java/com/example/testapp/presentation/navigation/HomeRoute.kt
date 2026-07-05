@@ -1,0 +1,52 @@
+package com.example.testapp.presentation.navigation
+
+import androidx.compose.runtime.Composable
+import androidx.hilt.navigation.compose.hiltViewModel
+import com.example.testapp.presentation.screen.file.DragDropViewModel
+import com.example.testapp.presentation.screen.file.FileFolderViewModel
+import com.example.testapp.presentation.screen.home.HomeScreen
+import com.example.testapp.presentation.screen.home.HomeViewModel
+import com.example.testapp.presentation.screen.questionbank.QuestionBankDrawerViewModel
+import com.example.testapp.presentation.screen.settings.SettingsViewModel
+
+/** `:app` 薄路由 — 注入仅留 app 的 VM 绑定，UI 在 `:feature-practice`。 */
+@Composable
+fun HomeRoute(
+    onStartQuiz: (quizId: String) -> Unit = {},
+    onBrowseQuestion: (fileName: String, questionId: Int) -> Unit = { fileName, _ -> onStartQuiz(fileName) },
+    onEditQuestion: (fileName: String, questionId: Int) -> Unit = { _, _ -> },
+    onStartExam: (quizId: String) -> Unit = {},
+    onSettings: () -> Unit = {},
+    onViewQuestionDetail: (quizId: String) -> Unit = {},
+    onWrongBook: (fileName: String) -> Unit = {},
+    onFavoriteBook: (fileName: String) -> Unit = {},
+    onViewResult: (fileName: String) -> Unit = {},
+    onStartWrongBookQuiz: (fileName: String) -> Unit = {},
+    onStartWrongBookExam: (fileName: String) -> Unit = {},
+    onStartFavoriteQuiz: (fileName: String) -> Unit = {},
+    onStartFavoriteExam: (fileName: String) -> Unit = {},
+    onHistory: () -> Unit = {},
+    settingsViewModel: SettingsViewModel,
+) {
+    HomeScreen(
+        viewModel = hiltViewModel(),
+        folderViewModel = hiltViewModel(),
+        dragViewModel = hiltViewModel(),
+        drawerViewModel = hiltViewModel(),
+        settingsViewModel = settingsViewModel,
+        onStartQuiz = onStartQuiz,
+        onBrowseQuestion = onBrowseQuestion,
+        onEditQuestion = onEditQuestion,
+        onStartExam = onStartExam,
+        onSettings = onSettings,
+        onViewQuestionDetail = onViewQuestionDetail,
+        onWrongBook = onWrongBook,
+        onFavoriteBook = onFavoriteBook,
+        onViewResult = onViewResult,
+        onStartWrongBookQuiz = onStartWrongBookQuiz,
+        onStartWrongBookExam = onStartWrongBookExam,
+        onStartFavoriteQuiz = onStartFavoriteQuiz,
+        onStartFavoriteExam = onStartFavoriteExam,
+        onHistory = onHistory,
+    )
+}

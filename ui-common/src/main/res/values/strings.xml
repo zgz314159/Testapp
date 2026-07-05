@@ -22,4 +22,8 @@
     <string name="uicommon_typography_letter_spacing">字间距</string>
     <string name="uicommon_typography_settings">排版设置…</string>
     <string name="uicommon_edit_current_question">编辑当前题目</string>
+    <string name="uicommon_label_total_questions">总题数</string>
+    <string name="uicommon_label_wrong_questions">错题数</string>
+    <string name="uicommon_label_favorite_count">收藏数</string>
+    <string name="uicommon_label_progress_count">进度数</string>
 </resources>

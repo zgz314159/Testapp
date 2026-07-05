@@ -10,13 +10,13 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.testapp.domain.QuestionTypes
 import com.example.testapp.domain.model.Question
-import com.example.testapp.uicommon.component.LocalFontFamily
 import com.example.testapp.presentation.screen.components.ExamOptionsList
-import com.example.testapp.presentation.screen.components.InlineBlankQuestionContent
 import com.example.testapp.presentation.screen.components.FillBlankAnswerField
+import com.example.testapp.presentation.screen.components.InlineBlankQuestionContent
 import com.example.testapp.presentation.screen.components.StemContent
-import com.example.testapp.uicommon.component.StemImagesSection
 import com.example.testapp.presentation.screen.components.TextAnswerQuestionContent
+import com.example.testapp.uicommon.component.LocalFontFamily
+import com.example.testapp.uicommon.component.StemImagesSection
 
 @Composable
 fun PracticeQuestionContent(

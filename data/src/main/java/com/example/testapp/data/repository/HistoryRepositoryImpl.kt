@@ -2,25 +2,22 @@ package com.example.testapp.data.repository
 
 import com.example.testapp.data.local.dao.HistoryRecordDao
 import com.example.testapp.data.local.dao.QuestionDao
-import com.example.testapp.data.local.entity.HistoryRecordEntity
 import com.example.testapp.data.mapper.toDomain
 import com.example.testapp.data.mapper.toEntity
 import com.example.testapp.domain.model.HistoryRecord
 import com.example.testapp.domain.repository.HistoryRepository
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.firstOrNull
-import kotlinx.serialization.encodeToString
+import kotlinx.coroutines.flow.map
 import kotlinx.serialization.decodeFromString
+import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
-import javax.inject.Inject
-import java.time.Instant
-import java.time.LocalDateTime
-import java.time.ZoneId
-import org.apache.poi.xssf.usermodel.XSSFWorkbook
+import org.apache.poi.ss.usermodel.DataFormatter
 import org.apache.poi.ss.usermodel.Row
 import org.apache.poi.ss.usermodel.WorkbookFactory
-import org.apache.poi.ss.usermodel.DataFormatter
+import org.apache.poi.xssf.usermodel.XSSFWorkbook
+import java.time.LocalDateTime
+import javax.inject.Inject
 
 class HistoryRepositoryImpl @Inject constructor(
     private val dao: HistoryRecordDao,
@@ -76,7 +73,9 @@ class HistoryRepositoryImpl @Inject constructor(
                 dao.add(r.toEntity())
             }
             records.size
-        } catch (e: Exception) { 0 }
+        } catch (e: Exception) {
+            0
+        }
     }
     override suspend fun exportToFile(file: java.io.File): Boolean {
         return try {
@@ -147,7 +146,11 @@ class HistoryRepositoryImpl @Inject constructor(
                 val score = scoreStr.toIntOrNull() ?: continue
                 val total = totalStr.toIntOrNull() ?: continue
                 val unanswered = unansweredStr.toIntOrNull() ?: 0
-                val time = try { LocalDateTime.parse(timeStr) } catch (_: Exception) { LocalDateTime.now() }
+                val time = try {
+                    LocalDateTime.parse(timeStr)
+                } catch (_: Exception) {
+                    LocalDateTime.now()
+                }
                 records.add(HistoryRecord(score = score, total = total, unanswered = unanswered, time = time))
             }
         }

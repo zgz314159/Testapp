@@ -5,7 +5,6 @@ import com.example.testapp.domain.model.Question
 import com.example.testapp.domain.model.QuestionWithState
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
-import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class PracticeFullAnswerRoundIconNavPipelineTest {

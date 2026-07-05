@@ -1,11 +1,11 @@
 package com.example.testapp.di
 
-import com.example.testapp.domain.usecase.MoveFileToFolderUseCase
+import com.example.testapp.domain.usecase.AddFolderUseCase
+import com.example.testapp.domain.usecase.DeleteFolderUseCase
 import com.example.testapp.domain.usecase.GetFileFoldersUseCase
 import com.example.testapp.domain.usecase.GetFoldersUseCase
-import com.example.testapp.domain.usecase.AddFolderUseCase
+import com.example.testapp.domain.usecase.MoveFileToFolderUseCase
 import com.example.testapp.domain.usecase.RenameFolderUseCase
-import com.example.testapp.domain.usecase.DeleteFolderUseCase
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn

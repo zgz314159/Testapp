@@ -2,7 +2,6 @@ package com.example.testapp.presentation.screen.exam.components
 
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
@@ -13,19 +12,19 @@ import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.sp
-import com.example.testapp.uicommon.component.LocalFontFamily
-import com.example.testapp.uicommon.component.RichText
-import com.example.testapp.domain.QuestionTypes
 import com.example.testapp.core.util.answerToOptionIndices
 import com.example.testapp.core.util.isFillAnswerCorrect
 import com.example.testapp.core.util.resolveDisplayOptions
 import com.example.testapp.core.util.resolveFillCorrectAnswer
+import com.example.testapp.domain.QuestionTypes
 import com.example.testapp.feature.exam.R
 import com.example.testapp.presentation.screen.exam.resolveExamAnswerResultWrongToken
-import com.example.testapp.uicommon.util.buildFillAnswerDisplayParts
+import com.example.testapp.uicommon.component.LocalFontFamily
+import com.example.testapp.uicommon.component.RichText
 import com.example.testapp.uicommon.design.ReadingCollapsibleSection
 import com.example.testapp.uicommon.design.answerFeedbackColors
 import com.example.testapp.uicommon.design.resolveAnswerResultPreviewLine
+import com.example.testapp.uicommon.util.buildFillAnswerDisplayParts
 import com.example.testapp.uicommon.util.stripDrawingTags
 
 @Composable

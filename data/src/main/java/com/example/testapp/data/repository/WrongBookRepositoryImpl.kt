@@ -1,9 +1,9 @@
 package com.example.testapp.data.repository
 
-import com.example.testapp.data.local.dao.QuestionDao
-import com.example.testapp.data.local.dao.WrongQuestionDao
 import com.example.testapp.data.local.dao.QuestionAnalysisDao
+import com.example.testapp.data.local.dao.QuestionDao
 import com.example.testapp.data.local.dao.QuestionNoteDao
+import com.example.testapp.data.local.dao.WrongQuestionDao
 import com.example.testapp.data.local.entity.WrongQuestionEntity
 import com.example.testapp.data.mapper.toDomain
 import com.example.testapp.data.mapper.toEntity
@@ -21,12 +21,12 @@ import kotlinx.coroutines.flow.transformLatest
 import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
-import org.apache.poi.ss.usermodel.Row
-import org.apache.poi.xssf.usermodel.XSSFWorkbook
-import org.apache.poi.ss.usermodel.WorkbookFactory
 import org.apache.poi.ss.usermodel.DataFormatter
-import javax.inject.Inject
+import org.apache.poi.ss.usermodel.Row
+import org.apache.poi.ss.usermodel.WorkbookFactory
+import org.apache.poi.xssf.usermodel.XSSFWorkbook
 import java.io.File
+import javax.inject.Inject
 
 class WrongBookRepositoryImpl @Inject constructor(
     private val dao: WrongQuestionDao,
@@ -74,6 +74,7 @@ class WrongBookRepositoryImpl @Inject constructor(
         dao.add(wrong.toEntity())
     }
     override suspend fun clear() = dao.clear()
+
     // txt/Excel 文件解析，建议与题库格式保持一致，支持批量导入错题
     override suspend fun importFromFile(file: java.io.File): Int {
         return try {
@@ -84,7 +85,7 @@ class WrongBookRepositoryImpl @Inject constructor(
             } catch (_: Exception) {
                 null
             }
-            
+
             if (jsonWrongs != null) {
                 // 处理JSON格式
                 val existingQuestions = questionDao.getAll().firstOrNull() ?: emptyList()
@@ -128,7 +129,7 @@ class WrongBookRepositoryImpl @Inject constructor(
                     qId?.let { questionId ->
                         dao.add(WrongQuestionEntity(questionId = questionId, selected = w.selected))
                         count++
-                        
+
                         // 如果有AI解析数据，插入到分析表
                         aiAnalysis?.let { (deepSeek, spark, baidu) ->
                             if (deepSeek.isNotBlank() || spark.isNotBlank() || baidu.isNotBlank()) {
@@ -340,13 +341,13 @@ class WrongBookRepositoryImpl @Inject constructor(
             }
             val explanation = row.getCell(9)?.let { f.formatCellValue(it) } ?: ""
             val answer = row.getCell(10)?.let { f.formatCellValue(it) } ?: ""
-            
+
             // 读取AI解析数据（新格式）
             val deepSeekAnalysis = row.getCell(11)?.let { f.formatCellValue(it) } ?: ""
             val sparkAnalysis = row.getCell(12)?.let { f.formatCellValue(it) } ?: ""
             val baiduAnalysis = row.getCell(13)?.let { f.formatCellValue(it) } ?: ""
             val note = row.getCell(14)?.let { f.formatCellValue(it) } ?: ""
-            
+
             val aiAnalysis = if (deepSeekAnalysis.isNotBlank() || sparkAnalysis.isNotBlank() || baiduAnalysis.isNotBlank()) {
                 Triple(deepSeekAnalysis, sparkAnalysis, baiduAnalysis)
             } else {
@@ -354,7 +355,7 @@ class WrongBookRepositoryImpl @Inject constructor(
                 val oldAnalysis = row.getCell(11)?.let { f.formatCellValue(it) } ?: ""
                 if (oldAnalysis.isNotBlank()) Triple(oldAnalysis, "", "") else null
             }
-            
+
             val wrongQuestion = WrongQuestion(
                 question = Question(
                     id = 0,
@@ -369,7 +370,7 @@ class WrongBookRepositoryImpl @Inject constructor(
                 ),
                 selected = emptyList()
             )
-            
+
             return Pair(wrongQuestion, aiAnalysis)
         }
 
@@ -381,7 +382,7 @@ class WrongBookRepositoryImpl @Inject constructor(
             }
             val explanation = row.getCell(4)?.let { f.formatCellValue(it) } ?: ""
             val answer = row.getCell(5)?.let { f.formatCellValue(it) } ?: ""
-            
+
             val wrongQuestion = WrongQuestion(
                 question = Question(
                     id = 0,
@@ -396,7 +397,7 @@ class WrongBookRepositoryImpl @Inject constructor(
                 ),
                 selected = emptyList()
             )
-            
+
             return Pair(wrongQuestion, null) // 旧格式不包含AI解析
         }
 

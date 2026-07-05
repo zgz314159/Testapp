@@ -1,9 +1,9 @@
 package com.example.testapp.presentation.screen.practice
 
+import com.example.testapp.core.util.resolveFillCorrectAnswer
+import com.example.testapp.core.util.retainCorrectFillAnswerParts
 import com.example.testapp.domain.QuestionTypes
 import com.example.testapp.domain.model.PracticeSessionState
-import com.example.testapp.core.util.retainCorrectFillAnswerParts
-import com.example.testapp.core.util.resolveFillCorrectAnswer
 import kotlinx.coroutines.flow.MutableStateFlow
 
 /** Reopen / retry question state for full-answer and pending flows. */

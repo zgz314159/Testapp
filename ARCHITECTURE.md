@@ -70,12 +70,14 @@ Even when not separate packages, think in this order:
 
 | Area | Tests |
 |------|--------|
-| Practice VM / navigation / save order | `app/src/test/.../PracticeViewModelTest.kt` |
+| Practice VM / navigation / save order | `PracticeSessionEngineTest.kt` |
 | Home progress aggregation | `HomeViewModelTest.kt` |
 | Scope id helpers | `ProgressScopeTest.kt` |
-| Exam grading | `GradeExamUseCaseTest.kt` |
+| Session / Arch boundaries | `ArchitectureTest.kt`, `core/session/*Test` |
 
-Device-side history routes: partially verified per PRACTICE TODO; **home + atomic-bank persistence smoke still open**.
+**Device smoke (K-001):** [`.ai/K001_DEVICE_SMOKE.md`](.ai/K001_DEVICE_SMOKE.md) — home card persistence + drawer Browse re-entry. **Still open.**
+
+**CI:** `.github/workflows/build.yml` — `ktlintCheck`, session unit tests, `assembleDebug`.
 
 ## Refactor north star (not started in bulk)
 

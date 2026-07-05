@@ -1,12 +1,13 @@
 ---
-description: 架构守门 — 全项目改代码前强制 LOC/管道/拆分检查（Level 6 OS）
+description: 架构守门 — PowerAI Engineering OS Guard 细则（全项目 LOC/管道/拆分）
 alwaysApply: true
 ---
 
 # Architecture Guard（强制 · 全项目生效）
 
-> **适用范围**：整个 Gradle 多模块工程（`:app`、`:feature-*`、`:data`、`:domain`、`:core`、`:ui-common` 等），**不是**仅 `PracticeScreen.kt`。
-> PracticeScreen 只是 Phase 35 起最早落地门禁的样板；同类规则适用于所有 Screen / ViewModel / Parser / 大型 Composable。
+> **与 `.ai/workflows/architecture_guard.md` 同步。**  
+> 入口：`.ai/README.md` | 宪法：`.ai/PROJECT_CONSTITUTION.md`  
+> **适用范围**：整个 Gradle 多模块工程（`:app`、`:feature-*`、`:data`、`:domain`、`:core`、`:ui-common` 等）。
 
 ---
 
@@ -16,109 +17,62 @@ alwaysApply: true
 
 | 优先级 | 文件 | 何时读 |
 |--------|------|--------|
-| 必 read | `.ai/13_ARCHITECTURE_GUARD.md` | **任何**改代码任务 |
-| 必 read | `.ai/loc_audit.md` | **任何**改代码任务 |
+| 必 read | `.ai/workflows/architecture_guard.md` | **任何**改代码任务 |
+| 必 read | `.ai/current/loc_audit.md` | **任何**改代码任务 |
+| 必 read | `.ai/current/current_state.md` | **任何**改代码任务 |
 | 按需 | `.ai/practice_screen_decomposition.md` | 动 `PracticeScreen` / `PracticeScreen*.kt` |
 | 按需 | `.ai/exam_screen_decomposition.md` | 动 `ExamScreenContent` / `ExamScreen*.kt` |
 | 按需 | `.ai/practice_viewmodel_decomposition.md` | 动 `PracticeViewModel` |
-| 按需 | `.ai/navigation_controller_decomposition.md` | 动 `NavigationController` 或练习导航 |
-| 按需 | `.ai/module_map.md` | 不确定模块归属时 |
+| 按需 | `.ai/navigation_controller_decomposition.md` | 动练习导航 |
+| 按需 | `.ai/current/module_map.md` | 不确定模块归属时 |
+| 按需 | `.ai/rules/session_rules.md` | 动 Session / Host / Registry |
+| 按需 | `.ai/rules/compose_rules.md` | 动 Screen / Route |
 
 ### 2. Architecture Placement Review（改前必做）
 
-```markdown
-## Architecture Placement Review — [功能名]
-
-### 模块归属
-- Owner: [ :app | :feature-practice | :feature-exam | :data | :domain | :core | :ui-common ]
-
-### 影响文件
-
-| 文件 | 类型 | 当前 LOC | 预估新增 | 预测合计 | LOC | 职责数 | 依赖 |
-|------|------|----------|----------|----------|-----|--------|------|
-| … | Screen/VM/Pipeline/… | N | +M | N+M | ✅/⚠️/❌ | ≤3? | ≤8? |
-
-### 拆分决策
-- [ ] 预测合计未触红线 → 可直接改
-- [ ] 触红线 → 先写 extraction plan / 新文件清单，**禁止**在超标文件堆代码
-
-### 新代码落点
-| 内容 | 目标路径 |
-|------|----------|
-| 业务判定 / 纯逻辑 | `*Pipeline.kt`（同 feature 或 :core）+ 单测 |
-| UI 区块 / 手势 / 底栏 | `components/<Screen>*.kt` 或 `screen/<area>/*.kt` |
-| 对话框集合 | 已有 `*DialogsHost.kt`，勿在 Screen 复制 |
-| 派生 StateFlow | `*SessionFlows.kt` 或 `*ViewModelSessionFlows.kt` |
-| 复盘 / 进度 / 导航状态 | `*Coordinator.kt`（≤300 行） |
-```
+见 `.ai/workflows/architecture_guard.md` Step 5 模板。
 
 ### 3. 设计原则（五条）
 
-1. **文件单一功能** — 一文件一职责，≤3 个 responsibility  
-2. **短小** — 遵守 LOC 红线；**当前行数 + 预估新增** 触线则先拆再改  
-3. **无状态** — 业务判定放 `*Pipeline.kt`（纯函数 / object），不放 Composable / ViewModel 大块  
-4. **单一数据流** — UI 只订阅 StateFlow；副作用在 VM / Coordinator 一处  
-5. **面向管道** — 新分支逻辑命名 `*Pipeline.kt`，有意义行为补单测  
+见 `.ai/architecture/coding_principles.md`。
 
 ### 4. LOC 红线（全项目 · 改前估算）
 
-| 类型 | 🟢 安全 | 🟡 警告 | 🟠 必须先拆 | 🔴 禁止继续堆 |
-|------|---------|---------|-------------|---------------|
-| Compose Screen | ≤500 | 501–800 | 801+ | >1000 |
-| ViewModel | ≤400 | 401–600 | 601–800 | >800 |
-| Coordinator | ≤300 | 301–500 | 501–600 | >600 |
-| Repository / Parser / 大型 UI 组件 | ≤500 | 501–700 | 701+ | >1000 |
-
-**全仓库硬扫描**：任何 `.kt` 源文件 **>500 行** 即进入 `.ai/loc_audit.md` 待拆清单（见 `scripts/check-loc-over-500.ps1`）。
+见 `.ai/architecture/coding_principles.md` 表格。  
+**全仓库硬扫描**：`scripts/check-loc-over-500.ps1` → `.ai/current/loc_audit.md`。
 
 ### 5. 禁止（全项目）
 
-- 在 **任意** 已 >500 行的文件直接堆新功能（不限 PracticeScreen）  
-- 在 **任意** Screen 内新增 `DialogsHost`、>30 行 inline Composable、大段 LaunchedEffect 业务链  
-- 在 ViewModel 内新增 >20 行 inline `stateIn` / 复盘分支 / 导航 if-else 链（应抽 Coordinator / Pipeline）  
-- 无 Pipeline 的复杂 if/when 业务判定（>15 行纯逻辑）  
-- 跨模块复制粘贴整块 UI（应放 `:ui-common` 或对应 feature `components/`）
+见 `.ai/rules/cursor_rules.md` + `.ai/PROJECT_CONSTITUTION.md`。
 
 ### 6. 完成后验证与文档
 
 ```powershell
-# 必跑 — 全仓库
 scripts/check-loc-over-500.ps1
-
-# 按需 — 触达对应文件时追加
-scripts/check-practice-screen-loc.ps1   # PracticeScreen.kt
-scripts/check-exam-screen-loc.ps1         # ExamScreenContent.kt
-scripts/check-practice-vm-loc.ps1         # PracticeViewModel.kt
+# 按需
+scripts/check-practice-screen-loc.ps1
+scripts/check-exam-screen-loc.ps1
 ```
 
 文档更新（有拆分或 LOC 变化时）：
-- `.ai/change_log.md` — Phase 摘要  
-- `.ai/loc_audit.md` — 超标清单 / 已完成拆分表  
-- `.ai/*_decomposition.md` — 对应屏幕或 VM 的职责表（新建或更新）
+- `.ai/current/change_log.md`
+- `.ai/current/loc_audit.md`
+- `.ai/*_decomposition.md`
 
 ---
 
-## 新 UI / 新逻辑放哪（全项目速查）
+## 新 UI / 新逻辑放哪
 
-| 内容 | 位置 |
-|------|------|
-| 新 Composable 区块 | `…/components/<Screen>*.kt` |
-| 退出 / 导航 / 批改 / 颜色判定 | `…/*Pipeline.kt` + `*Test.kt` |
-| 对话框集合 | `*DialogsHost.kt` |
-| VM 派生流 | `*ViewModelSessionFlows.kt` |
-| 会话 / 复盘 / 进度 | `*Coordinator.kt` |
-| 跨 Practice↔Exam 共享 UI | `:ui-common` |
-| Excel / JSON / 文件解析 | `:data/.../parser/*Pipeline.kt` |
+见 `.ai/architecture/coding_principles.md` 与 `.ai/architecture/module_rules.md`。
 
 ---
 
 ## 用户可复制的一句话指令
 
 ```
-【架构强制 — 先于写代码执行】
-1. 先读 .ai/13_ARCHITECTURE_GUARD.md、.ai/loc_audit.md；按触达模块追加对应 decomposition.md
-2. 改前做 Architecture Placement Review：模块归属、影响文件、当前 LOC + 预估新增是否超红线
-3. 设计原则：单一功能、短小、无状态 Pipeline、单一数据流、面向管道（判定→*Pipeline.kt+单测；UI→components/*.kt）
-4. 禁止：在任意 >500 行文件堆功能；在 Screen 写 DialogsHost 或大段 inline Composable
-5. 完成后：跑 check-loc-over-500.ps1（+ 对应 check-*-loc.ps1），更新 change_log.md 与 loc_audit.md
+【PowerAI Engineering OS】
+1. 读 PROJECT_CONSTITUTION + README + current_state + loc_audit
+2. 执行 workflows/architecture_guard.md 六步，输出 PASS
+3. 按 task_execution.md 出 Plan 再编码
+4. 完成后 check-loc-over-500.ps1，更新 current/change_log 与 loc_audit
 ```

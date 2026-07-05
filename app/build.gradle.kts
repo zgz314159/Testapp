@@ -118,6 +118,8 @@ dependencies {
     implementation(project(":core"))
     implementation(project(":feature-practice"))
     implementation(project(":feature-exam"))
+    implementation(project(":feature-ai"))
+    implementation(project(":feature-settings"))
     implementation(project(":ui-common"))
 
     implementation("com.squareup.okhttp3:okhttp:4.12.0")
@@ -143,6 +145,7 @@ dependencies {
     implementation("androidx.datastore:datastore-preferences:1.1.0")
 
     testImplementation(libs.junit)
+    testImplementation(libs.archunit.junit4)
     testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.7.3")
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
@@ -153,20 +156,8 @@ dependencies {
 
     implementation(libs.androidx.lifecycle.viewmodel.compose)
     implementation(libs.androidx.hilt.navigation.compose)
-    implementation(libs.androidx.room.runtime)
-    kapt(libs.androidx.room.compiler)
-    implementation(libs.androidx.room.ktx)
     implementation(libs.hilt.android)
     kapt(libs.hilt.android.compiler)
-    // Apache POI full (includes full OOXML schemas) + StAX API and Aalto implementation for Android
-    implementation("org.apache.poi:poi:5.2.3")
-    implementation("org.apache.poi:poi-ooxml:5.2.3") {
-        exclude(group = "org.apache.poi", module = "poi-ooxml-lite")
-    }
-    implementation("org.apache.poi:poi-ooxml-full:5.2.3")
-    implementation("javax.xml.stream:stax-api:1.0-2")
-    implementation("com.fasterxml:aalto-xml:1.3.2")
-    implementation("org.codehaus.woodstox:stax2-api:4.2.1")
     implementation(libs.kotlinx.serialization.json)
     implementation(libs.androidx.material)
     implementation(libs.ktor.client.core)

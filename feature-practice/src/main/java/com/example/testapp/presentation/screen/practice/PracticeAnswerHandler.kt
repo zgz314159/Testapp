@@ -1,14 +1,14 @@
 package com.example.testapp.presentation.screen.practice
 
-import com.example.testapp.domain.QuestionTypes
-import com.example.testapp.domain.model.PracticeSessionState
-import com.example.testapp.domain.model.Question
-import com.example.testapp.domain.model.UnifiedQuestionState
-import com.example.testapp.domain.model.QuestionWithState
 import com.example.testapp.core.util.answerToOptionIndices
 import com.example.testapp.core.util.extractSourceQuestionId
 import com.example.testapp.core.util.isFillAnswerCorrect
 import com.example.testapp.core.util.resolveFillCorrectAnswer
+import com.example.testapp.domain.QuestionTypes
+import com.example.testapp.domain.model.PracticeSessionState
+import com.example.testapp.domain.model.Question
+import com.example.testapp.domain.model.QuestionWithState
+import com.example.testapp.domain.model.UnifiedQuestionState
 
 /**
  * Pure answer-evaluation logic extracted from PracticeViewModel.

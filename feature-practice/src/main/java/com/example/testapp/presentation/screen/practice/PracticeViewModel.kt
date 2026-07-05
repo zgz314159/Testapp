@@ -3,14 +3,13 @@ import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.testapp.core.common.FontSettingsRepository
-import com.example.testapp.presentation.screen.practice.navigation.AnsweredHistoryBackwardResult
-import com.example.testapp.presentation.screen.practice.navigation.AnsweredHistoryForwardResult
-import com.example.testapp.presentation.screen.practice.UnansweredNavResult
+import com.example.testapp.core.session.SessionEngine
+import com.example.testapp.core.util.FillQuestionGenerationMode
 import com.example.testapp.domain.model.*
 import com.example.testapp.domain.usecase.PracticeUseCaseFacade
 import com.example.testapp.domain.usecase.QuestionFlowCache
-import com.example.testapp.core.session.SessionEngine
-import com.example.testapp.core.util.FillQuestionGenerationMode
+import com.example.testapp.presentation.screen.practice.navigation.AnsweredHistoryBackwardResult
+import com.example.testapp.presentation.screen.practice.navigation.AnsweredHistoryForwardResult
 import com.example.testapp.uicommon.component.AnswerCardDisplayInfo
 import com.example.testapp.uicommon.component.AnswerCardDisplayInfoPipeline
 import com.example.testapp.uicommon.model.QuestionUiModel
@@ -329,6 +328,7 @@ class PracticeViewModel @Inject constructor(
             saveProgress()
         }
     }
+
     /** 浜ゅ嵎纭锛氭壒閲?reveal 鏈夎緭鍏ユ湭鎵规敼鐨勯锛屽苟鍐欏叆鍘嗗彶蹇収銆?*/
     suspend fun gradeSessionOnSubmit(): PracticeSessionGradeSnapshot {
         val revealed = stateUpdater.revealAllInputAnswers()
@@ -375,7 +375,7 @@ class PracticeViewModel @Inject constructor(
     }
     fun addHistoryRecord(score: Int, total: Int, unanswered: Int) {
         viewModelScope.launch {
-            val id = "practice_${questionSourceId}"
+            val id = "practice_$questionSourceId"
             val actualAnswered = total - unanswered
             if (actualAnswered > 0) facade.history.add(HistoryRecord(score, total, unanswered, id))
         }
@@ -390,7 +390,8 @@ class PracticeViewModel @Inject constructor(
         viewModelScope.launch {
             try {
                 noteCoordinator.appendNote(questionId, index, text)
-            } catch (_: Exception) { }
+            } catch (_: Exception) {
+                }
         }
     }
     suspend fun appendNoteSuspend(questionId: Int, index: Int, text: String): Unit =

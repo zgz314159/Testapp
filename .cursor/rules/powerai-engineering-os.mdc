@@ -1,0 +1,44 @@
+---
+description: PowerAI Engineering OS 入口 — 编码任务前读 README + 宪法 + Guard
+alwaysApply: true
+---
+
+# PowerAI Engineering OS（入口）
+
+> 任何**改代码**任务必须先走 Engineering OS，再写实现。细则见 `.ai/rules/cursor_rules.md`。
+
+## 强制阅读顺序
+
+1. `.ai/PROJECT_CONSTITUTION.md`
+2. `.ai/README.md`
+3. `.ai/architecture/session_architecture.md`（触达 Session 时）
+4. `.ai/current/current_state.md` + `.ai/current/loc_audit.md`
+5. `.ai/workflows/architecture_guard.md` — **六步 Guard，输出 PASS/FAIL**
+6. `.ai/workflows/task_execution.md` — Plan 后再编码
+
+**禁止**：跳过上述顺序直接编码。
+
+## Guard 六步（摘要）
+
+Architecture Scan → Dependency Scan → Reuse Scan → ADR Check → Impact Analysis → Change Plan
+
+全部 PASS 后输出：
+
+```text
+Architecture Guard: PASS
+```
+
+## 活文档路径（L3）
+
+| 旧路径（stub） | 新权威路径 |
+|----------------|------------|
+| `.ai/current_state.md` | `.ai/current/current_state.md` |
+| `.ai/loc_audit.md` | `.ai/current/loc_audit.md` |
+| `.ai/13_ARCHITECTURE_GUARD.md` | `.ai/workflows/architecture_guard.md` |
+| `.ai/session_architecture.md` | `.ai/architecture/session_architecture.md` |
+
+## 用户触发句
+
+```
+按 PowerAI Engineering OS 执行：README → Guard → Plan → 编码
+```

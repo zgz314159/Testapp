@@ -1,7 +1,7 @@
 package com.example.testapp.presentation.screen.exam
 
-import com.example.testapp.domain.model.ExamProgress
 import com.example.testapp.core.common.LocalizedResult
+import com.example.testapp.domain.model.ExamProgress
 import com.example.testapp.domain.model.UnifiedQuestionState
 import com.example.testapp.domain.usecase.*
 import kotlinx.coroutines.*

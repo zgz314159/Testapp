@@ -1,27 +1,25 @@
 package com.example.testapp.data.mapper
 
 import android.util.Log
+import com.example.testapp.core.util.normalizeRichMarkdownStructure
+import com.example.testapp.data.local.entity.ExamProgressEntity
 import com.example.testapp.data.local.entity.FavoriteQuestionEntity
+import com.example.testapp.data.local.entity.HistoryRecordEntity
+import com.example.testapp.data.local.entity.PracticeProgressEntity
 import com.example.testapp.data.local.entity.QuestionEntity
+import com.example.testapp.data.local.entity.WrongQuestionEntity
+import com.example.testapp.data.repository.normalizeRichMarkdownFields
+import com.example.testapp.domain.model.ExamProgress
 import com.example.testapp.domain.model.FavoriteQuestion
+import com.example.testapp.domain.model.HistoryRecord
 import com.example.testapp.domain.model.Question
+import com.example.testapp.domain.model.UnifiedQuestionState
+import com.example.testapp.domain.model.WrongQuestion
+import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
-
-import com.example.testapp.data.local.entity.HistoryRecordEntity
-import com.example.testapp.data.local.entity.ExamProgressEntity
-import com.example.testapp.data.local.entity.WrongQuestionEntity
-import com.example.testapp.data.local.entity.PracticeProgressEntity
-import com.example.testapp.core.util.normalizeRichMarkdownStructure
-import com.example.testapp.data.repository.normalizeRichMarkdownFields
-import com.example.testapp.domain.model.HistoryRecord
-import com.example.testapp.domain.model.ExamProgress
-import com.example.testapp.domain.model.WrongQuestion
-import com.example.testapp.domain.model.UnifiedQuestionState
 import java.time.Instant
-import java.time.LocalDateTime
 import java.time.ZoneId
-import kotlinx.serialization.decodeFromString
 
 fun QuestionEntity.toDomain(): Question {
     val normalizedContent = normalizeRichMarkdownStructure(content)
@@ -32,7 +30,9 @@ fun QuestionEntity.toDomain(): Question {
     logMarkdownNormalizationDiff(id, "explanation", explanation, normalizedExplanation)
     val decodedStemImages = try {
         Json.decodeFromString<List<String>>(stemImages)
-    } catch (_: Exception) { emptyList() }
+    } catch (_: Exception) {
+        emptyList()
+    }
     return Question(
         id = id,
         content = normalizedContent,
@@ -59,7 +59,11 @@ fun Question.toEntity(): QuestionEntity {
     isFavorite = isFavorite,
     isWrong = isWrong,
     fileName = fileName,
-    stemImages = try { Json.encodeToString(stemImages) } catch (_: Exception) { "[]" }
+    stemImages = try {
+        Json.encodeToString(stemImages)
+    } catch (_: Exception) {
+        "[]"
+    }
 )
 }
 
@@ -118,7 +122,9 @@ fun ExamProgressEntity.toDomain(): ExamProgress {
     val map = try {
         if (questionStateJson.isBlank()) emptyMap<Int, UnifiedQuestionState>()
         else Json.decodeFromString<Map<Int, UnifiedQuestionState>>(questionStateJson)
-    } catch (_: Exception) { emptyMap() }
+    } catch (_: Exception) {
+        emptyMap()
+    }
     return ExamProgress(
         id = id,
         currentIndex = currentIndex,
@@ -149,7 +155,11 @@ fun ExamProgress.toEntity(): ExamProgressEntity = ExamProgressEntity(
     timestamp = timestamp,
     sessionId = sessionId,
     fixedQuestionOrder = fixedQuestionOrder,
-    questionStateJson = try { Json.encodeToString(questionStateMap) } catch (_: Exception) { "" }
+    questionStateJson = try {
+        Json.encodeToString(questionStateMap)
+    } catch (_: Exception) {
+        ""
+    }
 )
 
 fun WrongQuestionEntity.toDomain(question: com.example.testapp.domain.model.Question): WrongQuestion =
@@ -161,7 +171,9 @@ fun PracticeProgressEntity.toDomain(): com.example.testapp.domain.model.Practice
     val map = try {
         if (questionStateJson.isBlank()) emptyMap<Int, com.example.testapp.domain.model.UnifiedQuestionState>()
         else Json.decodeFromString<Map<Int, com.example.testapp.domain.model.UnifiedQuestionState>>(questionStateJson)
-    } catch (_: Exception) { emptyMap() }
+    } catch (_: Exception) {
+        emptyMap()
+    }
     return com.example.testapp.domain.model.PracticeProgress(
         id = id,
         currentIndex = currentIndex,
@@ -192,5 +204,9 @@ fun com.example.testapp.domain.model.PracticeProgress.toEntity(): PracticeProgre
     timestamp = timestamp,
     sessionId = sessionId,
     fixedQuestionOrder = fixedQuestionOrder,
-    questionStateJson = try { Json.encodeToString(questionStateMap) } catch (_: Exception) { "" }
+    questionStateJson = try {
+        Json.encodeToString(questionStateMap)
+    } catch (_: Exception) {
+        ""
+    }
 )

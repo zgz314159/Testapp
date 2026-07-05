@@ -1,10 +1,10 @@
 package com.example.testapp.presentation.screen.practice
 
+import com.example.testapp.core.util.extractSourceQuestionId
+import com.example.testapp.core.util.splitFillAnswerDescriptors
 import com.example.testapp.domain.QuestionTypes
 import com.example.testapp.domain.model.PracticeProgress
 import com.example.testapp.domain.model.Question
-import com.example.testapp.core.util.extractSourceQuestionId
-import com.example.testapp.core.util.splitFillAnswerDescriptors
 
 class PracticeFullAnswerCoordinator(
     private val modeCoordinator: PracticeModeCoordinator

@@ -1,10 +1,9 @@
 package com.example.testapp.data.repository.parser
 
-import com.example.testapp.domain.LocalizedException
 import com.example.testapp.domain.IOConstants
+import com.example.testapp.domain.LocalizedException
 import com.example.testapp.domain.model.Question
 import java.io.File
-
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -32,11 +31,16 @@ class TxtQuestionParser @Inject constructor() : SimpleQuestionFileParser {
                             fileName = originFileName
                         )
                     } else null
-                } catch (e: Exception) { null }
+                } catch (e: Exception) {
+                    null
+                }
             }
             if (questions.isEmpty()) throw LocalizedException(IOConstants.IMPORT_FAILED_TXT_PARSE_KEY, listOf(file.name))
             return questions
-        } catch (e: LocalizedException) { throw e }
-        catch (e: Exception) { throw LocalizedException(IOConstants.IMPORT_FAILED_TXT_PARSE_KEY, listOf(e.message ?: "")) }
+        } catch (e: LocalizedException) {
+            throw e
+        } catch (e: Exception) {
+            throw LocalizedException(IOConstants.IMPORT_FAILED_TXT_PARSE_KEY, listOf(e.message ?: ""))
+        }
     }
 }

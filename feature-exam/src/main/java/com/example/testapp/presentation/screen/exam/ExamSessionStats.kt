@@ -1,7 +1,7 @@
 package com.example.testapp.presentation.screen.exam
 
-import com.example.testapp.domain.model.Question
 import com.example.testapp.core.util.answerToOptionIndices
+import com.example.testapp.domain.model.Question
 
 /**
  * Pure session-scoring computation extracted from ExamScreen.

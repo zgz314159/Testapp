@@ -1,8 +1,8 @@
 package com.example.testapp.presentation.screen.exam
 
-import com.example.testapp.core.util.FullAnswerMultiRoundSessionPipeline
 import com.example.testapp.core.util.FullAnswerIconNavigationStrategyPipeline
 import com.example.testapp.core.util.FullAnswerIconTapStrategy
+import com.example.testapp.core.util.FullAnswerMultiRoundSessionPipeline
 import com.example.testapp.domain.model.PracticeSessionState
 import com.example.testapp.domain.model.QuestionWithState
 import com.example.testapp.domain.model.UnifiedQuestionState
@@ -27,7 +27,6 @@ class ExamNavigationCoordinator(
     private val scheduleNavigationSave: () -> Unit,
     private val saveProgressInternal: suspend () -> Unit
 ) {
-
     private fun sessionGraded(state: PracticeSessionState): Boolean =
         state.finished || state.questionsWithState.any { it.showResult }
 

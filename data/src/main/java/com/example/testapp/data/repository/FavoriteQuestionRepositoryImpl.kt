@@ -1,7 +1,6 @@
 package com.example.testapp.data.repository
 
 import com.example.testapp.data.local.dao.FavoriteQuestionDao
-import com.example.testapp.data.local.entity.FavoriteQuestionEntity
 import com.example.testapp.data.local.dao.QuestionAnalysisDao
 import com.example.testapp.data.local.dao.QuestionNoteDao
 import com.example.testapp.data.mapper.toDomain
@@ -16,15 +15,14 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.map
-import javax.inject.Inject
 import kotlinx.serialization.decodeFromString
-import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
+import org.apache.poi.ss.usermodel.DataFormatter
 import org.apache.poi.ss.usermodel.Row
 import org.apache.poi.ss.usermodel.WorkbookFactory
 import org.apache.poi.xssf.usermodel.XSSFWorkbook
-import org.apache.poi.ss.usermodel.DataFormatter
 import java.io.File
+import javax.inject.Inject
 
 class FavoriteQuestionRepositoryImpl @Inject constructor(
     private val dao: FavoriteQuestionDao,
@@ -65,7 +63,9 @@ class FavoriteQuestionRepositoryImpl @Inject constructor(
             // 先尝试 JSON 格式导入
             val jsonFavorites = try {
                 Json.decodeFromString<List<FavoriteQuestion>>(content)
-            } catch (e: Exception) { null }
+            } catch (e: Exception) {
+                null
+            }
 
             if (jsonFavorites != null) {
                 jsonFavorites.forEach { dao.add(it.toEntity()) }
@@ -85,11 +85,15 @@ class FavoriteQuestionRepositoryImpl @Inject constructor(
                             baiduAnalysis = baidu.takeIf { it.isNotBlank() }
                         )
                         analysisDao.upsert(analysisEntity)
-                    } catch (_: Exception) { /* ignore per-entry failures */ }
+                    } catch (_: Exception) {
+                        // ignore per-entry failures
+                    }
                 }
             }
             excelData.size
-        } catch (e: Exception) { 0 }
+        } catch (e: Exception) {
+            0
+        }
     }
 
     suspend fun exportFavoritesToExcel(
@@ -138,7 +142,9 @@ class FavoriteQuestionRepositoryImpl @Inject constructor(
             file.outputStream().use { workbook.write(it) }
             workbook.close()
             true
-        } catch (e: Exception) { false }
+        } catch (e: Exception) {
+            false
+        }
     }
 
     // Prepare export sheets for favorites. Returns map of sheetName -> rows (first row is headers).
@@ -196,13 +202,13 @@ class FavoriteQuestionRepositoryImpl @Inject constructor(
             }
             val explanation = row.getCell(9)?.let { f.formatCellValue(it) } ?: ""
             val answer = row.getCell(10)?.let { f.formatCellValue(it) } ?: ""
-            
+
             // 读取AI解析数据（新格式）
             val deepSeekAnalysis = row.getCell(11)?.let { f.formatCellValue(it) } ?: ""
             val sparkAnalysis = row.getCell(12)?.let { f.formatCellValue(it) } ?: ""
             val baiduAnalysis = row.getCell(13)?.let { f.formatCellValue(it) } ?: ""
             val note = row.getCell(14)?.let { f.formatCellValue(it) } ?: ""
-            
+
             val aiAnalysis = if (deepSeekAnalysis.isNotBlank() || sparkAnalysis.isNotBlank() || baiduAnalysis.isNotBlank()) {
                 Triple(deepSeekAnalysis, sparkAnalysis, baiduAnalysis)
             } else {
@@ -210,7 +216,7 @@ class FavoriteQuestionRepositoryImpl @Inject constructor(
                 val oldAnalysis = row.getCell(11)?.let { f.formatCellValue(it) } ?: ""
                 if (oldAnalysis.isNotBlank()) Triple(oldAnalysis, "", "") else null
             }
-            
+
             val favoriteQuestion = FavoriteQuestion(
                 question = Question(
                     id = 0,
@@ -224,7 +230,7 @@ class FavoriteQuestionRepositoryImpl @Inject constructor(
                     fileName = file.name
                 )
             )
-            
+
             return Pair(favoriteQuestion, aiAnalysis)
         }
 
@@ -236,7 +242,7 @@ class FavoriteQuestionRepositoryImpl @Inject constructor(
             }
             val explanation = row.getCell(4)?.let { f.formatCellValue(it) } ?: ""
             val answer = row.getCell(5)?.let { f.formatCellValue(it) } ?: ""
-            
+
             val favoriteQuestion = FavoriteQuestion(
                 question = Question(
                     id = 0,
@@ -250,7 +256,7 @@ class FavoriteQuestionRepositoryImpl @Inject constructor(
                     fileName = file.name
                 )
             )
-            
+
             return Pair(favoriteQuestion, null) // 旧格式不包含AI解析
         }
 
@@ -271,7 +277,9 @@ class FavoriteQuestionRepositoryImpl @Inject constructor(
             // 反序列化 Question
             val question = try {
                 json.decodeFromString<com.example.testapp.domain.model.Question>(entity.questionJson)
-            } catch (e: Exception) { null }
+            } catch (e: Exception) {
+                null
+            }
             if (question != null && question.fileName == fileName) {
                 dao.removeById(question.id)
             }

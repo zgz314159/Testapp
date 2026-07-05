@@ -1,14 +1,13 @@
 package com.example.testapp.presentation.screen.exam
 
+import com.example.testapp.core.util.answerToOptionIndex
+import com.example.testapp.core.util.resolveDisplayOptions
 import com.example.testapp.domain.model.ExamProgress
+import com.example.testapp.domain.model.Question
 import com.example.testapp.domain.model.QuestionWithState
 import com.example.testapp.domain.model.UnifiedQuestionState
-import com.example.testapp.domain.model.Question
 import com.example.testapp.uicommon.component.AnswerCardDisplayInfo
 import com.example.testapp.uicommon.component.AnswerCardDisplayInfoPipeline
-import com.example.testapp.core.util.answerToOptionIndex
-import com.example.testapp.core.util.answerToOptionIndices
-import com.example.testapp.core.util.resolveDisplayOptions
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -50,7 +49,7 @@ class ExamNavigationHelper @Inject constructor(
             q.id, sel.getOrElse(i) { emptyList() }, txt.getOrElse(i) { "" },
             sr.getOrElse(i) { false }, an.getOrElse(i) { "" },
             sp.getOrElse(i) { "" }, bd.getOrElse(i) { "" }, nt.getOrElse(i) { "" }
-        )}
+        ) }
         return result
     }
 

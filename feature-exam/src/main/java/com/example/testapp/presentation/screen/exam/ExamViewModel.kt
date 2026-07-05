@@ -1,5 +1,7 @@
 package com.example.testapp.presentation.screen.exam
 
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
 import com.example.testapp.core.common.FontSettingsRepository
 import com.example.testapp.core.common.LocalizedResult
 import com.example.testapp.core.session.NavigationSaveScheduler
@@ -9,10 +11,11 @@ import com.example.testapp.domain.model.Question
 import com.example.testapp.domain.model.QuestionWithState
 import com.example.testapp.domain.model.UnifiedQuestionState
 import com.example.testapp.domain.model.updateAt
+import com.example.testapp.core.session.policy.SessionStrategyFactory
+import com.example.testapp.domain.session.QuestionSessionKind
+import com.example.testapp.domain.session.persistence.SessionPersistenceContext
 import com.example.testapp.domain.usecase.ExamUseCaseFacade
 import com.example.testapp.uicommon.component.AnswerCardDisplayInfoPipeline
-import androidx.lifecycle.ViewModel
-import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.*
@@ -122,6 +125,10 @@ class ExamViewModel @Inject constructor(
             memoryModeActive = { memoryModeActive },
             allSourceQuestions = { allSourceQuestions },
             reviewModeActive = { _reviewModeActive.value },
+            persistenceConfig = {
+                SessionStrategyFactory.persistence(QuestionSessionKind.Exam(progressId))
+                    .config(SessionPersistenceContext())
+            },
             messageResult = _messageResult,
             currentFullAnswerCandidateIndices = { candidates ->
                 navigationCoordinator.currentFullAnswerCandidateIndices(candidates)

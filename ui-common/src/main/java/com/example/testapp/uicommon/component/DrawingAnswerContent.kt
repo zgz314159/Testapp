@@ -32,7 +32,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
-import com.example.testapp.uicommon.component.LocalFontFamily
 import java.io.File
 
 private val DRAWING_IMAGES_REGEX = Regex("\\[DRAWING_IMAGES:([^\\]]+)]")

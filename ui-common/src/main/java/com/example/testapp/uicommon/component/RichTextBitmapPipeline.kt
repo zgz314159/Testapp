@@ -4,8 +4,8 @@ import android.graphics.Bitmap
 import android.graphics.Canvas
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.asImageBitmap
-import kotlin.math.max
 import ru.noties.jlatexmath.JLatexMathDrawable
+import kotlin.math.max
 
 internal fun JLatexMathDrawable.toImageBitmap(): ImageBitmap {
     val width = max(1, intrinsicWidth)

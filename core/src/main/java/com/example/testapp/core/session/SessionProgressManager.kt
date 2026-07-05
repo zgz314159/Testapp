@@ -1,11 +1,9 @@
 package com.example.testapp.core.session
 
-import com.example.testapp.domain.model.PracticeProgress
-import com.example.testapp.domain.model.ExamProgress
-import com.example.testapp.domain.model.UnifiedQuestionState
-import com.example.testapp.domain.model.QuestionWithState
 import com.example.testapp.domain.model.Question
+import com.example.testapp.domain.model.QuestionWithState
 import com.example.testapp.domain.model.SessionMode
+import com.example.testapp.domain.model.UnifiedQuestionState
 import com.example.testapp.domain.model.UnifiedSessionState
 
 /**

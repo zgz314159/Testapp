@@ -13,10 +13,10 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.unit.dp
 import com.example.testapp.uicommon.design.AnswerChoiceTone
 import com.example.testapp.uicommon.design.answerChoicePalette
 import com.example.testapp.uicommon.design.colorFor
-import androidx.compose.ui.unit.dp
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable

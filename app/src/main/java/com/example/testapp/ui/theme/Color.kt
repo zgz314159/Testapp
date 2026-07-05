@@ -4,6 +4,7 @@ import androidx.compose.ui.graphics.Color
 
 // M3 设置页推荐配色（浅色）
 val SettingsBackground = Color(0xFFF5F5F5)
+
 /** 护眼阅读区 surface：暖米白，替代纯白 Card 背景 */
 val ReadingSurface = Color(0xFFFBF8F2)
 val ReadingOnSurface = Color(0xFF1A1A1A)

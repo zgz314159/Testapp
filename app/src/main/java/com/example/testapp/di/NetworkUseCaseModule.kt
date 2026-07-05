@@ -1,17 +1,17 @@
 package com.example.testapp.di
 
 import com.example.testapp.domain.usecase.GetDeepSeekAskResultUseCase
-import com.example.testapp.domain.usecase.SaveDeepSeekAskResultUseCase
-import com.example.testapp.domain.usecase.GetSparkAskResultUseCase
-import com.example.testapp.domain.usecase.SaveSparkAskResultUseCase
-import com.example.testapp.domain.usecase.GetSparkAnalysisUseCase
-import com.example.testapp.domain.usecase.SaveSparkAnalysisUseCase
 import com.example.testapp.domain.usecase.GetQuestionAnalysisUseCase
-import com.example.testapp.domain.usecase.SaveQuestionAnalysisUseCase
-import com.example.testapp.domain.usecase.RemoveQuestionAnalysisByQuestionIdUseCase
 import com.example.testapp.domain.usecase.GetQuestionNoteUseCase
-import com.example.testapp.domain.usecase.SaveQuestionNoteUseCase
+import com.example.testapp.domain.usecase.GetSparkAnalysisUseCase
+import com.example.testapp.domain.usecase.GetSparkAskResultUseCase
+import com.example.testapp.domain.usecase.RemoveQuestionAnalysisByQuestionIdUseCase
 import com.example.testapp.domain.usecase.RemoveQuestionNoteByQuestionIdUseCase
+import com.example.testapp.domain.usecase.SaveDeepSeekAskResultUseCase
+import com.example.testapp.domain.usecase.SaveQuestionAnalysisUseCase
+import com.example.testapp.domain.usecase.SaveQuestionNoteUseCase
+import com.example.testapp.domain.usecase.SaveSparkAnalysisUseCase
+import com.example.testapp.domain.usecase.SaveSparkAskResultUseCase
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn

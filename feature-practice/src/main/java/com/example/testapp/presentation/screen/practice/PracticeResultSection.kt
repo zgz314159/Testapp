@@ -3,47 +3,28 @@ package com.example.testapp.presentation.screen.practice
 
 
 import androidx.compose.foundation.layout.Column
-
 import androidx.compose.foundation.layout.Spacer
-
 import androidx.compose.foundation.layout.fillMaxWidth
-
 import androidx.compose.foundation.layout.height
-
 import androidx.compose.material3.Text
-
 import androidx.compose.runtime.Composable
-
 import androidx.compose.ui.Modifier
-
 import androidx.compose.ui.text.style.TextOverflow
-
 import androidx.compose.ui.unit.dp
-
 import androidx.compose.ui.unit.sp
-
 import com.example.testapp.domain.QuestionTypes
-
 import com.example.testapp.domain.model.Question
-
 import com.example.testapp.presentation.screen.components.FillAnswerResultText
-
 import com.example.testapp.uicommon.component.LocalFontFamily
-
 import com.example.testapp.uicommon.component.RichText
-
 import com.example.testapp.uicommon.component.TextResponseAnswerContent
-
 import com.example.testapp.uicommon.design.ReadingCollapsibleSection
-
 import com.example.testapp.uicommon.design.answerFeedbackColors
-
 import com.example.testapp.uicommon.design.resolveAnswerResultPreviewLine
 
 
 
 @Composable
-
 fun PracticeResultSection(
 
     question: Question,

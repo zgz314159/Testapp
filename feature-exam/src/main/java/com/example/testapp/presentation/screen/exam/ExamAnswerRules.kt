@@ -1,11 +1,11 @@
 package com.example.testapp.presentation.screen.exam
 
-import com.example.testapp.domain.QuestionTypes
-import com.example.testapp.domain.model.UnifiedQuestionState
-import com.example.testapp.domain.model.Question
 import com.example.testapp.core.util.answerToOptionIndices
 import com.example.testapp.core.util.isFillAnswerCorrect
 import com.example.testapp.core.util.resolveFillCorrectAnswer
+import com.example.testapp.domain.QuestionTypes
+import com.example.testapp.domain.model.Question
+import com.example.testapp.domain.model.UnifiedQuestionState
 import javax.inject.Inject
 import javax.inject.Singleton
 

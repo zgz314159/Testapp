@@ -2,9 +2,9 @@ package com.example.testapp.data.local.entity.converter
 
 import androidx.room.TypeConverter
 import com.example.testapp.domain.model.UnifiedQuestionState
+import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
-import kotlinx.serialization.decodeFromString
 
 class UnifiedQuestionStateMapConverter {
     @TypeConverter

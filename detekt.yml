@@ -1,0 +1,77 @@
+build:
+  maxIssues: 0
+
+config:
+  validation: true
+
+processors:
+  active: true
+
+console-reports:
+  active: true
+
+output-reports:
+  active: true
+
+comments:
+  active: false
+
+complexity:
+  active: false
+
+coroutines:
+  active: true
+  GlobalCoroutineUsage:
+    active: false
+
+empty-blocks:
+  active: true
+  EmptyCatchBlock:
+    active: true
+    allowedExceptionNameRegex: "^(_|(ignore|expected).*)"
+
+exceptions:
+  active: false
+
+naming:
+  active: false
+
+performance:
+  active: false
+
+potential-bugs:
+  active: true
+  UnsafeCallOnNullableType:
+    active: true
+  IgnoredReturnValue:
+    active: true
+    restrictToConfig: false
+    returnValueAnnotations:
+      - "*.CheckResult"
+      - "*.CheckReturnValue"
+
+style:
+  active: true
+  MaxLineLength:
+    active: false
+  MagicNumber:
+    active: false
+  WildcardImport:
+    active: true
+  UnusedImports:
+    active: true
+  UnusedPrivateMember:
+    active: true
+    allowedNames: "(_|ignored|expected|serialVersionUID|Companion)"
+  UnusedPrivateProperty:
+    active: true
+  UnusedPrivateClass:
+    active: true
+  VarCouldBeVal:
+    active: true
+  UnnecessaryAbstractClass:
+    active: true
+  NewLineAtEndOfFile:
+    active: true
+  ReturnCount:
+    active: false

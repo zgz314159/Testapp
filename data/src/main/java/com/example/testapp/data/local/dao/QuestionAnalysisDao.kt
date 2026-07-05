@@ -23,7 +23,7 @@ interface QuestionAnalysisDao {
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun upsert(entity: QuestionAnalysisEntity)
-    
+
     @Query("SELECT analysis FROM question_analysis WHERE questionId = :id ORDER BY id DESC LIMIT 1")
     suspend fun getAnalysis(id: Int): String?
 

@@ -1,7 +1,6 @@
 package com.example.testapp.presentation.screen.practice.navigation
 
 import com.example.testapp.presentation.screen.practice.PracticeFullAnswerIconNavDebugLog
-
 import com.example.testapp.presentation.screen.practice.PracticeJumpDebugLog
 
 /** Applies index changes and reopen side effects for practice navigation. */

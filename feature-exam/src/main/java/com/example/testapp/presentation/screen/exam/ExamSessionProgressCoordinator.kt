@@ -6,6 +6,7 @@ import com.example.testapp.domain.model.PracticeSessionState
 import com.example.testapp.domain.model.SessionMode
 import com.example.testapp.domain.model.UnifiedQuestionState
 import com.example.testapp.domain.model.UnifiedSessionState
+import com.example.testapp.domain.session.persistence.SessionPersistenceConfig
 import com.example.testapp.domain.usecase.ExamUseCaseFacade
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -30,6 +31,7 @@ internal class ExamSessionProgressCoordinator(
     private val memoryModeActive: () -> Boolean,
     private val allSourceQuestions: () -> List<com.example.testapp.domain.model.Question>,
     private val reviewModeActive: () -> Boolean,
+    private val persistenceConfig: () -> SessionPersistenceConfig,
     private val messageResult: MutableStateFlow<LocalizedResult?>,
     private val currentFullAnswerCandidateIndices: (List<Int>) -> List<Int>,
     private val onCalculateCumulativeStats: () -> Unit,
@@ -116,9 +118,10 @@ internal class ExamSessionProgressCoordinator(
                     } else {
                         nci
                     }
-                    val restoreFromMap = ExamSessionRestorePipeline.shouldRestoreAnswersFromStateMap(
+                    val restoreFromMap = ExamProgressPersistencePipeline.shouldRestoreAnswersFromMap(
+                        config = persistenceConfig(),
                         progress = progress,
-                        reviewMode = reviewModeActive()
+                        reviewMode = reviewModeActive(),
                     )
                     ExamRoundLoadLog.restore(
                         restoreFromMap = restoreFromMap,

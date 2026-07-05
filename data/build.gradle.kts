@@ -1,8 +1,26 @@
+import java.util.Properties
+
+val localProperties = Properties().apply {
+    val file = rootProject.file("local.properties")
+    if (file.exists()) {
+        file.inputStream().use(::load)
+    }
+}
+
+fun apiKey(name: String): String =
+    localProperties.getProperty(name)
+        ?: System.getenv(name)
+        ?: ""
+
+fun buildConfigString(value: String): String =
+    "\"${value.replace("\\", "\\\\").replace("\"", "\\\"")}\""
+
 plugins {
     id("com.android.library")
     id("org.jetbrains.kotlin.android")
     id("kotlin-kapt")
     id("dagger.hilt.android.plugin")
+    alias(libs.plugins.kotlin.serialization)
 }
 
 android {
@@ -12,6 +30,13 @@ android {
     defaultConfig {
         minSdk = 26
         targetSdk = 35
+        buildConfigField("String", "DEEPSEEK_API_KEY", buildConfigString(apiKey("DEEPSEEK_API_KEY")))
+        buildConfigField("String", "BAIDU_API_KEY", buildConfigString(apiKey("BAIDU_API_KEY")))
+        buildConfigField("String", "SPARK_API_KEY", buildConfigString(apiKey("SPARK_API_KEY")))
+    }
+
+    buildFeatures {
+        buildConfig = true
     }
 
     compileOptions {
@@ -42,6 +67,12 @@ dependencies {
     implementation(project(":core"))
     implementation(project(":domain"))
     implementation(libs.kotlinx.serialization.json)
+    implementation("androidx.datastore:datastore-preferences:1.1.0")
+    implementation(libs.ktor.client.core)
+    implementation(libs.ktor.client.cio)
+    implementation(libs.ktor.client.content.negotiation)
+    implementation(libs.ktor.serialization.kotlinx.json)
+    implementation(libs.ktor.client.logging)
     implementation("org.apache.poi:poi:5.2.3")
     implementation("org.apache.poi:poi-ooxml:5.2.3") {
         exclude(group = "org.apache.poi", module = "poi-ooxml-lite")

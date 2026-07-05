@@ -6,6 +6,8 @@
 
 # Context Loading Rules
 
+> **UPDATED 2026-07-05:** 路径已迁入 PowerAI Engineering OS。默认读 `.ai/current/current_state.md`；Guard 读 `.ai/workflows/architecture_guard.md`。入口：`.ai/README.md`。
+
 > **CRITICAL**: These rules prevent token waste by limiting default context loading to what is necessary for the task.
 
 ---
@@ -26,8 +28,8 @@ Every agent session MUST read these files first, in order:
 
 | # | File | Why |
 |---|------|-----|
-| 1 | `.ai/current_state.md` | Know where we are, what's active, what's blocked |
-| 2 | `.ai/refactor_candidates.md` | Know what the highest-priority targets are |
+| 1 | `.ai/current/current_state.md` | Know where we are, what's active, what's blocked |
+| 2 | `.ai/current/refactoring_plan.md` or `refactor_candidates.md` | Know priorities |
 
 **Total**: 2 files. Minimal token cost.
 
@@ -41,9 +43,9 @@ After the default load, ONLY load files relevant to the task type:
 
 | File | Why |
 |------|-----|
-| `.ai/13_ARCHITECTURE_GUARD.md` | **MANDATORY** — LOC/Dependency/Responsibility redlines |
-| `.ai/file_registry.md` | Current LOC for impacted files |
-| `.ai/dependency_graph.md` | Dependency counts for impacted files |
+| `.ai/workflows/architecture_guard.md` | **MANDATORY** — LOC/Dependency/Responsibility redlines |
+| `.ai/current/file_registry.md` | Current LOC for impacted files |
+| `.ai/current/dependency_graph.md` | Dependency counts for impacted files |
 | Targeted `.kt` file(s) | The file(s) being modified |
 | Unit test file(s) for target | Regression guard |
 

@@ -7,11 +7,13 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import com.example.testapp.domain.model.Question
+import com.example.testapp.domain.session.SessionCommand
 import com.example.testapp.feature.exam.R
 import com.example.testapp.presentation.screen.exam.ExamAutoAdvanceTimer
 import com.example.testapp.presentation.screen.exam.ExamFontController
-import com.example.testapp.presentation.screen.exam.ExamViewModel
 import com.example.testapp.presentation.screen.exam.ExternalExamState
+import com.example.testapp.presentation.screen.exam.suspendExamCommand
+import com.example.testapp.presentation.session.exam.ExamScreenBindings
 import com.example.testapp.uicommon.component.AnswerCardDisplayInfo
 import com.example.testapp.uicommon.component.QuestionEditDialog
 import com.example.testapp.uicommon.design.QuestionTypographySheet
@@ -26,17 +28,21 @@ fun ExamScreenReviewInitEffect(
     isWrongBookMode: Boolean,
     isFavoriteMode: Boolean,
     externalState: ExternalExamState,
-    viewModel: ExamViewModel
+    sendCommand: (SessionCommand) -> Unit,
+    sessionHosted: Boolean = false,
 ) {
+    if (sessionHosted) return
     LaunchedEffect(isReviewMode, reviewProgressId) {
         if (isReviewMode && !reviewProgressId.isNullOrBlank()) {
-            viewModel.enterReviewSession(
-                targetProgressId = reviewProgressId,
-                quizFile = quizId,
-                questionCount = externalState.examCount,
-                random = externalState.randomExam,
-                wrongBook = isWrongBookMode,
-                favorite = isFavoriteMode
+            sendCommand(
+                SessionCommand.EnterExamReviewSession(
+                    targetProgressId = reviewProgressId,
+                    quizFile = quizId,
+                    questionCount = externalState.examCount,
+                    random = externalState.randomExam,
+                    wrongBook = isWrongBookMode,
+                    favorite = isFavoriteMode,
+                ),
             )
         }
     }
@@ -48,21 +54,31 @@ fun ExamScreenQuizInitEffect(
     isReviewMode: Boolean,
     externalState: ExternalExamState,
     progressLoaded: Boolean,
-    viewModel: ExamViewModel
+    sendCommand: (SessionCommand) -> Unit,
+    sessionHosted: Boolean = false,
 ) {
+    if (sessionHosted) return
     LaunchedEffect(quizId, externalState.examCount, externalState.randomExam, externalState.fillConfigVersion) {
         if (isReviewMode) return@LaunchedEffect
-        viewModel.setRandomExam(externalState.randomExam)
-        viewModel.setMemoryModeConfig(
-            enabled = externalState.examMemoryMode,
-            batchSize = externalState.examMemoryBatchSize,
-            wrongMode = externalState.examMemoryWrongMode,
-            poolMode = externalState.examMemoryPoolMode
+        sendCommand(SessionCommand.SetRandomExam(externalState.randomExam))
+        sendCommand(
+            SessionCommand.SetMemoryModeConfig(
+                enabled = externalState.examMemoryMode,
+                batchSize = externalState.examMemoryBatchSize,
+                wrongMode = externalState.examMemoryWrongMode,
+                poolMode = externalState.examMemoryPoolMode,
+            ),
         )
         if (progressLoaded) {
-            viewModel.reloadForFillConfig()
+            sendCommand(SessionCommand.ReloadForFillConfig())
         } else {
-            viewModel.loadQuestions(quizId, externalState.examCount, externalState.randomExam)
+            sendCommand(
+                SessionCommand.LoadQuestions(
+                    quizId,
+                    externalState.examCount,
+                    externalState.randomExam,
+                ),
+            )
         }
     }
 }
@@ -80,11 +96,11 @@ fun ExamScreenScrollCancelEffects(
 }
 
 @Composable
-fun ExamScreenSaveSuccessEffect(viewModel: ExamViewModel, onSaved: () -> Unit) {
+fun ExamScreenSaveSuccessEffect(bindings: ExamScreenBindings, onSaved: () -> Unit) {
     val context = LocalContext.current
     val saveSuccessText = stringResource(R.string.save_success)
     LaunchedEffect(Unit) {
-        viewModel.saveSuccess.collect {
+        bindings.saveSuccess.collect {
             Toast.makeText(context, saveSuccessText, Toast.LENGTH_SHORT).show()
             onSaved()
         }
@@ -105,7 +121,8 @@ fun ExamScreenOverlays(
     answerCardDisplayInfo: Map<Int, AnswerCardDisplayInfo>,
     answerCardEntryGrouped: Boolean,
     currentIndex: Int,
-    viewModel: ExamViewModel,
+    bindings: ExamScreenBindings,
+    dispatchCommand: (SessionCommand) -> Unit,
     activeQuestion: Question,
     sessionScore: Int,
     sessionActualAnswered: Int,
@@ -132,9 +149,19 @@ fun ExamScreenOverlays(
             initialQuestionAnswer = "",
             initialAnswerParts = listOf(""),
             onConfirm = { newContent, newOptions, finalAnswer ->
-                viewModel.saveEditedQuestion(currentIndex, newContent, finalAnswer, newOptions)
+                dispatchCommand(
+                    SessionCommand.SaveEditedQuestionFields(
+                        currentIndex,
+                        newContent,
+                        finalAnswer,
+                        newOptions,
+                    ),
+                )
             },
-            onDismiss = { ds.showEditQuestionDialog = false; viewModel.clearEditableQuestion() }
+            onDismiss = {
+                ds.showEditQuestionDialog = false
+                dispatchCommand(SessionCommand.ClearEditableQuestion)
+            }
         )
     }
     QuestionListDialog(
@@ -148,22 +175,22 @@ fun ExamScreenOverlays(
         displayInfoByQuestionId = answerCardDisplayInfo,
         entryGrouped = answerCardEntryGrouped,
         currentIndex = currentIndex,
-        onSelect = { viewModel.goToQuestion(it) }
+        onSelect = { dispatchCommand(SessionCommand.GoToQuestion(it)) }
     )
     ExamDialogs(
         showDeleteNoteDialog = ds.showDeleteNoteDialog,
         onDismissDeleteNote = { ds.showDeleteNoteDialog = false },
         onConfirmDeleteNote = {
-            viewModel.saveNote(activeQuestion.id, currentIndex, "")
+            dispatchCommand(SessionCommand.SaveNote(activeQuestion.id, currentIndex, ""))
             ds.showDeleteNoteDialog = false
         },
         showDeleteDialog = ds.showDeleteDialog,
         onDismissDelete = { ds.showDeleteDialog = false; ds.deleteTarget = "" },
         onConfirmDelete = {
             when (ds.deleteTarget) {
-                "deepseek" -> viewModel.updateAnalysis(currentIndex, "")
-                "spark" -> viewModel.updateSparkAnalysis(currentIndex, "")
-                "baidu" -> viewModel.updateBaiduAnalysis(currentIndex, "")
+                "deepseek" -> dispatchCommand(SessionCommand.UpdateAnalysis(currentIndex, ""))
+                "spark" -> dispatchCommand(SessionCommand.UpdateSparkAnalysis(currentIndex, ""))
+                "baidu" -> dispatchCommand(SessionCommand.UpdateBaiduAnalysis(currentIndex, ""))
             }
             ds.showDeleteDialog = false
             ds.deleteTarget = ""
@@ -178,7 +205,8 @@ fun ExamScreenOverlays(
         onDismissExit = { ds.showExitDialog = false },
         onConfirmExit = {
             coroutineScope.launch {
-                viewModel.gradeExam()
+                val score = suspendExamCommand(bindings, SessionCommand.GradeSession) ?: return@launch
+                if (score < 0) return@launch
                 onExamEnd(
                     sessionScore, sessionActualAnswered, sessionUnanswered,
                     cumulativeCorrect, cumulativeAnswered, cumulativeExamCount

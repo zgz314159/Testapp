@@ -1,7 +1,7 @@
 package com.example.testapp.data.repository.parser
 
-import com.example.testapp.domain.model.Question
 import com.example.testapp.data.repository.ImportedQuestionPayload
+import com.example.testapp.domain.model.Question
 import java.io.File
 
 interface QuestionFileParser {

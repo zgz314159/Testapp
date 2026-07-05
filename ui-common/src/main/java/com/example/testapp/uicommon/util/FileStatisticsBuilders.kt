@@ -1,9 +1,9 @@
 package com.example.testapp.uicommon.util
 
 import com.example.testapp.domain.model.Question
-import com.example.testapp.domain.util.canonicalQuestionType
 import com.example.testapp.domain.usecase.FileStatistics
 import com.example.testapp.domain.usecase.QuestionTypeStat
+import com.example.testapp.domain.util.canonicalQuestionType
 
 fun buildFileStatisticsForQuestions(
     questions: List<Question>,

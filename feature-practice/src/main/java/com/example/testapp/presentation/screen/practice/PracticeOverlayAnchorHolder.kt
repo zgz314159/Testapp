@@ -6,8 +6,10 @@ package com.example.testapp.presentation.screen.practice
 class PracticeOverlayAnchorHolder {
     @Volatile var openIndex: Int = -1
         private set
+
     @Volatile var openQuestionId: Int = -1
         private set
+
     @Volatile var isOverlayOpen: Boolean = false
         private set
 

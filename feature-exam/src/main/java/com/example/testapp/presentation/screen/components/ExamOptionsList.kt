@@ -9,13 +9,12 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
+import com.example.testapp.core.util.answerLettersToIndices
+import com.example.testapp.uicommon.component.LocalFontFamily
+import com.example.testapp.uicommon.component.LocalFontSize
 import com.example.testapp.uicommon.design.answerChoicePalette
 import com.example.testapp.uicommon.design.colorFor
 import com.example.testapp.uicommon.design.resolveAnswerChoiceTone
-import com.example.testapp.uicommon.component.LocalFontFamily
-import com.example.testapp.uicommon.component.LocalFontSize
-import com.example.testapp.core.util.answerLettersToIndices
 
 @Composable
 fun ExamOptionsList(

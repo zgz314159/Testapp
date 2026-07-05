@@ -2,10 +2,9 @@ package com.example.testapp.presentation.screen.exam
 
 import com.example.testapp.core.common.FontSettingsRepository
 import com.example.testapp.core.common.LocalizedResult
+import com.example.testapp.core.util.transformQuestionForFillSettings
 import com.example.testapp.domain.QuestionTypes
 import com.example.testapp.domain.model.Question
-import com.example.testapp.core.util.FillQuestionGenerationMode
-import com.example.testapp.core.util.transformQuestionForFillSettings
 import kotlinx.coroutines.flow.firstOrNull
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -21,7 +20,7 @@ class ExamFillTransform @Inject constructor(
         sessionId?.substringAfter("|fill=", "").orEmpty().takeIf { it.isNotBlank() }
 
     fun buildSessionIdWithFillSignature(baseId: String, seed: Long, sig: String) =
-        "${baseId}_${seed}|fill=$sig"
+        "${baseId}_$seed|fill=$sig"
 
     fun isFillConfigSensitive(questions: List<Question>): Boolean =
         ExamFillConfigPipeline.isFillConfigSensitive(questions)

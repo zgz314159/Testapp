@@ -1,15 +1,15 @@
 package com.example.testapp.presentation.screen.practice
 
+import com.example.testapp.core.util.resolveFillCorrectAnswer
+import com.example.testapp.core.util.retainCorrectFillAnswerParts
 import com.example.testapp.domain.QuestionTypes
 import com.example.testapp.domain.model.PracticeSessionState
 import com.example.testapp.domain.model.Question
-import com.example.testapp.domain.model.UnifiedQuestionState
 import com.example.testapp.domain.model.QuestionWithState
+import com.example.testapp.domain.model.UnifiedQuestionState
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.launch
-import com.example.testapp.core.util.retainCorrectFillAnswerParts
-import com.example.testapp.core.util.resolveFillCorrectAnswer
 import java.lang.System
 
 class PracticeModeCoordinator(

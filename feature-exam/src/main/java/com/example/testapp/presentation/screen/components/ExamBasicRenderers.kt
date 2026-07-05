@@ -10,32 +10,45 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.focus.onFocusChanged
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.text.TextLayoutResult
+import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.testapp.feature.exam.R
+import com.example.testapp.uicommon.component.InlineBlankVisualTransformation
 import com.example.testapp.uicommon.component.LocalFontFamily
 import com.example.testapp.uicommon.component.LocalFontSize
+import com.example.testapp.uicommon.component.RichText
 import com.example.testapp.uicommon.component.StemImagesSection
-import com.example.testapp.uicommon.component.InlineBlankVisualTransformation
 import com.example.testapp.uicommon.component.buildInlineBlankEditorSpec
 import com.example.testapp.uicommon.component.buildInlineEditorRawText
 import com.example.testapp.uicommon.component.buildResultQuestionAnnotatedString
@@ -45,25 +58,10 @@ import com.example.testapp.uicommon.component.defaultInlineEditorSelection
 import com.example.testapp.uicommon.component.encodeUserAnswers
 import com.example.testapp.uicommon.component.normalizeInlineEditorValue
 import com.example.testapp.uicommon.component.splitInlineEditorRawText
-import com.example.testapp.uicommon.design.inlineBlankEditColors
-import com.example.testapp.uicommon.component.RichText
-import androidx.compose.foundation.layout.size
-import androidx.compose.ui.draw.drawBehind
-import androidx.compose.ui.focus.FocusRequester
-import androidx.compose.ui.focus.focusRequester
-import androidx.compose.ui.focus.onFocusChanged
-import androidx.compose.ui.input.pointer.pointerInput as composePointerInput
-import androidx.compose.foundation.gestures.detectTapGestures as composeDetectTapGestures
-import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.text.AnnotatedString
-import androidx.compose.ui.text.PlatformTextStyle
-import androidx.compose.ui.text.TextLayoutResult
-import androidx.compose.ui.text.TextRange
-import androidx.compose.ui.text.input.TextFieldValue
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.ui.geometry.Offset
-
 import com.example.testapp.uicommon.design.answerFeedbackColors
+import com.example.testapp.uicommon.design.inlineBlankEditColors
+import androidx.compose.foundation.gestures.detectTapGestures as composeDetectTapGestures
+import androidx.compose.ui.input.pointer.pointerInput as composePointerInput
 
 private val BlankRegex = Regex("_{2,}|（\\s*）|\\(\\s*\\)|【\\s*】|\\[\\s*]")
 

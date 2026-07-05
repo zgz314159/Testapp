@@ -14,6 +14,7 @@ class QuestionDataInitializer(
 
     companion object {
         private const val PREF_NAME = "question_init_prefs"
+
         // 升级标记：改用 v2，强制重新跑一次 assets/tiku 初始化
         private const val KEY_TIKU_INITIALIZED = "tiku_initialized_v2"
         private const val ASSETS_TIKU_ROOT = "tiku"

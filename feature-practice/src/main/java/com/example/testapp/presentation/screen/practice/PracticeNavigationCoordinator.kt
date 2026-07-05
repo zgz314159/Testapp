@@ -1,11 +1,11 @@
 ﻿package com.example.testapp.presentation.screen.practice
 
+import com.example.testapp.core.session.strategy.navigation.SessionNavigationHistoryGate
 import com.example.testapp.domain.model.PracticeSessionState
 import com.example.testapp.domain.model.QuestionWithState
+import com.example.testapp.domain.session.navigation.SessionNavigationOrchestration
 import com.example.testapp.presentation.screen.practice.navigation.AnsweredHistoryBackwardResult
 import com.example.testapp.presentation.screen.practice.navigation.AnsweredHistoryForwardResult
-import com.example.testapp.presentation.screen.practice.SkipUnansweredSourceResult
-import com.example.testapp.presentation.screen.practice.UnansweredNavResult
 import com.example.testapp.presentation.screen.practice.navigation.NavigationController
 import com.example.testapp.presentation.screen.practice.navigation.NavigationHistory
 import com.example.testapp.presentation.screen.practice.navigation.PracticeNavigationState
@@ -36,6 +36,11 @@ class PracticeNavigationCoordinator {
         get() = history.answeredHistoryOriginalStates
 
     var randomPracticeEnabled: Boolean = false
+    private var orchestrationProvider: () -> SessionNavigationOrchestration? = { null }
+
+    fun bindNavigationOrchestration(provider: () -> SessionNavigationOrchestration?) {
+        orchestrationProvider = provider
+    }
 
     // === 计算属性（委托） ===
     val isInAnsweredHistory: Boolean
@@ -48,8 +53,11 @@ class PracticeNavigationCoordinator {
         com.example.testapp.presentation.screen.practice.navigation.canGoPrev(currentState)
 
     // === 历史快照方法（委托） ===
-    fun rememberAnsweredHistorySnapshot(questionWithState: QuestionWithState) =
+    fun rememberAnsweredHistorySnapshot(questionWithState: QuestionWithState) {
+        val orch = orchestrationProvider()
+        if (orch != null && !SessionNavigationHistoryGate.shouldTrackAnsweredSnapshots(orch)) return
         history.rememberAnsweredHistorySnapshot(questionWithState)
+    }
 
     fun historySnapshotFor(questionWithState: QuestionWithState): QuestionWithState? =
         history.historySnapshotFor(questionWithState)
@@ -156,11 +164,14 @@ class PracticeNavigationCoordinator {
             effectiveCurrentMemoryRoundQuestionIds, nextFullAnswerCandidateIndices,
             reopenQuestionForPendingRetry, reopenQuestionForFullAnswerRetry,
             scheduleNavigationSave,
-            fullAnswerModeActive, fullAnswerRequireCorrect, fullAnswerRandomOrder, memoryModeActive
-        ) { randomPracticeEnabled }
+            fullAnswerModeActive, fullAnswerRequireCorrect, fullAnswerRandomOrder, memoryModeActive,
+            randomPracticeEnabled = { randomPracticeEnabled },
+            navigationOrchestration = orchestrationProvider,
+        )
     }
 
     fun nextQuestion() = controller?.nextQuestion()
+    fun prevQuestion() = controller?.prevQuestion()
     fun prevQuestionViaIcon(): UnansweredNavResult =
         controller?.prevQuestionViaIcon() ?: UnansweredNavResult.AtFirstUnanswered
     fun nextQuestionViaIcon(): UnansweredNavResult =

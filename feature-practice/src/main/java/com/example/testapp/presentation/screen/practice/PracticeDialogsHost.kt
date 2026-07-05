@@ -2,9 +2,9 @@ package com.example.testapp.presentation.screen.practice
 
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.res.stringResource
+import com.example.testapp.core.common.LocalizedResult
 import com.example.testapp.feature.practice.R
 import com.example.testapp.presentation.screen.components.PracticeChatGptDialog
-import com.example.testapp.core.common.LocalizedResult
 import com.example.testapp.presentation.screen.components.PracticeConfirmDialog
 
 @Composable

@@ -1,10 +1,11 @@
 package com.example.testapp.presentation.screen.practice
 
+import com.example.testapp.core.common.LocalizedResult
 import com.example.testapp.core.util.FillQuestionGenerationMode
 import com.example.testapp.domain.model.PracticeSessionState
 import com.example.testapp.domain.model.Question
-import com.example.testapp.domain.model.UnifiedQuestionState
 import com.example.testapp.domain.model.QuestionWithState
+import com.example.testapp.domain.model.UnifiedQuestionState
 import com.example.testapp.domain.usecase.ClearPracticeProgressUseCase
 import com.example.testapp.domain.usecase.GetBaiduAnalysisUseCase
 import com.example.testapp.domain.usecase.GetFavoriteQuestionsUseCase
@@ -17,14 +18,12 @@ import com.example.testapp.domain.usecase.SavePracticeProgressUseCase
 import com.example.testapp.presentation.screen.practice.session.AnalysisManager
 import com.example.testapp.presentation.screen.practice.session.ProgressPersistence
 import com.example.testapp.presentation.screen.practice.session.QuestionLoader
-import com.example.testapp.core.common.LocalizedResult
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.collectLatest
-import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.sync.Mutex
 
 /**

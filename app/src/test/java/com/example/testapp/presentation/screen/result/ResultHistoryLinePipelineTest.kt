@@ -1,6 +1,7 @@
 package com.example.testapp.presentation.screen.result
 
 import com.example.testapp.domain.model.HistoryRecord
+import com.example.testapp.uicommon.screen.result.formatResultHistoryLine
 import org.junit.Assert.assertEquals
 import org.junit.Test
 import java.time.LocalDateTime

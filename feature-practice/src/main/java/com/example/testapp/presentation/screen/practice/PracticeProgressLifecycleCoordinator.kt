@@ -3,12 +3,14 @@ package com.example.testapp.presentation.screen.practice
 import com.example.testapp.core.common.FontSettingsRepository
 import com.example.testapp.core.session.NavigationSaveScheduler
 import com.example.testapp.core.session.SessionEngine
-import com.example.testapp.core.util.extractSourceQuestionId
-import com.example.testapp.domain.model.Question
-import com.example.testapp.domain.model.PracticeProgress
+import com.example.testapp.core.session.policy.SessionStrategyFactory
+import com.example.testapp.domain.session.QuestionSessionKind
 import com.example.testapp.domain.model.PracticeSessionState
+import com.example.testapp.domain.model.Question
 import com.example.testapp.domain.model.QuestionWithState
 import com.example.testapp.domain.model.toUnifiedSessionState
+import com.example.testapp.domain.session.persistence.SessionPersistenceConfig
+import com.example.testapp.domain.session.persistence.SessionPersistenceContext
 import com.example.testapp.domain.usecase.PracticeUseCaseFacade
 import com.example.testapp.domain.usecase.QuestionFlowCache
 import kotlinx.coroutines.CoroutineScope
@@ -44,6 +46,17 @@ internal class PracticeProgressLifecycleCoordinator(
     private var lastAppliedInitKey: String? = null
     private var sourceCatalogQuestions: List<Question> = emptyList()
     private val cumulativeQuestionStateMap = mutableMapOf<Int, com.example.testapp.domain.model.UnifiedQuestionState>()
+    private var persistenceConfig: SessionPersistenceConfig? = null
+    private var pendingPinnedQuestionId: Int? = null
+
+    fun applyPersistenceConfig(config: SessionPersistenceConfig) {
+        persistenceConfig = config
+    }
+
+    private fun activePersistenceConfig(): SessionPersistenceConfig =
+        persistenceConfig ?: SessionStrategyFactory.persistence(
+            QuestionSessionKind.Practice(progressId())
+        ).config(SessionPersistenceContext())
 
     fun sourceCatalog(): List<Question> = sourceCatalogQuestions
 
@@ -64,13 +77,15 @@ internal class PracticeProgressLifecycleCoordinator(
         questionsId: String = id,
         loadQuestions: Boolean = true,
         questionCount: Int = 0,
-        random: Boolean = randomPracticeEnabled()
+        random: Boolean = randomPracticeEnabled(),
+        pinnedQuestionId: Int? = null,
     ) {
-        setProgressIdValue(ensurePrefix(id))
+        setProgressIdValue(PracticeProgressIdPipeline.ensurePrefix(id))
         setQuestionSourceId(questionsId)
         setRandomPracticeEnabled(random)
         lastQuestionCount = questionCount
         lastAppliedInitKey = null
+        pendingPinnedQuestionId = pinnedQuestionId
         android.util.Log.d("PracticeViewModel", "setProgressId: randomPracticeEnabled=${randomPracticeEnabled()}, randomParam=$random")
         val newSessionStartTime = System.currentTimeMillis()
 
@@ -122,174 +137,84 @@ internal class PracticeProgressLifecycleCoordinator(
             "PracticeViewModel",
             "loadQuestionsForCurrentSource: originalQuestions.size=${originalQuestions.size}, ids=${originalQuestions.map { it.id }}"
         )
-        if (originalQuestions.isEmpty()) {
-            sourceCatalogQuestions = emptyList()
-            sessionState.value = PracticeSessionState(
-                progressLoaded = true,
-                progressId = progressId(),
-                sessionStartTime = newSessionStartTime
-            )
-            return
-        }
 
-        sourceCatalogQuestions = originalQuestions.distinctBy { it.id }
-
-        var existingProgress = facade.progress.getFlow(progressId()).firstOrNull()
         val fillConfig = PracticeFillConfigPipeline.read(fontSettings)
         onFillConfigApplied(fillConfig)
-        val curFillSignature = fillConfig.signature()
-        val fillConfigSensitive = PracticeFillConfigPipeline.isFillConfigSensitive(originalQuestions, sourceId)
-        val canReuseByFill = progressCoordinator.canReuseByFillSignature(
-            existingProgress?.sessionId,
-            curFillSignature,
-            fillConfigSensitive
-        )
-        val savedFillSignature = progressCoordinator.extractFillConfigSignature(existingProgress?.sessionId)
-        if (existingProgress != null && savedFillSignature.isNullOrBlank() && canReuseByFill) {
-            val upgradedProgress = existingProgress.copy(
-                sessionId = progressCoordinator.buildSessionIdWithFillSignature(
-                    progressId(),
-                    progressCoordinator.practiceProgressSeed(existingProgress, newSessionStartTime),
-                    curFillSignature
-                )
-            )
-            facade.progress.save(upgradedProgress)
-            existingProgress = upgradedProgress
-        }
+        var existingProgress = facade.progress.getFlow(progressId()).firstOrNull()
+        val pinnedId = pendingPinnedQuestionId
+        pendingPinnedQuestionId = null
 
-        val savedSourceOrder = existingProgress?.fixedQuestionOrder
-            ?.map(::extractSourceQuestionId)
-            ?.distinct()
-            ?.takeIf { canReuseByFill && it.isNotEmpty() }
-            .orEmpty()
-        val fullPoolSize = originalQuestions.distinctBy { it.id }.size
-        val priorComplete = PracticeRoundCompletePipeline.isComplete(existingProgress)
-        val savedSourcesDone = PracticeSourceQuestionPipeline.savedSourcesFullyAnswered(
-            savedSourceOrder,
-            existingProgress?.questionStateMap.orEmpty()
-        )
-        val startNewRound = priorComplete || savedSourcesDone
-        cumulativeQuestionStateMap.clear()
-        cumulativeQuestionStateMap.putAll(existingProgress?.questionStateMap.orEmpty())
-        val canReuseSavedOrder = PracticeRoundReusePipeline.canReuseSavedOrder(
-            progress = existingProgress,
-            savedSourceOrder = savedSourceOrder,
-            questionCount = questionCount,
-            fullPoolSize = fullPoolSize,
-            canReuseByFill = canReuseByFill
-        )
-        val orderedSourceQuestions = if (canReuseSavedOrder) {
-            val questionsMap = originalQuestions.associateBy { it.id }
-            savedSourceOrder.mapNotNull { questionsMap[it] }
-        } else {
-            withContext(Dispatchers.Default) {
-                val lastRoundSourceIds = if (startNewRound) {
-                    PracticeSourceQuestionPipeline.lastRoundSourceIds(existingProgress?.fixedQuestionOrder.orEmpty())
-                } else {
-                    emptySet()
+        when (
+            val outcome = PracticeProgressLoadQuestionsPipeline.prepare(
+                originalQuestions = originalQuestions,
+                existingProgress = existingProgress,
+                questionCount = questionCount,
+                newSessionStartTime = newSessionStartTime,
+                fillConfig = fillConfig,
+                sourceId = sourceId,
+                randomPracticeEnabled = randomPracticeEnabled(),
+                pinnedQuestionId = pinnedId,
+                preserveCurrentIndex = preserveCurrentIndex,
+                progressCoordinator = progressCoordinator,
+                persistenceConfig = activePersistenceConfig(),
+                progressId = progressId(),
+            )
+        ) {
+            is PracticeProgressLoadQuestionsPipeline.Outcome.Empty -> {
+                sourceCatalogQuestions = emptyList()
+                sessionState.value = PracticeSessionState(
+                    progressLoaded = true,
+                    progressId = outcome.catalog.progressId,
+                    sessionStartTime = outcome.catalog.sessionStartTime,
+                )
+                return
+            }
+            is PracticeProgressLoadQuestionsPipeline.Outcome.Ready -> {
+                val loaded = outcome.loaded
+                loaded.fillSignatureUpgrade?.let { facade.progress.save(it) }
+                loaded.newRoundProgress?.let { facade.progress.save(it) }
+                val existingProgress = loaded.finalProgress
+                val applied = PracticeProgressApplyLoadedPipeline.apply(
+                    loaded = loaded,
+                    existingProgress = existingProgress,
+                )
+                sourceCatalogQuestions = applied.sourceCatalogQuestions
+                cumulativeQuestionStateMap.clear()
+                cumulativeQuestionStateMap.putAll(applied.cumulativeQuestionStateMap)
+                val log = applied.logContext
+                PracticeRoundLoadLog.loadQuestions(
+                    priorComplete = log.priorComplete,
+                    startNewRound = log.startNewRound,
+                    canReuse = log.canReuse,
+                    savedSize = log.savedSize,
+                    questionCount = log.questionCount,
+                    orderedIds = log.orderedIds,
+                    answeredSourceIds = log.answeredSourceIds,
+                    lastRoundSourceIds = log.lastRoundSourceIds,
+                    savedSourcesDone = log.savedSourcesDone,
+                )
+                PracticeRoundLoadLog.restore(log.restoreFromMap, log.restoredMapSize)
+                val prevIndex = sessionState.value.currentIndex
+                val nextState = PracticeProgressApplyLoadedPipeline.patchSessionState(
+                    sessionState.value,
+                    applied,
+                )
+                sessionState.value = nextState
+                if (prevIndex != applied.startIndex) {
+                    PracticeJumpDebugLog.sessionIndexMutation(
+                        prevIndex,
+                        applied.startIndex,
+                        "loadQuestionsForCurrentSource restoreFromMap=${applied.restoreFromMap} preserve=$preserveCurrentIndex",
+                    )
                 }
-                val answeredSourceIds = PracticeQuestionOrderPipeline.answeredQuestionIds(
-                    existingProgress?.questionStateMap.orEmpty()
-                )
-                PracticeQuestionOrderPipeline.orderForNewRound(
-                    originalQuestions = originalQuestions,
-                    questionCount = questionCount,
-                    random = randomPracticeEnabled(),
-                    answeredSourceIds = answeredSourceIds,
-                    seed = newSessionStartTime,
-                    lastRoundSourceIds = lastRoundSourceIds
-                )
+                if (applied.restoreFromMap) {
+                    onProgressRestored(applied.questionsWithState, applied.startIndex)
+                }
+                lastAppliedInitKey = applied.initKey
+                scope.launch { repositoryContentLoader.loadOnce() }
+                loadProgress()
             }
         }
-        val fillSeed = progressCoordinator.practiceProgressSeed(
-            if (canReuseByFill) existingProgress else null,
-            newSessionStartTime
-        )
-        val fillTransformed = withContext(Dispatchers.Default) {
-            PracticeFillConfigPipeline.applyTransform(orderedSourceQuestions, fillConfig, fillSeed)
-        }
-        val questionsWithFixedOrder = PracticeQuestionCountPolicy.limitQuestions(
-            fillTransformed,
-            questionCount
-        )
-        PracticeRoundLoadLog.loadQuestions(
-            priorComplete = priorComplete,
-            startNewRound = startNewRound,
-            canReuse = canReuseSavedOrder,
-            savedSize = savedSourceOrder.size,
-            questionCount = questionCount,
-            orderedIds = questionsWithFixedOrder.map { it.id },
-            answeredSourceIds = PracticeSourceQuestionPipeline.answeredSourceIds(
-                existingProgress?.questionStateMap.orEmpty()
-            ),
-            lastRoundSourceIds = if (startNewRound) {
-                PracticeSourceQuestionPipeline.lastRoundSourceIds(existingProgress?.fixedQuestionOrder.orEmpty())
-            } else {
-                emptySet()
-            },
-            savedSourcesDone = savedSourcesDone
-        )
-        if (startNewRound || existingProgress?.fixedQuestionOrder.isNullOrEmpty() || !canReuseByFill || !canReuseSavedOrder) {
-            val newProgress = PracticeNewRoundProgressPipeline.build(
-                prior = existingProgress,
-                progressId = progressId(),
-                seed = newSessionStartTime,
-                sessionId = progressCoordinator.buildSessionIdWithFillSignature(
-                    progressId(),
-                    fillSeed,
-                    curFillSignature
-                ),
-                questions = questionsWithFixedOrder
-            )
-            facade.progress.save(newProgress)
-            existingProgress = newProgress
-        }
-
-        val restoreFromMap = PracticeSessionRestorePipeline.shouldRestoreAnswersFromMap(existingProgress)
-        PracticeRoundLoadLog.restore(restoreFromMap, existingProgress?.questionStateMap?.size ?: 0)
-        val baseQuestionsWithState = questionsWithFixedOrder.map { QuestionWithState(question = it) }
-        val questionsWithState = PracticeSessionRestorePipeline.resolveSessionQuestions(
-            sessionQuestions = baseQuestionsWithState,
-            progress = existingProgress,
-            restoreFromMap = restoreFromMap,
-            sessionStartTime = newSessionStartTime
-        )
-        val startIndex = PracticeSessionStartIndexPipeline.resolve(
-            questionCount = questionsWithState.size,
-            restoreFromMap = restoreFromMap,
-            savedCurrentIndex = existingProgress?.currentIndex,
-            randomPracticeEnabled = randomPracticeEnabled(),
-            sessionStartTime = newSessionStartTime,
-            preserveCurrentIndex = preserveCurrentIndex
-        )
-        val prevIndex = sessionState.value.currentIndex
-        sessionState.value = sessionState.value.copy(
-            questionsWithState = questionsWithState,
-            sessionStartTime = newSessionStartTime,
-            questionCount = questionCount,
-            currentIndex = startIndex
-        )
-        if (prevIndex != startIndex) {
-            PracticeJumpDebugLog.sessionIndexMutation(
-                prevIndex,
-                startIndex,
-                "loadQuestionsForCurrentSource restoreFromMap=$restoreFromMap preserve=$preserveCurrentIndex"
-            )
-        }
-        if (restoreFromMap) {
-            onProgressRestored(questionsWithState, startIndex)
-        }
-        markAppliedInitKey(questionCount, curFillSignature)
-        scope.launch { repositoryContentLoader.loadOnce() }
-        loadProgress()
-    }
-
-    private fun markAppliedInitKey(questionCount: Int, fillConfigVersion: String) {
-        lastAppliedInitKey = PracticeQuizInitReloadPipeline.buildInitKey(
-            fillConfigVersion = fillConfigVersion,
-            practiceCount = questionCount,
-            randomPractice = randomPracticeEnabled()
-        )
     }
 
     private suspend fun loadOriginalQuestions(sourceId: String): List<Question> =
@@ -309,30 +234,34 @@ internal class PracticeProgressLifecycleCoordinator(
     }
 
     fun scheduleNavigationSave() {
+        if (!PracticeProgressPersistencePipeline.shouldSaveOnNavigation(activePersistenceConfig())) return
         navigationSaveScheduler.schedule { performSaveProgress() }
     }
 
     private suspend fun performSaveProgress() {
+        if (!PracticeProgressPersistencePipeline.shouldPersist(activePersistenceConfig())) return
         val state = sessionState.value
         val mergedMap = withContext(Dispatchers.Default) {
-            PracticeProgressMapPipeline.mergeInto(cumulativeQuestionStateMap, state.questionsWithState)
+            PracticeProgressSaveRequestPipeline.mergeMap(cumulativeQuestionStateMap, state.questionsWithState)
         }
         cumulativeQuestionStateMap.clear()
         cumulativeQuestionStateMap.putAll(mergedMap)
         val fillSignature = PracticeFillConfigPipeline.read(fontSettings).signature()
-        val fixedOrder = state.questionsWithState.map { it.question.id }
-        PracticeRoundLoadLog.save(cumulativeQuestionStateMap.size, fixedOrder.size)
+        val request = PracticeProgressSaveRequestPipeline.build(
+            state = state,
+            cumulativeQuestionStateMap = cumulativeQuestionStateMap.toMap(),
+            fillSignature = fillSignature,
+            unifiedState = state.toUnifiedSessionState(),
+        )
+        PracticeRoundLoadLog.save(request.logMapSize, request.logFixedOrderSize)
         withContext(Dispatchers.IO) {
             sessionEngine.progressManager.saveProgress(
                 progressId = progressId(),
-                state = state.toUnifiedSessionState(),
+                state = request.unifiedState,
                 memoryActive = false,
                 allSourceQuestions = emptyList(),
-                fillSignature = fillSignature,
-                extras = mapOf(
-                    "questionStateMap" to cumulativeQuestionStateMap.toMap(),
-                    "fixedQuestionOrder" to fixedOrder
-                )
+                fillSignature = request.fillSignature,
+                extras = request.extras,
             )
         }
     }
@@ -353,20 +282,29 @@ internal class PracticeProgressLifecycleCoordinator(
         favorite: Boolean = false,
         onComplete: suspend () -> Unit
     ) {
-        setProgressIdValue(ensurePrefix(targetProgressId))
+        setProgressIdValue(PracticeProgressIdPipeline.ensurePrefix(targetProgressId))
         setQuestionSourceId(sourceId)
         lastQuestionCount = questionCount
         loadQuestionsJob?.cancel()
         loadQuestionsJob = scope.launch {
             val progress = facade.progress.getFlow(progressId()).firstOrNull()
-            if (progress == null) {
-                sessionState.value = sessionState.value.copy(progressLoaded = true)
-                onComplete()
-                return@launch
-            }
             val sourceQuestions = resolveSourceQuestions(sourceId, wrongBook, favorite)
-            loadQuestionsForCurrentSource(questionCount, progress.timestamp, sourceQuestions)
-            onComplete()
+            when (
+                val outcome = PracticeReviewSessionLoadPipeline.resolve(progress, sourceQuestions)
+            ) {
+                PracticeReviewSessionLoadPipeline.Outcome.MarkLoadedOnly -> {
+                    sessionState.value = sessionState.value.copy(progressLoaded = true)
+                    onComplete()
+                }
+                is PracticeReviewSessionLoadPipeline.Outcome.LoadQuestions -> {
+                    loadQuestionsForCurrentSource(
+                        questionCount,
+                        outcome.sessionStartTime,
+                        outcome.sourceQuestions,
+                    )
+                    onComplete()
+                }
+            }
         }
     }
 
@@ -376,57 +314,22 @@ internal class PracticeProgressLifecycleCoordinator(
         favorite: Boolean
     ): List<Question>? {
         if (!wrongBook && !favorite) return null
-        return when {
-            wrongBook -> facade.wrongFavorite.getWrongBook().firstOrNull()
-                ?.filter { it.question.fileName == sourceId }
-                ?.map { it.question }
-                .orEmpty()
-            favorite -> facade.wrongFavorite.getFavorites().firstOrNull()
-                ?.filter { it.question.fileName == sourceId }
-                ?.map { it.question }
-                .orEmpty()
-            else -> null
-        }
-    }
-
-    private fun ensurePrefix(id: String): String = if (id.startsWith("practice_")) id else "practice_$id"
-
-    private fun orderedForPractice(
-        originalQuestions: List<Question>,
-        existingProgress: PracticeProgress?,
-        newSessionStartTime: Long
-    ): List<Question> {
-        if (!randomPracticeEnabled()) return originalQuestions
-        if (existingProgress == null) return originalQuestions.shuffled(java.util.Random(newSessionStartTime))
-
-        val answeredQuestionIds = existingProgress.questionStateMap
-            .filterValues { it.selectedOptions.isNotEmpty() && it.showResult }
-            .keys
-        val unansweredQuestions = originalQuestions.filter { it.id !in answeredQuestionIds }
-        val answeredQuestions = originalQuestions.filter { it.id in answeredQuestionIds }
-        return if (unansweredQuestions.isNotEmpty()) {
-            unansweredQuestions.shuffled(java.util.Random(newSessionStartTime)) +
-                answeredQuestions.shuffled(java.util.Random(newSessionStartTime + 1000))
-        } else {
-            originalQuestions.shuffled(java.util.Random(newSessionStartTime))
-        }
+        val wrongQuestions = facade.wrongFavorite.getWrongBook().firstOrNull()
+            ?.map { it.question }
+            .orEmpty()
+        val favoriteQuestions = facade.wrongFavorite.getFavorites().firstOrNull()
+            ?.map { it.question }
+            .orEmpty()
+        return PracticeReviewSourceQuestionsPipeline.filterBySource(
+            sourceId = sourceId,
+            wrongBook = wrongBook,
+            favorite = favorite,
+            wrongBookQuestions = wrongQuestions,
+            favoriteQuestions = favoriteQuestions,
+        )
     }
 
     private fun resetLocalState() {
-        val currentState = sessionState.value
-        sessionState.value = currentState.copy(
-            currentIndex = 0,
-            questionsWithState = currentState.questionsWithState.map {
-                it.copy(
-                    selectedOptions = emptyList(),
-                    showResult = false,
-                    analysis = "",
-                    sparkAnalysis = "",
-                    baiduAnalysis = "",
-                    note = ""
-                )
-            },
-            progressLoaded = false
-        )
+        sessionState.value = PracticeProgressLocalResetPipeline.resetQuestions(sessionState.value)
     }
 }

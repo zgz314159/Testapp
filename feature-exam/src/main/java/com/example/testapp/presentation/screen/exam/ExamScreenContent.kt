@@ -24,20 +24,25 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.sp
-import com.example.testapp.domain.QuestionTypes
-import com.example.testapp.domain.model.Question
-import com.example.testapp.feature.exam.R
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.LifecycleOwner
 import com.example.testapp.core.util.SessionAnalysisResolvePipeline
+import com.example.testapp.domain.QuestionTypes
+import com.example.testapp.domain.session.SessionCommand
+import com.example.testapp.feature.exam.R
 import com.example.testapp.presentation.screen.exam.components.ExamAnalysisArea
 import com.example.testapp.presentation.screen.exam.components.ExamHeader
 import com.example.testapp.presentation.screen.exam.components.ExamQuestionBody
-import com.example.testapp.presentation.screen.exam.components.examScreenGesture
 import com.example.testapp.presentation.screen.exam.components.ExamScreenBottomBar
 import com.example.testapp.presentation.screen.exam.components.ExamScreenOverlays
 import com.example.testapp.presentation.screen.exam.components.ExamScreenQuizInitEffect
 import com.example.testapp.presentation.screen.exam.components.ExamScreenReviewInitEffect
 import com.example.testapp.presentation.screen.exam.components.ExamScreenSaveSuccessEffect
 import com.example.testapp.presentation.screen.exam.components.ExamScreenScrollCancelEffects
+import com.example.testapp.presentation.screen.exam.components.examScreenGesture
+import com.example.testapp.presentation.session.exam.ExamCommandOutcome
+import com.example.testapp.presentation.session.exam.ExamScreenBindings
 import com.example.testapp.uicommon.component.FillAnswerRoundLabel
 import com.example.testapp.uicommon.component.LocalFontFamily
 import com.example.testapp.uicommon.component.LocalFontSize
@@ -53,9 +58,6 @@ import com.example.testapp.uicommon.design.QuestionSessionSideAction
 import com.example.testapp.uicommon.layout.ScreenSafeScaffold
 import com.example.testapp.uicommon.util.formatQuestionForAi
 import com.example.testapp.uicommon.util.formatQuestionForCopy
-import androidx.lifecycle.Lifecycle
-import androidx.lifecycle.LifecycleEventObserver
-import androidx.lifecycle.LifecycleOwner
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
@@ -83,7 +85,9 @@ data class ExternalExamState(
 @Composable
 fun ExamScreenContent(
     quizId: String,
-    viewModel: ExamViewModel,
+    bindings: ExamScreenBindings,
+    dispatchCommand: (SessionCommand) -> ExamCommandOutcome?,
+    sessionHosted: Boolean = false,
     externalState: ExternalExamState = ExternalExamState(),
     isReviewMode: Boolean = false,
     reviewProgressId: String? = null,
@@ -101,30 +105,33 @@ fun ExamScreenContent(
     onViewExplanation: (String) -> Unit = {},
     onEditNote: (String, Int, Int) -> Unit = { _, _, _ -> }
 ) {
-    val questions by viewModel.questions.collectAsState()
-    val currentIndex by viewModel.currentIndex.collectAsState()
-    val selectedOptions by viewModel.selectedOptions.collectAsState()
-    val textAnswers by viewModel.textAnswers.collectAsState()
-    val progressLoaded by viewModel.progressLoaded.collectAsState()
-    val emptyQuestionResult by viewModel.emptyQuestionResult.collectAsState()
-    val showResultList by viewModel.showResultList.collectAsState()
-    val answerTimeList by viewModel.answerTimeList.collectAsState()
-    val cumulativeCorrect by viewModel.cumulativeCorrect.collectAsState()
-    val cumulativeAnswered by viewModel.cumulativeAnswered.collectAsState()
-    val cumulativeExamCount by viewModel.cumulativeExamCount.collectAsState()
-    val editableQuestion by viewModel.editableQuestion.collectAsState()
-    val noteList by viewModel.noteList.collectAsState()
-    val analysisList by viewModel.analysisList.collectAsState()
-    val sparkAnalysisList by viewModel.sparkAnalysisList.collectAsState()
-    val baiduAnalysisList by viewModel.baiduAnalysisList.collectAsState()
+    val questions by bindings.questions.collectAsState()
+    val currentIndex by bindings.currentIndex.collectAsState()
+    val selectedOptions by bindings.selectedOptions.collectAsState()
+    val textAnswers by bindings.textAnswers.collectAsState()
+    val progressLoaded by bindings.progressLoaded.collectAsState()
+    val emptyQuestionResult by bindings.emptyQuestionResult.collectAsState()
+    val showResultList by bindings.showResultList.collectAsState()
+    val answerTimeList by bindings.answerTimeList.collectAsState()
+    val cumulativeCorrect by bindings.cumulativeCorrect.collectAsState()
+    val cumulativeAnswered by bindings.cumulativeAnswered.collectAsState()
+    val cumulativeExamCount by bindings.cumulativeExamCount.collectAsState()
+    val editableQuestion by bindings.editableQuestion.collectAsState()
+    val noteList by bindings.noteList.collectAsState()
+    val analysisList by bindings.analysisList.collectAsState()
+    val sparkAnalysisList by bindings.sparkAnalysisList.collectAsState()
+    val baiduAnalysisList by bindings.baiduAnalysisList.collectAsState()
 
     val context = LocalContext.current
     val focusManager = LocalFocusManager.current
     val question = questions.getOrNull(currentIndex)
     val coroutineScope = rememberCoroutineScope()
+    val sendCommand: (SessionCommand) -> Unit = { dispatchCommand(it) }
 
-    ExamScreenReviewInitEffect(isReviewMode, reviewProgressId, quizId, isWrongBookMode, isFavoriteMode, externalState, viewModel)
-    ExamScreenQuizInitEffect(quizId, isReviewMode, externalState, progressLoaded, viewModel)
+    ExamScreenReviewInitEffect(
+        isReviewMode, reviewProgressId, quizId, isWrongBookMode, isFavoriteMode, externalState, sendCommand, sessionHosted,
+    )
+    ExamScreenQuizInitEffect(quizId, isReviewMode, externalState, progressLoaded, sendCommand, sessionHosted)
 
     val parsingText = stringResource(R.string.parsing)
     val parsingKeyword = parsingText.removeSuffix("...")
@@ -174,11 +181,11 @@ fun ExamScreenContent(
     }
     val stats = remember { ExamSessionStats() }
     val endFlow = remember { ExamEndFlow() }
-    val fc = remember { ExamFontController(externalState.fontSize, 1.3f, viewModel.fontSettingsRepository) }
+    val fc = remember { ExamFontController(externalState.fontSize, 1.3f, bindings.fontSettingsRepository) }
     LaunchedEffect(Unit) { fc.loadFromStore() }
-    ExamScreenSaveSuccessEffect(viewModel) {
+    ExamScreenSaveSuccessEffect(bindings) {
         ds.showEditQuestionDialog = false
-        viewModel.clearEditableQuestion()
+        sendCommand(SessionCommand.ClearEditableQuestion)
     }
 
     val explanationScroll = rememberScrollState()
@@ -191,10 +198,10 @@ fun ExamScreenContent(
     LaunchedEffect(currentIndex) { ds.expandedSection = -1 }
 
     val answerCardDisplayInfo = remember(ds.showList, questions) {
-        if (ds.showList) viewModel.buildAnswerCardDisplayInfo(questions) else emptyMap()
+        if (ds.showList) bindings.buildAnswerCardDisplayInfo(questions) else emptyMap()
     }
     val answerCardEntryGrouped = remember(ds.showList, questions) {
-        if (ds.showList) viewModel.answerCardEntryGrouped(questions) else false
+        if (ds.showList) bindings.answerCardEntryGrouped(questions) else false
     }
 
     var answeredThisSession by remember { mutableStateOf(false) }
@@ -225,8 +232,8 @@ fun ExamScreenContent(
     }
 
     val postAnswerAdvance: suspend () -> Unit = {
-        when (ExamPostAnswerAdvancePipeline.resolve(viewModel.hasPendingQuestions())) {
-            ExamPostAnswerAdvancePipeline.Action.Advance -> viewModel.nextQuestion()
+        when (ExamPostAnswerAdvancePipeline.resolve(bindings.hasPendingQuestions())) {
+            ExamPostAnswerAdvancePipeline.Action.Advance -> dispatchCommand(SessionCommand.NextQuestion)
             ExamPostAnswerAdvancePipeline.Action.PromptSubmit -> ds.showExitDialog = true
         }
     }
@@ -238,7 +245,7 @@ fun ExamScreenContent(
             ExamSessionExitPipeline.resolve(
                 isReviewMode = isReviewMode,
                 answeredThisSession = answeredThisSession,
-                hasPendingQuestions = viewModel.hasPendingQuestions()
+                hasPendingQuestions = bindings.hasPendingQuestions()
             )
         ) {
             ExamSessionExitPipeline.Action.ReviewBack -> onReviewBack()
@@ -246,7 +253,8 @@ fun ExamScreenContent(
             ExamSessionExitPipeline.Action.ShowSubmitDialog -> ds.showExitDialog = true
             ExamSessionExitPipeline.Action.FinishDirect ->
                 coroutineScope.launch {
-                    viewModel.gradeExam()
+                    val score = suspendExamCommand(bindings, SessionCommand.GradeSession) ?: return@launch
+                    if (score < 0) return@launch
                     onExamEnd(sessionScore, sessionActualAnswered, 0, cumulativeCorrect, cumulativeAnswered, cumulativeExamCount)
                 }
         }
@@ -283,7 +291,8 @@ fun ExamScreenContent(
                 .onSizeChanged { gesture.containerWidth = it.width.toFloat() }
                 .cancelAutoAdvanceOnTouch { timer.cancel() }
                 .examScreenGesture(
-                    currentIndex, gesture, timer, isReviewMode, answeredThisSession, viewModel,
+                    currentIndex, gesture, timer, isReviewMode, answeredThisSession, bindings,
+                    dispatchCommand,
                     { focusManager.clearFocus(force = true) }, context,
                     stringResource(R.string.answered_history_at_oldest),
                     stringResource(R.string.answered_history_at_latest),
@@ -318,8 +327,8 @@ fun ExamScreenContent(
                     onEditQuestion = {
                         timer.cancel()
                         focusManager.clearFocus(force = true)
-                        viewModel.clearEditableQuestion()
-                        viewModel.prepareEditableQuestion(currentIndex)
+                        sendCommand(SessionCommand.ClearEditableQuestion)
+                        sendCommand(SessionCommand.PrepareEditableAtIndex(currentIndex))
                         ds.showEditQuestionDialog = true
                     },
                     settingsLabel = stringResource(R.string.settings),
@@ -364,9 +373,10 @@ fun ExamScreenContent(
                         textAnswer = textAnswer,
                         showResult = showResult,
                         onOptionClick = if (isReviewMode) { {} } else { { idx ->
-                            val isSingleOrJudge = QuestionTypes.isSingle(question.type) || QuestionTypes.isJudge(question.type)
+                            val isSingleOrJudge =
+                                QuestionTypes.isSingle(question.type) || QuestionTypes.isJudge(question.type)
                             answeredThisSession = true
-                            viewModel.selectOption(idx, skipAfterChanged = isSingleOrJudge)
+                            sendCommand(SessionCommand.SelectOptionWithSkip(idx, isSingleOrJudge))
                             if (isSingleOrJudge) autoAdvance(externalState.examDelay * 1000L) { postAnswerAdvance() }
                         } },
                         onTextAnswerChange = if (isReviewMode) {
@@ -374,7 +384,7 @@ fun ExamScreenContent(
                         } else {
                             { text ->
                                 answeredThisSession = true
-                                viewModel.updateTextAnswer(text)
+                                sendCommand(SessionCommand.UpdateTextAnswer(text))
                             }
                         }
                     )
@@ -388,7 +398,7 @@ fun ExamScreenContent(
                             contentDescription = retryCurrentLabel,
                             onClick = {
                                 timer.cancel()
-                                viewModel.retryCurrentQuestion(currentIndex)
+                                sendCommand(SessionCommand.RetryCurrentQuestion(currentIndex))
                                 answeredThisSession = true
                             }
                         )
@@ -398,7 +408,7 @@ fun ExamScreenContent(
                             contentDescription = retryWrongLabel,
                             onClick = {
                                 timer.cancel()
-                                viewModel.retryWrongFillBlanks(currentIndex)
+                                sendCommand(SessionCommand.RetryWrongBlanks(currentIndex))
                                 answeredThisSession = true
                             }
                         )
@@ -429,8 +439,8 @@ fun ExamScreenContent(
             },
             bottomBar = {
                 ExamScreenBottomBar(
-                    isReviewMode, showResult, selectedOption, viewModel,
-                    { answeredThisSession = true }, ::requestSubmitExam
+                    isReviewMode, showResult, selectedOption, bindings, sendCommand,
+                    { answeredThisSession = true }, ::requestSubmitExam,
                 )
             }
         )
@@ -439,7 +449,7 @@ fun ExamScreenContent(
     val activeQuestion = question ?: return
     ExamScreenOverlays(
         ds, fc, coroutineScope, editableQuestion, questions, selectedOptions, textAnswers, showResultList,
-        answerTimeList, answerCardDisplayInfo, answerCardEntryGrouped, currentIndex, viewModel, activeQuestion,
+        answerTimeList, answerCardDisplayInfo, answerCardEntryGrouped, currentIndex, bindings, sendCommand, activeQuestion,
         sessionScore, sessionActualAnswered, sessionUnanswered, cumulativeCorrect, cumulativeAnswered,
         cumulativeExamCount, onExamEnd
     )

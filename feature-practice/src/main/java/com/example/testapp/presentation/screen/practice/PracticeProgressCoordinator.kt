@@ -1,9 +1,9 @@
 package com.example.testapp.presentation.screen.practice
 
+import com.example.testapp.core.util.FillQuestionGenerationMode
 import com.example.testapp.domain.model.PracticeProgress
 import com.example.testapp.domain.model.PracticeSessionState
 import com.example.testapp.domain.model.UnifiedQuestionState
-import com.example.testapp.core.util.FillQuestionGenerationMode
 
 class PracticeProgressCoordinator {
 
@@ -29,7 +29,7 @@ class PracticeProgressCoordinator {
     }
 
     fun buildSessionIdWithFillSignature(baseId: String, seed: Long, fillSignature: String): String {
-        return "${baseId}_${seed}|fill=$fillSignature"
+        return "${baseId}_$seed|fill=$fillSignature"
     }
 
     fun extractFillConfigSignature(sessionId: String?): String? {

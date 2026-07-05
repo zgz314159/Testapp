@@ -10,10 +10,10 @@ object RichTextLatexDelimiterPipeline {
         if (!text.contains('\\')) return text
         return text.replace(BlockDelimited) { match ->
             val body = match.groupValues[1].trim()
-            if (body.isBlank()) match.value else "$$${body}$$"
+            if (body.isBlank()) match.value else "$$$body$$"
         }.replace(InlineDelimited) { match ->
             val body = match.groupValues[1].trim()
-            if (body.isBlank()) match.value else "$${body}$"
+            if (body.isBlank()) match.value else "$$body$"
         }
     }
 }

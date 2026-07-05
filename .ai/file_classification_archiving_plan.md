@@ -170,9 +170,8 @@ app/src/main/java/com/example/testapp/
 | 项目 | 说明 | 优先级 |
 |------|------|--------|
 | UseCase 下沉 | 将纯逻辑 UseCase 迁移到 `:domain`，需要 :domain 添加 Hilt 依赖 | 🟢 LOW |
-| Room/POI 依赖从 app 移除 | 这些已在 :data 声明，可通过传递依赖获得 | 🟢 LOW |
-| `AppNavHost_backup.kt` 清理 | 确认无用后删除 | 🟢 LOW |
-| `domain/usecase/QuestionAnalysisRepository.kt` | 文件名异常，检查是否应为接口而非 UseCase | 🟡 MEDIUM |
+| Room/POI 依赖从 app 移除 | Room ✅ P79；POI ✅ P78 | ✅ |
+| `domain/usecase/QuestionAnalysisRepository.kt` | 已重命名为 `QuestionAnalysisUseCases.kt` | ✅ P79 |
 | 删除 `app/.../util/` 中已下沉到 :domain 的重复函数 | 如 AnswerUtils.kt 中部分函数与 DomainAnswerUtils.kt 重复 | 🟢 LOW |
 
 ---

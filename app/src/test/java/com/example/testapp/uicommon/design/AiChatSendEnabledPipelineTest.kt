@@ -1,6 +1,5 @@
 package com.example.testapp.uicommon.design
 
-import com.example.testapp.uicommon.model.AiChatMessageRole
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test

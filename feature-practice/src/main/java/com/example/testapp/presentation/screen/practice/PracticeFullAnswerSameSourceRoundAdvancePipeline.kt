@@ -1,6 +1,5 @@
 package com.example.testapp.presentation.screen.practice
 
-import com.example.testapp.core.util.extractDerivedFillQuestionRound
 import com.example.testapp.core.util.extractSourceQuestionId
 import com.example.testapp.domain.model.Question
 import com.example.testapp.domain.model.QuestionWithState

@@ -1,11 +1,11 @@
 package com.example.testapp.presentation.screen.exam.components
 
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.height
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.height
 import com.example.testapp.domain.model.Question
 import com.example.testapp.feature.exam.R
 import com.example.testapp.uicommon.design.AnalysisSectionTone

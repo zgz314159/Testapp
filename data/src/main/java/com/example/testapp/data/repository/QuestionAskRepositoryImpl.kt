@@ -31,7 +31,7 @@ class QuestionAskRepositoryImpl @Inject constructor(
     override suspend fun saveBaiduResult(questionId: Int, result: String) {
         dao.upsert(QuestionAskEntity(questionId, getDeepSeekResult(questionId) ?: "", getSparkResult(questionId) ?: "", result))
     }
-    
+
     override suspend fun deleteByQuestionId(questionId: Int) {
         dao.deleteByQuestionId(questionId)
     }

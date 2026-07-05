@@ -157,14 +157,20 @@ class QuestionRepositoryImpl @Inject constructor(
                     "docx" -> docxParser.parse(file, originFileName).map(::ImportedQuestionPayload)
                     "txt" -> txtParser.parse(file, originFileName).map(::ImportedQuestionPayload)
                     else -> {
-                        try { sqliteParser.parse(file, originFileName) }
-                        catch (e: Exception) {
-                            try { jsonParser.parse(file, originFileName) }
-                            catch (e2: Exception) {
-                                try { excelParser.parse(file, originFileName) }
-                                catch (e3: Exception) {
-                                    try { txtParser.parse(file, originFileName).map(::ImportedQuestionPayload) }
-                                    catch (e4: Exception) { docxParser.parse(file, originFileName).map(::ImportedQuestionPayload) }
+                        try {
+                            sqliteParser.parse(file, originFileName)
+                        } catch (e: Exception) {
+                            try {
+                                jsonParser.parse(file, originFileName)
+                            } catch (e2: Exception) {
+                                try {
+                                    excelParser.parse(file, originFileName)
+                                } catch (e3: Exception) {
+                                    try {
+                                        txtParser.parse(file, originFileName).map(::ImportedQuestionPayload)
+                                    } catch (e4: Exception) {
+                                        docxParser.parse(file, originFileName).map(::ImportedQuestionPayload)
+                                    }
                                 }
                             }
                         }
@@ -258,14 +264,16 @@ class QuestionRepositoryImpl @Inject constructor(
             if (jsonFile.exists()) jsonFile.delete()
             val metadataFile = metadataManager.editedMetadataFile(fileName)
             if (metadataFile.exists()) metadataFile.delete()
-        } catch (e: Exception) { throw e }
+        } catch (e: Exception) {
+            throw e
+        }
     }
 
     override suspend fun deleteFileAndRelatedData(fileName: String) {
         database.withTransaction {
             val questionIds = dao.getQuestionIdsByFileName(fileName)
-            val practicePrefix = "practice_${fileName}"
-            val examPrefix = "exam_${fileName}"
+            val practicePrefix = "practice_$fileName"
+            val examPrefix = "exam_$fileName"
 
             wrongQuestionDao.removeByFileName(fileName)
             historyRecordDao.deleteByFileName(practicePrefix)
@@ -325,7 +333,9 @@ class QuestionRepositoryImpl @Inject constructor(
             file.outputStream().use { workbook.write(it) }
             workbook.close()
             true
-        } catch (e: Exception) { false }
+        } catch (e: Exception) {
+            false
+        }
     }
 
     fun prepareExportSheetsForQuestions(

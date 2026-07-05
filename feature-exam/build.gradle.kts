@@ -34,6 +34,8 @@ hilt {
 dependencies {
     implementation(project(":domain"))
     implementation(project(":core"))
+    implementation(project(":feature-ai"))
+    implementation(project(":feature-settings"))
     implementation(project(":ui-common"))
 
     implementation(platform("androidx.compose:compose-bom:2024.05.00"))

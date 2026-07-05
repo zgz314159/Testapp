@@ -18,6 +18,6 @@ fun buildTimestampedExportFileName(sourceFileName: String?, fallbackName: String
         ?.takeIf { it.isNotBlank() }
         ?: fallbackName
     val timestamp = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMdd_HHmm"))
-    return sanitizeFileName("${baseName}_${timestamp}.xlsx")
+    return sanitizeFileName("${baseName}_$timestamp.xlsx")
 }
 

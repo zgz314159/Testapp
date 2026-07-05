@@ -67,7 +67,7 @@ class QuestionAnalysisRepositoryImpl @Inject constructor(
     override suspend fun getSparkAnalysis(questionId: Int): String? {
         sparkCache[questionId]?.let { return it }
         val result = loadMergedEntity(questionId)?.sparkAnalysis?.takeIf { it.isNotBlank() }
-        
+
         if (result != null) sparkCache[questionId] = result
         return result
     }
@@ -86,7 +86,7 @@ class QuestionAnalysisRepositoryImpl @Inject constructor(
             return it
         }
         val result = loadMergedEntity(questionId)?.baiduAnalysis?.takeIf { it.isNotBlank() }
-        
+
         if (result != null) baiduCache[questionId] = result
         return result
     }
@@ -99,14 +99,14 @@ class QuestionAnalysisRepositoryImpl @Inject constructor(
 
         baiduCache[questionId] = analysis
     }
-    
+
     override suspend fun deleteByQuestionId(questionId: Int) {
         dao.deleteByQuestionId(questionId)
         cache.remove(questionId)
         sparkCache.remove(questionId)
         baiduCache.remove(questionId)
     }
-    
+
     override fun getByQuestionId(questionId: Int): Flow<com.example.testapp.domain.model.AIAnalysisData?> {
         return dao.getByQuestionId(questionId).map { entities ->
             val entity = mergeEntities(questionId, entities) ?: return@map null

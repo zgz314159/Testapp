@@ -3,38 +3,22 @@ package com.example.testapp.presentation.screen.practice
 
 
 import android.util.Log
-
-import com.example.testapp.domain.QuestionTypes
-
-import com.example.testapp.domain.model.PracticeSessionState
-
-import com.example.testapp.domain.model.Question
-
-import com.example.testapp.domain.model.QuestionWithState
-
-import com.example.testapp.domain.usecase.GetQuestionsUseCase
-
-import com.example.testapp.domain.usecase.SaveQuestionsUseCase
-
 import com.example.testapp.core.common.LocalizedResult
-import com.example.testapp.uicommon.util.buildEditableFillAnswer
-
-import com.example.testapp.uicommon.util.countEditableFillBlanks
-
-import com.example.testapp.uicommon.util.syncEditableFillAnswers
-
 import com.example.testapp.core.util.extractSourceQuestionId
-
 import com.example.testapp.core.util.splitFillAnswerParts
-
+import com.example.testapp.domain.QuestionTypes
+import com.example.testapp.domain.model.PracticeSessionState
+import com.example.testapp.domain.model.Question
+import com.example.testapp.domain.model.QuestionWithState
+import com.example.testapp.domain.usecase.GetQuestionsUseCase
+import com.example.testapp.domain.usecase.SaveQuestionsUseCase
+import com.example.testapp.uicommon.util.buildEditableFillAnswer
+import com.example.testapp.uicommon.util.countEditableFillBlanks
+import com.example.testapp.uicommon.util.syncEditableFillAnswers
 import kotlinx.coroutines.CoroutineScope
-
 import kotlinx.coroutines.flow.MutableSharedFlow
-
 import kotlinx.coroutines.flow.MutableStateFlow
-
 import kotlinx.coroutines.flow.firstOrNull
-
 import kotlinx.coroutines.launch
 
 

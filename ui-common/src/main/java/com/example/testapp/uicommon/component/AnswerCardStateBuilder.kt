@@ -1,7 +1,7 @@
 package com.example.testapp.uicommon.component
 
-import com.example.testapp.domain.model.Question
 import com.example.testapp.core.util.answerLettersToIndices
+import com.example.testapp.domain.model.Question
 
 object AnswerCardStateBuilder {
 

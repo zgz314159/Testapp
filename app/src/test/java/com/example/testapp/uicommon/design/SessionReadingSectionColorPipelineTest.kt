@@ -1,7 +1,7 @@
 package com.example.testapp.uicommon.design
 
-import org.junit.Assert.assertNotEquals
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNotEquals
 import org.junit.Test
 
 class SessionReadingSectionColorPipelineTest {

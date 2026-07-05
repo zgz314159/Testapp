@@ -1,6 +1,8 @@
 ﻿package com.example.testapp.presentation.screen.exam
 
 import androidx.compose.runtime.mutableStateOf
+import com.example.testapp.domain.session.SessionCommand
+import com.example.testapp.presentation.session.exam.ExamScreenBindings
 
 /**
  * 考试结束编排 — 去重提分 (hasGradedExam)
@@ -10,12 +12,15 @@ class ExamEndFlow {
     val graded = mutableStateOf(false)
 
     suspend fun tryGradeThen(
-        viewModel: ExamViewModel,
+        bindings: ExamScreenBindings,
         onSuccess: () -> Unit
     ) {
         if (graded.value) { onSuccess(); return }
         graded.value = true
-        val score = viewModel.gradeExam()
+        val score = suspendExamCommand(bindings, SessionCommand.GradeSession) ?: run {
+            graded.value = false
+            return
+        }
         if (score < 0) { graded.value = false; return }
         onSuccess()
     }

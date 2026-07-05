@@ -45,7 +45,7 @@ internal class ExamReviewSessionCoordinator(
                 applyReviewPresentation()
                 return@launch
             }
-            setProgressId(targetProgressId)
+            setProgressId(ExamProgressIdPipeline.ensurePrefix(targetProgressId))
             resetArtifactLoadedFlags()
             sessionState.update { it.copy(progressLoaded = false) }
             loadReviewSession(targetProgressId, quizFile, questionCount, random, wrongBook, favorite)

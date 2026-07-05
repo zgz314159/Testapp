@@ -32,7 +32,11 @@ internal fun extractEmbeddedExcelImages(
         if (!exists()) mkdirs()
     }
     val drawingPatriarch = xssfSheet.drawingPatriarch ?: return EmbeddedExcelImages(emptyMap(), emptyMap())
-    val shapes = try { drawingPatriarch.shapes } catch (_: Exception) { emptyList<XSSFShape>() }
+    val shapes = try {
+        drawingPatriarch.shapes
+    } catch (_: Exception) {
+        emptyList<XSSFShape>()
+    }
     var globalIndex = 0
     for (shape in shapes) {
         if (shape is XSSFPicture) {
@@ -43,7 +47,7 @@ internal fun extractEmbeddedExcelImages(
                 val picData = shape.pictureData
                 if (picData != null) {
                     val ext = picData.suggestFileExtension() ?: "png"
-                    val imgFile = File(imageDir, "stem_img_${globalIndex}.$ext")
+                    val imgFile = File(imageDir, "stem_img_$globalIndex.$ext")
                     imgFile.writeBytes(picData.data)
                     val target = when {
                         answerColumnIndex != null && colIndex == answerColumnIndex -> answerImagesByRow
@@ -54,7 +58,9 @@ internal fun extractEmbeddedExcelImages(
                     target?.getOrPut(rowIndex) { mutableListOf() }?.add(imgFile.absolutePath)
                     globalIndex++
                 }
-            } catch (_: Exception) { /* skip problematic image */ }
+            } catch (_: Exception) {
+                // skip problematic image
+            }
         }
     }
     return EmbeddedExcelImages(stemImagesByRow, answerImagesByRow)

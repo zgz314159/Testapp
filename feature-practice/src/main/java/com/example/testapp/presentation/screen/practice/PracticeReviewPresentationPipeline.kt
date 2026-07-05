@@ -2,8 +2,8 @@ package com.example.testapp.presentation.screen.practice
 
 import com.example.testapp.domain.model.PracticeSessionState
 import com.example.testapp.domain.model.QuestionWithState
-import com.example.testapp.domain.review.ReviewBrowseSession
 import com.example.testapp.domain.review.ReviewAnsweredSwipePipeline
+import com.example.testapp.domain.review.ReviewBrowseSession
 import com.example.testapp.domain.review.SessionReviewPresentation
 
 data class PracticeReviewPresentationResult(

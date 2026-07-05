@@ -14,8 +14,10 @@
             <option value="$PROJECT_DIR$/core" />
             <option value="$PROJECT_DIR$/data" />
             <option value="$PROJECT_DIR$/domain" />
+            <option value="$PROJECT_DIR$/feature-ai" />
             <option value="$PROJECT_DIR$/feature-exam" />
             <option value="$PROJECT_DIR$/feature-practice" />
+            <option value="$PROJECT_DIR$/feature-settings" />
             <option value="$PROJECT_DIR$/ui-common" />
           </set>
         </option>

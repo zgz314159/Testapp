@@ -1,7 +1,9 @@
 package com.example.testapp.presentation.screen.practice.navigation
 
+import com.example.testapp.core.session.strategy.navigation.SessionNavigationHistoryGate
 import com.example.testapp.domain.model.PracticeSessionState
 import com.example.testapp.domain.model.QuestionWithState
+import com.example.testapp.domain.session.navigation.SessionNavigationOrchestration
 import com.example.testapp.presentation.screen.practice.PracticeFullAnswerIconNavDebugLog
 import com.example.testapp.presentation.screen.practice.PracticeJumpDebugLog
 import com.example.testapp.presentation.screen.practice.SkipUnansweredSourceResult
@@ -33,7 +35,8 @@ class NavigationController(
     fullAnswerRequireCorrect: () -> Boolean,
     fullAnswerRandomOrder: () -> Boolean,
     memoryModeActive: () -> Boolean,
-    randomPracticeEnabled: () -> Boolean
+    randomPracticeEnabled: () -> Boolean,
+    navigationOrchestration: () -> SessionNavigationOrchestration? = { null },
 ) {
     private val env = NavigationEnvironment(
         sessionState = _sessionState,
@@ -55,7 +58,8 @@ class NavigationController(
         fullAnswerRequireCorrect = fullAnswerRequireCorrect,
         fullAnswerRandomOrder = fullAnswerRandomOrder,
         memoryModeActive = memoryModeActive,
-        randomPracticeEnabled = randomPracticeEnabled
+        randomPracticeEnabled = randomPracticeEnabled,
+        navigationOrchestration = navigationOrchestration,
     )
 
     private val targets = NavigationTargetNavigator(env)
@@ -64,6 +68,7 @@ class NavigationController(
     private val unansweredIcon = NavigationUnansweredIconNav(env, targets, multiRound, skipSource)
     private val iconCanMove = NavigationIconCanMove(env, skipSource, multiRound)
     private val sequentialNext = NavigationSequentialNext(env, targets)
+    private val sequentialPrev = NavigationSequentialPrev(env, targets, multiRound)
 
     fun nextQuestionViaIcon(): UnansweredNavResult = unansweredIcon.navigateNext()
 
@@ -97,6 +102,8 @@ class NavigationController(
 
     fun nextQuestion() = sequentialNext.nextQuestion()
 
+    fun prevQuestion() = sequentialPrev.prevQuestion()
+
     fun browseAnsweredHistoryOlder(): AnsweredHistoryBackwardResult {
         val currentState = _sessionState.value
         return env.history.navigateToPreviousAnsweredQuestion(
@@ -128,7 +135,9 @@ class NavigationController(
     fun goToQuestion(index: Int) {
         var currentState = _sessionState.value
         if (index in 0 until currentState.questionsWithState.size) {
-            env.history.clearAll()
+            if (shouldClearHistoryOnManualJump()) {
+                env.history.clearAll()
+            }
             currentState = _sessionState.value
             val targetQuestion = currentState.questionsWithState[index]
             if (env.shouldReopenUnansweredReveal(targetQuestion)) {
@@ -142,8 +151,14 @@ class NavigationController(
     }
 
     fun resetNavigationForManualJump() {
-        env.history.clearAll()
+        if (shouldClearHistoryOnManualJump()) {
+            env.history.clearAll()
+        }
     }
+
+    private fun shouldClearHistoryOnManualJump(): Boolean =
+        env.navigationOrchestration()?.let(SessionNavigationHistoryGate::shouldClearHistoryOnManualJump)
+            ?: true
 
     fun canSkipToUnansweredSource(forward: Boolean): Boolean =
         skipSource.canSkipToUnansweredSource(forward)

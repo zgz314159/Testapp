@@ -1,13 +1,12 @@
 package com.example.testapp.presentation.screen.practice.session
 
-import com.example.testapp.presentation.screen.practice.PracticeSessionAnalysisMergePipeline
+import com.example.testapp.core.common.LocalizedResult
 import com.example.testapp.domain.model.PracticeSessionState
-import com.example.testapp.domain.model.QuestionWithState
 import com.example.testapp.domain.usecase.GetBaiduAnalysisUseCase
 import com.example.testapp.domain.usecase.GetQuestionAnalysisUseCase
 import com.example.testapp.domain.usecase.GetQuestionNoteUseCase
 import com.example.testapp.domain.usecase.GetSparkAnalysisUseCase
-import com.example.testapp.core.common.LocalizedResult
+import com.example.testapp.presentation.screen.practice.PracticeSessionAnalysisMergePipeline
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -54,8 +53,7 @@ class AnalysisManager(
                 val res = getQuestionAnalysisUseCase(qws.question.id)
                 val text = res.getOrNull()
                 if (res.isFailure) postParseError(res.exceptionOrNull())
-                if (!text.isNullOrBlank()) { changed = true; qws.copy(analysis = text) }
-                else qws
+                if (!text.isNullOrBlank()) { changed = true; qws.copy(analysis = text) } else qws
             } else qws
         }
         if (changed) {
@@ -78,8 +76,7 @@ class AnalysisManager(
                 val res = getSparkAnalysisUseCase(qws.question.id)
                 val text = res.getOrNull()
                 if (res.isFailure) postParseError(res.exceptionOrNull())
-                if (!text.isNullOrBlank()) { changed = true; qws.copy(sparkAnalysis = text) }
-                else qws
+                if (!text.isNullOrBlank()) { changed = true; qws.copy(sparkAnalysis = text) } else qws
             } else qws
         }
         if (changed) {
@@ -102,8 +99,7 @@ class AnalysisManager(
                 val res = getBaiduAnalysisUseCase(qws.question.id)
                 val text = res.getOrNull()
                 if (res.isFailure) postParseError(res.exceptionOrNull())
-                if (!text.isNullOrBlank()) { changed = true; qws.copy(baiduAnalysis = text) }
-                else qws
+                if (!text.isNullOrBlank()) { changed = true; qws.copy(baiduAnalysis = text) } else qws
             } else qws
         }
         if (changed) {
@@ -125,8 +121,7 @@ class AnalysisManager(
             val res = getQuestionNoteUseCase(qws.question.id)
             val text = res.getOrNull()
             if (res.isFailure) postNoteError(res.exceptionOrNull())
-            if (text != null && text != qws.note) { changed = true; qws.copy(note = text) }
-            else qws
+            if (text != null && text != qws.note) { changed = true; qws.copy(note = text) } else qws
         }
         if (changed) {
             val latest = _sessionState.value

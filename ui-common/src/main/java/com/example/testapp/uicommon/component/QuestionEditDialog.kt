@@ -15,7 +15,6 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material3.Card
-import com.example.testapp.uicommon.design.AppLoadingIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -40,6 +39,7 @@ import androidx.compose.ui.window.DialogProperties
 import com.example.testapp.domain.QuestionTypes
 import com.example.testapp.domain.model.Question
 import com.example.testapp.uicommon.R
+import com.example.testapp.uicommon.design.AppLoadingIndicator
 import com.example.testapp.uicommon.util.buildEditableFillAnswer
 import com.example.testapp.uicommon.util.countEditableFillBlanks
 import com.example.testapp.uicommon.util.insertEditableAnswerPart

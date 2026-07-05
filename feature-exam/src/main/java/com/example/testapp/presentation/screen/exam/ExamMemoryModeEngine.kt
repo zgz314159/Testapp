@@ -1,7 +1,7 @@
 ﻿package com.example.testapp.presentation.screen.exam
 
-import com.example.testapp.domain.model.UnifiedQuestionState
 import com.example.testapp.domain.model.Question
+import com.example.testapp.domain.model.UnifiedQuestionState
 import javax.inject.Inject
 import javax.inject.Singleton
 

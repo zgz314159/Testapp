@@ -1,10 +1,13 @@
 package com.example.testapp.presentation.screen.practice.navigation
 
+import com.example.testapp.core.session.strategy.navigation.SessionNavigationOrchestrationGate
+import com.example.testapp.core.session.strategy.navigation.SessionNavigationOrchestrationResolver
 import com.example.testapp.core.util.FullAnswerIconNavigationStrategyPipeline
 import com.example.testapp.core.util.FullAnswerIconTapStrategy
 import com.example.testapp.core.util.FullAnswerMultiRoundSessionPipeline
 import com.example.testapp.domain.model.PracticeSessionState
 import com.example.testapp.domain.model.QuestionWithState
+import com.example.testapp.domain.session.navigation.SessionNavigationOrchestration
 import com.example.testapp.presentation.screen.practice.PracticeFullAnswerIconNavOrderPipeline
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -30,7 +33,8 @@ internal class NavigationEnvironment(
     val fullAnswerRequireCorrect: () -> Boolean,
     val fullAnswerRandomOrder: () -> Boolean,
     val memoryModeActive: () -> Boolean,
-    val randomPracticeEnabled: () -> Boolean
+    val randomPracticeEnabled: () -> Boolean,
+    val navigationOrchestration: () -> SessionNavigationOrchestration? = { null },
 ) {
     fun iconNavRandomOrder(): Boolean = PracticeFullAnswerIconNavOrderPipeline.usesRandomOrder(
         fullAnswerModeActive = fullAnswerModeActive(),
@@ -46,8 +50,22 @@ internal class NavigationEnvironment(
             )
         )
 
-    fun prepareStateForUnansweredIconNav(currentState: PracticeSessionState): PracticeSessionState =
-        if (history.isInAnsweredHistory) history.exitAnsweredHistoryBrowsing(currentState) else currentState
+    fun effectiveOrchestration(): SessionNavigationOrchestration =
+        navigationOrchestration() ?: SessionNavigationOrchestrationResolver.practiceDefault()
+
+    fun prepareStateForUnansweredIconNav(currentState: PracticeSessionState): PracticeSessionState {
+        val orch = effectiveOrchestration()
+        return if (
+            SessionNavigationOrchestrationGate.shouldExitAnsweredHistoryBeforeIconNav(
+                orch,
+                history.isInAnsweredHistory,
+            )
+        ) {
+            history.exitAnsweredHistoryBrowsing(currentState)
+        } else {
+            currentState
+        }
+    }
 
     fun usesMultiRoundIconNav(state: PracticeSessionState): Boolean =
         fullAnswerModeActive() &&

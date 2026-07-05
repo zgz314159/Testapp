@@ -3,8 +3,9 @@ package com.example.testapp.presentation.screen.exam.components
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.res.stringResource
+import com.example.testapp.domain.session.SessionCommand
 import com.example.testapp.feature.exam.R
-import com.example.testapp.presentation.screen.exam.ExamViewModel
+import com.example.testapp.presentation.session.exam.ExamScreenBindings
 import com.example.testapp.uicommon.component.QuestionNavigationControls
 
 @Composable
@@ -12,45 +13,50 @@ fun ExamScreenBottomBar(
     isReviewMode: Boolean,
     showResult: Boolean,
     selectedOption: List<Int>,
-    viewModel: ExamViewModel,
+    bindings: ExamScreenBindings,
+    dispatchCommand: (SessionCommand) -> Unit,
     onAnsweredThisSession: () -> Unit,
-    onSubmit: () -> Unit
+    onSubmit: () -> Unit,
 ) {
     val focusManager = LocalFocusManager.current
-    val fullAnswerSkipEnabled = viewModel.isFullAnswerMode && !isReviewMode
-    val canSkipPrevSource = fullAnswerSkipEnabled && viewModel.canSkipToAdjacentSource(forward = false)
-    val canSkipNextSource = fullAnswerSkipEnabled && viewModel.canSkipToAdjacentSource(forward = true)
+    val fullAnswerSkipEnabled = bindings.isFullAnswerMode && !isReviewMode
+    val canSkipPrevSource = fullAnswerSkipEnabled && bindings.canSkipToAdjacentSource(forward = false)
+    val canSkipNextSource = fullAnswerSkipEnabled && bindings.canSkipToAdjacentSource(forward = true)
     if (!isReviewMode) {
         QuestionNavigationControls(
             visible = true,
             onPrev = {
                 focusManager.clearFocus(force = true)
                 if (selectedOption.isNotEmpty()) onAnsweredThisSession()
-                viewModel.prevQuestionViaIcon()
+                dispatchCommand(SessionCommand.NavPrevIcon)
             },
             onNext = {
                 focusManager.clearFocus(force = true)
                 if (selectedOption.isNotEmpty()) onAnsweredThisSession()
-                viewModel.nextQuestionViaIcon()
+                dispatchCommand(SessionCommand.NavNextIcon)
             },
             onPrevDoubleClick = if (fullAnswerSkipEnabled) {
                 {
                     focusManager.clearFocus(force = true)
                     if (selectedOption.isNotEmpty()) onAnsweredThisSession()
-                    viewModel.prevQuestionViaIconDoubleClick()
+                    dispatchCommand(SessionCommand.NavPrevIconDoubleClick)
                 }
-            } else null,
+            } else {
+                null
+            },
             onNextDoubleClick = if (fullAnswerSkipEnabled) {
                 {
                     focusManager.clearFocus(force = true)
                     if (selectedOption.isNotEmpty()) onAnsweredThisSession()
-                    viewModel.nextQuestionViaIconDoubleClick()
+                    dispatchCommand(SessionCommand.NavNextIconDoubleClick)
                 }
-            } else null,
+            } else {
+                null
+            },
             onSubmit = if (!showResult) onSubmit else null,
             submitContentDescription = stringResource(R.string.submit_exam),
-            enabledPrev = viewModel.canNavigateToPrevUnanswered() || canSkipPrevSource || showResult,
-            enabledNext = viewModel.canNavigateToNextUnanswered() || canSkipNextSource || showResult
+            enabledPrev = bindings.canNavigateToPrevUnanswered() || canSkipPrevSource || showResult,
+            enabledNext = bindings.canNavigateToNextUnanswered() || canSkipNextSource || showResult,
         )
     }
     if (isReviewMode) {
@@ -58,15 +64,15 @@ fun ExamScreenBottomBar(
             visible = true,
             onPrev = {
                 focusManager.clearFocus(force = true)
-                viewModel.prevQuestion()
+                dispatchCommand(SessionCommand.PrevQuestion)
             },
             onNext = {
                 focusManager.clearFocus(force = true)
-                viewModel.nextQuestion()
+                dispatchCommand(SessionCommand.NextQuestion)
             },
             onSubmit = null,
-            enabledPrev = viewModel.canReviewBrowseBack(),
-            enabledNext = viewModel.canReviewBrowseForward()
+            enabledPrev = bindings.canReviewBrowseBack(),
+            enabledNext = bindings.canReviewBrowseForward(),
         )
     }
 }

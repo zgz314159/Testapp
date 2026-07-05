@@ -43,7 +43,8 @@ class PracticeRepositoryContentLoader(
     }
 
     private suspend fun loadAnalysis(
-        loader: suspend (List<com.example.testapp.domain.model.QuestionWithState>) -> List<com.example.testapp.domain.model.QuestionWithState>
+        loader:
+        suspend (List<com.example.testapp.domain.model.QuestionWithState>) -> List<com.example.testapp.domain.model.QuestionWithState>
     ) {
         val current = sessionState.value.questionsWithState
         val changed = loader(current)

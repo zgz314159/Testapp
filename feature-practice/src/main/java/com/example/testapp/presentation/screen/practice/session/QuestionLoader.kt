@@ -1,15 +1,14 @@
 package com.example.testapp.presentation.screen.practice.session
 
 import android.util.Log
+import com.example.testapp.core.util.FillQuestionGenerationMode
 import com.example.testapp.domain.model.PracticeSessionState
 import com.example.testapp.domain.model.Question
-import com.example.testapp.domain.model.QuestionWithState
 import com.example.testapp.domain.model.UnifiedQuestionState
 import com.example.testapp.domain.usecase.GetFavoriteQuestionsUseCase
 import com.example.testapp.domain.usecase.GetPracticeProgressFlowUseCase
 import com.example.testapp.domain.usecase.GetWrongBookUseCase
 import com.example.testapp.domain.usecase.SavePracticeProgressUseCase
-import com.example.testapp.core.util.FillQuestionGenerationMode
 import com.example.testapp.presentation.screen.practice.PracticeFullAnswerCoordinator
 import com.example.testapp.presentation.screen.practice.PracticeModeCoordinator
 import com.example.testapp.presentation.screen.practice.PracticeProgressCoordinator

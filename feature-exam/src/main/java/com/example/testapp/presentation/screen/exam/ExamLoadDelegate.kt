@@ -2,10 +2,10 @@ package com.example.testapp.presentation.screen.exam
 
 import com.example.testapp.core.common.FontSettingsRepository
 import com.example.testapp.core.common.buildExamProgressId
+import com.example.testapp.core.util.*
 import com.example.testapp.domain.model.ExamProgress
 import com.example.testapp.domain.model.Question
 import com.example.testapp.domain.usecase.*
-import com.example.testapp.core.util.*
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
@@ -308,32 +308,48 @@ class ExamLoadDelegate @Inject constructor(
         favorite: Boolean = false
     ) {
         scope!!.launch {
-            setProgressIdFn!!(targetProgressId)
+            setProgressIdFn!!(ExamProgressIdPipeline.ensurePrefix(targetProgressId))
             val progress = getExamProgressFlowUseCase(targetProgressId).firstOrNull()
-            if (progress == null) {
-                onQuestionsFn!!(emptyList())
-                onProgressLoadedFn!!(true)
-                return@launch
+            val sourceQuestions = resolveReviewSourceQuestions(quizFile, wrongBook, favorite)
+            when (val outcome = ExamReviewSessionLoadPipeline.resolve(progress, sourceQuestions)) {
+                ExamReviewSessionLoadPipeline.Outcome.MarkLoadedOnly -> {
+                    onQuestionsFn!!(emptyList())
+                    onProgressLoadedFn!!(true)
+                }
+                is ExamReviewSessionLoadPipeline.Outcome.LoadQuestions -> {
+                    setProgressSeedFn!!(outcome.sessionStartTime)
+                    val src = outcome.sourceQuestions
+                        ?: getQuestionsUseCase(quizFile).firstOrNull().orEmpty()
+                    if (src.isEmpty()) {
+                        onQuestionsFn!!(emptyList())
+                        onProgressLoadedFn!!(true)
+                        return@launch
+                    }
+                    setAllSourceQuestionsFn!!(src)
+                    loadCore(src, count, random, preserveFinishedProgress = true)
+                }
             }
-            setProgressSeedFn!!(progress.timestamp)
-            val src = when {
-                wrongBook -> getWrongBookUseCase().firstOrNull()
-                    ?.filter { it.question.fileName == quizFile }
-                    ?.map { it.question }
-                    .orEmpty()
-                favorite -> getFavoriteQuestionsUseCase().firstOrNull()
-                    ?.filter { it.question.fileName == quizFile }
-                    ?.map { it.question }
-                    .orEmpty()
-                else -> getQuestionsUseCase(quizFile).firstOrNull().orEmpty()
-            }
-            if (src.isEmpty()) {
-                onQuestionsFn!!(emptyList())
-                onProgressLoadedFn!!(true)
-                return@launch
-            }
-            setAllSourceQuestionsFn!!(src)
-            loadCore(src, count, random, preserveFinishedProgress = true)
         }
+    }
+
+    private suspend fun resolveReviewSourceQuestions(
+        quizFile: String,
+        wrongBook: Boolean,
+        favorite: Boolean,
+    ): List<Question>? {
+        if (!wrongBook && !favorite) return null
+        val wrongQuestions = getWrongBookUseCase().firstOrNull()
+            ?.map { it.question }
+            .orEmpty()
+        val favoriteQuestions = getFavoriteQuestionsUseCase().firstOrNull()
+            ?.map { it.question }
+            .orEmpty()
+        return ExamReviewSourceQuestionsPipeline.filterBySource(
+            sourceId = quizFile,
+            wrongBook = wrongBook,
+            favorite = favorite,
+            wrongBookQuestions = wrongQuestions,
+            favoriteQuestions = favoriteQuestions,
+        )
     }
 }

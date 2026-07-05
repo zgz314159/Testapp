@@ -12,6 +12,7 @@ object AtomicFullAnswerSessionPipeline {
 enum class FullAnswerIconTapStrategy {
     /** 多轮全答：单击轮次池 → 轮次完成后跨词条 */
     MULTI_ROUND_POOL_FIRST,
+
     /** 单轮/非多轮全答或普通练习：单击全局未作答题 */
     GLOBAL_UNANSWERED_FIRST
 }

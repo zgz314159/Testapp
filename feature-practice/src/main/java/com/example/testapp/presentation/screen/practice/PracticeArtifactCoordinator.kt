@@ -1,8 +1,8 @@
 package com.example.testapp.presentation.screen.practice
 
 import android.util.Log
-import com.example.testapp.domain.model.PracticeSessionState
 import com.example.testapp.core.common.LocalizedResult
+import com.example.testapp.domain.model.PracticeSessionState
 import com.example.testapp.domain.usecase.*
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.MutableStateFlow

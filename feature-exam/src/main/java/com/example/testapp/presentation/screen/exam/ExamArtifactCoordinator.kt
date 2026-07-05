@@ -1,7 +1,7 @@
 package com.example.testapp.presentation.screen.exam
 
-import com.example.testapp.domain.usecase.*
 import com.example.testapp.core.common.LocalizedResult
+import com.example.testapp.domain.usecase.*
 import kotlinx.coroutines.*
 import kotlinx.coroutines.sync.withLock
 import javax.inject.Inject
