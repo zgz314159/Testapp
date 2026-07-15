@@ -77,7 +77,10 @@ dependencies {
     implementation("org.apache.poi:poi-ooxml:5.2.3") {
         exclude(group = "org.apache.poi", module = "poi-ooxml-lite")
     }
+    implementation("org.apache.poi:poi-ooxml-full:5.2.3")
     implementation("javax.xml.stream:stax-api:1.0-2")
     implementation("com.fasterxml:aalto-xml:1.3.2")
     implementation("org.codehaus.woodstox:stax2-api:4.2.1")
+
+    testImplementation(libs.junit)
 }

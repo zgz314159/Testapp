@@ -15,10 +15,9 @@ internal fun parseExcelRowByHeader(
     originFileName: String
 ): ImportedQuestionPayload? {
     val content = excelContentCellText(row, schema.contentIndex, f)
-    if (content.isBlank()) return null
-    if (normalizeExcelHeader(content) in setOf("题干", "题目", "内容")) return null
-
     val rawType = schema.typeIndex?.let { excelCellText(row, it, f) }.orEmpty()
+    if (ExcelImportAnswerNormalizePipeline.shouldSkipInstructionRow(content, rawType)) return null
+
     val explanation = schema.explanationIndex?.let { excelCellText(row, it, f) }.orEmpty()
     val answerParts = schema.answerPartSlots
         .map { slot ->
@@ -29,12 +28,14 @@ internal fun parseExcelRowByHeader(
             )
         }
         .filter { it.isNotBlank() }
+    val directAnswer = schema.answerIndex?.let { excelCellText(row, it, f) }.orEmpty()
+    // 有选项列 + 单列正确答案时，优先单列答案，避免历史误填空槽污染选择题
     val answer = when {
+        directAnswer.isNotBlank() && (schema.optionIndices.isNotEmpty() || answerParts.isEmpty()) -> directAnswer
         answerParts.isNotEmpty() -> {
             if (answerParts.size == 1) answerParts.first() else answerParts.joinToString(FILL_PART_DELIMITER)
         }
-        schema.answerIndex != null -> excelCellText(row, schema.answerIndex, f)
-        else -> ""
+        else -> directAnswer
     }
     val parsedOptions = schema.optionIndices
         .map { index -> excelCellText(row, index, f) }
@@ -54,14 +55,18 @@ internal fun parseExcelRowByHeader(
         QuestionTypes.isTextResponse(type)
 
     val isDrawingOrTextResponse = QuestionTypes.isTextResponse(type)
-    val hasValidAnswer = answer.isNotBlank() || isDrawingOrTextResponse
-    val finalAnswer = if (answer.isBlank() && isDrawingOrTextResponse) "略" else answer
+    val normalizedAnswer = when {
+        isDrawingOrTextResponse && answer.isBlank() -> "略"
+        QuestionTypes.isSingle(type) || QuestionTypes.isMulti(type) || QuestionTypes.isJudge(type) ->
+            ExcelImportAnswerNormalizePipeline.normalizeChoiceAnswer(type, answer, options.size)
+        else -> answer.takeIf { it.isNotBlank() }
+    } ?: return null
 
-    return if (normalizedContent.isNotBlank() && hasValidOptions && hasValidAnswer) {
+    return if (normalizedContent.isNotBlank() && hasValidOptions) {
         ImportedQuestionPayload(
             question = Question(
                 id = 0, content = normalizedContent, type = type,
-                options = options, answer = finalAnswer, explanation = explanation,
+                options = options, answer = normalizedAnswer, explanation = explanation,
                 isFavorite = false, isWrong = false, fileName = originFileName
             ),
             deepSeekAnalysis = schema.deepSeekIndex?.let { excelCellText(row, it, f) }.orEmpty(),

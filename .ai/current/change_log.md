@@ -1,5 +1,27 @@
 # Change Log
 
+## 2026-07-15 — Excel 题库版式兼容扩展
+
+### 目标
+不新增扩展名；兼容桌面「题库」新增 Excel 版式（序号 15 列 / 精简 12 列）与答案别名。
+
+### 根因
+1. `答案A`–`答案G` / `答案解析` 被误收为填空多答案槽，挤掉「正确答案」
+2. `sheet.drop(headerRowIndex+1)` 按迭代条数跳行，表头前缺行时误删首题
+
+### 修复
+| 项 | 变更 |
+|----|------|
+| `ExcelParserCellPipeline` | `答案A–G`→选项；`答案解析`→解析；忽略序号/难易度/标签等 |
+| `ExcelImportAnswerNormalizePipeline` | 多选分隔归一、判断别名、注意事项跳过、字母越界跳过 |
+| `ExcelParserRowPipeline` | 优先单列正确答案；异常行跳过 |
+| `ExcelQuestionParser` | 按 `rowNum` 过滤表头后行 |
+| `:data` 单测 | 14/15/12 列夹具 + 桌面 8 样本下限断言 |
+| `poi-ooxml-full` | `:data` 补齐 OOXML schemas（与 settings 一致） |
+
+### 策略
+缺答案 / 答案含超出选项列字母 → 跳过该行；其余有效题照常导入。
+
 ## 2026-07-15 — 追问保存根因：AnalysisRepository 非 Singleton
 
 ### 日志结论（DSAskPersist）

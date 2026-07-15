@@ -1,30 +1,20 @@
 # LOC 审计（>500 行）
 
 > 生成方式：`scripts/check-loc-over-500.ps1`（Windows）/ `scripts/check-loc-over-500.sh`（CI/Linux）  
-> 最后扫描：2026-07-13（Phase Home Redesign）
+> 最后扫描：2026-07-15（Excel 题库兼容扩展）
 
 ## 超过 500 行的文件
 
 **0 个** — 全仓库已清零 ✅
 
-## 近期热点 LOC（Phase Home Redesign）
+## 近期热点 LOC（Excel 兼容 + Phase Home）
 
 | 文件 | 行数 | 备注 |
 |------|------|------|
-| `FontSettingsRepositoryImpl.kt` | ~193 | `:data` |
-| `DrawerQuestionEditHost.kt` | ~100 | `:feature-practice` |
-| `HomeScreen.kt` | ~315 | `:feature-practice`（Phase Home） |
-| `HomeFileListColumn.kt` | 131 | `:feature-practice`（Phase Home） |
-| `HomeDashboardPipeline.kt` | 165 | `:feature-practice`新增 |
-| `HomeQuestionBankCard.kt` | 145 | `:feature-practice`新增 |
-| `HomeBottomBar.kt` | 109 | `:feature-practice`修改 |
-| `HomeGreetingHeader.kt` | 90 | `:feature-practice`新增 |
-| `HomeContinueStudyCard.kt` | 158 | `:feature-practice`新增 |
-| `OptimizedFileCard.kt` | ~340 | `:ui-common`（新增 visualContent 参数） |
-| `QuestionBankDrawer.kt` | ~290 | `:feature-practice` |
-| `PracticeProgressLifecycleCoordinator.kt` | 328 | P61 |
-| `PracticeScreenContent.kt` | ~410 | `:feature-practice` |
-| `ExamScreenContent.kt` | ~404 | `:feature-exam` |
+| `ExcelParserCellPipeline.kt` | ~197 | `:data` 表头识别 |
+| `ExcelParserRowPipeline.kt` | ~210 | `:data` 行解析 |
+| `ExcelImportAnswerNormalizePipeline.kt` | ~46 | `:data` 新增 |
+| `ExcelQuestionParser.kt` | ~78 | `:data` |
 
 ## 门禁脚本
 

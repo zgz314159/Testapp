@@ -33,7 +33,7 @@ class ExcelQuestionParser @Inject constructor() : QuestionFileParser {
                 if (sheet.physicalNumberOfRows <= 1) throw LocalizedException(IOConstants.IMPORT_FAILED_EXCEL_NO_VALID_DATA_KEY, listOf(file.name))
                 val headerSchema = detectHeaderSchema(sheet, f)
                 val rows = if (headerSchema != null) {
-                    sheet.drop(headerSchema.headerRowIndex + 1)
+                    sheet.filter { it.rowNum > headerSchema.headerRowIndex }
                 } else {
                     sheet.drop(1)
                 }

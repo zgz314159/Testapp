@@ -21,13 +21,31 @@ internal fun normalizeExcelHeader(text: String): String {
     return text.trim().replace(Regex("\\s+"), "")
 }
 
+private fun isIgnoredTemplateHeader(header: String): Boolean {
+    return matchesAnyHeader(
+        header,
+        "序号", "编号", "题号", "NO", "No", "no",
+        "难易度", "难度", "难度等级",
+        "标签", "知识点", "知识点编码", "知识编码", "考点"
+    )
+}
+
+/** 选项列：答案A–G / 选项A–G / A / A、xxx */
 private fun isOptionHeader(header: String): Boolean {
     val normalized = normalizeExcelHeader(header)
-    return normalized.startsWith("选项") || normalized.matches(Regex("^[A-GＡ-Ｇ][、.)）]?.*"))
+    if (normalized.startsWith("选项")) return true
+    if (normalized.matches(Regex("^答案[A-GＡ-Ｇ]$"))) return true
+    if (normalized.matches(Regex("^[A-GＡ-Ｇ]$"))) return true
+    return normalized.matches(Regex("^[A-GＡ-Ｇ][、.)）].*"))
 }
 
 private fun isAnswerPartHeader(header: String): Boolean {
-    return normalizeExcelHeader(header).startsWith("答案")
+    val normalized = normalizeExcelHeader(header)
+    if (!normalized.startsWith("答案")) return false
+    // 答案A–G / 答案解析 不是填空多答案槽
+    if (isOptionHeader(header)) return false
+    if (matchesAnyHeader(header, "答案解析", "答案说明", "答案解释")) return false
+    return true
 }
 
 private fun extractIndexedHeaderNumber(header: String, vararg prefixes: String): Int? {
@@ -97,6 +115,7 @@ internal fun detectHeaderSchema(sheet: Sheet, f: DataFormatter): ExcelHeaderSche
 
         values.forEachIndexed { index, value ->
             when {
+                isIgnoredTemplateHeader(value) -> Unit
                 matchesAnyHeader(value, "题干图片", "题干图", "图片题干", "附图", "图示") -> {
                     stemImageIndices.add(index)
                 }
@@ -109,15 +128,20 @@ internal fun detectHeaderSchema(sheet: Sheet, f: DataFormatter): ExcelHeaderSche
                 }
                 matchesAnyHeader(value, "题干2", "题干3", "题干图片2", "题干图片3") -> stemImageIndices.add(index)
                 matchesAnyHeader(value, "题型", "类型", "题类", "类别", "试题类型") -> typeIndex = index
-                matchesAnyHeader(value, "答案", "正确答案", "参考答案", "标准答案", "参考答案及评分标准", "答案及解析", "评分标准") -> directAnswerIndices += index
-                matchesAnyHeader(value, "解析", "说明", "解释", "解题过程") -> explanationIndex = index
+                matchesAnyHeader(
+                    value,
+                    "答案", "正确答案", "参考答案", "标准答案", "参考答案及评分标准", "答案及解析", "评分标准"
+                ) -> directAnswerIndices += index
+                matchesAnyHeader(
+                    value,
+                    "解析", "说明", "解释", "解题过程", "答案解析", "答案说明", "答案解释"
+                ) -> explanationIndex = index
                 matchesAnyHeader(value, "DeepSeek解析", "DeepSeek", "deepseek", "deepseek解析") -> deepSeekIndex = index
                 matchesAnyHeader(value, "Spark解析", "Spark", "spark", "spark解析", "讯飞星火解析") -> sparkIndex = index
                 matchesAnyHeader(value, "百度AI解析", "百度解析", "Baidu解析", "baidu", "baidu解析") -> baiduIndex = index
                 matchesAnyHeader(value, "笔记", "备注", "Note", "note") -> noteIndex = index
+                isOptionHeader(value) -> optionIndices += index
                 else -> {
-                    if (isOptionHeader(value)) optionIndices += index
-
                     val answerOrder = extractIndexedHeaderNumber(value, "答案", "正确答案", "参考答案")
                     if (answerOrder != null) {
                         val current = answerPartSlots[answerOrder]
