@@ -7,6 +7,9 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -14,8 +17,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import com.example.testapp.presentation.screen.home.design.HomeDesignTokens
 import com.example.testapp.presentation.screen.result.ResultDisplayStats
-import com.example.testapp.uicommon.design.AppCard
 import com.example.testapp.uicommon.design.AppSpacing
 
 @Composable
@@ -24,7 +27,7 @@ fun ResultCurrentScoreCard(
     statColors: ResultStatColors,
     modifier: Modifier = Modifier,
 ) {
-    AppCard(modifier = modifier.padding(bottom = AppSpacing.sm)) {
+    ResultSurfaceCard(modifier = modifier.padding(bottom = HomeDesignTokens.cardGap)) {
         Column(
             modifier = Modifier.fillMaxWidth().padding(AppSpacing.md),
             horizontalAlignment = Alignment.CenterHorizontally
@@ -61,7 +64,7 @@ fun ResultOverallScoreCard(
     statColors: ResultStatColors,
     modifier: Modifier = Modifier,
 ) {
-    AppCard(modifier = modifier.padding(bottom = AppSpacing.sm)) {
+    ResultSurfaceCard(modifier = modifier.padding(bottom = HomeDesignTokens.cardGap)) {
         Column(
             modifier = Modifier.fillMaxWidth().padding(AppSpacing.md),
             horizontalAlignment = Alignment.CenterHorizontally
@@ -114,3 +117,17 @@ data class ResultStatColors(
     val unanswered: Color,
     val chartAxis: Color,
 )
+
+@Composable
+fun ResultSurfaceCard(
+    modifier: Modifier = Modifier,
+    content: @Composable androidx.compose.foundation.layout.ColumnScope.() -> Unit,
+) {
+    Card(
+        modifier = modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(HomeDesignTokens.questionCardRadius),
+        colors = CardDefaults.cardColors(containerColor = HomeDesignTokens.surfaceLight),
+        elevation = CardDefaults.cardElevation(defaultElevation = HomeDesignTokens.elevationLow),
+        content = content,
+    )
+}

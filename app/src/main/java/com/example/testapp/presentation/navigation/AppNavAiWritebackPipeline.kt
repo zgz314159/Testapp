@@ -1,5 +1,6 @@
 package com.example.testapp.presentation.navigation
 
+import com.example.testapp.data.network.deepseek.DeepSeekAskPersistDebugLog
 import com.example.testapp.domain.session.SessionCommand
 import com.example.testapp.presentation.screen.exam.dispatchExamCommand
 import com.example.testapp.presentation.screen.practice.dispatchPracticeCommand
@@ -11,6 +12,16 @@ internal object AppNavAiWritebackPipeline {
         index: Int,
         text: String,
     ) {
+        val hasExam = sessions.examBindings != null
+        val hasPractice = sessions.practiceBindings != null
+        DeepSeekAskPersistDebugLog.d(
+            "Nav.writeback",
+            "index=$index hasExam=$hasExam hasPractice=$hasPractice ${DeepSeekAskPersistDebugLog.meta(text)} " +
+                "preview=${DeepSeekAskPersistDebugLog.preview(text)}",
+        )
+        if (!hasExam && !hasPractice) {
+            DeepSeekAskPersistDebugLog.w("Nav.writeback", "NO parent bindings — session UI will NOT update")
+        }
         sessions.examBindings?.let {
             dispatchExamCommand(it, SessionCommand.UpdateAnalysis(index, text))
         }

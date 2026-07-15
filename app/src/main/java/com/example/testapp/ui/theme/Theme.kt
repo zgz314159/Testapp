@@ -8,13 +8,21 @@ import androidx.compose.material3.dynamicDarkColorScheme
 import androidx.compose.material3.dynamicLightColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 
 private val DarkColorScheme = darkColorScheme(
-    primary = BlueLight,
-    primaryContainer = BlueContainerDark,
-    secondary = PurpleGrey80,
-    tertiary = Pink80
+    primary = Color(0xFF4F8CFF),
+    primaryContainer = Color(0xFF1A3A7A),
+    onPrimaryContainer = Color(0xFFD6E4FF),
+    secondary = Color(0xFF79C9FF),
+    background = Color(0xFF111318),
+    onBackground = Color(0xFFE2E2E6),
+    surface = Color(0xFF1A1D22),
+    onSurface = Color(0xFFE2E2E6),
+    surfaceVariant = Color(0xFF242830),
+    onSurfaceVariant = Color(0xFFC2C7D0),
+    outline = Color(0xFF3A3D45),
 )
 
 private val LightColorScheme = lightColorScheme(
@@ -26,13 +34,12 @@ private val LightColorScheme = lightColorScheme(
     surfaceVariant = SettingsSurfaceVariant,
     onSurfaceVariant = SettingsOnSurfaceVariant,
     onBackground = ReadingOnSurface,
-    onSurface = ReadingOnSurface
+    onSurface = ReadingOnSurface,
 )
 
 @Composable
 fun MyApplicationTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
-    // Disable dynamic color to keep a consistent palette
     dynamicColor: Boolean = false,
     content: @Composable () -> Unit
 ) {
@@ -41,7 +48,6 @@ fun MyApplicationTheme(
             val context = LocalContext.current
             if (darkTheme) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
         }
-
         darkTheme -> DarkColorScheme
         else -> LightColorScheme
     }

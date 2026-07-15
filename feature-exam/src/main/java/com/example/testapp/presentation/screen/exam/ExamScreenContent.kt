@@ -135,13 +135,16 @@ fun ExamScreenContent(
 
     val parsingText = stringResource(R.string.parsing)
     val parsingKeyword = parsingText.removeSuffix("...")
-    val analysisText = SessionAnalysisResolvePipeline.resolve(
+    val analysisTextRaw = SessionAnalysisResolvePipeline.resolve(
         currentIndex = currentIndex,
         streamingPair = externalState.analysisPair,
         sessionValue = analysisList.getOrNull(currentIndex),
         listValue = analysisList.getOrNull(currentIndex),
         parsingKeyword = parsingKeyword
     ).orEmpty()
+    val analysisText = com.example.testapp.presentation.screen.shared.SessionDeepSeekAnalysisTextPipeline
+        .toDisplayText(analysisTextRaw, question?.content.orEmpty())
+        .ifBlank { analysisTextRaw }
     val hasDeepSeekAnalysis = analysisText.isNotBlank()
     val sparkText = SessionAnalysisResolvePipeline.resolve(
         currentIndex = currentIndex,

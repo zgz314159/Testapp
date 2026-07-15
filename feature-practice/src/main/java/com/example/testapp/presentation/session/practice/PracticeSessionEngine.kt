@@ -322,7 +322,47 @@ class PracticeSessionEngine(
         index: Int,
         text: String,
     ) {
+        val questionId = _sessionState.value.questionsWithState.getOrNull(index)?.question?.id
+        val before = _sessionState.value.questionsWithState.getOrNull(index)?.analysis
+        com.example.testapp.data.network.deepseek.DeepSeekAskPersistDebugLog.d(
+            "Practice.updateAnalysis.in",
+            "index=$index qId=$questionId before.${com.example.testapp.data.network.deepseek.DeepSeekAskPersistDebugLog.meta(before)} " +
+                "incoming.${com.example.testapp.data.network.deepseek.DeepSeekAskPersistDebugLog.meta(text)}",
+        )
         stateUpdater.updateAnalysis(index, text)
+        val after = _sessionState.value.questionsWithState.getOrNull(index)?.analysis
+        com.example.testapp.data.network.deepseek.DeepSeekAskPersistDebugLog.d(
+            "Practice.updateAnalysis.session",
+            "index=$index session.${com.example.testapp.data.network.deepseek.DeepSeekAskPersistDebugLog.meta(after)} " +
+                "changed=${before != after}",
+        )
+        if (questionId == null) {
+            com.example.testapp.data.network.deepseek.DeepSeekAskPersistDebugLog.w(
+                "Practice.updateAnalysis",
+                "index=$index qId=null — skip DB",
+            )
+            return
+        }
+        scope.launch {
+            val existing = deps.facade.analysis.getDeepSeek(questionId).getOrNull()
+            val richer = com.example.testapp.data.network.deepseek.DeepSeekAskLoadSeedPipeline
+                .resolvePreferStructured(existing, text)
+            com.example.testapp.data.network.deepseek.DeepSeekAskPersistDebugLog.d(
+                "Practice.updateAnalysis.dbMerge",
+                "qId=$questionId existing.${com.example.testapp.data.network.deepseek.DeepSeekAskPersistDebugLog.meta(existing)} " +
+                    "richer.${com.example.testapp.data.network.deepseek.DeepSeekAskPersistDebugLog.meta(richer)} " +
+                    "willSave=${richer.isNotBlank() && richer != existing}",
+            )
+            if (richer.isNotBlank() && richer != existing) {
+                deps.facade.analysis.saveDeepSeek(questionId, richer)
+                val readBack = deps.facade.analysis.getDeepSeek(questionId).getOrNull()
+                com.example.testapp.data.network.deepseek.DeepSeekAskPersistDebugLog.d(
+                    "Practice.updateAnalysis.dbSaved",
+                    "qId=$questionId readBack.${com.example.testapp.data.network.deepseek.DeepSeekAskPersistDebugLog.meta(readBack)} " +
+                        "eq=${readBack == richer}",
+                )
+            }
+        }
     }
 
     override fun updateSparkAnalysis(

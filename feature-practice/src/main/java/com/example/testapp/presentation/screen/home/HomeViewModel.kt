@@ -3,6 +3,8 @@ package com.example.testapp.presentation.screen.home
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.testapp.domain.repository.QuestionRepository
+import com.example.testapp.domain.usecase.ClearExamProgressByFileNameUseCase
+import com.example.testapp.domain.usecase.ClearPracticeProgressByFileNameUseCase
 import com.example.testapp.domain.usecase.FileStatistics
 import com.example.testapp.domain.usecase.GetAllPracticeProgressFlowUseCase
 import com.example.testapp.domain.usecase.GetFileStatisticsUseCase
@@ -25,6 +27,8 @@ class HomeViewModel @Inject constructor(
     private val questionFlowCache: QuestionFlowCache,
     private val getFileStatisticsUseCase: GetFileStatisticsUseCase,
     private val getAllPracticeProgressFlowUseCase: GetAllPracticeProgressFlowUseCase,
+    private val clearPracticeProgressByFileNameUseCase: ClearPracticeProgressByFileNameUseCase,
+    private val clearExamProgressByFileNameUseCase: ClearExamProgressByFileNameUseCase,
     private val questionRepository: QuestionRepository,
 ) : ViewModel() {
     private val _fileNames = MutableStateFlow<List<String>>(emptyList())
@@ -66,6 +70,17 @@ class HomeViewModel @Inject constructor(
     fun preloadQuestionFile(fileName: String) {
         viewModelScope.launch(Dispatchers.IO) {
             questionFlowCache.preload(fileName)
+        }
+    }
+
+    /** 重答：清除该题库练习 + 考试进度，答完后答题卡无历史标记。 */
+    fun clearProgressForFile(fileName: String, onDone: (() -> Unit)? = null) {
+        viewModelScope.launch {
+            withContext(Dispatchers.IO) {
+                clearPracticeProgressByFileNameUseCase(fileName)
+                clearExamProgressByFileNameUseCase(fileName)
+            }
+            onDone?.invoke()
         }
     }
 

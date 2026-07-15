@@ -6,11 +6,8 @@ object DeepSeekAskPersistPipeline {
     private const val LEGACY_ASK_NOTE_PREFIX = "【DeepSeek问答】"
 
     fun resolveLoadText(analysis: String?, askLegacy: String?): String? {
-        val fromAnalysis = analysis?.trim().orEmpty()
-        if (fromAnalysis.isNotBlank()) return fromAnalysis
-        val fromAsk = askLegacy?.trim().orEmpty()
-        if (fromAsk.isNotBlank()) return fromAsk
-        return null
+        // 优先结构化/更长文本，避免 analysis 短文遮蔽 ask 表里的完整多轮
+        return DeepSeekAskLoadSeedPipeline.resolveRaw(analysis, askLegacy)
     }
 
     fun extractFromAskNote(note: String?): String? {

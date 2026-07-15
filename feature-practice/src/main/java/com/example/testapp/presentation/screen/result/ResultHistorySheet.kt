@@ -15,13 +15,13 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
-import com.example.testapp.feature.practice.R
-import com.example.testapp.uicommon.screen.result.formatResultHistoryLine
 import com.example.testapp.domain.model.HistoryRecord
+import com.example.testapp.feature.practice.R
 import com.example.testapp.uicommon.design.AppContentMediumText
 import com.example.testapp.uicommon.design.AppEmptyStateInline
 import com.example.testapp.uicommon.design.AppLazyBottomSheet
 import com.example.testapp.uicommon.design.AppSpacing
+import com.example.testapp.uicommon.screen.result.formatResultHistoryLine
 import java.time.format.DateTimeFormatter
 
 

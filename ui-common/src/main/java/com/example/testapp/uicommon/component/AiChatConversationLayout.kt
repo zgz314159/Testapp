@@ -27,6 +27,7 @@ fun AiChatConversationLayout(
     assistantFontFamily: FontFamily? = LocalFontFamily.current,
     assistantTextToolbar: androidx.compose.ui.platform.TextToolbar? = null,
     assistantContent: (@Composable (String) -> Unit)? = null,
+    onAssistantContentChange: ((messageIndex: Int, text: String) -> Unit)? = null,
     geminiStyle: Boolean = true
 ) {
     Scaffold(
@@ -55,6 +56,7 @@ fun AiChatConversationLayout(
             assistantFontFamily = assistantFontFamily,
             assistantTextToolbar = assistantTextToolbar,
             assistantContent = assistantContent,
+            onAssistantContentChange = onAssistantContentChange,
             geminiStyle = geminiStyle
         )
     }

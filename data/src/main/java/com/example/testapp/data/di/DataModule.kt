@@ -46,6 +46,7 @@ abstract class DataBindModule {
     abstract fun bindFileFolderRepository(impl: com.example.testapp.data.repository.FileFolderRepositoryImpl): com.example.testapp.domain.repository.FileFolderRepository
 
     @Binds
+    @Singleton
     abstract fun bindQuestionAnalysisRepository(impl: com.example.testapp.data.repository.QuestionAnalysisRepositoryImpl): com.example.testapp.domain.repository.QuestionAnalysisRepository
 
     @Binds

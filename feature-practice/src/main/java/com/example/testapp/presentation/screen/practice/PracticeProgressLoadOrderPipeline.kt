@@ -1,6 +1,5 @@
 package com.example.testapp.presentation.screen.practice
 
-import com.example.testapp.domain.model.PracticeProgress
 import com.example.testapp.domain.model.Question
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext

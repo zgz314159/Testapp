@@ -82,16 +82,15 @@ fun BaiduAskScreen(
     }
 
     BackHandler {
-        if (AiChatSaveGatePipeline.shouldConfirmSave(
+        when {
+            showSaveDialog -> showSaveDialog = false
+            AiChatSaveGatePipeline.shouldConfirmSave(
                 content = result,
                 isParsing = isParsing,
                 parsingKeyword = parsingKeyword,
                 parseFailedKeyword = parseFailedKeyword
-            )
-        ) {
-            showSaveDialog = true
-        } else {
-            onBack()
+            ) -> showSaveDialog = true
+            else -> onBack()
         }
     }
 
@@ -143,9 +142,10 @@ fun BaiduAskScreen(
                 onBack()
             }
         },
-        onDismiss = {
+        onDiscardAndLeave = {
             showSaveDialog = false
             onBack()
-        }
+        },
+        onCloseDialogOnly = { showSaveDialog = false },
     )
 }

@@ -2,32 +2,33 @@ package com.example.testapp.presentation.screen.home
 
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.DrawerState
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.TopAppBarScrollBehavior
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.snapshots.SnapshotStateMap
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Rect
-import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.onGloballyPositioned
 import com.example.testapp.domain.usecase.FileStatistics
 import com.example.testapp.presentation.screen.home.components.HomeBottomBar
-import com.example.testapp.presentation.screen.home.components.HomeTopBar
 import com.example.testapp.presentation.screen.questionbank.QuestionBankDrawerViewModel
 import kotlinx.coroutines.launch
 
+/**
+ * 首页 Scaffold 容器。
+ * librarySection 内部使用统一 LazyColumn 渲染 Header + 题库列表。
+ */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HomeScreenScaffoldContent(
-    scrollBehavior: TopAppBarScrollBehavior,
-    drawerState: DrawerState,
     onSettings: () -> Unit,
     bottomNavIndex: Int,
     onNavChange: (Int) -> Unit,
@@ -44,18 +45,7 @@ fun HomeScreenScaffoldContent(
     overlays: @Composable () -> Unit,
 ) {
     Scaffold(
-        modifier = if (draggingFile == null) {
-            Modifier.nestedScroll(scrollBehavior.nestedScrollConnection)
-        } else {
-            Modifier
-        },
-        topBar = {
-            HomeTopBar(
-                scrollBehavior = scrollBehavior,
-                drawerState = drawerState,
-                onSettings = onSettings,
-            )
-        },
+        containerColor = MaterialTheme.colorScheme.background,
         bottomBar = {
             HomeBottomBar(
                 bottomNavIndex = bottomNavIndex,
@@ -63,11 +53,12 @@ fun HomeScreenScaffoldContent(
                 onWrongBook = onWrongBook,
                 onFavoriteBook = onFavoriteBook,
                 onHistory = onHistory,
+                onSettings = onSettings,
             )
         },
     ) { innerPadding ->
         Box(
-            Modifier
+            modifier = Modifier
                 .fillMaxSize()
                 .padding(innerPadding)
                 .onGloballyPositioned { homeRootCoordsRef.value = it }
@@ -86,9 +77,13 @@ fun HomeScreenScaffoldContent(
                     } else {
                         Modifier
                     }
-                )
+                ),
         ) {
-            librarySection()
+            Column(modifier = Modifier.fillMaxSize()) {
+                Box(modifier = Modifier.weight(1f)) {
+                    librarySection()
+                }
+            }
             overlays()
         }
     }

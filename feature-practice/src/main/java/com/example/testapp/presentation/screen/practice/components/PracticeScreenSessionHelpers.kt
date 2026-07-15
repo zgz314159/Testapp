@@ -3,10 +3,10 @@ package com.example.testapp.presentation.screen.practice.components
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.res.stringResource
-import com.example.testapp.feature.practice.R
 import com.example.testapp.core.session.strategy.exit.SessionExitGate
 import com.example.testapp.core.util.SessionAnalysisResolvePipeline
 import com.example.testapp.domain.session.SessionCommand
+import com.example.testapp.feature.practice.R
 import com.example.testapp.presentation.screen.practice.PracticeAutoAdvanceController
 import com.example.testapp.presentation.screen.practice.PracticeCurrentQuestionUi
 import com.example.testapp.presentation.screen.practice.PracticeJumpDebugLog

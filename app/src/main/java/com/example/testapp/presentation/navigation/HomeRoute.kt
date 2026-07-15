@@ -20,11 +20,6 @@ fun HomeRoute(
     onViewQuestionDetail: (quizId: String) -> Unit = {},
     onWrongBook: (fileName: String) -> Unit = {},
     onFavoriteBook: (fileName: String) -> Unit = {},
-    onViewResult: (fileName: String) -> Unit = {},
-    onStartWrongBookQuiz: (fileName: String) -> Unit = {},
-    onStartWrongBookExam: (fileName: String) -> Unit = {},
-    onStartFavoriteQuiz: (fileName: String) -> Unit = {},
-    onStartFavoriteExam: (fileName: String) -> Unit = {},
     onHistory: () -> Unit = {},
     settingsViewModel: SettingsViewModel,
 ) {
@@ -42,11 +37,6 @@ fun HomeRoute(
         onViewQuestionDetail = onViewQuestionDetail,
         onWrongBook = onWrongBook,
         onFavoriteBook = onFavoriteBook,
-        onViewResult = onViewResult,
-        onStartWrongBookQuiz = onStartWrongBookQuiz,
-        onStartWrongBookExam = onStartWrongBookExam,
-        onStartFavoriteQuiz = onStartFavoriteQuiz,
-        onStartFavoriteExam = onStartFavoriteExam,
         onHistory = onHistory,
     )
 }

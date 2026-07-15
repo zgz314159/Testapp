@@ -41,6 +41,11 @@ fun NavGraphBuilder.registerAiOverlayRoutes(
             questionId = id,
             index = index,
             examAnchor = examAnchor,
+            seedAnalysis = seedDeepSeekAnalysisFrom(
+                sessions.examBindings,
+                sessions.practiceBindings,
+                index,
+            ),
             onBack = onBack,
             onSave = {
                 com.example.testapp.presentation.screen.practice.PracticeJumpDebugLog.analysisSave(
@@ -67,6 +72,11 @@ fun NavGraphBuilder.registerAiOverlayRoutes(
             questionId = id,
             index = index,
             examAnchor = examAnchor,
+            seedAnalysis = seedDeepSeekAnalysisFrom(
+                sessions.examBindings,
+                sessions.practiceBindings,
+                index,
+            ),
             onBack = onBack,
             onSave = {
                 com.example.testapp.presentation.screen.practice.PracticeJumpDebugLog.analysisSave(

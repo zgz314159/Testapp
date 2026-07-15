@@ -36,6 +36,9 @@ fun HomeFileListContainer(
     onDragCancel: (String) -> Unit,
     onReportFolderBounds: (String, Rect) -> Unit,
     onReportCardBounds: (String, Rect) -> Unit,
+    onFileCtaClick: ((String) -> Unit)? = null,
+    headerContent: @Composable () -> Unit = {},
+    showHeader: Boolean = true,
     modifier: Modifier = Modifier
 ) {
     val fileStatistics by viewModel.fileStatistics.collectAsState()
@@ -68,6 +71,10 @@ fun HomeFileListContainer(
         onDragCancel = onDragCancel,
         onReportFolderBounds = onReportFolderBounds,
         onReportCardBounds = onReportCardBounds,
+        onFileCtaClick = onFileCtaClick,
+        headerContent = headerContent,
+        showHeader = showHeader,
+        viewModel = viewModel,
         modifier = modifier
     )
 }

@@ -1,9 +1,9 @@
 package com.example.testapp.presentation.screen.questionbank
 
 import androidx.compose.foundation.ExperimentalFoundationApi
-import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material.icons.Icons
@@ -26,23 +27,25 @@ import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.ListItem
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.example.testapp.domain.model.Question
+import com.example.testapp.presentation.screen.home.design.HomeDesignTokens
 import com.example.testapp.uicommon.design.AppLoadingIndicator
 
-// ---- Shared constants & helpers ----
-
-internal const val QUESTION_BANK_SEARCH_BAR_HEIGHT_DP = 56
+internal const val QUESTION_BANK_SEARCH_BAR_HEIGHT_DP = 48
 internal const val MAX_SEARCH_OPTION_PREVIEW_COUNT = 4
 
 internal fun optionLabel(index: Int): String = ('A'.code + index).toChar().toString()
@@ -52,67 +55,64 @@ internal fun String.firstDisplayLine(index: Int): String {
     return if (firstLine.isBlank()) "第${index + 1}题" else firstLine
 }
 
-// ---- Search bar ----
-
 @Composable
 internal fun QuestionBankSearchBar(
     value: String,
     onValueChange: (String) -> Unit,
     onClear: () -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
 ) {
-    val shape = RoundedCornerShape(24.dp)
+    val shape = RoundedCornerShape(HomeDesignTokens.buttonRadius)
     Surface(
         modifier = modifier.height(QUESTION_BANK_SEARCH_BAR_HEIGHT_DP.dp),
         shape = shape,
-        tonalElevation = 1.dp,
-        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.72f)
+        color = HomeDesignTokens.surfaceLight,
+        shadowElevation = 1.dp,
+        tonalElevation = 0.dp,
     ) {
         Row(
             modifier = Modifier
                 .fillMaxSize()
-                .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.72f), shape)
                 .padding(start = 14.dp, end = 6.dp),
-            verticalAlignment = Alignment.CenterVertically
+            verticalAlignment = Alignment.CenterVertically,
         ) {
             Icon(
                 imageVector = Icons.Filled.Search,
                 contentDescription = null,
                 modifier = Modifier.size(20.dp),
-                tint = MaterialTheme.colorScheme.onSurfaceVariant
+                tint = HomeDesignTokens.primary,
             )
-            Spacer(Modifier.width(8.dp))
+            Spacer(modifier = Modifier.width(8.dp))
             BasicTextField(
                 value = value,
                 onValueChange = onValueChange,
                 singleLine = true,
-                textStyle = MaterialTheme.typography.bodyMedium.copy(
-                    color = MaterialTheme.colorScheme.onSurface
+                textStyle = TextStyle(
+                    color = HomeDesignTokens.textPrimaryLight,
+                    fontSize = 14.sp,
                 ),
-                cursorBrush = SolidColor(MaterialTheme.colorScheme.primary),
+                cursorBrush = SolidColor(HomeDesignTokens.primary),
                 modifier = Modifier.weight(1f),
                 decorationBox = { innerTextField ->
                     Box(contentAlignment = Alignment.CenterStart) {
                         if (value.isEmpty()) {
                             Text(
                                 text = "搜索题库和题目",
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                                fontSize = 14.sp,
+                                color = HomeDesignTokens.textTertiaryLight,
                             )
                         }
                         innerTextField()
                     }
-                }
+                },
             )
             if (value.isNotEmpty()) {
-                IconButton(
-                    onClick = onClear,
-                    modifier = Modifier.size(36.dp)
-                ) {
+                IconButton(onClick = onClear, modifier = Modifier.size(36.dp)) {
                     Icon(
                         imageVector = Icons.Filled.Close,
                         contentDescription = "清空搜索",
-                        modifier = Modifier.size(18.dp)
+                        modifier = Modifier.size(18.dp),
+                        tint = HomeDesignTokens.textSecondaryLight,
                     )
                 }
             }
@@ -120,7 +120,82 @@ internal fun QuestionBankSearchBar(
     }
 }
 
-// ---- Folder row ----
+@Composable
+private fun DrawerTreeRow(
+    title: androidx.compose.ui.text.AnnotatedString,
+    subtitle: String,
+    isExpanded: Boolean,
+    trailingIcon: ImageVector,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    trailingLoading: Boolean = false,
+    accentContainer: Color = HomeDesignTokens.primaryContainer,
+    accentIcon: Color = HomeDesignTokens.primary,
+) {
+    Surface(
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(vertical = 4.dp)
+            .clip(RoundedCornerShape(18.dp))
+            .clickable(onClick = onClick),
+        shape = RoundedCornerShape(18.dp),
+        color = HomeDesignTokens.surfaceLight,
+        shadowElevation = 1.dp,
+        tonalElevation = 0.dp,
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 12.dp, vertical = 12.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Icon(
+                imageVector = if (isExpanded) Icons.Filled.KeyboardArrowDown else Icons.Filled.ChevronRight,
+                contentDescription = null,
+                tint = HomeDesignTokens.primary,
+                modifier = Modifier.size(22.dp),
+            )
+            Spacer(modifier = Modifier.width(8.dp))
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = title,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color = HomeDesignTokens.textPrimaryLight,
+                )
+                Spacer(modifier = Modifier.height(2.dp))
+                Text(
+                    text = subtitle,
+                    fontSize = 11.sp,
+                    color = HomeDesignTokens.textSecondaryLight,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            }
+            Spacer(modifier = Modifier.width(8.dp))
+            Box(
+                modifier = Modifier
+                    .size(36.dp)
+                    .clip(CircleShape)
+                    .background(accentContainer),
+                contentAlignment = Alignment.Center,
+            ) {
+                if (trailingLoading) {
+                    AppLoadingIndicator(modifier = Modifier.size(18.dp))
+                } else {
+                    Icon(
+                        imageVector = trailingIcon,
+                        contentDescription = null,
+                        tint = accentIcon,
+                        modifier = Modifier.size(18.dp),
+                    )
+                }
+            }
+        }
+    }
+}
 
 @Composable
 internal fun QuestionBankFolderRow(
@@ -128,29 +203,18 @@ internal fun QuestionBankFolderRow(
     query: String,
     isExpanded: Boolean,
     itemCount: Int,
-    onClick: () -> Unit
+    onClick: () -> Unit,
 ) {
-    ListItem(
-        modifier = Modifier.clickable(onClick = onClick),
-        leadingContent = {
-            Icon(
-                imageVector = if (isExpanded) Icons.Filled.KeyboardArrowDown else Icons.Filled.ChevronRight,
-                contentDescription = null
-            )
-        },
-        headlineContent = {
-            Text(
-                text = rememberHighlightedQuestionBankText(folderName, query),
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis
-            )
-        },
-        supportingContent = { Text("$itemCount 个文件") },
-        trailingContent = { Icon(Icons.Filled.Folder, contentDescription = null) }
+    DrawerTreeRow(
+        title = rememberHighlightedQuestionBankText(folderName, query),
+        subtitle = "$itemCount 个文件",
+        isExpanded = isExpanded,
+        trailingIcon = Icons.Filled.Folder,
+        onClick = onClick,
+        accentContainer = Color(0xFFFFF0D9),
+        accentIcon = Color(0xFFE8A838),
     )
 }
-
-// ---- File row ----
 
 @Composable
 internal fun QuestionBankFileRow(
@@ -161,67 +225,22 @@ internal fun QuestionBankFileRow(
     matchCount: Int?,
     totalCount: Int?,
     onClick: () -> Unit,
-    indent: Int = 0
+    indent: Int = 0,
 ) {
-    ListItem(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(start = indent.dp)
-            .clickable(onClick = onClick),
-        leadingContent = {
-            Icon(
-                imageVector = if (isExpanded) Icons.Filled.KeyboardArrowDown else Icons.Filled.ChevronRight,
-                contentDescription = null
-            )
-        },
-        headlineContent = {
-            Text(
-                text = rememberHighlightedQuestionBankText(fileName, query),
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis
-            )
-        },
-        supportingContent = {
-            QuestionBankFileStats(
-                totalCount = totalCount ?: 0,
-                matchCount = matchCount,
-                showMatchCount = query.isNotBlank()
-            )
-        },
-        trailingContent = {
-            if (isLoading) {
-                AppLoadingIndicator(modifier = Modifier.size(20.dp))
-            } else {
-                Icon(Icons.Filled.Description, contentDescription = null)
-            }
-        }
+    val stats = buildString {
+        append("总题数 ${totalCount ?: 0}")
+        if (query.isNotBlank()) append(" · 命中 ${matchCount ?: 0}")
+    }
+    DrawerTreeRow(
+        title = rememberHighlightedQuestionBankText(fileName, query),
+        subtitle = stats,
+        isExpanded = isExpanded,
+        trailingIcon = Icons.Filled.Description,
+        onClick = onClick,
+        trailingLoading = isLoading,
+        modifier = Modifier.padding(start = indent.dp),
     )
 }
-
-@Composable
-private fun QuestionBankFileStats(
-    totalCount: Int,
-    matchCount: Int?,
-    showMatchCount: Boolean
-) {
-    Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-        Text(
-            text = "总题数：$totalCount",
-            style = MaterialTheme.typography.labelMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
-        if (showMatchCount) {
-            Text(
-                text = "命中数：${matchCount ?: 0}",
-                style = MaterialTheme.typography.labelMedium,
-                color = MaterialTheme.colorScheme.primary,
-                fontWeight = FontWeight.SemiBold
-            )
-        }
-    }
-}
-
-// ---- Question rows ----
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
@@ -232,70 +251,72 @@ internal fun QuestionBankSearchQuestionRow(
     onClick: () -> Unit,
     onLongClick: () -> Unit = {},
 ) {
-    ListItem(
+    Surface(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(start = indent.dp)
-            .combinedClickable(
-                onClick = onClick,
-                onLongClick = onLongClick,
-            ),
-        headlineContent = {
-            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            .padding(start = indent.dp, top = 3.dp, bottom = 3.dp)
+            .clip(RoundedCornerShape(14.dp))
+            .combinedClickable(onClick = onClick, onLongClick = onLongClick),
+        shape = RoundedCornerShape(14.dp),
+        color = HomeDesignTokens.surfaceVariantLight,
+        tonalElevation = 0.dp,
+        shadowElevation = 0.dp,
+    ) {
+        Column(
+            modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp),
+            verticalArrangement = Arrangement.spacedBy(4.dp),
+        ) {
+            Text(
+                text = "题目",
+                fontSize = 10.sp,
+                fontWeight = FontWeight.SemiBold,
+                color = HomeDesignTokens.primary,
+            )
+            Text(
+                text = rememberHighlightedQuestionBankText(question.content, query),
+                maxLines = 3,
+                overflow = TextOverflow.Ellipsis,
+                fontSize = 13.sp,
+                color = HomeDesignTokens.textPrimaryLight,
+            )
+            if (question.options.isNotEmpty()) {
                 Text(
-                    text = "题目",
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.primary,
-                    fontWeight = FontWeight.SemiBold
+                    text = "选项",
+                    fontSize = 10.sp,
+                    color = HomeDesignTokens.textSecondaryLight,
                 )
-                Text(
-                    text = rememberHighlightedQuestionBankText(question.content, query),
-                    maxLines = 3,
-                    overflow = TextOverflow.Ellipsis,
-                    style = MaterialTheme.typography.bodyMedium
-                )
-            }
-        },
-        supportingContent = {
-            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                if (question.options.isNotEmpty()) {
+                question.options.take(MAX_SEARCH_OPTION_PREVIEW_COUNT).forEachIndexed { index, option ->
                     Text(
-                        text = "选项",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                        text = rememberHighlightedQuestionBankText("${optionLabel(index)}. $option", query),
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        fontSize = 12.sp,
+                        color = HomeDesignTokens.textSecondaryLight,
                     )
-                    question.options.take(MAX_SEARCH_OPTION_PREVIEW_COUNT).forEachIndexed { index, option ->
-                        Text(
-                            text = rememberHighlightedQuestionBankText("${optionLabel(index)}. $option", query),
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis,
-                            style = MaterialTheme.typography.bodySmall
-                        )
-                    }
-                    if (question.options.size > MAX_SEARCH_OPTION_PREVIEW_COUNT) {
-                        Text(
-                            text = "还有 ${question.options.size - MAX_SEARCH_OPTION_PREVIEW_COUNT} 个选项",
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
                 }
-                Text(
-                    text = "答案",
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.primary,
-                    fontWeight = FontWeight.SemiBold
-                )
-                Text(
-                    text = rememberHighlightedQuestionBankText(question.answer, query),
-                    maxLines = 2,
-                    overflow = TextOverflow.Ellipsis,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurface
-                )
+                if (question.options.size > MAX_SEARCH_OPTION_PREVIEW_COUNT) {
+                    Text(
+                        text = "还有 ${question.options.size - MAX_SEARCH_OPTION_PREVIEW_COUNT} 个选项",
+                        fontSize = 10.sp,
+                        color = HomeDesignTokens.textTertiaryLight,
+                    )
+                }
             }
+            Text(
+                text = "答案",
+                fontSize = 10.sp,
+                fontWeight = FontWeight.SemiBold,
+                color = HomeDesignTokens.primary,
+            )
+            Text(
+                text = rememberHighlightedQuestionBankText(question.answer, query),
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis,
+                fontSize = 12.sp,
+                color = HomeDesignTokens.textPrimaryLight,
+            )
         }
-    )
+    }
 }
 
 internal fun formatQuestionBankRowIndex(questionIndex: Int): String = "第${questionIndex + 1}题"
@@ -311,27 +332,32 @@ internal fun QuestionBankQuestionRow(
     onClick: () -> Unit,
     onLongClick: () -> Unit = {},
 ) {
-    ListItem(
+    Surface(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(start = indent.dp)
-            .combinedClickable(
-                onClick = onClick,
-                onLongClick = onLongClick,
-            ),
-        headlineContent = {
+            .padding(start = indent.dp, top = 2.dp, bottom = 2.dp)
+            .clip(RoundedCornerShape(14.dp))
+            .combinedClickable(onClick = onClick, onLongClick = onLongClick),
+        shape = RoundedCornerShape(14.dp),
+        color = HomeDesignTokens.surfaceVariantLight,
+        tonalElevation = 0.dp,
+        shadowElevation = 0.dp,
+    ) {
+        Column(modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp)) {
             Text(
                 text = rememberHighlightedQuestionBankText(text, query),
                 maxLines = 2,
                 overflow = TextOverflow.Ellipsis,
-                style = MaterialTheme.typography.bodyMedium
+                fontSize = 13.sp,
+                color = HomeDesignTokens.textPrimaryLight,
             )
-        },
-        supportingContent = {
+            Spacer(modifier = Modifier.height(4.dp))
             Text(
                 text = formatQuestionBankRowIndex(questionIndex),
-                style = MaterialTheme.typography.labelSmall
+                fontSize = 10.sp,
+                fontWeight = FontWeight.Medium,
+                color = HomeDesignTokens.textSecondaryLight,
             )
         }
-    )
+    }
 }

@@ -8,10 +8,10 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.sp
-import com.example.testapp.feature.practice.R
 import com.example.testapp.core.common.LocalizedResult
 import com.example.testapp.domain.model.Question
 import com.example.testapp.domain.session.SessionCommand
+import com.example.testapp.feature.practice.R
 import com.example.testapp.presentation.screen.practice.PracticeAutoAdvanceController
 import com.example.testapp.presentation.screen.practice.PracticeDialogsHost
 import com.example.testapp.presentation.screen.practice.PracticeFontController

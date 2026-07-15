@@ -44,3 +44,44 @@ internal fun deepSeekExamAnchorFrom(
     examBindings?.questions?.value?.getOrNull(index)
         ?: practiceBindings?.questions?.value?.getOrNull(index),
 )
+
+/** 会话内已有 AI 正文（答题区），避免仅 DB 空时全屏追问丢上下文。 */
+internal fun seedDeepSeekAnalysisFrom(
+    examBindings: ExamScreenBindings?,
+    practiceBindings: PracticeScreenBindings?,
+    index: Int,
+): String? {
+    val fromPracticeUi = practiceBindings?.currentQuestionUi?.value
+        ?.takeIf { it.index == index }
+        ?.analysis
+        ?.trim()
+        ?.takeIf { it.isNotEmpty() }
+    if (fromPracticeUi != null) {
+        com.example.testapp.data.network.deepseek.DeepSeekAskPersistDebugLog.d(
+            "Nav.seed",
+            "source=practiceUi index=$index ${com.example.testapp.data.network.deepseek.DeepSeekAskPersistDebugLog.meta(fromPracticeUi)} " +
+                "preview=${com.example.testapp.data.network.deepseek.DeepSeekAskPersistDebugLog.preview(fromPracticeUi)}",
+        )
+        return fromPracticeUi
+    }
+    val fromPracticeList = practiceBindings?.analysisList?.value?.getOrNull(index)
+        ?.trim()
+        ?.takeIf { it.isNotEmpty() }
+    if (fromPracticeList != null) {
+        com.example.testapp.data.network.deepseek.DeepSeekAskPersistDebugLog.d(
+            "Nav.seed",
+            "source=practiceList index=$index ${com.example.testapp.data.network.deepseek.DeepSeekAskPersistDebugLog.meta(fromPracticeList)}",
+        )
+        return fromPracticeList
+    }
+    val fromExam = examBindings?.analysisList?.value?.getOrNull(index)
+        ?.trim()
+        ?.takeIf { it.isNotEmpty() }
+    com.example.testapp.data.network.deepseek.DeepSeekAskPersistDebugLog.d(
+        "Nav.seed",
+        "source=${if (fromExam != null) "examList" else "null"} index=$index " +
+            "hasPractice=${practiceBindings != null} hasExam=${examBindings != null} " +
+            com.example.testapp.data.network.deepseek.DeepSeekAskPersistDebugLog.meta(fromExam),
+    )
+    return fromExam
+}

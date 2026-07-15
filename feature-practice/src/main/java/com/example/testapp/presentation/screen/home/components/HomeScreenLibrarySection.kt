@@ -1,5 +1,7 @@
 package com.example.testapp.presentation.screen.home.components
 
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -7,10 +9,11 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.unit.dp
 import com.example.testapp.presentation.screen.file.DragDropViewModel
+import com.example.testapp.presentation.screen.home.HomeDashboardPipeline
 import com.example.testapp.presentation.screen.home.HomeEmptyLibraryPanel
 import com.example.testapp.presentation.screen.home.HomeLibraryEmptyReason
 import com.example.testapp.presentation.screen.home.HomeViewModel
@@ -27,10 +30,9 @@ fun HomeScreenLibrarySection(
     viewModel: HomeViewModel,
     selectedFileName: String,
     draggingFile: String?,
-    dragPosition: androidx.compose.ui.geometry.Offset?,
+    dragPosition: Offset?,
     hoverFolder: String?,
     hoverFile: String?,
-    bottomNavIndex: Int,
     folderBounds: MutableMap<String, Rect>,
     fileCardBounds: MutableMap<String, Rect>,
     dragViewModel: DragDropViewModel,
@@ -47,11 +49,10 @@ fun HomeScreenLibrarySection(
     onShowSheet: () -> Unit,
     onFileToDelete: (String) -> Unit,
     onShowDeleteDialog: () -> Unit,
-    onViewResult: (String) -> Unit,
     onViewQuestionDetail: (String) -> Unit,
     persistFileUsage: (String) -> Unit,
     onUpdateDragHover: (
-        position: androidx.compose.ui.geometry.Offset,
+        position: Offset,
         currentFolder: String?,
         homeDropTargetKey: String,
         currentFolderFileNames: Set<String>,
@@ -62,65 +63,74 @@ fun HomeScreenLibrarySection(
         homeDropTargetKey: String,
         currentFolderFileNames: Set<String>,
     ) -> Unit,
+    onFileCtaClick: ((String) -> Unit)? = null,
+    headerContent: @Composable () -> Unit = {},
+    showHeader: Boolean = true,
     modifier: Modifier = Modifier,
 ) {
     Column(
         modifier = modifier.fillMaxSize(),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        HomeFolderRow(
-            currentFolder = currentFolder,
-            folderNames = emptyList(),
-            hoverFolder = hoverFolder,
-            showFolderList = false,
-            showBackAction = true,
-            onBackFolder = { onCurrentFolderChange(null) },
-            onFolderClick = onCurrentFolderChange,
-            onFolderLongPress = {
-                onRenameFolderTarget(it)
-                onRenameFolderName(it)
-            }
-        )
-
-        if (homeContentReady && homeLibraryEmptyReason != null) {
-            HomeEmptyLibraryPanel(
-                reason = homeLibraryEmptyReason,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .weight(1f)
-                    .padding(bottom = 8.dp)
-            )
-        } else {
-            HomeFileListContainer(
-                viewModel = viewModel,
-                visibleFolders = displayFolders,
-                folderFileCounts = folderFileCounts,
-                displayFileNames = displayFileNames,
-                folders = folders,
-                enableItemGestures = homeContentReady,
-                selectedFileName = selectedFileName,
-                draggingFile = draggingFile,
-                dragPosition = dragPosition ?: Offset.Zero,
+        if (currentFolder != null) {
+            HomeFolderRow(
+                currentFolder = currentFolder,
+                folderNames = emptyList(),
                 hoverFolder = hoverFolder,
-                hoverFile = hoverFile,
-                showFilesFirst = true,
+                showFolderList = false,
+                showBackAction = true,
+                onBackFolder = { onCurrentFolderChange(null) },
                 onFolderClick = onCurrentFolderChange,
                 onFolderLongPress = {
                     onRenameFolderTarget(it)
                     onRenameFolderName(it)
-                },
-                onDeleteFolderClick = {
-                    onFolderToDelete(it)
-                    onShowDeleteFolderDialog()
-                },
-                onCardClick = { fileName ->
-                    when (bottomNavIndex) {
-                        2 -> {
-                            onSelectedFileNameChange(fileName)
-                            persistFileUsage(fileName)
-                            onViewResult(fileName)
-                        }
-                        else -> {
+                }
+            )
+        }
+
+        if (homeContentReady && homeLibraryEmptyReason != null) {
+            HomeEmptyLibraryPanel(
+                reason = homeLibraryEmptyReason,
+                modifier = Modifier.fillMaxWidth().weight(1f).padding(bottom = 8.dp)
+            )
+        } else {
+            // BoxWithConstraints 响应式：<600dp 单列，>=600dp 两列
+            BoxWithConstraints(
+                modifier = Modifier.fillMaxWidth().weight(1f).padding(bottom = 8.dp)
+            ) {
+                val columnCount = HomeDashboardPipeline.resolveHomeColumnCount(maxWidth.value)
+                val maxContentWidth = if (columnCount > 1) 960.dp else maxWidth
+
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .then(
+                            if (columnCount > 1) Modifier.padding(horizontal = (maxWidth - maxContentWidth) / 2)
+                            else Modifier
+                        )
+                ) {
+                    HomeFileListContainer(
+                        viewModel = viewModel,
+                        visibleFolders = if (currentFolder == null) displayFolders else emptyList(),
+                        folderFileCounts = folderFileCounts,
+                        displayFileNames = if (currentFolder == null) displayFileNames else displayFileNames,
+                        folders = folders,
+                        enableItemGestures = homeContentReady,
+                        selectedFileName = selectedFileName,
+                        draggingFile = draggingFile,
+                        dragPosition = dragPosition ?: Offset.Zero,
+                        hoverFolder = hoverFolder,
+                        hoverFile = hoverFile,
+                        useGridLayout = columnCount > 1,
+                        showFilesFirst = true,
+                        onFolderClick = onCurrentFolderChange,
+                        onFolderLongPress = {
+                            onRenameFolderTarget(it); onRenameFolderName(it)
+                        },
+                        onDeleteFolderClick = {
+                            onFolderToDelete(it); onShowDeleteFolderDialog()
+                        },
+                        onCardClick = { fileName ->
                             if (selectedFileName == fileName) {
                                 onPendingFileName(fileName)
                                 viewModel.preloadQuestionFile(fileName)
@@ -129,36 +139,23 @@ fun HomeScreenLibrarySection(
                                 onSelectedFileNameChange(fileName)
                                 viewModel.preloadQuestionFile(fileName)
                             }
-                        }
-                    }
-                },
-                onDeleteClick = { fileName ->
-                    onFileToDelete(fileName)
-                    onShowDeleteDialog()
-                },
-                onDoubleClick = { fileName ->
-                    onSelectedFileNameChange(fileName)
-                    persistFileUsage(fileName)
-                    onViewQuestionDetail(fileName)
-                },
-                onDragStart = { fileName, position, size, offset ->
-                    onBeforeDragStart()
-                    dragViewModel.startDragging(fileName, position, size, offset)
-                },
-                onDragUpdate = { position ->
-                    onUpdateDragHover(position, currentFolder, homeDropTargetKey, currentFolderFileNames)
-                },
-                onDragEnd = { fileName ->
-                    onFinishDrag(fileName, currentFolder, homeDropTargetKey, currentFolderFileNames)
-                },
-                onDragCancel = { _ -> },
-                onReportFolderBounds = { name, rect -> folderBounds[name] = rect },
-                onReportCardBounds = { name, rect -> fileCardBounds[name] = rect },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .weight(1f)
-                    .padding(bottom = 8.dp)
-            )
+                        },
+                        onDeleteClick = { fileName -> onFileToDelete(fileName); onShowDeleteDialog() },
+                        onDoubleClick = { fileName -> onSelectedFileNameChange(fileName); persistFileUsage(fileName); onViewQuestionDetail(fileName) },
+                        onDragStart = { fileName, position, size, offset ->
+                            onBeforeDragStart(); dragViewModel.startDragging(fileName, position, size, offset)
+                        },
+                        onDragUpdate = { position -> onUpdateDragHover(position, currentFolder, homeDropTargetKey, currentFolderFileNames) },
+                        onDragEnd = { fileName -> onFinishDrag(fileName, currentFolder, homeDropTargetKey, currentFolderFileNames) },
+                        onDragCancel = { _ -> },
+                        onReportFolderBounds = { name, rect -> folderBounds[name] = rect },
+                        onReportCardBounds = { name, rect -> fileCardBounds[name] = rect },
+                        onFileCtaClick = onFileCtaClick,
+                        headerContent = headerContent,
+                        showHeader = showHeader && currentFolder == null,
+                    )
+                }
+            }
         }
     }
 }

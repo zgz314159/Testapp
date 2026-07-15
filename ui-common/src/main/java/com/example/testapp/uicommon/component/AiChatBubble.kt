@@ -6,12 +6,16 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
@@ -28,6 +32,7 @@ fun AiChatBubble(
     assistantFontSize: TextUnit = LocalFontSize.current,
     assistantFontFamily: FontFamily? = LocalFontFamily.current,
     assistantContent: (@Composable (String) -> Unit)? = null,
+    onAssistantContentChange: ((String) -> Unit)? = null,
     geminiStyle: Boolean = true
 ) {
     val scheme = MaterialTheme.colorScheme
@@ -47,7 +52,8 @@ fun AiChatBubble(
                 contentColor = scheme.onSurface,
                 assistantFontSize = assistantFontSize,
                 assistantFontFamily = assistantFontFamily,
-                assistantContent = assistantContent
+                assistantContent = assistantContent,
+                onContentChange = onAssistantContentChange,
             )
         }
         return
@@ -108,17 +114,20 @@ fun AiChatBubble(
                             contentColor = colors.content,
                             assistantFontSize = assistantFontSize,
                             assistantFontFamily = assistantFontFamily,
-                            assistantContent = assistantContent
+                            assistantContent = assistantContent,
+                            onContentChange = onAssistantContentChange,
                         )
                     else ->
-                        Text(
-                            text = content,
-                            color = colors.content,
-                            style = MaterialTheme.typography.bodyLarge.copy(
-                                fontSize = assistantFontSize,
-                                fontFamily = assistantFontFamily
+                        SelectionContainer {
+                            Text(
+                                text = content,
+                                color = colors.content,
+                                style = MaterialTheme.typography.bodyLarge.copy(
+                                    fontSize = assistantFontSize,
+                                    fontFamily = assistantFontFamily
+                                )
                             )
-                        )
+                        }
                 }
             }
         }
@@ -131,15 +140,33 @@ private fun AssistantMessageBody(
     contentColor: Color,
     assistantFontSize: TextUnit,
     assistantFontFamily: FontFamily?,
-    assistantContent: (@Composable (String) -> Unit)?
+    assistantContent: (@Composable (String) -> Unit)?,
+    onContentChange: ((String) -> Unit)?,
 ) {
     when {
         assistantContent != null -> assistantContent(content)
-        else -> RichText(
-            text = content,
-            color = contentColor,
-            fontSize = assistantFontSize,
-            fontFamily = assistantFontFamily
-        )
+        onContentChange != null ->
+            SelectionContainer {
+                BasicTextField(
+                    value = content,
+                    onValueChange = onContentChange,
+                    modifier = Modifier.fillMaxWidth(),
+                    textStyle = TextStyle(
+                        color = contentColor,
+                        fontSize = assistantFontSize,
+                        fontFamily = assistantFontFamily,
+                    ),
+                    cursorBrush = SolidColor(contentColor),
+                )
+            }
+        else ->
+            SelectionContainer {
+                RichText(
+                    text = content,
+                    color = contentColor,
+                    fontSize = assistantFontSize,
+                    fontFamily = assistantFontFamily
+                )
+            }
     }
 }

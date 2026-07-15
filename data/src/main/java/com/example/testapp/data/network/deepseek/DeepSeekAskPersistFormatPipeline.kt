@@ -4,13 +4,18 @@ package com.example.testapp.data.network.deepseek
 object DeepSeekAskPersistFormatPipeline {
 
     const val ASSISTANT_SEPARATOR = "\n\n---\n\n"
-    private const val USER_MARKER = "【DS·问】"
-    private const val ASSISTANT_MARKER = "【DS·答】"
+    const val USER_MARKER = "【DS·问】"
+    const val ASSISTANT_MARKER = "【DS·答】"
 
     fun encode(turns: List<DeepSeekChatTurn>): String =
         turns.joinToString("\n\n") { turn ->
             "$USER_MARKER\n${turn.user}\n$ASSISTANT_MARKER\n${turn.assistant}"
         }
+
+    fun isStructured(persisted: String): Boolean {
+        val trimmed = persisted.trim()
+        return USER_MARKER in trimmed && ASSISTANT_MARKER in trimmed
+    }
 
     fun decode(firstQuestion: String, persisted: String): List<DeepSeekChatTurn> {
         val trimmed = persisted.trim()

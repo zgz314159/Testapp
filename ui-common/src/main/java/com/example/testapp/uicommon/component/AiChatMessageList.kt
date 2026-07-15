@@ -30,6 +30,7 @@ fun AiChatMessageList(
     assistantFontFamily: FontFamily? = LocalFontFamily.current,
     assistantTextToolbar: androidx.compose.ui.platform.TextToolbar? = null,
     assistantContent: (@Composable (String) -> Unit)? = null,
+    onAssistantContentChange: ((messageIndex: Int, text: String) -> Unit)? = null,
     geminiStyle: Boolean = true
 ) {
     val listState = rememberLazyListState()
@@ -57,8 +58,11 @@ fun AiChatMessageList(
             if (geminiStyle) AppSpacing.md else AppSpacing.sm
         )
     ) {
-        itemsIndexed(messages, key = { index, item -> "$index-${item.role}-${item.content.hashCode()}" }) { _, message ->
+        itemsIndexed(messages, key = { index, item -> "$index-${item.role}" }) { index, message ->
             val bubbleModifier = Modifier.fillMaxWidth()
+            val assistantChange = onAssistantContentChange?.takeIf {
+                message.role == AiChatMessageRole.Assistant
+            }?.let { cb -> { text: String -> cb(index, text) } }
             if (message.role == AiChatMessageRole.Assistant && assistantTextToolbar != null) {
                 CompositionLocalProvider(LocalTextToolbar provides assistantTextToolbar) {
                     AiChatBubble(
@@ -68,6 +72,7 @@ fun AiChatMessageList(
                         assistantFontSize = assistantFontSize,
                         assistantFontFamily = assistantFontFamily,
                         assistantContent = assistantContent,
+                        onAssistantContentChange = assistantChange,
                         geminiStyle = geminiStyle
                     )
                 }
@@ -79,6 +84,7 @@ fun AiChatMessageList(
                     assistantFontSize = assistantFontSize,
                     assistantFontFamily = assistantFontFamily,
                     assistantContent = assistantContent,
+                    onAssistantContentChange = assistantChange,
                     geminiStyle = geminiStyle
                 )
             }

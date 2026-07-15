@@ -1,11 +1,12 @@
 package com.example.testapp.data.network.deepseek
 
-/** 退出保存：落库用展示文本（多轮答案 `---` 拼接），供答题页直接显示。 */
+/** 退出保存：DB / 会话均落结构化多轮；答题区展示另走 InlineDisplay。 */
 object DeepSeekAskSavePipeline {
 
     fun resolvePersistText(turns: List<DeepSeekChatTurn>, displayText: String): String {
-        val fromTurns = DeepSeekAskDisplayPipeline.fromTurns(turns).trim()
-        if (fromTurns.isNotBlank()) return fromTurns
+        if (turns.isNotEmpty()) {
+            return DeepSeekAskPersistFormatPipeline.encode(turns).trim()
+        }
         return displayText.trim()
     }
 }

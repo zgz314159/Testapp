@@ -8,11 +8,14 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
+import com.example.testapp.feature.practice.R
 import com.example.testapp.uicommon.component.LocalFontFamily
 import com.example.testapp.uicommon.component.LocalFontSize
 import com.example.testapp.uicommon.design.AppSpacing
@@ -22,14 +25,11 @@ import com.example.testapp.uicommon.design.AppSpacing
 fun HomeStartQuizSheet(
     visible: Boolean,
     pendingFileName: String,
-    bottomNavIndex: Int,
+    hasProgress: Boolean,
     onDismiss: () -> Unit,
     onStartQuiz: (String) -> Unit,
     onStartExam: (String) -> Unit,
-    onStartWrongBookQuiz: (String) -> Unit,
-    onStartWrongBookExam: (String) -> Unit,
-    onStartFavoriteQuiz: (String) -> Unit,
-    onStartFavoriteExam: (String) -> Unit
+    onRestart: (String) -> Unit,
 ) {
     if (!visible) return
 
@@ -40,47 +40,62 @@ fun HomeStartQuizSheet(
                     top = AppSpacing.md,
                     bottom = AppSpacing.lg,
                     start = AppSpacing.lg,
-                    end = AppSpacing.lg
+                    end = AppSpacing.lg,
                 )
                 .fillMaxWidth(),
-            horizontalAlignment = Alignment.CenterHorizontally
+            horizontalAlignment = Alignment.CenterHorizontally,
         ) {
             Text(
                 text = pendingFileName,
                 fontSize = LocalFontSize.current,
-                fontFamily = LocalFontFamily.current
+                fontFamily = LocalFontFamily.current,
             )
-            Spacer(Modifier.height(AppSpacing.lg))
+            Spacer(modifier = Modifier.height(AppSpacing.lg))
             Button(
                 onClick = {
                     onDismiss()
-                    when (bottomNavIndex) {
-                        0 -> onStartWrongBookQuiz(pendingFileName)
-                        1 -> onStartFavoriteQuiz(pendingFileName)
-                        else -> onStartQuiz(pendingFileName)
-                    }
+                    onStartQuiz(pendingFileName)
                 },
-                modifier = Modifier.fillMaxWidth()
+                modifier = Modifier.fillMaxWidth(),
             ) {
-                Text("开始练习")
+                Text(
+                    if (hasProgress) {
+                        stringResource(R.string.home_continue_practice)
+                    } else {
+                        stringResource(R.string.home_start_practice)
+                    },
+                )
             }
-            Spacer(Modifier.height(AppSpacing.sm))
+            Spacer(modifier = Modifier.height(AppSpacing.sm))
             Button(
                 onClick = {
                     onDismiss()
-                    when (bottomNavIndex) {
-                        0 -> onStartWrongBookExam(pendingFileName)
-                        1 -> onStartFavoriteExam(pendingFileName)
-                        else -> onStartExam(pendingFileName)
-                    }
+                    onStartExam(pendingFileName)
                 },
-                modifier = Modifier.fillMaxWidth()
+                modifier = Modifier.fillMaxWidth(),
             ) {
-                Text("开始考试")
+                Text(
+                    if (hasProgress) {
+                        stringResource(R.string.home_continue_exam)
+                    } else {
+                        stringResource(R.string.home_start_exam)
+                    },
+                )
             }
-            Spacer(Modifier.height(AppSpacing.sm))
+            if (hasProgress) {
+                Spacer(modifier = Modifier.height(AppSpacing.sm))
+                OutlinedButton(
+                    onClick = {
+                        onRestart(pendingFileName)
+                    },
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    Text(stringResource(R.string.home_restart_quiz))
+                }
+            }
+            Spacer(modifier = Modifier.height(AppSpacing.sm))
             TextButton(onClick = onDismiss, modifier = Modifier.fillMaxWidth()) {
-                Text("取消")
+                Text(stringResource(R.string.cancel))
             }
         }
     }

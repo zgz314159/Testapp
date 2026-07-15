@@ -29,9 +29,22 @@ internal class ExamArtifactStateCoordinator(
 
     fun updateAnalysis(index: Int, text: String) {
         sessionState.value.questions.getOrNull(index)?.id?.let { id ->
-            scope.launch { facade.analysis.saveDeepSeek(id, text) }
+            scope.launch {
+                val existing = facade.analysis.getDeepSeek(id).getOrNull()
+                val richer = com.example.testapp.presentation.screen.shared.SessionDeepSeekAnalysisTextPipeline
+                    .preferStructured(existing, text)
+                if (richer.isNotBlank() && richer != existing) {
+                    facade.analysis.saveDeepSeek(id, richer)
+                }
+            }
         }
-        sessionState.update { s -> s.updateAt(index) { it.copy(analysis = text) } }
+        sessionState.update { s ->
+            val current = s.questionsWithState.getOrNull(index)?.analysis
+            val richer = com.example.testapp.presentation.screen.shared.SessionDeepSeekAnalysisTextPipeline
+                .preferStructured(current, text)
+            if (current == richer) s
+            else s.updateAt(index) { it.copy(analysis = richer) }
+        }
         saveProgress()
     }
 

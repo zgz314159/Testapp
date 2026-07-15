@@ -74,11 +74,20 @@ class ExamArtifactCoordinator @Inject constructor(
 
     fun updateAnalysis(index: Int, text: String, onSaveProgress: () -> Unit) {
         state._questions.value.getOrNull(index)?.id?.let { id ->
-            scope.launch { saveQuestionAnalysisUseCase(id, text) }
+            scope.launch {
+                val existing = getQuestionAnalysisUseCase(id).getOrNull()
+                val richer = com.example.testapp.presentation.screen.shared.SessionDeepSeekAnalysisTextPipeline
+                    .preferStructured(existing, text)
+                if (richer.isNotBlank() && richer != existing) {
+                    saveQuestionAnalysisUseCase(id, richer)
+                }
+            }
         }
         val list = state._analysisList.value.toMutableList()
         while (list.size <= index) list.add("")
-        list[index] = text; state._analysisList.value = list; onSaveProgress()
+        list[index] = com.example.testapp.presentation.screen.shared.SessionDeepSeekAnalysisTextPipeline
+            .preferStructured(list.getOrNull(index), text)
+        state._analysisList.value = list; onSaveProgress()
     }
 
     fun updateSparkAnalysis(index: Int, text: String, onSaveProgress: () -> Unit) {

@@ -27,8 +27,8 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.unit.dp
 import com.example.testapp.domain.usecase.FileStatistics
+import com.example.testapp.presentation.screen.home.design.HomeDesignTokens
 import com.example.testapp.uicommon.design.AppLoadingIndicator
-import com.example.testapp.uicommon.design.AppSpacing
 import com.example.testapp.uicommon.screen.questionbank.resolveQuestionBankDrawerWidth
 import kotlin.math.abs
 
@@ -174,28 +174,40 @@ fun QuestionBankDrawer(
                         }
                     }
                 )
-            }
+            },
+        drawerContainerColor = HomeDesignTokens.backgroundLight,
+        drawerContentColor = HomeDesignTokens.textPrimaryLight,
+        drawerTonalElevation = 0.dp,
     ) {
         Column(
             modifier = Modifier
                 .fillMaxSize()
                 .statusBarsPadding()
-                .padding(horizontal = AppSpacing.md, vertical = AppSpacing.md)
+                .padding(
+                    start = HomeDesignTokens.spacingMd,
+                    end = HomeDesignTokens.spacingMd,
+                    top = HomeDesignTokens.spacingSm,
+                    bottom = HomeDesignTokens.spacingMd,
+                )
         ) {
             QuestionBankDrawerHeader(
                 title = "题库浏览",
                 closeContentDescription = "关闭题库抽屉",
                 onClose = onClose
             )
-            Spacer(Modifier.height(AppSpacing.sm))
+            Spacer(Modifier.height(HomeDesignTokens.spacingSm))
             QuestionBankSearchBar(
                 value = searchQuery,
                 onValueChange = { viewModel.onSearchQueryChange(it, fileNames) },
                 onClear = viewModel::clearSearch,
                 modifier = Modifier.fillMaxWidth()
             )
-            Spacer(Modifier.height(AppSpacing.md))
-            HorizontalDivider()
+            Spacer(Modifier.height(HomeDesignTokens.spacingMd))
+            HorizontalDivider(
+                color = HomeDesignTokens.outlineLight.copy(alpha = 0.45f),
+                thickness = 1.dp,
+            )
+            Spacer(Modifier.height(HomeDesignTokens.spacingSm))
             Box(modifier = Modifier.weight(1f)) {
                 LazyColumn(
                     modifier = Modifier.fillMaxSize(),
@@ -286,7 +298,7 @@ fun QuestionBankDrawer(
                     AppLoadingIndicator(
                         modifier = Modifier
                             .align(Alignment.TopCenter)
-                            .padding(top = AppSpacing.md)
+                            .padding(top = HomeDesignTokens.spacingMd)
                             .size(28.dp)
                     )
                 }

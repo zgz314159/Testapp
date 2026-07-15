@@ -33,13 +33,18 @@ fun HomeFileList(
     onCardClick: (String) -> Unit,
     onDeleteClick: (String) -> Unit,
     onDoubleClick: (String) -> Unit,
-    onDragStart:
-    (String, Offset, IntSize, Offset) -> Unit,
+    onDragStart: (String, Offset, IntSize, Offset) -> Unit,
     onDragUpdate: (Offset) -> Unit,
     onDragEnd: (String) -> Unit,
     onDragCancel: (String) -> Unit,
     onReportFolderBounds: (String, Rect) -> Unit,
     onReportCardBounds: (String, Rect) -> Unit,
+    onFileCtaClick: ((String) -> Unit)? = null,
+    headerContent: @Composable () -> Unit = {},
+    showHeader: Boolean = true,
+    viewModel: com.example.testapp.presentation.screen.home.HomeViewModel? = null,
+    onPendingFileName: ((String) -> Unit)? = null,
+    onShowSheet: (() -> Unit)? = null,
     modifier: Modifier = Modifier,
 ) {
     val shouldTrackDropTargets = draggingFile != null
@@ -55,22 +60,11 @@ fun HomeFileList(
         dragScrollLocked = true
         onDragStart(fileName, pos, size, offset)
     }
-
-    fun wrapDragEnd(fileName: String) {
-        dragScrollLocked = false
-        onDragEnd(fileName)
-    }
-
-    fun wrapDragCancel(fileName: String) {
-        dragScrollLocked = false
-        onDragCancel(fileName)
-    }
-
+    fun wrapDragEnd(fileName: String) { dragScrollLocked = false; onDragEnd(fileName) }
+    fun wrapDragCancel(fileName: String) { dragScrollLocked = false; onDragCancel(fileName) }
     fun canKeepSwipeNodeStable(fileName: String): Boolean = swipeRevealEnabled
-
-    fun canHandleDrag(fileName: String, isScrolling: Boolean): Boolean {
-        return enableItemGestures && (draggingFile == fileName || (draggingFile == null && !isScrolling))
-    }
+    fun canHandleDrag(fileName: String, isScrolling: Boolean): Boolean =
+        enableItemGestures && (draggingFile == fileName || (draggingFile == null && !isScrolling))
 
     if (useGridLayout) {
         HomeFileListGrid(
@@ -93,6 +87,9 @@ fun HomeFileList(
             onDragEnd = ::wrapDragEnd,
             onDragCancel = ::wrapDragCancel,
             onReportCardBounds = onReportCardBounds,
+            onFileCtaClick = onFileCtaClick,
+            headerContent = headerContent,
+            showHeader = showHeader,
             modifier = modifier,
         )
     } else {
@@ -125,6 +122,12 @@ fun HomeFileList(
             onDragCancel = ::wrapDragCancel,
             onReportFolderBounds = onReportFolderBounds,
             onReportCardBounds = onReportCardBounds,
+            onFileCtaClick = onFileCtaClick,
+            headerContent = headerContent,
+            showHeader = showHeader,
+            viewModel = viewModel,
+            onPendingFileName = onPendingFileName,
+            onShowSheet = onShowSheet,
             modifier = modifier,
         )
     }

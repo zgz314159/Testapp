@@ -1,5 +1,9 @@
 package com.example.testapp.presentation.screen.home
 
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.DrawerState
 import androidx.compose.material3.DrawerValue
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -14,12 +18,21 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import com.example.testapp.data.datastore.FontSettingsDataStore
+import com.example.testapp.feature.practice.R
 import com.example.testapp.presentation.screen.file.DragDropViewModel
 import com.example.testapp.presentation.screen.file.FileFolderViewModel
+import com.example.testapp.presentation.screen.home.components.HomeContinueStudyCard
+import com.example.testapp.presentation.screen.home.components.HomeGreetingHeader
+import com.example.testapp.presentation.screen.home.components.HomeNotificationAction
 import com.example.testapp.presentation.screen.home.components.HomeScreenLibrarySection
+import com.example.testapp.presentation.screen.home.components.HomeSearchAction
+import com.example.testapp.presentation.screen.home.components.HomeSectionHeader
+import com.example.testapp.presentation.screen.home.design.HomeDesignTokens
 import com.example.testapp.presentation.screen.questionbank.QuestionBankDrawerViewModel
 import com.example.testapp.presentation.screen.settings.SettingsViewModel
 import kotlinx.coroutines.launch
@@ -40,11 +53,6 @@ fun HomeScreen(
     onViewQuestionDetail: (quizId: String) -> Unit = {},
     onWrongBook: (fileName: String) -> Unit = {},
     onFavoriteBook: (fileName: String) -> Unit = {},
-    onViewResult: (fileName: String) -> Unit = {},
-    onStartWrongBookQuiz: (fileName: String) -> Unit = {},
-    onStartWrongBookExam: (fileName: String) -> Unit = {},
-    onStartFavoriteQuiz: (fileName: String) -> Unit = {},
-    onStartFavoriteExam: (fileName: String) -> Unit = {},
     onHistory: () -> Unit = {},
 ) {
     val fileNames by viewModel.fileNames.collectAsState()
@@ -66,6 +74,26 @@ fun HomeScreen(
     val recentFileNames by FontSettingsDataStore
         .getRecentSelectedFiles(context)
         .collectAsState(initial = emptyList())
+
+    val practiceProgress by viewModel.practiceProgress.collectAsState()
+
+    val dashboardState = remember(
+        fileNames,
+        fileStatistics,
+        practiceProgress,
+        storedFileName,
+        selectedFileName.value,
+        recentFileNames,
+    ) {
+        HomeDashboardPipeline.buildDashboard(
+            fileNames = fileNames,
+            fileStatistics = fileStatistics,
+            practiceProgressCompleted = practiceProgress,
+            storedFileName = storedFileName,
+            selectedFileName = selectedFileName.value,
+            recentFileNames = recentFileNames,
+        )
+    }
 
     val libraryState = rememberHomeLibraryDisplayState(
         fileNames = fileNames,
@@ -97,7 +125,6 @@ fun HomeScreen(
     var folderToDelete by remember { mutableStateOf<String?>(null) }
     var showDeleteFolderDialog by remember { mutableStateOf(false) }
 
-    val scrollBehavior = androidx.compose.material3.TopAppBarDefaults.enterAlwaysScrollBehavior()
     val folderBounds = remember { mutableStateMapOf<String, Rect>() }
     val fileCardBounds = remember { mutableStateMapOf<String, Rect>() }
     val homeDropTargetKey = "__HOME_ROOT__"
@@ -159,6 +186,52 @@ fun HomeScreen(
         )
     }
 
+    // 统一滚动 Header + Hero + SectionTitle（嵌入 LazyColumn 首个 item）
+    @Composable
+    fun DashboardHeaderContent() {
+        HomeGreetingHeader(
+            greeting = dashboardState.greeting,
+            subtitle = dashboardState.subtitle,
+            searchAction = {
+                HomeSearchAction(onClick = { scope.launch { drawerState.open() } })
+            },
+            notificationAction = { HomeNotificationAction() },
+            modifier = Modifier.fillMaxWidth(),
+        )
+        Spacer(modifier = Modifier.height(HomeDesignTokens.spacingMd))
+        if (dashboardState.showContinueCard) {
+            HomeContinueStudyCard(
+                fileName = dashboardState.continueFileName,
+                displayName = dashboardState.continueFileDisplayName,
+                progressPercent = dashboardState.continueProgressPercent,
+                totalQuestions = dashboardState.totalQuestions,
+                wrongCount = dashboardState.wrongCount,
+                favoriteCount = dashboardState.favoriteCount,
+                completedCount = dashboardState.completedCount,
+                onClick = {
+                    pendingFileName = dashboardState.continueFileName
+                    viewModel.preloadQuestionFile(dashboardState.continueFileName)
+                    persistFileUsage(dashboardState.continueFileName)
+                    showSheet = true
+                },
+                onWrongBookClick = {
+                    if (dashboardState.continueFileName.isNotBlank()) {
+                        onWrongBook(dashboardState.continueFileName)
+                    } else {
+                        onWrongBook("")
+                    }
+                },
+                modifier = Modifier.fillMaxWidth().padding(horizontal = HomeDesignTokens.pageHorizontalPadding),
+            )
+        }
+        Spacer(modifier = Modifier.height(HomeDesignTokens.spacingXl))
+        HomeSectionHeader(
+            title = stringResource(R.string.home_book_title),
+            onShowAll = { scope.launch { drawerState.open() } },
+            modifier = Modifier.padding(horizontal = HomeDesignTokens.pageHorizontalPadding),
+        )
+    }
+
     HomeScreenDrawerHost(
         fileNames = fileNames,
         folders = folders,
@@ -170,14 +243,12 @@ fun HomeScreen(
         onEditQuestion = onEditQuestion,
     ) {
         HomeScreenScaffoldContent(
-            scrollBehavior = scrollBehavior,
-            drawerState = drawerState,
-            onSettings = onSettings,
             bottomNavIndex = navPrefs.bottomNavIndex,
             onNavChange = navPrefs.setBottomNavIndex,
             onWrongBook = { onWrongBook("") },
             onFavoriteBook = { onFavoriteBook("") },
             onHistory = onHistory,
+            onSettings = onSettings,
             draggingFile = draggingFile,
             drawerOpen = drawerOpen,
             homeInteractionReady = homeInteractionReady,
@@ -199,7 +270,6 @@ fun HomeScreen(
                     dragPosition = dragPosition,
                     hoverFolder = hoverFolder,
                     hoverFile = hoverFile,
-                    bottomNavIndex = navPrefs.bottomNavIndex,
                     folderBounds = folderBounds,
                     fileCardBounds = fileCardBounds,
                     dragViewModel = dragViewModel,
@@ -215,7 +285,6 @@ fun HomeScreen(
                     onShowSheet = { showSheet = true },
                     onFileToDelete = { fileToDelete = it },
                     onShowDeleteDialog = { showDeleteDialog = true },
-                    onViewResult = onViewResult,
                     onViewQuestionDetail = onViewQuestionDetail,
                     persistFileUsage = persistFileUsage,
                     onUpdateDragHover = { position, folder, dropKey, folderFiles ->
@@ -232,6 +301,19 @@ fun HomeScreen(
                         )
                     },
                     onBeforeDragStart = { dragFinishRef.handledByCard = false },
+                    onFileCtaClick = { fileName ->
+                        selectedFileName.value = fileName
+                        pendingFileName = fileName
+                        viewModel.preloadQuestionFile(fileName)
+                        persistFileUsage(fileName)
+                        // 有进度时打开 sheet（可接着/重答）；无进度直接开始练习
+                        if ((practiceProgress[fileName] ?: 0) > 0) {
+                            showSheet = true
+                        } else {
+                            onStartQuiz(fileName)
+                        }
+                    },
+                    headerContent = { DashboardHeaderContent() },
                 )
             },
             overlays = {
@@ -247,14 +329,14 @@ fun HomeScreen(
                     dragItemSize = dragItemSize,
                     showSheet = showSheet,
                     pendingFileName = pendingFileName,
+                    hasProgress = (practiceProgress[pendingFileName] ?: 0) > 0,
                     bottomNavIndex = navPrefs.bottomNavIndex,
                     onDismissSheet = { showSheet = false },
                     onStartQuiz = onStartQuiz,
                     onStartExam = onStartExam,
-                    onStartWrongBookQuiz = onStartWrongBookQuiz,
-                    onStartWrongBookExam = onStartWrongBookExam,
-                    onStartFavoriteQuiz = onStartFavoriteQuiz,
-                    onStartFavoriteExam = onStartFavoriteExam,
+                    onRestartQuiz = { fileName ->
+                        viewModel.clearProgressForFile(fileName)
+                    },
                     showDeleteDialog = showDeleteDialog,
                     fileToDelete = fileToDelete,
                     onDismissDeleteFile = { showDeleteDialog = false },
@@ -283,7 +365,7 @@ fun HomeScreen(
                     folderToDelete = folderToDelete,
                     onDismissDeleteFolder = { showDeleteFolderDialog = false },
                     onConfirmDeleteFolder = {
-                        showDeleteFolderDialog = false
+                        showDeleteDialog = false
                         folderToDelete?.let { folderViewModel.deleteFolder(it) }
                     },
                 )

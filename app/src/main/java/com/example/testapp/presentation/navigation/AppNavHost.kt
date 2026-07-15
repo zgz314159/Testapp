@@ -46,22 +46,6 @@ fun AppNavHost(
                     val encoded = java.net.URLEncoder.encode(quizId, "UTF-8")
                     navController.navigate("exam/$encoded")
                 },
-                onStartWrongBookQuiz = { name ->
-                    val encoded = java.net.URLEncoder.encode(name, "UTF-8")
-                    navController.navigate("practice_wrongbook/$encoded")
-                },
-                onStartWrongBookExam = { name ->
-                    val encoded = java.net.URLEncoder.encode(name, "UTF-8")
-                    navController.navigate("exam_wrongbook/$encoded")
-                },
-                onStartFavoriteQuiz = { name ->
-                    val encoded = java.net.URLEncoder.encode(name, "UTF-8")
-                    navController.navigate("practice_favorite/$encoded")
-                },
-                onStartFavoriteExam = { name ->
-                    val encoded = java.net.URLEncoder.encode(name, "UTF-8")
-                    navController.navigate("exam_favorite/$encoded")
-                },
                 onSettings = { navController.navigateFromHome("settings") },
                 onViewQuestionDetail = { quizId ->
                     val encoded = java.net.URLEncoder.encode(quizId, "UTF-8")
@@ -82,10 +66,6 @@ fun AppNavHost(
                         val encoded = java.net.URLEncoder.encode(fileName, "UTF-8")
                         navController.navigateFromHome("favorite/$encoded")
                     }
-                },
-                onViewResult = { fileName ->
-                    val encoded = java.net.URLEncoder.encode(fileName, "UTF-8")
-                    navController.navigate("result/0/0/0/$encoded")
                 },
                 onHistory = { navController.navigateFromHome("history") },
                 settingsViewModel = settingsViewModel,

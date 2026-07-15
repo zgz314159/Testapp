@@ -47,12 +47,13 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.example.testapp.feature.practice.R
 import com.example.testapp.domain.usecase.FileStatistics
+import com.example.testapp.feature.practice.R
 import com.example.testapp.presentation.screen.file.DragDropViewModel
 import com.example.testapp.presentation.screen.file.FileFolderViewModel
 import com.example.testapp.presentation.screen.home.components.DraggingFileOverlay
 import com.example.testapp.presentation.screen.home.components.HomeFileList
+import com.example.testapp.presentation.screen.home.design.HomeDesignTokens
 import com.example.testapp.uicommon.component.LocalFontFamily
 import com.example.testapp.uicommon.component.LocalFontSize
 import com.example.testapp.uicommon.design.AppEmptyState
@@ -123,6 +124,7 @@ fun ScopedQuestionLibraryScreen(
     fun scoped(value: String) = scopedLibraryName(scope, value)
 
     Scaffold(
+        containerColor = HomeDesignTokens.backgroundLight,
         topBar = {
             if (currentFolder == null) {
                 AppTopBar(title = stringResource(rootTitleRes))

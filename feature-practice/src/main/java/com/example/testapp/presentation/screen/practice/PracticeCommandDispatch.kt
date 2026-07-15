@@ -6,7 +6,6 @@ import com.example.testapp.domain.session.SessionCommand
 import com.example.testapp.presentation.session.practice.PracticeCommandOutcome
 import com.example.testapp.presentation.session.practice.PracticeScreenBindings
 import com.example.testapp.presentation.session.practice.PracticeSessionCommandHandler
-import com.example.testapp.presentation.screen.practice.PracticeSessionGradeSnapshot
 
 fun dispatchPracticeCommand(
     bindings: PracticeScreenBindings,

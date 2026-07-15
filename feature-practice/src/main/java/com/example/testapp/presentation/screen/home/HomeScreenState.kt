@@ -92,9 +92,9 @@ fun rememberHomeNavPrefsState(): HomeNavPrefsState {
     val context = LocalContext.current
     val storedNavIndex by FontSettingsDataStore
         .getLastSelectedNav(context)
-        .collectAsState(initial = 3)
-    var bottomNavIndex by remember { mutableStateOf(storedNavIndex) }
-    LaunchedEffect(storedNavIndex) { bottomNavIndex = storedNavIndex }
+        .collectAsState(initial = 0)
+    var bottomNavIndex by remember { mutableStateOf(storedNavIndex.coerceIn(0, 4)) }
+    LaunchedEffect(storedNavIndex) { bottomNavIndex = storedNavIndex.coerceIn(0, 4) }
     LaunchedEffect(bottomNavIndex) { FontSettingsDataStore.setLastSelectedNav(context, bottomNavIndex) }
     return HomeNavPrefsState(
         bottomNavIndex = bottomNavIndex,

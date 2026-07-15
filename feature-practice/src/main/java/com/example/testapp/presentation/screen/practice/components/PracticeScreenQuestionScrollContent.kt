@@ -10,14 +10,14 @@ import androidx.compose.runtime.key
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.sp
-import com.example.testapp.feature.practice.R
 import com.example.testapp.domain.QuestionTypes
 import com.example.testapp.domain.model.Question
-import com.example.testapp.presentation.screen.practice.localizedQuestionTypeLabel
+import com.example.testapp.feature.practice.R
 import com.example.testapp.presentation.screen.practice.PracticeAutoAdvanceController
 import com.example.testapp.presentation.screen.practice.PracticeFontController
 import com.example.testapp.presentation.screen.practice.PracticeQuestionContent
 import com.example.testapp.presentation.screen.practice.PracticeResultSection
+import com.example.testapp.presentation.screen.practice.localizedQuestionTypeLabel
 import com.example.testapp.presentation.session.practice.PracticeScreenBindings
 import com.example.testapp.uicommon.component.FillAnswerRoundLabel
 import com.example.testapp.uicommon.component.LocalFontFamily

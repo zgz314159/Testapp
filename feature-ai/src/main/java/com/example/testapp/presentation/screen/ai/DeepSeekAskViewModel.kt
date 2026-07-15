@@ -5,10 +5,13 @@ import androidx.lifecycle.viewModelScope
 import com.example.testapp.data.network.deepseek.DeepSeekApiService
 import com.example.testapp.data.network.deepseek.DeepSeekAskDisplayPipeline
 import com.example.testapp.data.network.deepseek.DeepSeekAskFollowUpPipeline
+import com.example.testapp.data.network.deepseek.DeepSeekAskLoadSeedPipeline
 import com.example.testapp.data.network.deepseek.DeepSeekAskPersistFormatPipeline
+import com.example.testapp.data.network.deepseek.DeepSeekAskPersistDebugLog
 import com.example.testapp.data.network.deepseek.DeepSeekAskPersistPipeline
 import com.example.testapp.data.network.deepseek.DeepSeekAskSavePipeline
 import com.example.testapp.data.network.deepseek.DeepSeekAskSessionRestorePipeline
+import com.example.testapp.data.network.deepseek.DeepSeekChatConfig
 import com.example.testapp.data.network.deepseek.DeepSeekChatTurn
 import com.example.testapp.data.network.deepseek.DeepSeekExamAnchor
 import com.example.testapp.data.network.deepseek.DeepSeekMultiTurnMessagesPipeline
@@ -57,6 +60,7 @@ class DeepSeekAskViewModel @Inject constructor(
     }
 
     fun reset() {
+        DeepSeekAskPersistDebugLog.d("VM.reset", "clear turns=${turns.size} firstQ=${DeepSeekAskPersistDebugLog.preview(firstQuestion)}")
         _displayText.value = ""
         _chatTurns.value = emptyList()
         _errorMessage.value = null
@@ -70,22 +74,74 @@ class DeepSeekAskViewModel @Inject constructor(
         firstQuestion = DeepSeekAskSessionRestorePipeline.firstQuestionText(questionText, examAnchor)
         turns.clear()
         turns.addAll(DeepSeekAskPersistFormatPipeline.decode(firstQuestion, savedText))
+        DeepSeekAskPersistDebugLog.d(
+            "VM.restoreSession",
+            "qIdText=${DeepSeekAskPersistDebugLog.preview(questionText, 48)} " +
+                "saved.${DeepSeekAskPersistDebugLog.meta(savedText)} " +
+                "decoded=${DeepSeekAskPersistDebugLog.turnsSummary(turns)}",
+        )
         publishTurns()
     }
 
-    suspend fun loadSaved(questionId: Int, questionText: String, note: String? = null): String? {
-        val raw = loadRawPersisted(questionId, note) ?: return null
-        restoreSession(questionText, raw)
+    suspend fun loadSaved(
+        questionId: Int,
+        questionText: String,
+        note: String? = null,
+        seedDisplay: String? = null,
+    ): String? {
+        val raw = loadRawPersisted(questionId, note)
+        val currentEncoded = if (turns.isNotEmpty()) {
+            DeepSeekAskPersistFormatPipeline.encode(turns)
+        } else {
+            null
+        }
+        DeepSeekAskPersistDebugLog.d(
+            "VM.loadSaved.in",
+            "qId=$questionId existingTurns=${turns.size} " +
+                "db.${DeepSeekAskPersistDebugLog.meta(raw)} " +
+                "seed.${DeepSeekAskPersistDebugLog.meta(seedDisplay)} " +
+                "current.${DeepSeekAskPersistDebugLog.meta(currentEncoded)}",
+        )
+        val merged = DeepSeekAskLoadSeedPipeline.resolveRaw(
+            dbRaw = DeepSeekAskLoadSeedPipeline.resolveRaw(raw, currentEncoded),
+            seedDisplay = seedDisplay,
+        )
+        if (merged == null) {
+            DeepSeekAskPersistDebugLog.w("VM.loadSaved", "qId=$questionId → merged=null (no restore)")
+            return null
+        }
+        DeepSeekAskPersistDebugLog.d(
+            "VM.loadSaved.merged",
+            "qId=$questionId chosen.${DeepSeekAskPersistDebugLog.meta(merged)} preview=${DeepSeekAskPersistDebugLog.preview(merged)}",
+        )
+        if (currentEncoded != null &&
+            DeepSeekAskLoadSeedPipeline.richness(merged) <= DeepSeekAskLoadSeedPipeline.richness(currentEncoded) &&
+            merged.length <= currentEncoded.length
+        ) {
+            DeepSeekAskPersistDebugLog.d(
+                "VM.loadSaved.keepCurrent",
+                "qId=$questionId keep existing turns=${turns.size}",
+            )
+            return _displayText.value.takeIf { it.isNotBlank() }
+        }
+        restoreSession(questionText, merged)
         return _displayText.value.takeIf { it.isNotBlank() }
     }
 
     private suspend fun loadRawPersisted(questionId: Int, note: String?): String? {
         val analysis = getAnalysisUseCase(questionId).getOrNull()
         val askLegacy = getAskLegacyUseCase(questionId)
-        return DeepSeekAskPersistPipeline.resolveLoadText(
+        val resolved = DeepSeekAskPersistPipeline.resolveLoadText(
             analysis = analysis,
             askLegacy = askLegacy ?: DeepSeekAskPersistPipeline.extractFromAskNote(note)
         )
+        DeepSeekAskPersistDebugLog.d(
+            "VM.loadRaw",
+            "qId=$questionId analysis.${DeepSeekAskPersistDebugLog.meta(analysis)} " +
+                "legacy.${DeepSeekAskPersistDebugLog.meta(askLegacy)} " +
+                "resolved.${DeepSeekAskPersistDebugLog.meta(resolved)}",
+        )
+        return resolved
     }
 
     suspend fun getSavedAnswer(questionId: Int, note: String? = null): String? =
@@ -97,12 +153,39 @@ class DeepSeekAskViewModel @Inject constructor(
 
     suspend fun saveAndWait(questionId: Int, displayText: String): String? {
         val normalized = displayText.trim()
-        if (normalized.isBlank()) return null
+        DeepSeekAskPersistDebugLog.d(
+            "VM.save.begin",
+            "qId=$questionId turns=${DeepSeekAskPersistDebugLog.turnsSummary(turns)} " +
+                "display.${DeepSeekAskPersistDebugLog.meta(normalized)}",
+        )
+        if (normalized.isBlank() && turns.isEmpty()) {
+            DeepSeekAskPersistDebugLog.w("VM.save", "qId=$questionId aborted: blank")
+            return null
+        }
         val persisted = DeepSeekAskSavePipeline.resolvePersistText(turns, normalized)
-        if (persisted.isBlank()) return null
-        if (!saveAnalysisUseCase(questionId, persisted).isSuccess) return null
+        if (persisted.isBlank()) {
+            DeepSeekAskPersistDebugLog.w("VM.save", "qId=$questionId aborted: persist blank")
+            return null
+        }
+        val saveResult = saveAnalysisUseCase(questionId, persisted)
+        if (!saveResult.isSuccess) {
+            DeepSeekAskPersistDebugLog.e(
+                "VM.save",
+                "qId=$questionId saveAnalysis FAILED ${saveResult.exceptionOrNull()?.message}",
+                saveResult.exceptionOrNull(),
+            )
+            return null
+        }
         saveAskLegacyUseCase(questionId, persisted)
-        return DeepSeekAskDisplayPipeline.fromTurns(turns).ifBlank { normalized }
+        val readBack = getAnalysisUseCase(questionId).getOrNull()
+        DeepSeekAskPersistDebugLog.d(
+            "VM.save.ok",
+            "qId=$questionId persisted.${DeepSeekAskPersistDebugLog.meta(persisted)} " +
+                "readBack.${DeepSeekAskPersistDebugLog.meta(readBack)} " +
+                "readBackEq=${readBack == persisted} " +
+                "preview=${DeepSeekAskPersistDebugLog.preview(persisted, 120)}",
+        )
+        return persisted
     }
 
     fun ask(questionText: String) {
@@ -113,12 +196,20 @@ class DeepSeekAskViewModel @Inject constructor(
             if (!isFollowUp) {
                 firstQuestion = DeepSeekAskSessionRestorePipeline.firstQuestionText(questionText, examAnchor)
             }
-            val nextUser = DeepSeekAskFollowUpPipeline.resolveNextUserContent(
+            val resolved = DeepSeekAskFollowUpPipeline.resolve(
                 firstQuestion = firstQuestion,
                 currentQuestionInput = questionText,
                 isFollowUp = isFollowUp,
                 examAnchor = examAnchor
-            ) ?: run {
+            )
+            DeepSeekAskPersistDebugLog.d(
+                "VM.ask",
+                "followUp=$isFollowUp kind=${resolved.kind} priorTurns=${turns.size} " +
+                    "input=${DeepSeekAskPersistDebugLog.preview(questionText, 48)} " +
+                    "userContent=${DeepSeekAskPersistDebugLog.preview(resolved.userContent, 48)}",
+            )
+            val nextUser = resolved.userContent ?: run {
+                DeepSeekAskPersistDebugLog.w("VM.ask", "skipped: userContent=null")
                 _isParsing.value = false
                 return@launch
             }
@@ -127,15 +218,46 @@ class DeepSeekAskViewModel @Inject constructor(
                 nextUserContent = nextUser,
                 examAnchor = examAnchor
             )
-            runCatching { api.chat(messages) }
+            val attachSearch = resolved.enableThinking &&
+                DeepSeekChatConfig.ATTACH_WEB_SEARCH_TOOL_ON_REVIEW
+            runCatching {
+                api.chat(
+                    messages = messages,
+                    enableThinking = resolved.enableThinking,
+                    attachWebSearchTool = attachSearch,
+                )
+            }
                 .onSuccess { response ->
                     turns.add(DeepSeekChatTurn(user = nextUser, assistant = response))
+                    DeepSeekAskPersistDebugLog.d(
+                        "VM.ask.ok",
+                        "nowTurns=${turns.size} ${DeepSeekAskPersistDebugLog.turnsSummary(turns)}",
+                    )
                     publishTurns()
                 }
                 .onFailure {
+                    DeepSeekAskPersistDebugLog.e("VM.ask.fail", it.message ?: "unknown", it)
                     _errorMessage.value = "${PARSE_FAILED_PREFIX}: ${it.message ?: "未知错误"}"
                 }
             _isParsing.value = false
+        }
+    }
+
+    fun updateAssistantByMessageIndex(messageIndex: Int, text: String) {
+        var cursor = 0
+        for (i in turns.indices) {
+            val userLen = if (turns[i].user.trim().isNotEmpty()) 1 else 0
+            val hasAssistant = turns[i].assistant.trim().isNotEmpty() || text.isNotEmpty()
+            if (userLen == 1 && cursor == messageIndex) return
+            if (userLen == 1) cursor++
+            if (hasAssistant) {
+                if (cursor == messageIndex) {
+                    turns[i] = turns[i].copy(assistant = text)
+                    publishTurns()
+                    return
+                }
+                cursor++
+            }
         }
     }
 

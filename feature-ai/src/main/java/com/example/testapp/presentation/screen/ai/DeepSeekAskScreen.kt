@@ -14,6 +14,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.example.testapp.data.network.deepseek.DeepSeekExamAnchor
+import com.example.testapp.data.network.deepseek.DeepSeekAskPersistDebugLog
 import com.example.testapp.feature.ai.R
 import com.example.testapp.uicommon.component.ActionModeTextToolbar
 import com.example.testapp.uicommon.component.AiChatConversationLayout
@@ -31,6 +32,7 @@ fun DeepSeekAskScreen(
     onBack: () -> Unit = {},
     onSave: suspend (String) -> Unit = {},
     examAnchor: DeepSeekExamAnchor? = null,
+    seedAnalysis: String? = null,
     viewModel: DeepSeekAskViewModel = hiltViewModel(),
 ) {
     val displayText by viewModel.displayText.collectAsState()
@@ -66,28 +68,50 @@ fun DeepSeekAskScreen(
         AiChatTurnFlattenPipeline.flatten(DeepSeekAskChatTurnMapPipeline.map(chatTurns))
     }
 
-    LaunchedEffect(Unit) {
-        viewModel.reset()
-        viewModel.setExamAnchor(examAnchor)
-        inputText = text
-        val saved = viewModel.loadSaved(questionId, text)
+    var loadedQuestionId by remember { mutableStateOf<Int?>(null) }
+    LaunchedEffect(questionId, text, seedAnalysis) {
+        DeepSeekAskPersistDebugLog.d(
+            "UI.LaunchedEffect",
+            "qId=$questionId routeIdx=$index loadedQ=$loadedQuestionId " +
+                "seed.${DeepSeekAskPersistDebugLog.meta(seedAnalysis)} " +
+                "seedPreview=${DeepSeekAskPersistDebugLog.preview(seedAnalysis)} " +
+                "routeText=${DeepSeekAskPersistDebugLog.preview(text, 48)} " +
+                "turnsBefore=${chatTurns.size}",
+        )
+        if (loadedQuestionId != questionId) {
+            viewModel.reset()
+            viewModel.setExamAnchor(examAnchor)
+            loadedQuestionId = questionId
+            inputText = text
+        } else {
+            viewModel.setExamAnchor(examAnchor)
+        }
+        val saved = viewModel.loadSaved(questionId, text, seedDisplay = seedAnalysis)
+        DeepSeekAskPersistDebugLog.d(
+            "UI.afterLoad",
+            "qId=$questionId savedNull=${saved.isNullOrBlank()} " +
+                "turnsAfter will recompose; display=${DeepSeekAskPersistDebugLog.preview(saved)}",
+        )
         if (!saved.isNullOrBlank()) {
             inputText = ""
+        } else if (loadedQuestionId == questionId && inputText.isBlank()) {
+            inputText = text
         }
     }
 
     BackHandler {
-        if (AiChatSaveGatePipeline.shouldConfirmSave(
+        when {
+            showSaveDialog -> showSaveDialog = false
+            AiChatSaveGatePipeline.shouldConfirmSave(
                 content = displayText,
                 isParsing = isParsing,
                 parsingKeyword = parsingKeyword,
-                parseFailedKeyword = parseFailedKeyword
-            )
-        ) {
-            showSaveDialog = true
-        } else {
-            AiAnalysisDebugLog.aiPopBack(index, saved = false)
-            onBack()
+                parseFailedKeyword = parseFailedKeyword,
+            ) -> showSaveDialog = true
+            else -> {
+                AiAnalysisDebugLog.aiPopBack(index, saved = false)
+                onBack()
+            }
         }
     }
 
@@ -99,7 +123,7 @@ fun DeepSeekAskScreen(
                 fontSizeStore = fontState.persistSize,
                 settingsLabel = settingsText,
                 increaseFontLabel = increaseFontText,
-                decreaseFontLabel = decreaseFontText
+                decreaseFontLabel = decreaseFontText,
             )
         }
     ) { contentModifier ->
@@ -122,7 +146,10 @@ fun DeepSeekAskScreen(
             inputPlaceholder = inputPlaceholder,
             assistantFontSize = fontState.size.sp,
             assistantFontFamily = LocalFontFamily.current,
-            assistantTextToolbar = toolbar
+            assistantTextToolbar = toolbar,
+            onAssistantContentChange = { messageIndex, value ->
+                viewModel.updateAssistantByMessageIndex(messageIndex, value)
+            },
         )
     }
 
@@ -133,20 +160,33 @@ fun DeepSeekAskScreen(
         dismissLabel = dontSaveText,
         onSave = {
             saveScope.launch {
+                DeepSeekAskPersistDebugLog.d(
+                    "UI.saveClick",
+                    "qId=$questionId routeIdx=$index turns=${chatTurns.size} " +
+                        "display.${DeepSeekAskPersistDebugLog.meta(displayText)}",
+                )
                 val saved = viewModel.saveAndWait(questionId, displayText)
+                DeepSeekAskPersistDebugLog.d(
+                    "UI.saveResult",
+                    "qId=$questionId ok=${saved != null} writeback.${DeepSeekAskPersistDebugLog.meta(saved)}",
+                )
                 if (saved != null) {
                     AiAnalysisDebugLog.analysisSave(index, null, questionId)
                     onSave(saved)
+                    DeepSeekAskPersistDebugLog.d("UI.writeback.dispatched", "qId=$questionId routeIdx=$index")
+                } else {
+                    DeepSeekAskPersistDebugLog.w("UI.writeback.skipped", "qId=$questionId saved=null")
                 }
                 showSaveDialog = false
                 AiAnalysisDebugLog.aiPopBack(index, saved = saved != null)
                 onBack()
             }
         },
-        onDismiss = {
+        onDiscardAndLeave = {
             showSaveDialog = false
             AiAnalysisDebugLog.aiPopBack(index, saved = false)
             onBack()
-        }
+        },
+        onCloseDialogOnly = { showSaveDialog = false },
     )
 }

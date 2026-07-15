@@ -119,13 +119,19 @@ fun PracticeScreenContent(
     val resolvedFillAnswer = remember(question) { question?.let { resolveFillCorrectAnswer(it) }.orEmpty() }
     val selectedOption = PracticeQuestionUiResolvePipeline.selectedOptions(currentQuestionUi, currentIndex, selectedOptions)
     val showResult = PracticeQuestionUiResolvePipeline.showResult(currentQuestionUi, currentIndex, showResultList)
-    val analysisText = SessionAnalysisResolvePipeline.resolve(
+    val analysisTextRaw = SessionAnalysisResolvePipeline.resolve(
         currentIndex = currentIndex,
         streamingPair = analysisPair,
         sessionValue = if (currentQuestionUi?.index == currentIndex) currentQuestionUi?.analysis else null,
         listValue = analysisList.getOrNull(currentIndex),
         parsingKeyword = parsingKeyword
     )
+    val analysisText = analysisTextRaw?.let {
+        com.example.testapp.data.network.deepseek.SessionAnalysisInlineDisplayPipeline.toDisplayText(
+            it,
+            question?.content.orEmpty(),
+        )
+    }?.takeIf { it.isNotBlank() } ?: analysisTextRaw
     val sparkText = SessionAnalysisResolvePipeline.resolve(
         currentIndex = currentIndex,
         streamingPair = sparkPair,
