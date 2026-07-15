@@ -11,7 +11,6 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.width
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.rememberUpdatedState
@@ -50,12 +49,6 @@ fun SwipeRevealActionBox(
         }
     }
     val actionWidthPx = with(density) { revealWidth.toPx() }
-
-    LaunchedEffect(enabled) {
-        if (!enabled) {
-            offset.snapTo(0f)
-        }
-    }
 
     Box(modifier = modifier) {
         Box(

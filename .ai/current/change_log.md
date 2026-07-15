@@ -1,5 +1,70 @@
 # Change Log
 
+## 2026-07-15 — 导入重复 / 绘图答案图 / DeepSeek 返回题号
+
+### 问题
+1. 桌面「（旧版）*计算题.xlsx」解析本身可得 10–11 题，但重复导入仅按**完全相同**文件名拦截；扩展名有无不一致时首页去扩展后显示为同名题库（如 11 题 + 1 题并存）。
+2. `技师绘图题.docx` 纯标题「绘图题」未匹配章节正则 → 题型落成简答题；需删库重导后答案图标签才完整。
+3. DeepSeek 全屏保存返回：`SessionHost` 在子路由 dispose 时 `leave()` 销毁会话，再 `enter` 重建 → 回到第 1 题。
+
+### 修复
+| 项 | 变更 |
+|----|------|
+| `ImportDuplicateFilePipeline` | 同 stem / 忽略扩展名判重；批量导入同步 knownNames |
+| `DocxQuestionParser` | 章节标题序号可选；文件名推断绘图题；统一 MetadataManager 存图 |
+| `SessionHost` + `QuestionSessionHostViewModel` | dispose 不 leave；同 kind 复用；`onCleared` 才 destroy |
+| `AnswerResultRow` | 文本/绘图题展示 `TextResponseAnswerContent`（答案图） |
+
+### 用户操作
+- 已存在的错误「1 题」或无图题库：首页长按删除后重新导入对应文件。
+- 防重复：再导同名（含仅扩展名不同）会提示重复失败。
+
+### 验证
+- `:data` ImportDuplicate + ExcelLegacyCalculation + Desktop 夹具（有文件时）
+- `:feature-practice` SessionHostEnterReusePipelineTest
+- 手测：DeepSeek 保存返回仍停在原题
+
+## 2026-07-15 — 首页题库语义图标
+
+### 目标
+- 首页题库卡片不再统一显示通用文档图标。
+- 图标同时反映题库来源格式和真实题型；Column/Grid 使用同一套映射结果。
+
+### 解析优先级
+1. 文件名明确标注的题型（填空、绘图、判断、单选、多选、计算、简答/论述）。
+2. 导入来源扩展名（XLS/XLSX/CSV、DOC/DOCX、SQLite、JSON、TXT/Markdown、图片）。
+3. `FileStatistics.primaryQuestionType` 与 `questionTypeStats`；多种题型映射为 Mixed。
+4. 无有效信息时使用 Generic 题库图标。
+
+### 变更
+| 文件 | 变更 |
+|------|------|
+| `HomeFileTypeVisualPipeline.kt` | 新增 `HomeQuestionBankVisualKind`；覆盖 Spreadsheet/Document/Database/Data/Text/Drawing/Fill/Judge/SingleChoice/MultipleChoice/Calculation/Written/Mixed/Generic，并为每类提供独立图标与渐变色 |
+| `HomeQuestionBankCard.kt` | 接收真实 `FileStatistics`，按 `fileName + primaryQuestionType + questionTypeStats` 缓存视觉结果 |
+| `HomeFileListColumn.kt` / `HomeFileListGrid.kt` | 将当前题库统计传入视觉卡片，保证两种布局一致 |
+| `HomeFileTypeVisualPipelineTest.kt` | 覆盖 Excel、Word、SQLite、填空、绘图、判断、多选与混合题库 |
+
+### 验证
+- `ktlintCheck`：PASS（全仓）。
+- `:feature-practice:testDebugUnitTest --tests HomeFileTypeVisualPipelineTest`：4 tests PASS。
+- `:app:assemblePerformance`：PASS。
+
+## 2026-07-15 — Performance 构建、首页滑动与兼容性收口
+
+### 性能
+- Compose BOM 升级到 `2026.06.00`，Kotlin 升级到 `2.0.21`（Strong Skipping 默认开启）。
+- 接入 `:baseline-profile`、ProfileInstaller 与 `performance` 构建类型；真机生成首页冷启动/滚动 Baseline Profile。
+- 首页题库卡片改为轻量布局，Hero 位图与绘制缓存，滚动期间门控侧滑/拖拽重交互。
+
+### 兼容修复
+- Performance/R8 下 Excel 导入崩溃：保留 `org.apache.logging.log4j.message.**`，避免 Apache POI `DataFormatter` 初始化时反射构造器被裁剪。
+- Material3 升级后的答题卡浅紫回归：`AppCard` 浅色容器显式锁定原值 `#F0F0F2`；答对绿、答错红保持原有颜色管道。
+- Performance APK 使用 debug signing 覆盖安装，保留现有用户数据；R8、资源压缩和 Baseline Profile 保持启用。
+
+### 验证
+- 全仓 `ktlintCheck`、数据模块 Excel 单元测试、答题颜色测试：PASS。
+- `:app:assemblePerformance`：PASS。
+
 ## 2026-07-15 — Excel 题库版式兼容扩展
 
 ### 目标

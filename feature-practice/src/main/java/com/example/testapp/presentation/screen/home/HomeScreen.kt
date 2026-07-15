@@ -9,6 +9,7 @@ import androidx.compose.material3.DrawerValue
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.rememberDrawerState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.derivedStateOf
@@ -55,6 +56,10 @@ fun HomeScreen(
     onFavoriteBook: (fileName: String) -> Unit = {},
     onHistory: () -> Unit = {},
 ) {
+    remember { HomePerformanceLog.resetSession() }
+    DisposableEffect(Unit) {
+        onDispose { HomePerformanceLog.event("home_exit") }
+    }
     val fileNames by viewModel.fileNames.collectAsState()
     val folders by folderViewModel.folders.collectAsState()
     val folderNames by folderViewModel.folderNames.collectAsState()
@@ -85,13 +90,22 @@ fun HomeScreen(
         selectedFileName.value,
         recentFileNames,
     ) {
-        HomeDashboardPipeline.buildDashboard(
-            fileNames = fileNames,
-            fileStatistics = fileStatistics,
-            practiceProgressCompleted = practiceProgress,
-            storedFileName = storedFileName,
-            selectedFileName = selectedFileName.value,
-            recentFileNames = recentFileNames,
+        HomePerformanceLog.measure("dashboard_build files=${fileNames.size}") {
+            HomeDashboardPipeline.buildDashboard(
+                fileNames = fileNames,
+                fileStatistics = fileStatistics,
+                practiceProgressCompleted = practiceProgress,
+                storedFileName = storedFileName,
+                selectedFileName = selectedFileName.value,
+                recentFileNames = recentFileNames,
+            )
+        }
+    }
+
+    LaunchedEffect(homeContentReady, fileNames.size, fileStatistics.size, practiceProgress.size) {
+        HomePerformanceLog.event(
+            "content_state ready=$homeContentReady files=${fileNames.size} " +
+                "statistics=${fileStatistics.size} progress=${practiceProgress.size}",
         )
     }
 

@@ -29,10 +29,11 @@
     <string name="exam_label_short">考试模式</string>
     <string name="random_practice_label_short">随机顺序</string>
     <string name="random_exam_label_short">随机顺序</string>
-    <string name="practice_count_all_short">题目数量：全部</string>
+    <string name="practice_count_all_short">题数：全部</string>
     <string name="exam_count_all_short">题目数量：全部</string>
     <string name="practice_count_template">练习题数：%d</string>
-    <string name="exam_count_template">考试题数：%d</string>
+    <string name="exam_count_template">题数：%d</string>
+    <string name="settings_question_count_label">题数</string>
     <string name="correct_delay_label_short">答对延迟</string>
     <string name="wrong_delay_label_short">答错延迟</string>
     <string name="answer_delay_short">答题延迟</string>

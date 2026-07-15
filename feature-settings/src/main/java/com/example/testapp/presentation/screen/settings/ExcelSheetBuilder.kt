@@ -1,14 +1,14 @@
 package com.example.testapp.presentation.screen.settings
 
 import android.content.Context
-import com.example.testapp.feature.settings.R
+import com.example.testapp.core.util.parseFillAnswerPartDescriptor
+import com.example.testapp.core.util.splitFillAnswerParts
 import com.example.testapp.domain.QuestionTypes
 import com.example.testapp.domain.model.AIAnalysisData
 import com.example.testapp.domain.model.FavoriteQuestion
 import com.example.testapp.domain.model.Question
 import com.example.testapp.domain.model.WrongQuestion
-import com.example.testapp.core.util.parseFillAnswerPartDescriptor
-import com.example.testapp.core.util.splitFillAnswerParts
+import com.example.testapp.feature.settings.R
 import javax.inject.Inject
 import javax.inject.Singleton
 

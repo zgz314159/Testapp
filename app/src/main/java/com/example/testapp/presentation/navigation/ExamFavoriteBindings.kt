@@ -5,10 +5,10 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
+import androidx.hilt.navigation.compose.hiltViewModel
 import com.example.testapp.core.util.FavoriteSessionPipeline
 import com.example.testapp.domain.model.Question
 import com.example.testapp.presentation.screen.favorite.FavoriteViewModel
-import androidx.hilt.navigation.compose.hiltViewModel
 
 @Composable
 fun rememberExamFavoriteBindings(

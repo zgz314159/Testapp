@@ -37,7 +37,7 @@ dependencies {
     implementation(project(":data"))
     implementation(project(":ui-common"))
 
-    implementation(platform("androidx.compose:compose-bom:2024.05.00"))
+    implementation(platform(libs.androidx.compose.bom))
     implementation("androidx.compose.ui:ui")
     implementation("androidx.compose.foundation:foundation")
     implementation("androidx.compose.material3:material3")

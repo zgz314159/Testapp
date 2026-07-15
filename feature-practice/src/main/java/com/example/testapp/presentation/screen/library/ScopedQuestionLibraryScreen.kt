@@ -57,7 +57,6 @@ import com.example.testapp.presentation.screen.home.design.HomeDesignTokens
 import com.example.testapp.uicommon.component.LocalFontFamily
 import com.example.testapp.uicommon.component.LocalFontSize
 import com.example.testapp.uicommon.design.AppEmptyState
-import com.example.testapp.uicommon.design.AppSpacing
 import com.example.testapp.uicommon.design.AppTopBar
 
 @OptIn(ExperimentalFoundationApi::class, ExperimentalMaterial3Api::class)
@@ -144,7 +143,12 @@ fun ScopedQuestionLibraryScreen(
             Column(
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(horizontal = AppSpacing.md, vertical = AppSpacing.md)
+                    .padding(
+                        // HomeFileList 的卡片自身已有与主页相同的 24dp 外边距，
+                        // 此处不能再次叠加，否则收藏夹/错题本卡片会明显变短。
+                        horizontal = 0.dp,
+                        vertical = HomeDesignTokens.spacingMd,
+                    )
             ) {
                 if (currentFolder == null && layout.rootDisplayFileNames.isEmpty() && layout.visibleFolderCards.isEmpty()) {
                     AppEmptyState(

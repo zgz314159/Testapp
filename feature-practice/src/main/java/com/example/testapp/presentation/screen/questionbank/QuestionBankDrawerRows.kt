@@ -15,7 +15,6 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material.icons.Icons
@@ -149,13 +148,25 @@ private fun DrawerTreeRow(
                 .padding(horizontal = 12.dp, vertical = 12.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Icon(
-                imageVector = if (isExpanded) Icons.Filled.KeyboardArrowDown else Icons.Filled.ChevronRight,
-                contentDescription = null,
-                tint = HomeDesignTokens.primary,
-                modifier = Modifier.size(22.dp),
-            )
-            Spacer(modifier = Modifier.width(8.dp))
+            Box(
+                modifier = Modifier
+                    .size(44.dp)
+                    .clip(RoundedCornerShape(14.dp))
+                    .background(accentContainer),
+                contentAlignment = Alignment.Center,
+            ) {
+                if (trailingLoading) {
+                    AppLoadingIndicator(modifier = Modifier.size(18.dp))
+                } else {
+                    Icon(
+                        imageVector = trailingIcon,
+                        contentDescription = null,
+                        tint = accentIcon,
+                        modifier = Modifier.size(22.dp),
+                    )
+                }
+            }
+            Spacer(modifier = Modifier.width(12.dp))
             Column(modifier = Modifier.weight(1f)) {
                 Text(
                     text = title,
@@ -175,24 +186,12 @@ private fun DrawerTreeRow(
                 )
             }
             Spacer(modifier = Modifier.width(8.dp))
-            Box(
-                modifier = Modifier
-                    .size(36.dp)
-                    .clip(CircleShape)
-                    .background(accentContainer),
-                contentAlignment = Alignment.Center,
-            ) {
-                if (trailingLoading) {
-                    AppLoadingIndicator(modifier = Modifier.size(18.dp))
-                } else {
-                    Icon(
-                        imageVector = trailingIcon,
-                        contentDescription = null,
-                        tint = accentIcon,
-                        modifier = Modifier.size(18.dp),
-                    )
-                }
-            }
+            Icon(
+                imageVector = if (isExpanded) Icons.Filled.KeyboardArrowDown else Icons.Filled.ChevronRight,
+                contentDescription = null,
+                tint = HomeDesignTokens.primary,
+                modifier = Modifier.size(22.dp),
+            )
         }
     }
 }

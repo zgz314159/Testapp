@@ -159,7 +159,7 @@ PROJECT_ROOT/
 | 文件 | 功能描述 |
 |------|----------|
 | **AppSpacing.kt** | 8dp 网格间距：xs=4 / sm=8 / md=16 / lg=24 / xl=32 |
-| **AppCard.kt** | 统一 ElevatedCard：12dp 圆角、1dp elevation、16dp 内边距 |
+| **AppCard.kt** | 统一 ElevatedCard：12dp 圆角、1dp elevation、16dp 内边距；浅色答题容器显式使用兼容色 `#F0F0F2`，避免 Material3 默认 token 升级导致色偏 |
 | **AppTopBar.kt** | 标准 M3 TopAppBar；可选返回 + actions |
 | **AppCenterAlignedTopBar.kt** | 通用居中 TopBar（设置等页复用；答题页改 `PracticeExamTopBarShell`） |
 | **PracticeExamTopBarMetrics.kt** | 答题顶栏尺寸（48dp 高 / 36dp 图标） |
@@ -351,6 +351,9 @@ PROJECT_ROOT/
 | **PracticeScreen.kt** | ~390 | **练习入口（仅拼装）** — 子 UI 见 `components/PracticeScreen*`；退出/交卷见 `PracticeSessionExit*Pipeline`；LOC 门禁 `scripts/check-practice-screen-loc.ps1` |
 | **ExamScreenContent.kt** | — | **考试界面内容** — 题面/顶栏/导航/交卷；底栏与自动跳转按全库 pending（非答题卡末索引）；复盘模式 browse 管道 |
 | **HomeScreen.kt** | ~399 | **首页界面** — 文件卡片网格/Flex 布局、拖拽接收区；根目录无题库时 `HomeEmptyLibraryPanel` |
+| **HomeFileTypeVisualPipeline.kt** | ~140 | **题库语义视觉管道** — 文件名显式题型 → 来源扩展名 → `FileStatistics` 的优先级解析；输出 14 类稳定 kind、Material 图标和渐变色 |
+| **HomeQuestionBankCard.kt** | ~150 | **首页题库视觉卡片** — 根据真实题型统计缓存语义图标；Column/Grid 共用；轻量 Row/Box 进度实现 |
+| **HomePerformanceLog.kt** | — | Debug-only 首页冷启动/滚动帧与卡片进入日志；Performance/Release 构建不输出 |
 | **HomeLibraryEmptyPipeline.kt** | — | 无状态：根目录空列表 → `HomeLibraryEmptyReason` |
 | **HomeEmptyLibraryPanel.kt** | — | 首页无题库引导空态（`AppEmptyState`） |
 | **HomeNavigationDrawer.kt** | **主页抽屉壳** — M3 默认 scrim + `BackHandler` |

@@ -1,5 +1,6 @@
 package com.example.testapp.data.repository.parser
 
+import com.example.testapp.data.repository.MetadataManager
 import com.example.testapp.domain.IOConstants
 import com.example.testapp.domain.LocalizedException
 import com.example.testapp.domain.QuestionTypes
@@ -10,15 +11,21 @@ import javax.inject.Inject
 import javax.inject.Singleton
 
 @Singleton
-class DocxQuestionParser @Inject constructor() : SimpleQuestionFileParser {
+class DocxQuestionParser @Inject constructor(
+    private val metadataManager: MetadataManager,
+) : SimpleQuestionFileParser {
 
     override fun parse(file: File, originFileName: String): List<Question> {
         val choiceQuestions = mutableListOf<Question>()
         val textQuestions = mutableListOf<Question>()
         val choiceQuestionRegex = Regex("(.+?)\\[\\d+分]")
         val numberedQuestionRegex = Regex("^\\s*(\\d+)\\s*[、.．)）]\\s*(.+)$")
-        val sectionTitleRegex = Regex("^\\s*[（(]?\\s*[一二三四五六七八九十\\d]+\\s*[)）]?\\s*(绘图题|作图题|画图题|简答题|问答题|论述题|计算题|计算)\\s*$")
+        // 允许「绘图题」或「一、绘图题」等形式（序号可选）
+        val sectionTitleRegex = Regex(
+            "^\\s*[（(]?\\s*[一二三四五六七八九十\\d]*\\s*[、.．)）]?\\s*(绘图题|作图题|画图题|简答题|问答题|论述题|计算题|计算)\\s*$"
+        )
         val answerLineRegex = Regex("^\\s*答[：:.]\\s*(.+)$")
+        val fileHintType = inferTypeFromFileName(originFileName)
 
         try {
             if (file.length() == 0L) throw LocalizedException(IOConstants.IMPORT_FAILED_DOCX_EMPTY_KEY, listOf(file.name))
@@ -201,7 +208,7 @@ class DocxQuestionParser @Inject constructor() : SimpleQuestionFileParser {
                             .removePrefix("）").trim()
                         val fullContent = "$questionNumber、$questionBody"
                         if (questionBody.isNotBlank()) {
-                            val questionType = currentSectionType ?: "简答题"
+                            val questionType = currentSectionType ?: fileHintType ?: "简答题"
                             textQuestions.add(
                                 Question(
                                     id = 0,
@@ -274,23 +281,22 @@ class DocxQuestionParser @Inject constructor() : SimpleQuestionFileParser {
         return questions
     }
 
-    private fun quizStorageDir(): File {
-        return File("/data/data/com.example.testapp/files/quiz/").apply {
-            if (!exists()) mkdirs()
+    private fun inferTypeFromFileName(fileName: String): String? {
+        val name = fileName.substringBeforeLast('.')
+        return when {
+            QuestionTypes.isDrawing(name) || name.contains("绘图") || name.contains("画图") || name.contains("作图") -> "绘图题"
+            QuestionTypes.isCalculation(name) || name.contains("计算") -> "计算题"
+            QuestionTypes.isEssay(name) || name.contains("论述") -> "论述题"
+            QuestionTypes.isShort(name) || name.contains("简答") -> "简答题"
+            else -> null
         }
     }
 
     private fun docxImageStorageDir(fileName: String): File {
         val sanitized = fileName.replace(Regex("[^a-zA-Z0-9_\\-\\u4e00-\\u9fa5]"), "_")
-        return File(quizStorageDir(), "images/$sanitized").apply {
+        return File(metadataManager.quizStorageDir(), "images/$sanitized").apply {
             if (!exists()) mkdirs()
         }
-    }
-
-    private fun buildDrawingAnswerWithImages(baseAnswer: String, imagePaths: List<String>): String {
-        if (imagePaths.isEmpty()) return baseAnswer
-        val imageTag = imagePaths.joinToString(",") { it }
-        return "$baseAnswer\n[DRAWING_IMAGES:$imageTag]"
     }
 
     private fun isRedColor(colorHex: String?): Boolean {

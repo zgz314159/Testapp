@@ -5,15 +5,15 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import com.example.testapp.uicommon.design.AppSpacing
 
 @Composable
 fun SettingsSectionHeader(title: String, modifier: Modifier = Modifier) {
     Text(
         text = title,
-        modifier = modifier.padding(start = AppSpacing.md, top = 20.dp, bottom = AppSpacing.xs),
-        style = MaterialTheme.typography.labelLarge,
+        modifier = modifier.padding(start = 24.dp, top = 24.dp, bottom = 6.dp),
+        style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.SemiBold),
         color = MaterialTheme.colorScheme.primary
     )
 }

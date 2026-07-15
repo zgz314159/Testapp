@@ -1,24 +1,10 @@
 package com.example.testapp.presentation.screen.result
 
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.Button
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
+import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -26,21 +12,17 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
-import com.example.testapp.presentation.screen.home.design.HomeDesignTokens
 import com.example.testapp.presentation.screen.result.components.ResultAccuracyChartSection
+import com.example.testapp.presentation.screen.result.components.ResultBottomActionBar
 import com.example.testapp.presentation.screen.result.components.ResultCurrentScoreCard
+import com.example.testapp.presentation.screen.result.components.ResultDashboardColors
 import com.example.testapp.presentation.screen.result.components.ResultOverallScoreCard
-import com.example.testapp.presentation.screen.result.components.ResultStatColors
-import com.example.testapp.uicommon.design.AppSpacing
-import com.example.testapp.uicommon.design.AppTopBar
-import com.example.testapp.uicommon.screen.result.resultStatPalette
+import com.example.testapp.presentation.screen.result.components.ResultQuestionBankHeader
+import com.example.testapp.presentation.screen.result.components.ResultTopBar
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ResultScreen(
     score: Int,
@@ -52,7 +34,7 @@ fun ResultScreen(
     cumulativeExamCount: Int? = null,
     onBackHome: () -> Unit,
     onViewDetail: () -> Unit = {},
-    onBack: () -> Unit = onBackHome
+    onBack: () -> Unit = onBackHome,
 ) {
     val viewModel: ResultViewModel = hiltViewModel()
     LaunchedEffect(quizId) { viewModel.load(quizId) }
@@ -60,102 +42,73 @@ fun ResultScreen(
     val historyList by viewModel.history.collectAsState()
     val totalQuestions by viewModel.totalQuestions.collectAsState()
     val stats = remember(
-        quizId, score, total, unanswered,
-        cumulativeCorrect, cumulativeAnswered, cumulativeExamCount,
-        historyList, totalQuestions
+        quizId,
+        score,
+        total,
+        unanswered,
+        cumulativeCorrect,
+        cumulativeAnswered,
+        cumulativeExamCount,
+        historyList,
+        totalQuestions,
     ) {
         buildResultDisplayStats(
-            quizId, score, total, unanswered,
-            cumulativeCorrect, cumulativeAnswered, cumulativeExamCount,
-            historyList, totalQuestions
+            quizId,
+            score,
+            total,
+            unanswered,
+            cumulativeCorrect,
+            cumulativeAnswered,
+            cumulativeExamCount,
+            historyList,
+            totalQuestions,
         )
     }
-
-    val scrollState = rememberScrollState()
     var showHistorySheet by remember { mutableStateOf(false) }
-    val palette = resultStatPalette()
-    val statColors = ResultStatColors(
-        correct = palette.correct,
-        wrong = palette.wrong,
-        unanswered = palette.unanswered,
-        chartAxis = palette.chartAxis,
-    )
 
     Scaffold(
-        containerColor = HomeDesignTokens.backgroundLight,
-        topBar = {
-            AppTopBar(title = "练习结果", onBack = onBack)
-        },
+        containerColor = ResultDashboardColors.PageBackground,
+        topBar = { ResultTopBar(onBack = onBack) },
         bottomBar = {
-            Card(
-                modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
-                shape = RoundedCornerShape(HomeDesignTokens.bottomNavRadius),
-                colors = CardDefaults.cardColors(containerColor = HomeDesignTokens.surfaceLight),
-                elevation = CardDefaults.cardElevation(defaultElevation = HomeDesignTokens.elevationMedium),
-            ) {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(AppSpacing.md),
-                    horizontalArrangement = Arrangement.spacedBy(AppSpacing.sm)
-                ) {
-                    OutlinedButton(
-                        onClick = onBack,
-                        modifier = Modifier.weight(1f)
-                    ) {
-                        Text("返回首页")
-                    }
-                    Button(
-                        onClick = onViewDetail,
-                        enabled = quizId.isNotBlank(),
-                        modifier = Modifier.weight(1f)
-                    ) {
-                        Text("答题详情")
-                    }
-                }
-            }
-        }
-    ) { innerPadding ->
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .verticalScroll(scrollState)
-                .padding(innerPadding)
-                .padding(horizontal = AppSpacing.md, vertical = AppSpacing.md),
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
-            if (stats.fileName.isNotBlank()) {
-                Card(
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(HomeDesignTokens.statCardRadius),
-                    colors = CardDefaults.cardColors(containerColor = Color(0xFFEAF2FF)),
-                    elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
-                ) {
-                    Text(
-                        text = stats.fileName,
-                        style = MaterialTheme.typography.titleMedium,
-                        color = Color(0xFF14264A),
-                        modifier = Modifier.padding(HomeDesignTokens.insideCardPadding),
-                    )
-                }
-            }
-            Spacer(modifier = Modifier.height(AppSpacing.lg))
-
-            ResultCurrentScoreCard(stats = stats, statColors = statColors)
-            ResultOverallScoreCard(stats = stats, statColors = statColors)
-
-            ResultAccuracyChartSection(
-                accuracyList = stats.accuracyList,
-                historyCount = historyList.size,
-                statColors = statColors,
-                onShowHistory = { showHistorySheet = true },
+            ResultBottomActionBar(
+                onBackHome = onBackHome,
+                onViewDetail = onViewDetail,
+                detailEnabled = quizId.isNotBlank(),
             )
+        },
+    ) { innerPadding ->
+        LazyColumn(
+            modifier = Modifier.fillMaxSize().padding(innerPadding),
+            contentPadding = androidx.compose.foundation.layout.PaddingValues(
+                start = 20.dp,
+                end = 20.dp,
+                top = 8.dp,
+                bottom = 24.dp,
+            ),
+            verticalArrangement = Arrangement.spacedBy(16.dp),
+        ) {
+            item(key = "questionBank") {
+                ResultQuestionBankHeader(stats.fileName)
+            }
+            item(key = "current") {
+                ResultCurrentScoreCard(stats)
+            }
+            item(key = "overall") {
+                ResultOverallScoreCard(stats)
+            }
+            item(key = "history") {
+                ResultAccuracyChartSection(
+                    accuracyList = stats.accuracyList,
+                    historyCount = stats.sameFileHistory.size,
+                    onShowHistory = { showHistorySheet = true },
+                )
+            }
         }
     }
 
     ResultHistorySheet(
         visible = showHistorySheet,
-        historyList = historyList,
-        onDismiss = { showHistorySheet = false }
+        historyList = stats.sameFileHistory,
+        onDismiss = { showHistorySheet = false },
     )
 }

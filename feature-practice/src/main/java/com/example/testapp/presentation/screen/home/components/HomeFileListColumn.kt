@@ -12,6 +12,7 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.CardDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
@@ -19,6 +20,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
@@ -30,9 +32,11 @@ import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import com.example.testapp.domain.usecase.FileStatistics
 import com.example.testapp.presentation.screen.home.HomeDashboardPipeline
+import com.example.testapp.presentation.screen.home.HomeScrollFrameMonitor
 import com.example.testapp.presentation.screen.home.HomeViewModel
 import com.example.testapp.uicommon.component.OptimizedFileCard
 import com.example.testapp.uicommon.component.SwipeRevealActionBox
+import kotlinx.coroutines.flow.distinctUntilChanged
 
 @Composable
 fun HomeFileListColumn(
@@ -51,6 +55,28 @@ fun HomeFileListColumn(
     modifier: Modifier = Modifier,
 ) {
     val listState = rememberLazyListState()
+    val refreshRate = androidx.compose.ui.platform.LocalView.current.display?.refreshRate ?: 60f
+    val frameMonitor = remember(refreshRate) { HomeScrollFrameMonitor(refreshRate) }
+    DisposableEffect(frameMonitor) {
+        onDispose {
+            val visible = listState.layoutInfo.visibleItemsInfo
+            frameMonitor.stop(visible.firstOrNull()?.index ?: -1, visible.lastOrNull()?.index ?: -1)
+        }
+    }
+    LaunchedEffect(listState, frameMonitor) {
+        snapshotFlow { listState.isScrollInProgress }
+            .distinctUntilChanged()
+            .collect { scrolling ->
+                val visible = listState.layoutInfo.visibleItemsInfo
+                val first = visible.firstOrNull()?.index ?: -1
+                val last = visible.lastOrNull()?.index ?: -1
+                if (scrolling) {
+                    frameMonitor.start(first, last, listState.layoutInfo.totalItemsCount)
+                } else {
+                    frameMonitor.stop(first, last)
+                }
+            }
+    }
     val isListScrolling by remember { derivedStateOf { listState.isScrollInProgress } }
     val isScrollingRef = rememberUpdatedState(isListScrolling)
     var listBounds by remember { mutableStateOf<Rect?>(null) }
@@ -117,13 +143,14 @@ private fun LazyListScope.homeFileListColumnFiles(
     cardElev: androidx.compose.material3.CardElevation,
 ) {
     items(items = displayFileNames, key = { it }, contentType = { "file_card" }) { fileName ->
+        val isScrolling = isScrollingRef.value
         val fileStats = fileStatistics[fileName] ?: FileStatistics()
         val progressCount = practiceProgress[fileName] ?: 0
         val qc = fileStats.questionCount
         val pct = if (qc > 0) (progressCount * 100 / qc).coerceIn(0, 100) else 0
         val dn = remember(fileName) { HomeDashboardPipeline.cleanupDisplayName(fileName) }
         SwipeRevealActionBox(
-            enabled = canKeepSwipeNodeStable(fileName),
+            enabled = !isScrolling && canKeepSwipeNodeStable(fileName),
             modifier = Modifier.fillMaxWidth().then(
                 if (shouldTrackDropTargets) {
                     Modifier.onGloballyPositioned { coords -> onReportCardBounds(fileName, coords.boundsInRoot()) }
@@ -144,7 +171,7 @@ private fun LazyListScope.homeFileListColumnFiles(
                 showTypeSummary = false,
                 useCompactStyle = false,
                 // 不把 isScrolling 编进 enableDragDrop，避免滚动时重建 pointerInput
-                enableDragDrop = canHandleDrag(fileName, false),
+                enableDragDrop = !isScrolling && canHandleDrag(fileName, false),
                 allowDragStart = { canHandleDrag(fileName, isScrollingRef.value) },
                 enableLongClickAction = false,
                 cardShapeOverride = cardShape,
@@ -159,6 +186,7 @@ private fun LazyListScope.homeFileListColumnFiles(
                         questionCount = qc,
                         wrongCount = fileStats.wrongCount,
                         favoriteCount = fileStats.favoriteCount,
+                        statistics = fileStats,
                         onCtaClick = { onFileCtaClick?.invoke(fileName) },
                     )
                 },

@@ -2,11 +2,7 @@ package com.example.testapp.presentation.navigation
 
 import androidx.compose.runtime.Composable
 import androidx.hilt.navigation.compose.hiltViewModel
-import com.example.testapp.presentation.screen.file.DragDropViewModel
-import com.example.testapp.presentation.screen.file.FileFolderViewModel
 import com.example.testapp.presentation.screen.home.HomeScreen
-import com.example.testapp.presentation.screen.home.HomeViewModel
-import com.example.testapp.presentation.screen.questionbank.QuestionBankDrawerViewModel
 import com.example.testapp.presentation.screen.settings.SettingsViewModel
 
 /** `:app` 薄路由 — 注入仅留 app 的 VM 绑定，UI 在 `:feature-practice`。 */

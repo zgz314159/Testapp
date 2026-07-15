@@ -25,7 +25,15 @@ class QuestionSessionHostViewModel
         private val _session = MutableStateFlow<QuestionSession?>(null)
         override val session: StateFlow<QuestionSession?> = _session.asStateFlow()
 
+        /**
+         * 同 kind 已在会话中则复用（AI 全屏等子路由 dispose 后再 enter 时不得重建，否则会回到第 1 题）。
+         * 真正离开练习/考试路由时由 [onCleared] 销毁。
+         */
         override suspend fun enter(kind: QuestionSessionKind) {
+            val existing = _session.value
+            if (SessionHostEnterReusePipeline.shouldReuseExisting(existing?.kind, kind)) {
+                return
+            }
             leave()
             if (!registry.hasCreator(kind)) {
                 error("No SessionCreator for ${kind::class.simpleName}")
@@ -43,5 +51,16 @@ class QuestionSessionHostViewModel
         override suspend fun leave() {
             _session.value?.destroy()
             _session.value = null
+        }
+
+        override fun onCleared() {
+            val active = _session.value
+            _session.value = null
+            if (active != null) {
+                kotlinx.coroutines.runBlocking {
+                    runCatching { active.destroy() }
+                }
+            }
+            super.onCleared()
         }
     }

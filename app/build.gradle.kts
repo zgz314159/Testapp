@@ -23,6 +23,7 @@ plugins {
     id("dagger.hilt.android.plugin")
     alias(libs.plugins.kotlin.serialization)
     alias(libs.plugins.kotlin.compose.compiler)
+    alias(libs.plugins.androidx.baselineprofile)
 }
 
 android {
@@ -104,6 +105,12 @@ android {
             // Use release signing config to generate an installable APK
             signingConfig = signingConfigs.getByName("release")
         }
+        create("performance") {
+            initWith(getByName("release"))
+            matchingFallbacks += "release"
+            signingConfig = signingConfigs.getByName("debug")
+            isDebuggable = false
+        }
     }
 }
 
@@ -121,6 +128,7 @@ dependencies {
     implementation(project(":feature-ai"))
     implementation(project(":feature-settings"))
     implementation(project(":ui-common"))
+    baselineProfile(project(":baseline-profile"))
 
     implementation("com.squareup.okhttp3:okhttp:4.12.0")
     // Compose BOM
@@ -160,6 +168,7 @@ dependencies {
     kapt(libs.hilt.android.compiler)
     implementation(libs.kotlinx.serialization.json)
     implementation(libs.androidx.material)
+    implementation(libs.androidx.profileinstaller)
     implementation(libs.ktor.client.core)
     implementation(libs.ktor.client.cio)
     implementation(libs.ktor.client.content.negotiation)

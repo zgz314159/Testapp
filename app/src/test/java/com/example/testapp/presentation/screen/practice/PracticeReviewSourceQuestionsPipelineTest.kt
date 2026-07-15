@@ -3,7 +3,6 @@ package com.example.testapp.presentation.screen.practice
 import com.example.testapp.domain.model.Question
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
-import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class PracticeReviewSourceQuestionsPipelineTest {

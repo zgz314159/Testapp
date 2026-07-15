@@ -1,10 +1,10 @@
 package com.example.testapp.presentation.screen.home.components
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -18,14 +18,10 @@ import androidx.compose.material.icons.filled.Bookmarks
 import androidx.compose.material.icons.filled.ErrorOutline
 import androidx.compose.material.icons.filled.PieChart
 import androidx.compose.material.icons.filled.Quiz
-import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
-import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -38,7 +34,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.testapp.domain.usecase.FileStatistics
 import com.example.testapp.presentation.screen.home.HomeFileTypeVisualPipeline
+import com.example.testapp.presentation.screen.home.HomePerformanceLog
 
 @Composable
 fun HomeQuestionBankCard(
@@ -48,10 +46,17 @@ fun HomeQuestionBankCard(
     questionCount: Int,
     wrongCount: Int,
     favoriteCount: Int,
+    statistics: FileStatistics,
     onCtaClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val visual = remember(fileName) { HomeFileTypeVisualPipeline.resolve(fileName) }
+    DisposableEffect(fileName) {
+        HomePerformanceLog.cardEntered(fileName)
+        onDispose { }
+    }
+    val visual = remember(fileName, statistics.primaryQuestionType, statistics.questionTypeStats) {
+        HomeFileTypeVisualPipeline.resolve(fileName, statistics)
+    }
     val iconBrush = remember(visual.gradientStart, visual.gradientEnd) {
         Brush.linearGradient(listOf(visual.gradientStart, visual.gradientEnd))
     }
@@ -64,16 +69,15 @@ fun HomeQuestionBankCard(
     val ctaWidth = if (isCompact) 68.dp else 78.dp
     val ctaFont = if (isCompact) 10.sp else 11.sp
 
-    Card(
-        modifier = modifier.fillMaxWidth().height(cardHeight),
-        shape = RoundedCornerShape(20.dp),
-        colors = CardDefaults.cardColors(containerColor = Color.White),
-        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
+    Row(
+        modifier = modifier
+            .fillMaxWidth()
+            .height(cardHeight)
+            .clip(RoundedCornerShape(20.dp))
+            .background(Color.White)
+            .padding(start = hPadding, end = 8.dp),
+        verticalAlignment = Alignment.CenterVertically,
     ) {
-        Row(
-            modifier = Modifier.fillMaxWidth().height(cardHeight).padding(start = hPadding, end = 8.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
             Box(
                 modifier = Modifier
                     .size(iconSize)
@@ -113,20 +117,20 @@ fun HomeQuestionBankCard(
                     CardStatIconValue(Icons.Default.ErrorOutline, wrongCount.toString(), Color(0xFFE87461))
                     CardStatIconValue(Icons.Default.Bookmarks, favoriteCount.toString(), Color(0xFFE8A838))
                 }
-                LinearProgressIndicator(
-                    progress = { progressPercent / 100f },
-                    modifier = Modifier.fillMaxWidth().height(3.dp).clip(RoundedCornerShape(2.dp)),
-                    color = Color(0xFF4F8CFF),
-                    trackColor = Color(0xFFEEF2F7),
+                HomeCardProgressBar(
+                    progress = progressPercent / 100f,
+                    modifier = Modifier.fillMaxWidth().height(3.dp),
                 )
             }
 
-            TextButton(
-                onClick = onCtaClick,
-                modifier = Modifier.width(ctaWidth),
-                shape = RoundedCornerShape(18.dp),
-                colors = ButtonDefaults.textButtonColors(containerColor = Color(0xFFF0F6FF)),
-                contentPadding = PaddingValues(horizontal = 3.dp, vertical = 2.dp),
+            Box(
+                modifier = Modifier
+                    .width(ctaWidth)
+                    .clip(RoundedCornerShape(18.dp))
+                    .background(Color(0xFFF0F6FF))
+                    .clickable(onClick = onCtaClick)
+                    .padding(horizontal = 3.dp, vertical = 10.dp),
+                contentAlignment = Alignment.Center,
             ) {
                 Text(
                     text = if (progressPercent > 0) "继续学习" else "开始练习",
@@ -138,7 +142,25 @@ fun HomeQuestionBankCard(
                     overflow = TextOverflow.Clip,
                 )
             }
-        }
+    }
+}
+
+@Composable
+private fun HomeCardProgressBar(
+    progress: Float,
+    modifier: Modifier = Modifier,
+) {
+    Box(
+        modifier = modifier
+            .clip(RoundedCornerShape(2.dp))
+            .background(Color(0xFFEEF2F7)),
+    ) {
+        Box(
+            modifier = Modifier
+                .fillMaxWidth(progress.coerceIn(0f, 1f))
+                .height(3.dp)
+                .background(Color(0xFF4F8CFF)),
+        )
     }
 }
 

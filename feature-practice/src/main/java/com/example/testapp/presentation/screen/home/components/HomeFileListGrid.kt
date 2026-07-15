@@ -8,6 +8,7 @@ import androidx.compose.foundation.lazy.grid.GridItemSpan
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
@@ -56,12 +57,12 @@ fun HomeFileListGrid(
                 headerContent()
             }
         }
-        items(items = displayFileNames, key = { it }) { fileName ->
+        items(items = displayFileNames, key = { it }, contentType = { "file_card" }) { fileName ->
             val fileStats = fileStatistics[fileName] ?: FileStatistics()
             val progressCount = practiceProgress[fileName] ?: 0
             val questionCount = fileStats.questionCount
             val pct = if (questionCount > 0) (progressCount * 100 / questionCount).coerceIn(0, 100) else 0
-            val displayName = HomeDashboardPipeline.cleanupDisplayName(fileName)
+            val displayName = remember(fileName) { HomeDashboardPipeline.cleanupDisplayName(fileName) }
 
             OptimizedFileCard(
                 fileName = fileName,
@@ -84,6 +85,7 @@ fun HomeFileListGrid(
                         questionCount = questionCount,
                         wrongCount = fileStats.wrongCount,
                         favoriteCount = fileStats.favoriteCount,
+                        statistics = fileStats,
                         onCtaClick = { onFileCtaClick?.invoke(fileName) },
                     )
                 },

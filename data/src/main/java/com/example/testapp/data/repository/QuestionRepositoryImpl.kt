@@ -133,13 +133,13 @@ class QuestionRepositoryImpl @Inject constructor(
     }
 
     override suspend fun importFromFilesWithOrigin(files: List<Pair<File, String>>): Int {
-        val existingFileNames = dao.getOrderedFileNames().firstOrNull() ?: emptyList()
+        val knownFileNames = (dao.getOrderedFileNames().firstOrNull() ?: emptyList()).toMutableList()
         var total = 0
         val duplicateFiles = mutableListOf<String>()
 
         for ((file, originFileName) in files) {
 
-            if (existingFileNames.contains(originFileName)) {
+            if (ImportDuplicateFilePipeline.isDuplicate(knownFileNames, originFileName)) {
                 duplicateFiles.add(originFileName)
                 continue
             }
@@ -186,6 +186,7 @@ class QuestionRepositoryImpl @Inject constructor(
 
             insertAll(questions)
             persistImportedSupplementalData(originFileName, importedPayloads)
+            knownFileNames.add(originFileName)
             total += questions.size
         }
 

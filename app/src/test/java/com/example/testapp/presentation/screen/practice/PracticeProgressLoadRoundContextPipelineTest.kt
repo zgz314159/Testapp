@@ -3,7 +3,6 @@ package com.example.testapp.presentation.screen.practice
 import com.example.testapp.domain.model.PracticeProgress
 import com.example.testapp.domain.model.Question
 import com.example.testapp.domain.model.UnifiedQuestionState
-import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test

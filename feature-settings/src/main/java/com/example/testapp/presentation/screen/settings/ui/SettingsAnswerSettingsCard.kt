@@ -66,7 +66,7 @@ fun SettingsAnswerSettingsCard(
             )
             SettingsStepperRow(
                 label = {
-                    SettingsHeadlineText(practiceCountLabel, fontSize)
+                    SettingsHeadlineText(stringResource(R.string.settings_question_count_label), fontSize)
                 },
                 contentDescription = practiceCountLabel,
                 value = practiceCount,
@@ -124,7 +124,7 @@ fun SettingsAnswerSettingsCard(
             )
             SettingsStepperRow(
                 label = {
-                    SettingsHeadlineText(examCountLabel, fontSize)
+                    SettingsHeadlineText(stringResource(R.string.settings_question_count_label), fontSize)
                 },
                 contentDescription = examCountLabel,
                 value = examCount,

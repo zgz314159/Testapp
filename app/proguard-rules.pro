@@ -38,6 +38,11 @@
 -dontwarn org.apache.logging.log4j.**
 -dontwarn org.slf4j.**
 
+# Log4j API creates its message factories reflectively. Apache POI initializes
+# DataFormatter through StatusLogger, so removing these constructors crashes
+# only in minified builds (ExceptionInInitializerError during Excel import).
+-keep class org.apache.logging.log4j.message.** { *; }
+
 # XMLBeans/OpenXML are used by POI; keep core types and suppress warnings for optional parts
 -keep class org.apache.xmlbeans.** { *; }
 -keep class org.openxmlformats.** { *; }

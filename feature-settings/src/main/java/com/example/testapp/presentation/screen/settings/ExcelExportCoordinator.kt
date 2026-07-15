@@ -2,7 +2,7 @@ package com.example.testapp.presentation.screen.settings
 
 import android.content.Context
 import android.net.Uri
-import com.example.testapp.feature.settings.R
+import com.example.testapp.core.common.LocalizedResult
 import com.example.testapp.domain.IOConstants
 import com.example.testapp.domain.repository.FavoriteQuestionRepository
 import com.example.testapp.domain.repository.HistoryRepository
@@ -11,7 +11,7 @@ import com.example.testapp.domain.repository.QuestionAskRepository
 import com.example.testapp.domain.repository.QuestionNoteRepository
 import com.example.testapp.domain.repository.QuestionRepository
 import com.example.testapp.domain.repository.WrongBookRepository
-import com.example.testapp.core.common.LocalizedResult
+import com.example.testapp.feature.settings.R
 import kotlinx.coroutines.flow.firstOrNull
 import javax.inject.Inject
 import javax.inject.Singleton

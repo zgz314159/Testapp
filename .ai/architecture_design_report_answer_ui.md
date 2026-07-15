@@ -214,6 +214,11 @@ data class Question(
 
 单一数据源：`AnswerCorrectHighlightColorPipeline` → 选项容器 + 填空/结果文字。
 
+**答题卡基础容器色兼容约束（2026-07-15）:**
+- Practice/Exam 的题型栏和题目正文卡均复用 `AppCard`。
+- 浅色模式容器固定为历史设计值 `#F0F0F2`；不得依赖 Material3 `ElevatedCard` 的默认 container token，否则 Compose BOM 升级可能产生浅紫色偏。
+- 深色模式继续使用 `MaterialTheme.colorScheme.surface`；正误反馈色仍由上述颜色管道独立控制。
+
 **历史记录 sheet:** 与答题卡一致，`AppLazyBottomSheet` 92% 屏高 + 内层 LazyColumn。
 
 ---

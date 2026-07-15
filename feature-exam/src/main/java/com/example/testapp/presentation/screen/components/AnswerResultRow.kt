@@ -1,7 +1,9 @@
 package com.example.testapp.presentation.screen.exam.components
 
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
@@ -11,6 +13,7 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.withStyle
+import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.testapp.core.util.answerToOptionIndices
 import com.example.testapp.core.util.isFillAnswerCorrect
@@ -21,6 +24,7 @@ import com.example.testapp.feature.exam.R
 import com.example.testapp.presentation.screen.exam.resolveExamAnswerResultWrongToken
 import com.example.testapp.uicommon.component.LocalFontFamily
 import com.example.testapp.uicommon.component.RichText
+import com.example.testapp.uicommon.component.TextResponseAnswerContent
 import com.example.testapp.uicommon.design.ReadingCollapsibleSection
 import com.example.testapp.uicommon.design.answerFeedbackColors
 import com.example.testapp.uicommon.design.resolveAnswerResultPreviewLine
@@ -117,16 +121,23 @@ private fun ExamAnswerResultBody(
             allCorrect = correct
         )
     } else if (QuestionTypes.isTextResponse(question.type)) {
-        RichText(
-            text = if (correct) {
-                stringResource(R.string.answer_correct)
-            } else {
-                stringResource(R.string.answer_wrong_format, stripDrawingTags(resolvedFillAnswer))
-            },
-            color = if (correct) feedbackColors.correctText else feedbackColors.incorrectText,
-            fontSize = questionFontSize.sp,
-            fontFamily = LocalFontFamily.current
-        )
+        Column(modifier = Modifier.fillMaxWidth()) {
+            RichText(
+                text = if (correct) {
+                    stringResource(R.string.answer_correct)
+                } else {
+                    stringResource(R.string.answer_wrong_format, stripDrawingTags(resolvedFillAnswer))
+                },
+                color = if (correct) feedbackColors.correctText else feedbackColors.incorrectText,
+                fontSize = questionFontSize.sp,
+                fontFamily = LocalFontFamily.current
+            )
+            Spacer(modifier = Modifier.height(12.dp))
+            TextResponseAnswerContent(
+                answer = question.answer,
+                questionFontSize = questionFontSize
+            )
+        }
     } else {
         val answerText = if (correctIndices.all { it in displayOptions.indices }) {
             correctIndices.joinToString(", ") { displayOptions[it] }

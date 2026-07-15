@@ -10,8 +10,6 @@ import androidx.navigation.navArgument
 import com.example.testapp.core.session.route.BrowseSessionRoutePipeline
 import com.example.testapp.core.session.route.QuestionEditSessionRoutePipeline
 import com.example.testapp.core.util.safeDecode
-import com.example.testapp.presentation.navigation.ExplanationRoute
-import com.example.testapp.presentation.navigation.HomeRoute
 import com.example.testapp.presentation.screen.settings.FillSettingsScreen
 import com.example.testapp.presentation.screen.settings.SettingsScreen
 

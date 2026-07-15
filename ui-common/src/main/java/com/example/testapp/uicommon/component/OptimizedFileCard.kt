@@ -2,10 +2,12 @@ package com.example.testapp.uicommon.component
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.gestures.detectDragGesturesAfterLongPress
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -100,7 +102,6 @@ fun OptimizedFileCard(
     onReportCardBounds: ((String, Rect) -> Unit)? = null,
     modifier: Modifier = Modifier,
 ) {
-    val statLabels = rememberFileCardStatLabels()
     val currentOnDragStart by rememberUpdatedState(onDragStart)
     val currentOnDragUpdate by rememberUpdatedState(onDragUpdate)
     val currentOnDragEnd by rememberUpdatedState(onDragEnd)
@@ -108,35 +109,12 @@ fun OptimizedFileCard(
     val currentAllowDragStart by rememberUpdatedState(allowDragStart)
     val itemCoordsRef = remember { object { var value: LayoutCoordinates? = null } }
 
-    val displayName = folderDisplayName?.let { "$it/$fileName" } ?: fileName
-    val palette = rememberFileCardPalette(fileName, statistics)
-    val statColors = fileStatPalette()
-    val hasVisual = visualContent != null
-    val cardBorder = if (isDropTarget) BorderStroke(2.dp, MaterialTheme.colorScheme.primary)
-        else if (hasVisual) null
-        else BorderStroke(1.dp, palette.borderColor.copy(alpha = 0.55f))
-
     val appliedShape = cardShapeOverride ?: RoundedCornerShape(16.dp)
-    val appliedContainerColor = cardContainerColorOverride ?: when {
-        isSelected -> MaterialTheme.colorScheme.primaryContainer
-        isDropTarget -> MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.42f)
-        else -> palette.containerColor
-    }
-    val appliedBorder = cardBorderOverride ?: cardBorder
-    val appliedElevation = cardElevationOverride ?: CardDefaults.cardElevation(
-        defaultElevation = when {
-            hasVisual -> 0.dp
-            isSelected || isDropTarget -> 8.dp
-            else -> 2.dp
-        }
-    )
     val appliedPadding = cardOuterPaddingOverride ?: PaddingValues(horizontal = 16.dp, vertical = 6.dp)
-
-    Card(
-        modifier = modifier
-            .semantics { contentDescription = "home_file_card:$fileName" }
-            .fillMaxWidth()
-            .padding(appliedPadding)
+    val interactionModifier = modifier
+        .semantics { contentDescription = "home_file_card:$fileName" }
+        .fillMaxWidth()
+        .padding(appliedPadding)
             .onGloballyPositioned { coords ->
                 itemCoordsRef.value = coords
                 onReportCardBounds?.invoke(fileName, coords.boundsInRoot())
@@ -168,20 +146,55 @@ fun OptimizedFileCard(
                 onDoubleClick == null -> Modifier.combinedClickable(onClick = onCardClick, onLongClick = onLongClick ?: {})
                 enableLongClickAction -> Modifier.combinedClickable(onClick = onCardClick, onLongClick = onLongClick, onDoubleClick = onDoubleClick)
                 else -> Modifier.combinedClickable(onClick = onCardClick, onDoubleClick = onDoubleClick)
-            }),
+            })
+
+    if (visualContent != null) {
+        val visualBorder = cardBorderOverride ?: if (isDropTarget) {
+            BorderStroke(2.dp, MaterialTheme.colorScheme.primary)
+        } else {
+            null
+        }
+        Box(
+            modifier = interactionModifier.then(
+                if (visualBorder != null) {
+                    Modifier.border(visualBorder, appliedShape)
+                } else {
+                    Modifier
+                },
+            ),
+        ) {
+            visualContent()
+        }
+        return
+    }
+
+    val statLabels = rememberFileCardStatLabels()
+    val displayName = folderDisplayName?.let { "$it/$fileName" } ?: fileName
+    val palette = rememberFileCardPalette(fileName, statistics)
+    val statColors = fileStatPalette()
+    val cardBorder = if (isDropTarget) BorderStroke(2.dp, MaterialTheme.colorScheme.primary)
+        else BorderStroke(1.dp, palette.borderColor.copy(alpha = 0.55f))
+    val appliedContainerColor = cardContainerColorOverride ?: when {
+        isSelected -> MaterialTheme.colorScheme.primaryContainer
+        isDropTarget -> MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.42f)
+        else -> palette.containerColor
+    }
+    val appliedBorder = cardBorderOverride ?: cardBorder
+    val appliedElevation = cardElevationOverride ?: CardDefaults.cardElevation(
+        defaultElevation = if (isSelected || isDropTarget) 8.dp else 2.dp,
+    )
+
+    Card(
+        modifier = interactionModifier,
         shape = appliedShape,
         border = appliedBorder,
-        colors = CardDefaults.cardColors(containerColor = if (hasVisual) Color.Transparent else appliedContainerColor),
+        colors = CardDefaults.cardColors(containerColor = appliedContainerColor),
         elevation = appliedElevation,
     ) {
-        if (visualContent != null) {
-            visualContent()
-        } else {
-            Column(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 16.dp)) {
-                Text(text = displayName, fontSize = LocalFontSize.current, fontFamily = LocalFontFamily.current, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                Spacer(modifier = Modifier.height(8.dp))
-                FileCardStatsRow(labels = statLabels, statistics = statistics, progressCount = progressCount, statColors = statColors)
-            }
+        Column(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 16.dp)) {
+            Text(text = displayName, fontSize = LocalFontSize.current, fontFamily = LocalFontFamily.current, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            Spacer(modifier = Modifier.height(8.dp))
+            FileCardStatsRow(labels = statLabels, statistics = statistics, progressCount = progressCount, statColors = statColors)
         }
     }
 }

@@ -16,18 +16,12 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
-import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -51,11 +45,6 @@ fun HomeContinueStudyCard(
     onWrongBookClick: () -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
-    var showHeroArt by remember { mutableStateOf(false) }
-    LaunchedEffect(Unit) {
-        withFrameNanos { }
-        showHeroArt = true
-    }
     val heroGradient = remember {
         Brush.linearGradient(colors = listOf(Color(0xFFF2F7FF), Color(0xFFE8F1FF)))
     }
@@ -78,19 +67,17 @@ fun HomeContinueStudyCard(
                     .fillMaxSize()
                     .background(heroGradient),
             ) {
-                if (showHeroArt) {
-                    Box(
-                        modifier = Modifier
-                            .align(Alignment.CenterEnd)
-                            .fillMaxWidth(0.62f)
-                            .fillMaxSize(),
-                    ) {
-                        HeroTrainIllustration(
-                            painter = painterResource(R.drawable.home_hero_train),
-                            backgroundColor = Color(0xFFF2F7FF),
-                            modifier = Modifier.fillMaxSize(),
-                        )
-                    }
+                Box(
+                    modifier = Modifier
+                        .align(Alignment.CenterEnd)
+                        .fillMaxWidth(0.62f)
+                        .fillMaxSize(),
+                ) {
+                    HeroTrainIllustration(
+                        imageRes = R.drawable.home_hero_train,
+                        backgroundColor = Color(0xFFF2F7FF),
+                        modifier = Modifier.fillMaxSize(),
+                    )
                 }
 
                 Column(modifier = Modifier.fillMaxSize()) {
