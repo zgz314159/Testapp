@@ -215,8 +215,9 @@ data class Question(
 单一数据源：`AnswerCorrectHighlightColorPipeline` → 选项容器 + 填空/结果文字。
 
 **答题页轻拟物容器约束（2026-07-17）:**
-- Practice/Exam/Adaptive 复用 `:ui-common` 的答题视觉 token，浅色页面保持护眼灰，主卡 `#F8F7F4`、选项 `#FDFCF9`、软边框 `#E9E6DF`。
-- 卡片使用显式 `shadow(clip=false) + background + border`，不得依赖 Material3 默认 container/elevation token，也不得在外层 `Surface` 裁切阴影。
+- Practice/Exam/Adaptive 复用 `:ui-common` 的答题容器；参数以 2026-07-16 已验证 APK 为基线。
+- 顶/底栏使用 20dp 圆角 `Surface`（1dp tonal、5dp shadow）；主卡使用 20dp 圆角 `ElevatedCard`；选项使用 16dp 圆角可点击 `Surface`。
+- 顶栏和底栏的定位父容器必须使用不裁切的 `Box`，不得用父 `Surface` 截断子级阴影。
 - 深色模式继续映射 Material Theme surface；正误反馈色仍由上述颜色管道独立控制。
 
 **历史记录 sheet:** 与答题卡一致，`AppLazyBottomSheet` 92% 屏高 + 内层 LazyColumn。
