@@ -28,24 +28,24 @@ fun QuestionCardHeaderRow(
     ) {
         Text(
             text = questionTypeLabel,
-            style = MaterialTheme.typography.titleMedium,
+            style = MaterialTheme.typography.bodyMedium,
             modifier = Modifier.weight(1f),
             maxLines = 1,
             overflow = TextOverflow.Ellipsis
         )
         Text(
             text = progressLabel,
-            style = MaterialTheme.typography.titleMedium
+            style = MaterialTheme.typography.bodyMedium
         )
         if (questionListLabel != null && onOpenQuestionList != null) {
             IconButton(
                 onClick = onOpenQuestionList,
-                modifier = Modifier.size(40.dp)
+                modifier = Modifier.size(36.dp)
             ) {
                 Icon(
                     imageVector = Icons.AutoMirrored.Filled.List,
                     contentDescription = questionListLabel,
-                    modifier = Modifier.size(24.dp)
+                    modifier = Modifier.size(20.dp)
                 )
             }
         }
