@@ -5,10 +5,7 @@ import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
@@ -19,14 +16,12 @@ import androidx.compose.material.icons.filled.ArrowForward
 import androidx.compose.material.icons.filled.AssignmentTurnedIn
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
-import com.example.testapp.uicommon.design.QuestionSessionBottomNavMetrics
-import com.example.testapp.uicommon.design.questionSessionSoftCard
-import com.example.testapp.uicommon.design.questionSessionSubmitTrayColor
 
 @Composable
 fun QuestionNavigationControls(
@@ -45,21 +40,18 @@ fun QuestionNavigationControls(
 ) {
     if (!visible) return
 
-    Box(
+    Surface(
         modifier = modifier
-            .fillMaxWidth()
-            .height(QuestionSessionBottomNavMetrics.barHeight)
-            .navigationBarsPadding(),
-        contentAlignment = Alignment.Center,
+            .fillMaxWidth(),
+        shape = RoundedCornerShape(20.dp),
+        color = MaterialTheme.colorScheme.surface,
+        tonalElevation = 1.dp,
+        shadowElevation = 5.dp,
     ) {
         Row(
             modifier = Modifier
-                .fillMaxSize()
-                .questionSessionSoftCard(
-                    shape = RoundedCornerShape(28.dp),
-                    elevation = 12.dp,
-                )
-                .padding(horizontal = 24.dp),
+                .fillMaxWidth()
+                .padding(vertical = 8.dp),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically,
         ) {
@@ -70,21 +62,20 @@ fun QuestionNavigationControls(
                 onClick = onPrev,
                 onDoubleClick = onPrevDoubleClick,
             )
+            if (onSubmit != null) {
+                SubmitNavigationButton(
+                    contentDescription = submitContentDescription,
+                    enabled = enabledSubmit,
+                    onClick = onSubmit,
+                    onDoubleClick = onSubmitDoubleClick,
+                )
+            }
             NavigationArrowButton(
                 icon = Icons.Filled.ArrowForward,
                 contentDescription = "下一题",
                 enabled = enabledNext,
                 onClick = onNext,
                 onDoubleClick = onNextDoubleClick,
-            )
-        }
-        if (onSubmit != null) {
-            SubmitNavigationButton(
-                contentDescription = submitContentDescription,
-                enabled = enabledSubmit,
-                onClick = onSubmit,
-                onDoubleClick = onSubmitDoubleClick,
-                modifier = Modifier.align(Alignment.Center),
             )
         }
     }
@@ -97,34 +88,34 @@ private fun SubmitNavigationButton(
     enabled: Boolean,
     onClick: () -> Unit,
     onDoubleClick: (() -> Unit)?,
-    modifier: Modifier = Modifier,
 ) {
     val tint = if (enabled) {
         MaterialTheme.colorScheme.onSurface
     } else {
         MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f)
     }
-    Box(
-        modifier = modifier
-            .size(84.dp)
-            .questionSessionSoftCard(
-                shape = CircleShape,
-                elevation = 14.dp,
-                containerColor = questionSessionSubmitTrayColor(),
-            )
-            .combinedClickable(
+    Surface(
+        modifier = Modifier.size(52.dp),
+        shape = CircleShape,
+        color = MaterialTheme.colorScheme.surface,
+        tonalElevation = 2.dp,
+        shadowElevation = 6.dp,
+    ) {
+        Box(
+            modifier = Modifier.combinedClickable(
                 enabled = enabled,
                 onClick = onClick,
                 onDoubleClick = onDoubleClick,
             ),
-        contentAlignment = Alignment.Center,
-    ) {
-        Icon(
-            imageVector = Icons.Filled.AssignmentTurnedIn,
-            contentDescription = contentDescription,
-            modifier = Modifier.size(42.dp),
-            tint = tint,
-        )
+            contentAlignment = Alignment.Center,
+        ) {
+            Icon(
+                imageVector = Icons.Filled.AssignmentTurnedIn,
+                contentDescription = contentDescription,
+                modifier = Modifier.size(32.dp),
+                tint = tint,
+            )
+        }
     }
 }
 
@@ -144,7 +135,7 @@ private fun NavigationArrowButton(
     }
     Box(
         modifier = Modifier
-            .size(52.dp)
+            .size(48.dp)
             .combinedClickable(
                 enabled = enabled,
                 onClick = onClick,
@@ -155,7 +146,7 @@ private fun NavigationArrowButton(
         Icon(
             imageVector = icon,
             contentDescription = contentDescription,
-            modifier = Modifier.size(34.dp),
+            modifier = Modifier.size(32.dp),
             tint = tint,
         )
     }
