@@ -101,6 +101,7 @@ fun ResultScreen(
                 ResultAccuracyChartSection(
                     accuracyList = stats.accuracyList,
                     historyCount = stats.sameFileHistory.size,
+                    historyRecords = stats.sameFileHistory,
                     onShowHistory = { showHistorySheet = true },
                 )
             }

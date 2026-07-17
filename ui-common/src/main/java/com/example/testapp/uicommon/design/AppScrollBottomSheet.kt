@@ -12,6 +12,7 @@ import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.input.nestedscroll.nestedScroll
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -20,11 +21,19 @@ fun AppScrollBottomSheet(
     content: @Composable ColumnScope.() -> Unit
 ) {
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
-    ModalBottomSheet(onDismissRequest = onDismiss, sheetState = sheetState) {
+    val nestedScrollLock = rememberSheetContentNestedScrollConnection()
+    ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        sheetState = sheetState,
+        shape = appOverlaySheetShape(),
+        containerColor = appOverlayContainerColor(),
+        tonalElevation = AppOverlayMetrics.sheetTonalElevation,
+    ) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
                 .fillMaxHeight(0.85f)
+                .nestedScroll(nestedScrollLock)
                 .verticalScroll(rememberScrollState())
                 .padding(bottom = AppSpacing.lg),
             content = content

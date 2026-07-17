@@ -33,76 +33,92 @@ fun AiChatBubble(
     assistantFontFamily: FontFamily? = LocalFontFamily.current,
     assistantContent: (@Composable (String) -> Unit)? = null,
     onAssistantContentChange: ((String) -> Unit)? = null,
-    geminiStyle: Boolean = true
+    geminiStyle: Boolean = true,
 ) {
     val scheme = MaterialTheme.colorScheme
+    val tokens = AiChatPromptDesignTokens
     val useBubble = com.example.testapp.uicommon.design.AiChatBubbleLayoutPipeline
         .assistantUsesBubble(role, geminiStyle) || isError
     val maxWidthFraction = com.example.testapp.uicommon.design.AiChatBubbleLayoutPipeline
         .userMaxWidthFraction(geminiStyle)
 
     if (!useBubble && role == AiChatMessageRole.Assistant) {
-        Box(
+        Surface(
             modifier = modifier
                 .fillMaxWidth()
-                .padding(vertical = AppSpacing.xs)
+                .padding(vertical = AppSpacing.xs),
+            shape = RoundedCornerShape(tokens.assistantCardCornerRadius),
+            color = tokens.cardWhite,
+            tonalElevation = 2.dp,
+            shadowElevation = tokens.bubbleElevation,
         ) {
-            AssistantMessageBody(
-                content = content,
-                contentColor = scheme.onSurface,
-                assistantFontSize = assistantFontSize,
-                assistantFontFamily = assistantFontFamily,
-                assistantContent = assistantContent,
-                onContentChange = onAssistantContentChange,
-            )
+            Box(modifier = Modifier.padding(horizontal = AppSpacing.md, vertical = AppSpacing.md)) {
+                AssistantMessageBody(
+                    content = content,
+                    contentColor = scheme.onSurface,
+                    assistantFontSize = assistantFontSize,
+                    assistantFontFamily = assistantFontFamily,
+                    assistantContent = assistantContent,
+                    onContentChange = onAssistantContentChange,
+                )
+            }
         }
         return
     }
 
-    val colors = com.example.testapp.uicommon.design.AiChatBubbleColorPipeline.resolve(
-        role = role,
-        primary = scheme.primary,
-        primaryContainer = scheme.primaryContainer,
-        onPrimary = scheme.onPrimary,
-        onPrimaryContainer = scheme.onPrimaryContainer,
-        surfaceVariant = if (geminiStyle && role == AiChatMessageRole.User) {
-            scheme.surfaceContainerHigh
-        } else {
-            scheme.surfaceVariant
-        },
-        onSurface = scheme.onSurface,
-        isError = isError,
-        errorContainer = scheme.errorContainer,
-        onErrorContainer = scheme.onErrorContainer
-    )
+    val colors = if (geminiStyle && role == AiChatMessageRole.User && !isError) {
+        com.example.testapp.uicommon.design.AiChatBubbleColors(
+            container = tokens.userBubble,
+            content = tokens.userBubbleContent,
+        )
+    } else {
+        com.example.testapp.uicommon.design.AiChatBubbleColorPipeline.resolve(
+            role = role,
+            primary = scheme.primary,
+            primaryContainer = scheme.primaryContainer,
+            onPrimary = scheme.onPrimary,
+            onPrimaryContainer = scheme.onPrimaryContainer,
+            surfaceVariant = if (geminiStyle && role == AiChatMessageRole.User) {
+                scheme.surfaceContainerHigh
+            } else {
+                scheme.surfaceVariant
+            },
+            onSurface = scheme.onSurface,
+            isError = isError,
+            errorContainer = scheme.errorContainer,
+            onErrorContainer = scheme.onErrorContainer,
+        )
+    }
     val horizontalArrangement = when (role) {
         AiChatMessageRole.User -> Arrangement.End
         AiChatMessageRole.Assistant -> Arrangement.Start
     }
     val bubbleShape = when {
         geminiStyle && role == AiChatMessageRole.User ->
-            RoundedCornerShape(AiChatPromptDesignTokens.userBubbleCornerRadius)
+            RoundedCornerShape(tokens.userBubbleCornerRadius)
         role == AiChatMessageRole.User -> RoundedCornerShape(
             topStart = 16.dp,
             topEnd = 4.dp,
             bottomEnd = 16.dp,
-            bottomStart = 16.dp
+            bottomStart = 16.dp,
         )
         else -> RoundedCornerShape(
             topStart = 4.dp,
             topEnd = 16.dp,
             bottomEnd = 16.dp,
-            bottomStart = 16.dp
+            bottomStart = 16.dp,
         )
     }
     Row(
         modifier = modifier.fillMaxWidth(),
-        horizontalArrangement = horizontalArrangement
+        horizontalArrangement = horizontalArrangement,
     ) {
         Surface(
             modifier = Modifier.fillMaxWidth(maxWidthFraction),
             shape = bubbleShape,
-            color = colors.container
+            color = colors.container,
+            tonalElevation = 2.dp,
+            shadowElevation = tokens.bubbleElevation,
         ) {
             Box(modifier = Modifier.padding(horizontal = AppSpacing.md, vertical = AppSpacing.sm)) {
                 when {
@@ -124,8 +140,8 @@ fun AiChatBubble(
                                 color = colors.content,
                                 style = MaterialTheme.typography.bodyLarge.copy(
                                     fontSize = assistantFontSize,
-                                    fontFamily = assistantFontFamily
-                                )
+                                    fontFamily = assistantFontFamily,
+                                ),
                             )
                         }
                 }
@@ -165,7 +181,7 @@ private fun AssistantMessageBody(
                     text = content,
                     color = contentColor,
                     fontSize = assistantFontSize,
-                    fontFamily = assistantFontFamily
+                    fontFamily = assistantFontFamily,
                 )
             }
     }

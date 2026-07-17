@@ -98,6 +98,11 @@
     <string name="home_start_exam">开始考试</string>
     <string name="home_continue_exam">接着考试</string>
     <string name="home_restart_quiz">重答</string>
+    <string name="home_start_quiz_sheet_subtitle">选择学习方式</string>
+    <string name="home_start_quiz_practice_hint">按进度练习，巩固知识点</string>
+    <string name="home_start_quiz_adaptive_hint">智能渐隐，高效记忆</string>
+    <string name="home_start_quiz_exam_hint">模拟考试，检验掌握情况</string>
+    <string name="home_start_quiz_restart_hint">清空进度，重新开始作答</string>
     <string name="home_learning_progress">学习进度</string>
     <string name="home_stat_total_questions">总题数</string>
     <string name="home_stat_wrong_count">错题数</string>
@@ -105,4 +110,11 @@
     <string name="home_stat_completed">已完成</string>
     <string name="home_notification_placeholder">通知功能预留</string>
     <string name="home_search_button">搜索题库</string>
+
+    <!-- Result history screen -->
+    <string name="result_history_title">历史成绩记录</string>
+    <string name="result_history_nth">第 %1$d 次</string>
+    <string name="result_correct_label">答对</string>
+    <string name="result_wrong_label">答错</string>
+    <string name="result_rate_label">正确率</string>
 </resources>

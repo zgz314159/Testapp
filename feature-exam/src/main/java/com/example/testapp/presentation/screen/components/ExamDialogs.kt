@@ -8,6 +8,10 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import com.example.testapp.feature.exam.R
 import com.example.testapp.uicommon.component.LocalFontSize
+import com.example.testapp.uicommon.design.AppConfirmDialog
+import com.example.testapp.uicommon.design.AppOverlayMetrics
+import com.example.testapp.uicommon.design.appOverlayContainerColor
+import com.example.testapp.uicommon.design.appOverlayDialogShape
 
 @Composable
 fun ExamDialogs(
@@ -32,41 +36,32 @@ fun ExamDialogs(
     chatGptResult: String?,
 ) {
     if (showDeleteNoteDialog) {
-        AlertDialog(
-            onDismissRequest = onDismissDeleteNote,
-            confirmButton = {
-                TextButton(onClick = onConfirmDeleteNote) { Text(stringResource(R.string.confirm)) }
-            },
-            dismissButton = {
-                TextButton(onClick = onDismissDeleteNote) { Text(stringResource(R.string.cancel)) }
-            },
-            text = { Text(stringResource(R.string.confirm_delete_note)) }
+        AppConfirmDialog(
+            onDismiss = onDismissDeleteNote,
+            message = stringResource(R.string.confirm_delete_note),
+            confirmLabel = stringResource(R.string.confirm),
+            dismissLabel = stringResource(R.string.cancel),
+            onConfirm = onConfirmDeleteNote,
         )
     }
 
     if (showDeleteDialog) {
-        AlertDialog(
-            onDismissRequest = onDismissDelete,
-            confirmButton = {
-                TextButton(onClick = onConfirmDelete) { Text(stringResource(R.string.confirm)) }
-            },
-            dismissButton = {
-                TextButton(onClick = onDismissDelete) { Text(stringResource(R.string.cancel)) }
-            },
-            text = { Text(stringResource(R.string.confirm_delete_analysis, deleteReadableLabel)) }
+        AppConfirmDialog(
+            onDismiss = onDismissDelete,
+            message = stringResource(R.string.confirm_delete_analysis, deleteReadableLabel),
+            confirmLabel = stringResource(R.string.confirm),
+            dismissLabel = stringResource(R.string.cancel),
+            onConfirm = onConfirmDelete,
         )
     }
 
     if (showExitDialog) {
-        AlertDialog(
-            onDismissRequest = onDismissExit,
-            confirmButton = {
-                TextButton(onClick = onConfirmExit) { Text(stringResource(R.string.confirm)) }
-            },
-            dismissButton = {
-                TextButton(onClick = onDismissExit) { Text(stringResource(R.string.cancel)) }
-            },
-            text = { Text(exitConfirmText) }
+        AppConfirmDialog(
+            onDismiss = onDismissExit,
+            message = exitConfirmText,
+            confirmLabel = stringResource(R.string.confirm),
+            dismissLabel = stringResource(R.string.cancel),
+            onConfirm = onConfirmExit,
         )
     }
 
@@ -94,11 +89,19 @@ fun ExamDialogs(
                 if (chatGptLoading) {
                     Text(stringResource(R.string.baidu_parsing), fontSize = LocalFontSize.current)
                 } else {
-                    Text(if (chatGptResult.isNullOrBlank()) stringResource(R.string.no_analysis_result) else chatGptResult, fontSize = LocalFontSize.current)
+                    Text(
+                        if (chatGptResult.isNullOrBlank()) {
+                            stringResource(R.string.no_analysis_result)
+                        } else {
+                            chatGptResult
+                        },
+                        fontSize = LocalFontSize.current,
+                    )
                 }
-            }
+            },
+            shape = appOverlayDialogShape(),
+            containerColor = appOverlayContainerColor(),
+            tonalElevation = AppOverlayMetrics.dialogElevation,
         )
     }
 }
-
-

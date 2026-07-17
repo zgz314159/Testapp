@@ -6,13 +6,15 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.example.testapp.uicommon.design.AiChatPromptDesignTokens
 
 @Composable
@@ -22,16 +24,17 @@ fun AiChatPromptField(
     placeholder: String,
     modifier: Modifier = Modifier,
     maxLines: Int = 6,
-    enabled: Boolean = true
+    enabled: Boolean = true,
 ) {
     val tokens = AiChatPromptDesignTokens
-    val shape = RoundedCornerShape(tokens.fieldCornerRadius)
     Surface(
         modifier = modifier
             .fillMaxWidth()
             .defaultMinSize(minHeight = tokens.fieldMinHeight),
-        shape = shape,
-        color = MaterialTheme.colorScheme.surfaceContainerHighest
+        shape = RoundedCornerShape(tokens.fieldCornerRadius),
+        color = tokens.pageBackground,
+        tonalElevation = 1.dp,
+        shadowElevation = tokens.fieldElevation,
     ) {
         BasicTextField(
             value = value,
@@ -41,11 +44,12 @@ fun AiChatPromptField(
                 .fillMaxWidth()
                 .padding(
                     horizontal = tokens.fieldInnerHorizontalPadding,
-                    vertical = tokens.fieldInnerVerticalPadding
+                    vertical = tokens.fieldInnerVerticalPadding,
                 ),
             textStyle = TextStyle(
-                color = MaterialTheme.colorScheme.onSurface,
-                fontSize = MaterialTheme.typography.bodyLarge.fontSize
+                color = tokens.userBubbleContent,
+                fontSize = 16.sp,
+                fontWeight = FontWeight.Medium,
             ),
             maxLines = maxLines,
             decorationBox = { inner ->
@@ -53,13 +57,13 @@ fun AiChatPromptField(
                     if (value.isEmpty()) {
                         Text(
                             text = placeholder,
-                            style = MaterialTheme.typography.bodyLarge,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                            fontSize = 16.sp,
+                            color = tokens.textSecondary,
                         )
                     }
                     inner()
                 }
-            }
+            },
         )
     }
 }

@@ -181,7 +181,7 @@ fun OptimizedFileCard(
     }
     val appliedBorder = cardBorderOverride ?: cardBorder
     val appliedElevation = cardElevationOverride ?: CardDefaults.cardElevation(
-        defaultElevation = if (isSelected || isDropTarget) 8.dp else 2.dp,
+        defaultElevation = if (isSelected || isDropTarget) 10.dp else 6.dp,
     )
 
     Card(
@@ -211,7 +211,7 @@ fun DraggingFileCard(
     Card(modifier = modifier, shape = RoundedCornerShape(16.dp),
         border = BorderStroke(1.dp, MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)),
         colors = CardDefaults.cardColors(containerColor = palette.containerColor),
-        elevation = CardDefaults.cardElevation(defaultElevation = 6.dp)) {
+        elevation = CardDefaults.cardElevation(defaultElevation = 10.dp)) {
         Column(Modifier.fillMaxSize().padding(horizontal = 16.dp, vertical = 16.dp)) {
             Text(text = displayName, fontSize = LocalFontSize.current, fontFamily = LocalFontFamily.current, maxLines = 1, overflow = TextOverflow.Ellipsis)
             Spacer(modifier = Modifier.height(8.dp))

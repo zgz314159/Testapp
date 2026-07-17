@@ -18,7 +18,13 @@ fun AppStaticBottomSheet(
     content: @Composable ColumnScope.() -> Unit
 ) {
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
-    ModalBottomSheet(onDismissRequest = onDismiss, sheetState = sheetState) {
+    ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        sheetState = sheetState,
+        shape = appOverlaySheetShape(),
+        containerColor = appOverlayContainerColor(),
+        tonalElevation = AppOverlayMetrics.sheetTonalElevation,
+    ) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()

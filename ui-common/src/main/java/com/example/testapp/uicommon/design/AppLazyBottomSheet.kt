@@ -9,20 +9,30 @@ import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.input.nestedscroll.nestedScroll
 
 /** Bottom sheet for LazyColumn content — no outer verticalScroll to avoid nested scroll jank. */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AppLazyBottomSheet(
     onDismiss: () -> Unit,
+    heightFraction: Float = AppLazyBottomSheetMetrics.heightFraction,
     content: @Composable () -> Unit
 ) {
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
-    ModalBottomSheet(onDismissRequest = onDismiss, sheetState = sheetState) {
+    val nestedScrollLock = rememberSheetContentNestedScrollConnection()
+    ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        sheetState = sheetState,
+        shape = appOverlaySheetShape(),
+        containerColor = appOverlayContainerColor(),
+        tonalElevation = AppOverlayMetrics.sheetTonalElevation,
+    ) {
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .fillMaxHeight(AppLazyBottomSheetMetrics.heightFraction)
+                .fillMaxHeight(heightFraction)
+                .nestedScroll(nestedScrollLock)
                 .padding(bottom = AppSpacing.lg)
         ) {
             content()

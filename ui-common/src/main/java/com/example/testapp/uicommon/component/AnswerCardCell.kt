@@ -1,13 +1,13 @@
 package com.example.testapp.uicommon.component
 
 import androidx.compose.foundation.ExperimentalFoundationApi
-import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -15,6 +15,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import com.example.testapp.uicommon.design.AnswerChoiceTone
+import com.example.testapp.uicommon.design.AppOverlayMetrics
 import com.example.testapp.uicommon.design.answerChoicePalette
 import com.example.testapp.uicommon.design.colorFor
 
@@ -27,25 +28,38 @@ fun AnswerCardCell(
     modifier: Modifier = Modifier,
     statusColors: Map<AnswerCardStatus, Color> = answerCardStatusColors()
 ) {
-    Box(
+    val shape = RoundedCornerShape(14.dp)
+    val fill = statusColors[item.status] ?: MaterialTheme.colorScheme.surface
+    Surface(
         modifier = modifier
             .padding(4.dp)
             .then(
                 if (item.isCurrent) {
-                    Modifier.border(2.dp, MaterialTheme.colorScheme.primary, RoundedCornerShape(4.dp))
+                    Modifier.border(2.dp, MaterialTheme.colorScheme.primary, shape)
                 } else {
                     Modifier
                 }
             )
-            .background(statusColors[item.status] ?: Color.Transparent, RoundedCornerShape(4.dp))
             .combinedClickable(onClick = onClick, onDoubleClick = onDoubleClick),
-        contentAlignment = Alignment.Center
+        shape = shape,
+        color = fill,
+        tonalElevation = if (item.status == AnswerCardStatus.UNANSWERED) 2.dp else 3.dp,
+        shadowElevation = if (item.isCurrent) {
+            AppOverlayMetrics.answerCardCellCurrentElevation
+        } else {
+            AppOverlayMetrics.answerCardCellElevation
+        },
     ) {
-        Text(
-            text = item.label,
-            fontSize = LocalFontSize.current,
-            fontFamily = LocalFontFamily.current
-        )
+        Box(
+            modifier = Modifier.padding(horizontal = 4.dp, vertical = 8.dp),
+            contentAlignment = Alignment.Center,
+        ) {
+            Text(
+                text = item.label,
+                fontSize = LocalFontSize.current,
+                fontFamily = LocalFontFamily.current
+            )
+        }
     }
 }
 
@@ -56,6 +70,6 @@ fun answerCardStatusColors(): Map<AnswerCardStatus, Color> {
         AnswerCardStatus.CORRECT to palette.colorFor(AnswerChoiceTone.Correct),
         AnswerCardStatus.WRONG to palette.colorFor(AnswerChoiceTone.Wrong),
         AnswerCardStatus.SELECTED to palette.colorFor(AnswerChoiceTone.Selected),
-        AnswerCardStatus.UNANSWERED to Color.Transparent
+        AnswerCardStatus.UNANSWERED to MaterialTheme.colorScheme.surface,
     )
 }

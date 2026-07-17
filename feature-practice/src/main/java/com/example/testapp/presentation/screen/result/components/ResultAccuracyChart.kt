@@ -38,12 +38,16 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.testapp.domain.model.HistoryRecord
+import com.example.testapp.domain.model.ResultHistoryRecordStats
+import com.example.testapp.domain.model.calculateResultHistoryRecordStats
 
 @Composable
 fun ResultAccuracyChartSection(
     accuracyList: List<Float>,
     historyCount: Int,
     onShowHistory: () -> Unit,
+    historyRecords: List<HistoryRecord> = emptyList(),
     modifier: Modifier = Modifier,
 ) {
     ResultSurfaceCard(modifier) {
@@ -93,7 +97,8 @@ fun ResultAccuracyChartSection(
             } else {
                 AccuracyLineChart(
                     values = accuracyList.takeLast(9),
-                    modifier = Modifier.fillMaxWidth().height(190.dp).padding(horizontal = 12.dp),
+                    records = historyRecords.takeLast(9),
+                    modifier = Modifier.fillMaxWidth().height(200.dp).padding(horizontal = 12.dp),
                 )
             }
 
@@ -128,6 +133,7 @@ fun ResultAccuracyChartSection(
 @Composable
 private fun AccuracyLineChart(
     values: List<Float>,
+    records: List<HistoryRecord>,
     modifier: Modifier = Modifier,
 ) {
     val animation by animateFloatAsState(
@@ -135,13 +141,18 @@ private fun AccuracyLineChart(
         animationSpec = tween(600),
         label = "historyChart",
     )
+
+    // 获取记录总数量上下文 - 从 records 知道是第几次
+    val totalHistoryCount = records.size
+
     Canvas(modifier) {
-        val left = 34.dp.toPx()
-        val right = 10.dp.toPx()
+        val left = 42.dp.toPx() // 左侧边距增加到 42dp 避免刻度重叠
+        val right = 16.dp.toPx() // 右侧边距至少 16dp
         val top = 24.dp.toPx()
-        val bottom = 30.dp.toPx()
+        val bottom = 38.dp.toPx() // 底部留更多空间给横轴标签
         val chartWidth = size.width - left - right
         val chartHeight = size.height - top - bottom
+
         val labelPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
             color = ResultDashboardColors.TextTertiary.toArgb()
             textSize = 10.sp.toPx()
@@ -152,8 +163,15 @@ private fun AccuracyLineChart(
             textSize = 9.sp.toPx()
             textAlign = Paint.Align.CENTER
         }
+        val axisLabelPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            color = ResultDashboardColors.TextTertiary.toArgb()
+            textSize = 9.sp.toPx()
+            textAlign = Paint.Align.CENTER
+        }
 
-        listOf(0, 25, 50, 75, 100).forEach { percent ->
+        // 纵轴刻度：0, 25, 50, 75, 100
+        val yLabels = listOf(0, 25, 50, 75, 100)
+        yLabels.forEach { percent ->
             val y = top + chartHeight * (1f - percent / 100f)
             drawLine(
                 color = ResultDashboardColors.Border,
@@ -170,6 +188,9 @@ private fun AccuracyLineChart(
             )
         }
 
+        // 没有足够数据点时不绘制折线
+        if (values.isEmpty()) return@Canvas
+
         val step = if (values.size > 1) chartWidth / (values.size - 1) else 0f
         val points = values.mapIndexed { index, value ->
             Offset(
@@ -177,6 +198,8 @@ private fun AccuracyLineChart(
                 y = top + chartHeight * (1f - value.coerceIn(0f, 1f) * animation),
             )
         }
+
+        // 填充区域
         val fillPath = Path().apply {
             moveTo(points.first().x, top + chartHeight)
             points.forEach { lineTo(it.x, it.y) }
@@ -191,6 +214,8 @@ private fun AccuracyLineChart(
                 endY = top + chartHeight,
             ),
         )
+
+        // 折线
         val linePath = Path().apply {
             moveTo(points.first().x, points.first().y)
             points.drop(1).forEach { lineTo(it.x, it.y) }
@@ -200,21 +225,56 @@ private fun AccuracyLineChart(
             ResultDashboardColors.Primary,
             style = Stroke(width = 2.dp.toPx(), cap = StrokeCap.Round),
         )
+
+        // 数据点标签
+        val recordStats: List<ResultHistoryRecordStats> = records.map { calculateResultHistoryRecordStats(it) }
+        val firstVisibleIndex = maxOf(0, records.size - values.size)
+
         points.forEachIndexed { index, point ->
+            // 数据点圆
             drawCircle(ResultDashboardColors.Card, 5.dp.toPx(), point)
             drawCircle(ResultDashboardColors.Primary, 3.dp.toPx(), point)
-            val percent = (values[index].coerceIn(0f, 1f) * 100).toInt()
+
+            // 数据值标签（百分比格式，保留精度）
+            val stats = recordStats.getOrNull(index)
+            val percentLabel = stats?.rateText ?: "${(values[index].coerceIn(0f, 1f) * 100).toInt()}%"
+
+            // 根据位置决定对齐方式
+            val previousValuePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+                color = valuePaint.color
+                textSize = valuePaint.textSize
+            }
+            when (index) {
+                0 -> previousValuePaint.textAlign = Paint.Align.LEFT
+                values.lastIndex -> previousValuePaint.textAlign = Paint.Align.RIGHT
+                else -> previousValuePaint.textAlign = Paint.Align.CENTER
+            }
+
+            val labelX = when (index) {
+                0 -> point.x + 5.dp.toPx()
+                values.lastIndex -> point.x - 5.dp.toPx()
+                else -> point.x
+            }
+            val labelY = (point.y - 10.dp.toPx()).coerceAtLeast(top + 8.dp.toPx())
             drawContext.canvas.nativeCanvas.drawText(
-                "$percent%",
-                point.x,
-                point.y - 9.dp.toPx(),
-                valuePaint,
+                percentLabel,
+                labelX,
+                labelY,
+                previousValuePaint,
             )
+
+            // 横轴：第N次序号（保留真实序号）
+            val nth = firstVisibleIndex + index + 1
+            val nthX = when (index) {
+                0 -> point.x + 4.dp.toPx()
+                values.lastIndex -> point.x - 4.dp.toPx()
+                else -> point.x
+            }
             drawContext.canvas.nativeCanvas.drawText(
-                "第${index + 1}次",
-                point.x,
+                "第${nth}次",
+                nthX,
                 size.height - 7.dp.toPx(),
-                valuePaint,
+                axisLabelPaint,
             )
         }
     }

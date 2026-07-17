@@ -22,6 +22,14 @@
     <string name="uicommon_typography_letter_spacing">字间距</string>
     <string name="uicommon_typography_settings">排版设置…</string>
     <string name="uicommon_edit_current_question">编辑当前题目</string>
+    <string name="uicommon_ai_action_sheet_title">选择 AI 助手</string>
+    <string name="uicommon_ai_action_sheet_subtitle">解析本题或继续追问</string>
+    <string name="uicommon_ai_deepseek_hint">深度解析当前题目</string>
+    <string name="uicommon_ai_spark_hint">对话追问与讲解</string>
+    <string name="uicommon_more_action_sheet_title">更多操作</string>
+    <string name="uicommon_more_action_sheet_subtitle">排版与题目编辑</string>
+    <string name="uicommon_typography_hint">字体、行距与字间距</string>
+    <string name="uicommon_edit_question_hint">修改本题内容与选项</string>
     <string name="uicommon_label_total_questions">总题数</string>
     <string name="uicommon_label_wrong_questions">错题数</string>
     <string name="uicommon_label_favorite_count">收藏数</string>

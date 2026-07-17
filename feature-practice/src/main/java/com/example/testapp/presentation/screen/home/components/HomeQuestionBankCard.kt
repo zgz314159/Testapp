@@ -18,7 +18,10 @@ import androidx.compose.material.icons.filled.Bookmarks
 import androidx.compose.material.icons.filled.ErrorOutline
 import androidx.compose.material.icons.filled.PieChart
 import androidx.compose.material.icons.filled.Quiz
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
@@ -37,6 +40,7 @@ import androidx.compose.ui.unit.sp
 import com.example.testapp.domain.usecase.FileStatistics
 import com.example.testapp.presentation.screen.home.HomeFileTypeVisualPipeline
 import com.example.testapp.presentation.screen.home.HomePerformanceLog
+import com.example.testapp.presentation.screen.home.design.HomeDesignTokens
 
 @Composable
 fun HomeQuestionBankCard(
@@ -68,16 +72,26 @@ fun HomeQuestionBankCard(
     val iconGlyph = if (isCompact) 22.dp else 26.dp
     val ctaWidth = if (isCompact) 68.dp else 78.dp
     val ctaFont = if (isCompact) 10.sp else 11.sp
+    val cardShape = RoundedCornerShape(20.dp)
 
-    Row(
+    Card(
         modifier = modifier
             .fillMaxWidth()
-            .height(cardHeight)
-            .clip(RoundedCornerShape(20.dp))
-            .background(Color.White)
-            .padding(start = hPadding, end = 8.dp),
-        verticalAlignment = Alignment.CenterVertically,
+            .height(cardHeight),
+        shape = cardShape,
+        colors = CardDefaults.cardColors(containerColor = Color.White),
+        elevation = CardDefaults.cardElevation(
+            defaultElevation = HomeDesignTokens.questionCardElevation,
+            pressedElevation = HomeDesignTokens.elevationMedium,
+        ),
     ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(cardHeight)
+                .padding(start = hPadding, end = 8.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
             Box(
                 modifier = Modifier
                     .size(iconSize)
@@ -123,25 +137,31 @@ fun HomeQuestionBankCard(
                 )
             }
 
-            Box(
+            Surface(
                 modifier = Modifier
                     .width(ctaWidth)
-                    .clip(RoundedCornerShape(18.dp))
-                    .background(Color(0xFFF0F6FF))
-                    .clickable(onClick = onCtaClick)
-                    .padding(horizontal = 3.dp, vertical = 10.dp),
-                contentAlignment = Alignment.Center,
+                    .clickable(onClick = onCtaClick),
+                shape = RoundedCornerShape(18.dp),
+                color = Color(0xFFF0F6FF),
+                tonalElevation = 1.dp,
+                shadowElevation = 2.dp,
             ) {
-                Text(
-                    text = if (progressPercent > 0) "继续学习" else "开始练习",
-                    fontSize = ctaFont,
-                    fontWeight = FontWeight.Medium,
-                    color = Color(0xFF4F8CFF),
-                    maxLines = 1,
-                    softWrap = false,
-                    overflow = TextOverflow.Clip,
-                )
+                Box(
+                    modifier = Modifier.padding(horizontal = 3.dp, vertical = 10.dp),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Text(
+                        text = if (progressPercent > 0) "继续学习" else "开始练习",
+                        fontSize = ctaFont,
+                        fontWeight = FontWeight.Medium,
+                        color = Color(0xFF4F8CFF),
+                        maxLines = 1,
+                        softWrap = false,
+                        overflow = TextOverflow.Clip,
+                    )
+                }
             }
+        }
     }
 }
 

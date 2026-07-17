@@ -11,17 +11,17 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.requiredWidth
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.Add
-import androidx.compose.material.icons.outlined.Remove
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Remove
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -47,6 +47,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.testapp.uicommon.design.AppElevatedActionSheetTokens
 
 @Composable
 fun CapsuleStepperInput(
@@ -64,6 +65,7 @@ fun CapsuleStepperInput(
     val interactionSource = remember { MutableInteractionSource() }
     var isEditing by remember { mutableStateOf(false) }
     var textValue by remember(value) { mutableStateOf(formatDisplay(value)) }
+    val tokens = AppElevatedActionSheetTokens
 
     LaunchedEffect(interactionSource) {
         interactionSource.interactions.collect { interaction ->
@@ -92,7 +94,7 @@ fun CapsuleStepperInput(
     }
 
     val editBackground by animateColorAsState(
-        targetValue = if (isEditing) MaterialTheme.colorScheme.surface else Color.Transparent,
+        targetValue = if (isEditing) tokens.cardWhite else Color.Transparent,
         label = "stepper_edit_bg"
     )
 
@@ -101,15 +103,13 @@ fun CapsuleStepperInput(
         fontWeight = FontWeight.SemiBold,
         fontSize = 16.sp,
         textAlign = TextAlign.Center,
-        color = MaterialTheme.colorScheme.onSurface
+        color = tokens.textPrimary
     )
 
-    Row(
+    Surface(
         modifier = modifier
             .requiredWidth(width.dp)
             .height(CapsuleStepperDefaults.HEIGHT)
-            .clip(CircleShape)
-            .background(MaterialTheme.colorScheme.surfaceContainerHighest)
             .then(
                 if (contentDescription != null) {
                     Modifier.semantics { this.contentDescription = contentDescription }
@@ -117,88 +117,114 @@ fun CapsuleStepperInput(
                     Modifier
                 }
             ),
-        verticalAlignment = Alignment.CenterVertically
+        shape = CircleShape,
+        color = tokens.brandBlueSoft,
+        tonalElevation = 1.dp,
+        shadowElevation = 5.dp,
     ) {
-        IconButton(
-            onClick = { if (value > minValue) onValueChange(value - 1) },
-            enabled = value > minValue,
-            modifier = Modifier.weight(1f)
-        ) {
-            Icon(
-                imageVector = Icons.Outlined.Remove,
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            StepperIconButton(
+                enabled = value > minValue,
+                onClick = { if (value > minValue) onValueChange(value - 1) },
                 contentDescription = "Decrease",
-                tint = if (value > minValue) {
-                    MaterialTheme.colorScheme.onSurface
-                } else {
-                    MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.3f)
-                }
+                icon = Icons.Filled.Remove,
             )
-        }
 
-        Box(
-            modifier = Modifier
-                .weight(1.2f)
-                .fillMaxHeight()
-                .padding(vertical = 4.dp)
-                .clip(RoundedCornerShape(8.dp))
-                .background(editBackground),
-            contentAlignment = Alignment.Center
-        ) {
-            BasicTextField(
-                value = if (isEditing) textValue else formatDisplay(value),
-                onValueChange = { raw ->
-                    if (!isEditing) return@BasicTextField
-                    val digits = raw.filter { it.isDigit() }
-                    textValue = digits
-                    StepperInputParsePipeline.parseDigits(digits, minValue, maxValue)?.let(onValueChange)
-                },
-                textStyle = fieldTextStyle,
-                singleLine = true,
-                readOnly = !isEditing,
-                keyboardOptions = KeyboardOptions(
-                    keyboardType = KeyboardType.Number,
-                    imeAction = ImeAction.Done
-                ),
-                keyboardActions = KeyboardActions(onDone = { focusManager.clearFocus() }),
-                interactionSource = interactionSource,
-                cursorBrush = SolidColor(MaterialTheme.colorScheme.primary),
+            Box(
                 modifier = Modifier
-                    .padding(horizontal = 4.dp)
-                    .alpha(if (isEditing) 1f else 0f)
-                    .focusRequester(focusRequester)
-            )
-            if (!isEditing) {
-                StepperAnimatedValue(
-                    value = value,
-                    displayText = formatDisplay(value),
-                    modifier = Modifier.clickable(
-                        indication = null,
-                        interactionSource = remember { MutableInteractionSource() }
-                    ) {
-                        isEditing = true
-                    }
+                    .weight(1.2f)
+                    .fillMaxHeight()
+                    .padding(vertical = 4.dp)
+                    .clip(RoundedCornerShape(8.dp))
+                    .background(editBackground),
+                contentAlignment = Alignment.Center
+            ) {
+                BasicTextField(
+                    value = if (isEditing) textValue else formatDisplay(value),
+                    onValueChange = { raw ->
+                        if (!isEditing) return@BasicTextField
+                        val digits = raw.filter { it.isDigit() }
+                        textValue = digits
+                        StepperInputParsePipeline.parseDigits(digits, minValue, maxValue)?.let(onValueChange)
+                    },
+                    textStyle = fieldTextStyle,
+                    singleLine = true,
+                    readOnly = !isEditing,
+                    keyboardOptions = KeyboardOptions(
+                        keyboardType = KeyboardType.Number,
+                        imeAction = ImeAction.Done
+                    ),
+                    keyboardActions = KeyboardActions(onDone = { focusManager.clearFocus() }),
+                    interactionSource = interactionSource,
+                    cursorBrush = SolidColor(tokens.brandBlue),
+                    modifier = Modifier
+                        .padding(horizontal = 4.dp)
+                        .alpha(if (isEditing) 1f else 0f)
+                        .focusRequester(focusRequester)
                 )
-            }
-        }
-
-        IconButton(
-            onClick = { if (value < maxValue) onValueChange(value + 1) },
-            enabled = value < maxValue,
-            modifier = Modifier.weight(1f)
-        ) {
-            Icon(
-                imageVector = Icons.Outlined.Add,
-                contentDescription = "Increase",
-                tint = if (value < maxValue) {
-                    MaterialTheme.colorScheme.onSurface
-                } else {
-                    MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.3f)
+                if (!isEditing) {
+                    StepperAnimatedValue(
+                        value = value,
+                        displayText = formatDisplay(value),
+                        modifier = Modifier.clickable(
+                            indication = null,
+                            interactionSource = remember { MutableInteractionSource() }
+                        ) {
+                            isEditing = true
+                        }
+                    )
                 }
+            }
+
+            StepperIconButton(
+                enabled = value < maxValue,
+                onClick = { if (value < maxValue) onValueChange(value + 1) },
+                contentDescription = "Increase",
+                icon = Icons.Filled.Add,
             )
         }
     }
 
     LaunchedEffect(isEditing) {
         if (isEditing) focusRequester.requestFocus()
+    }
+}
+
+@Composable
+private fun StepperIconButton(
+    enabled: Boolean,
+    onClick: () -> Unit,
+    contentDescription: String,
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+) {
+    val tokens = AppElevatedActionSheetTokens
+    Box(
+        modifier = Modifier
+            .padding(horizontal = 4.dp)
+            .size(32.dp),
+        contentAlignment = Alignment.Center,
+    ) {
+        Surface(
+            onClick = onClick,
+            enabled = enabled,
+            modifier = Modifier.size(28.dp),
+            shape = CircleShape,
+            color = if (enabled) tokens.cardWhite else tokens.cardWhite.copy(alpha = 0.55f),
+            tonalElevation = if (enabled) 1.dp else 0.dp,
+            shadowElevation = if (enabled) 4.dp else 0.dp,
+        ) {
+            Box(contentAlignment = Alignment.Center) {
+                Icon(
+                    imageVector = icon,
+                    contentDescription = contentDescription,
+                    tint = if (enabled) {
+                        tokens.brandBlue
+                    } else {
+                        tokens.textSecondary.copy(alpha = 0.35f)
+                    },
+                    modifier = Modifier.size(16.dp),
+                )
+            }
+        }
     }
 }

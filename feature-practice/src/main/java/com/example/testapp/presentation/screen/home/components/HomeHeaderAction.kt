@@ -10,9 +10,8 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.Search
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
+import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -21,6 +20,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.example.testapp.feature.practice.R
+import com.example.testapp.presentation.screen.home.design.HomeDesignTokens
 
 @Composable
 fun HomeHeaderAction(
@@ -34,16 +34,17 @@ fun HomeHeaderAction(
     iconTint: Color = Color(0xFF5F6B7A),
 ) {
     Box(
-        modifier = modifier.size(40.dp),
+        modifier = modifier.size(42.dp),
         contentAlignment = Alignment.Center,
     ) {
-        Card(
+        Surface(
             modifier = Modifier
                 .fillMaxSize()
                 .then(if (enabled) Modifier.clickable(onClick = onClick) else Modifier),
             shape = CircleShape,
-            colors = CardDefaults.cardColors(containerColor = backgroundColor),
-            elevation = CardDefaults.cardElevation(defaultElevation = if (enabled) 2.dp else 0.dp),
+            color = backgroundColor,
+            tonalElevation = 2.dp,
+            shadowElevation = if (enabled) HomeDesignTokens.elevationHeaderIcon else 0.dp,
         ) {
             Box(
                 modifier = Modifier.fillMaxSize(),
@@ -52,13 +53,12 @@ fun HomeHeaderAction(
                 Icon(
                     icon,
                     contentDescription,
-                    modifier = Modifier.size(21.dp),
+                    modifier = Modifier.size(22.dp),
                     tint = if (enabled) iconTint else iconTint.copy(alpha = 0.38f),
                 )
             }
         }
 
-        // 通知红点：仅此元素使用偏移
         if (showBadge) {
             Box(
                 modifier = Modifier

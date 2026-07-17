@@ -25,7 +25,7 @@ fun SettingsCardGroup(
             .padding(horizontal = AppSpacing.md, vertical = AppSpacing.sm),
         shape = RoundedCornerShape(24.dp),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 6.dp),
     ) {
         Column(content = content)
     }

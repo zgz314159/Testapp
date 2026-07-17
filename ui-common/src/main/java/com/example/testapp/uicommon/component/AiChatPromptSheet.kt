@@ -4,16 +4,15 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.dp
 import com.example.testapp.uicommon.design.AiChatPromptDesignTokens
 import com.example.testapp.uicommon.design.AppSpacing
 
-/** Gemini 风格底部 prompt sheet：顶部分割 + 圆角输入 + 圆形发送。不含 imePadding（由 Scaffold bottomBar 处理）。 */
+/** Gemini 风格底部 prompt sheet：立体白底 + 圆角输入 + 浮起发送。 */
 @Composable
 fun AiChatPromptSheet(
     value: String,
@@ -23,27 +22,25 @@ fun AiChatPromptSheet(
     sendContentDescription: String,
     placeholder: String,
     modifier: Modifier = Modifier,
-    maxLines: Int = 6
+    maxLines: Int = 6,
 ) {
     val tokens = AiChatPromptDesignTokens
     Surface(
         modifier = modifier.fillMaxWidth(),
+        shape = androidx.compose.foundation.shape.RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp),
+        color = tokens.cardWhite,
         tonalElevation = tokens.sheetTopElevation,
         shadowElevation = tokens.sheetShadowElevation,
-        color = MaterialTheme.colorScheme.surfaceContainerLow
     ) {
-        HorizontalDivider(
-            color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.45f)
-        )
         Row(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(
                     horizontal = tokens.sheetHorizontalPadding,
-                    vertical = tokens.sheetVerticalPadding
+                    vertical = tokens.sheetVerticalPadding,
                 ),
             horizontalArrangement = Arrangement.spacedBy(AppSpacing.sm),
-            verticalAlignment = Alignment.Bottom
+            verticalAlignment = Alignment.Bottom,
         ) {
             AiChatPromptField(
                 value = value,
@@ -51,13 +48,13 @@ fun AiChatPromptSheet(
                 placeholder = placeholder,
                 maxLines = maxLines,
                 enabled = sendEnabled,
-                modifier = Modifier.weight(1f)
+                modifier = Modifier.weight(1f),
             )
             AiChatPromptSendButton(
                 input = value,
                 sendEnabled = sendEnabled,
                 sendContentDescription = sendContentDescription,
-                onSend = onSend
+                onSend = onSend,
             )
         }
     }

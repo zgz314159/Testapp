@@ -11,7 +11,10 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Shadow
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -44,10 +47,18 @@ fun HomeGreetingHeader(
         ) {
             Text(
                 text = greeting,
-                fontSize = 19.sp,
-                lineHeight = 24.sp,
-                fontWeight = FontWeight.Bold,
-                color = Color(0xFF1B2B4E),
+                style = TextStyle(
+                    fontSize = 21.sp,
+                    lineHeight = 26.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = Color(0xFF1B2B4E),
+                    letterSpacing = (-0.3).sp,
+                    shadow = Shadow(
+                        color = Color(0x331B2B4E),
+                        offset = Offset(0f, 2.5f),
+                        blurRadius = 6f,
+                    ),
+                ),
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
             )
@@ -55,7 +66,7 @@ fun HomeGreetingHeader(
             Text(
                 text = subtitle,
                 fontSize = 11.sp,
-                fontWeight = FontWeight.Normal,
+                fontWeight = FontWeight.Medium,
                 color = Color(0xFF8899B4),
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,

@@ -1,9 +1,7 @@
 package com.example.testapp.presentation.screen.practice.components
 
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
@@ -21,6 +19,7 @@ import com.example.testapp.presentation.session.practice.PracticeScreenBindings
 import com.example.testapp.uicommon.component.AnswerCardDisplayInfo
 import com.example.testapp.uicommon.component.LocalFontFamily
 import com.example.testapp.uicommon.component.QuestionEditDialog
+import com.example.testapp.uicommon.design.AppConfirmDialog
 import com.example.testapp.uicommon.design.AppScrollBottomSheet
 import com.example.testapp.uicommon.design.AppSpacing
 import com.example.testapp.uicommon.design.QuestionTypographySheet
@@ -122,19 +121,12 @@ fun PracticeScreenOverlays(
         }
     }
     if (showDeleteExplanationDialog) {
-        AlertDialog(
-            onDismissRequest = onDismissDeleteExplanation,
-            confirmButton = {
-                TextButton(onClick = onConfirmDeleteExplanation) {
-                    Text(stringResource(R.string.confirm))
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = onDismissDeleteExplanation) {
-                    Text(stringResource(R.string.cancel))
-                }
-            },
-            text = { Text(stringResource(R.string.confirm_delete_explanation)) }
+        AppConfirmDialog(
+            onDismiss = onDismissDeleteExplanation,
+            message = stringResource(R.string.confirm_delete_explanation),
+            confirmLabel = stringResource(R.string.confirm),
+            dismissLabel = stringResource(R.string.cancel),
+            onConfirm = onConfirmDeleteExplanation,
         )
     }
     PracticeDialogsHost(

@@ -14,13 +14,16 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -40,6 +43,9 @@ import com.example.testapp.domain.QuestionTypes
 import com.example.testapp.domain.model.Question
 import com.example.testapp.uicommon.R
 import com.example.testapp.uicommon.design.AppLoadingIndicator
+import com.example.testapp.uicommon.design.AppOverlayMetrics
+import com.example.testapp.uicommon.design.appOverlayContainerColor
+import com.example.testapp.uicommon.design.appOverlayDialogShape
 import com.example.testapp.uicommon.util.buildEditableFillAnswer
 import com.example.testapp.uicommon.util.countEditableFillBlanks
 import com.example.testapp.uicommon.util.insertEditableAnswerPart
@@ -147,14 +153,20 @@ fun QuestionEditDialog(
                 (!supportsOptionEditing || (editedOptions.size >= minimumOptionCount && editedOptions.all { it.isNotBlank() }))
         }
 
+    val fieldShape = RoundedCornerShape(AppOverlayMetrics.listItemCorner)
     Dialog(
         onDismissRequest = onDismiss,
         properties = DialogProperties(usePlatformDefaultWidth = false)
     ) {
-        Card(
+        ElevatedCard(
             modifier = Modifier
                 .fillMaxWidth(0.94f)
-                .fillMaxHeight(0.88f)
+                .fillMaxHeight(0.88f),
+            shape = appOverlayDialogShape(),
+            colors = CardDefaults.elevatedCardColors(containerColor = appOverlayContainerColor()),
+            elevation = CardDefaults.elevatedCardElevation(
+                defaultElevation = AppOverlayMetrics.dialogElevation,
+            ),
         ) {
             Column(
                 modifier = Modifier
@@ -196,7 +208,12 @@ fun QuestionEditDialog(
                             },
                             label = { Text(stringResource(R.string.uicommon_question_content_label)) },
                             modifier = Modifier.fillMaxWidth(),
-                            minLines = 8
+                            minLines = 8,
+                            shape = fieldShape,
+                            colors = OutlinedTextFieldDefaults.colors(
+                                focusedContainerColor = MaterialTheme.colorScheme.surface,
+                                unfocusedContainerColor = MaterialTheme.colorScheme.surface,
+                            ),
                         )
                         if (supportsOptionEditing) {
                             TextButton(onClick = { editedOptions = editedOptions + "" }) {
@@ -275,7 +292,12 @@ fun QuestionEditDialog(
                                 onValueChange = { editedQuestionAnswer = it },
                                 label = { Text(stringResource(R.string.uicommon_answer_label)) },
                                 modifier = Modifier.fillMaxWidth(),
-                                minLines = 3
+                                minLines = 3,
+                                shape = fieldShape,
+                                colors = OutlinedTextFieldDefaults.colors(
+                                    focusedContainerColor = MaterialTheme.colorScheme.surface,
+                                    unfocusedContainerColor = MaterialTheme.colorScheme.surface,
+                                ),
                             )
                         }
                     }
@@ -310,6 +332,7 @@ private fun EditableTextRow(
     onValueChange: (String) -> Unit,
     onRemove: () -> Unit
 ) {
+    val fieldShape = RoundedCornerShape(AppOverlayMetrics.listItemCorner)
     Row(
         modifier = Modifier.fillMaxWidth(),
         verticalAlignment = Alignment.CenterVertically
@@ -319,7 +342,12 @@ private fun EditableTextRow(
             onValueChange = onValueChange,
             label = { Text(label) },
             modifier = Modifier.weight(1f),
-            minLines = 2
+            minLines = 2,
+            shape = fieldShape,
+            colors = OutlinedTextFieldDefaults.colors(
+                focusedContainerColor = MaterialTheme.colorScheme.surface,
+                unfocusedContainerColor = MaterialTheme.colorScheme.surface,
+            ),
         )
         IconButton(
             onClick = onRemove,

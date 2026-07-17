@@ -2,12 +2,12 @@ package com.example.testapp.uicommon.component
 
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.unit.TextUnit
+import com.example.testapp.uicommon.design.AiChatPromptDesignTokens
 import com.example.testapp.uicommon.model.AiChatMessage
 
 @Composable
@@ -32,7 +32,7 @@ fun AiChatConversationLayout(
 ) {
     Scaffold(
         modifier = modifier.fillMaxSize(),
-        containerColor = MaterialTheme.colorScheme.background,
+        containerColor = AiChatPromptDesignTokens.pageBackground,
         bottomBar = {
             AiChatPromptSheet(
                 value = inputText,

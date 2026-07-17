@@ -76,11 +76,19 @@ object HomeDesignTokens {
     val bottomNavRadius: Dp = 28.dp
     val chipRadius: Dp = 16.dp
 
-    // ─── Elevation ───
+    // ─── Elevation（对齐答题页立体 chrome）───
     val elevationNone: Dp = 0.dp
-    val elevationLow: Dp = 2.dp
-    val elevationMedium: Dp = 4.dp
-    val elevationHigh: Dp = 8.dp
+    val elevationLow: Dp = 4.dp
+    val elevationMedium: Dp = 8.dp
+    val elevationHigh: Dp = 12.dp
+    val elevationHero: Dp = 16.dp
+    val elevationHeroInner: Dp = 6.dp
+    val elevationBottomBar: Dp = 18.dp
+    val elevationBottomBarTonal: Dp = 3.dp
+    val elevationHeaderIcon: Dp = 8.dp
+    val elevationNavIconSelected: Dp = 10.dp
+    val elevationNavIconIdle: Dp = 5.dp
+    val questionCardElevation: Dp = 8.dp
 
     // ─── Typography ───
     val greetingFontSize = 30.sp

@@ -5,70 +5,47 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import com.example.testapp.uicommon.design.AiChatPromptDesignTokens
 import com.example.testapp.uicommon.design.AppSpacing
 
 @Composable
 fun AiChatTypingBubble(
     label: String,
     modifier: Modifier = Modifier,
-    geminiStyle: Boolean = true
+    geminiStyle: Boolean = true,
 ) {
-    if (geminiStyle) {
+    val tokens = AiChatPromptDesignTokens
+    Surface(
+        modifier = modifier
+            .fillMaxWidth(if (geminiStyle) 1f else 0.55f)
+            .padding(vertical = AppSpacing.xs),
+        shape = RoundedCornerShape(if (geminiStyle) tokens.assistantCardCornerRadius else 16.dp),
+        color = tokens.cardWhite,
+        tonalElevation = 2.dp,
+        shadowElevation = tokens.bubbleElevation,
+    ) {
         Row(
-            modifier = modifier
-                .fillMaxWidth()
-                .padding(vertical = AppSpacing.xs),
+            modifier = Modifier.padding(horizontal = AppSpacing.md, vertical = AppSpacing.sm),
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(AppSpacing.sm)
+            horizontalArrangement = Arrangement.spacedBy(AppSpacing.sm),
         ) {
             CircularProgressIndicator(
                 modifier = Modifier.size(18.dp),
-                strokeWidth = 2.dp
+                strokeWidth = 2.dp,
+                color = tokens.brandBlue,
             )
             Text(
                 text = label,
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
+                color = tokens.textSecondary,
             )
-        }
-        return
-    }
-    Row(
-        modifier = modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.Start
-    ) {
-        androidx.compose.material3.Surface(
-            modifier = Modifier.fillMaxWidth(0.55f),
-            shape = androidx.compose.foundation.shape.RoundedCornerShape(
-                topStart = 4.dp,
-                topEnd = 16.dp,
-                bottomEnd = 16.dp,
-                bottomStart = 16.dp
-            ),
-            color = MaterialTheme.colorScheme.surfaceVariant
-        ) {
-            Row(
-                modifier = Modifier.padding(horizontal = AppSpacing.md, vertical = AppSpacing.sm),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(AppSpacing.sm)
-            ) {
-                CircularProgressIndicator(
-                    modifier = Modifier.size(16.dp),
-                    strokeWidth = 2.dp
-                )
-                Text(
-                    text = label,
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
         }
     }
 }

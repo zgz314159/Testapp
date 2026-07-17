@@ -34,6 +34,7 @@ import com.example.testapp.domain.usecase.FileStatistics
 import com.example.testapp.presentation.screen.home.HomeDashboardPipeline
 import com.example.testapp.presentation.screen.home.HomeScrollFrameMonitor
 import com.example.testapp.presentation.screen.home.HomeViewModel
+import com.example.testapp.presentation.screen.home.design.HomeDesignTokens
 import com.example.testapp.uicommon.component.OptimizedFileCard
 import com.example.testapp.uicommon.component.SwipeRevealActionBox
 import kotlinx.coroutines.flow.distinctUntilChanged
@@ -93,7 +94,9 @@ fun HomeFileListColumn(
         }
     }
     val homeCardShape = RoundedCornerShape(20.dp)
-    val homeCardElevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
+    val homeCardElevation = CardDefaults.cardElevation(
+        defaultElevation = HomeDesignTokens.questionCardElevation,
+    )
     LazyColumn(
         modifier = modifier.fillMaxSize().onGloballyPositioned { coords -> listBounds = coords.boundsInRoot() },
         state = listState,

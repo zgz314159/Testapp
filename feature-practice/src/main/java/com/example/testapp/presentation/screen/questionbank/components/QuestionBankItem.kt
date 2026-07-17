@@ -22,9 +22,10 @@ import androidx.compose.material.icons.rounded.Psychology
 import androidx.compose.material.icons.rounded.School
 import androidx.compose.material.icons.rounded.Topic
 import androidx.compose.material.icons.rounded.WorkspacePremium
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedCard
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -63,15 +64,17 @@ fun QuestionBankItem(
         MaterialTheme.colorScheme.outlineVariant
     }
 
-    OutlinedCard(
-        modifier = modifier,
-        shape = RoundedCornerShape(20.dp)
+    ElevatedCard(
+        modifier = modifier.then(
+            Modifier.border(1.dp, borderColor.copy(alpha = 0.55f), RoundedCornerShape(20.dp))
+        ),
+        shape = RoundedCornerShape(20.dp),
+        colors = CardDefaults.elevatedCardColors(containerColor = containerColor),
+        elevation = CardDefaults.elevatedCardElevation(defaultElevation = 6.dp),
     ) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .background(color = containerColor)
-                .border(1.dp, borderColor.copy(alpha = 0.7f), RoundedCornerShape(20.dp))
                 .padding(horizontal = 18.dp, vertical = 18.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {

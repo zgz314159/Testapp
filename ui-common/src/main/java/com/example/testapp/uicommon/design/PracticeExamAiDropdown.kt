@@ -1,10 +1,8 @@
 package com.example.testapp.uicommon.design
 
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
-import androidx.compose.material3.Icon
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.res.stringResource
+import com.example.testapp.uicommon.R
 
 @Composable
 fun PracticeExamAiDropdown(
@@ -13,34 +11,37 @@ fun PracticeExamAiDropdown(
     deepSeekLabel: String,
     sparkLabel: String,
     onDeepSeek: () -> Unit,
-    onSparkAsk: () -> Unit
+    onSparkAsk: () -> Unit,
 ) {
-    DropdownMenu(expanded = expanded, onDismissRequest = onDismiss) {
-        DropdownMenuItem(
-            text = { Text(deepSeekLabel) },
-            onClick = {
-                onDismiss()
-                onDeepSeek()
-            },
-            leadingIcon = {
-                Icon(
-                    imageVector = iconForPracticeExamAiMenuAction(PracticeExamAiMenuAction.DeepSeek),
-                    contentDescription = null
-                )
-            }
-        )
-        DropdownMenuItem(
-            text = { Text(sparkLabel) },
-            onClick = {
-                onDismiss()
-                onSparkAsk()
-            },
-            leadingIcon = {
-                Icon(
-                    imageVector = iconForPracticeExamAiMenuAction(PracticeExamAiMenuAction.SparkAsk),
-                    contentDescription = null
-                )
-            }
-        )
-    }
+    val tokens = AppElevatedActionSheetTokens
+    AppElevatedActionSheet(
+        visible = expanded,
+        title = stringResource(R.string.uicommon_ai_action_sheet_title),
+        subtitle = stringResource(R.string.uicommon_ai_action_sheet_subtitle),
+        onDismiss = onDismiss,
+        actions = listOf(
+            AppElevatedActionItem(
+                title = deepSeekLabel,
+                subtitle = stringResource(R.string.uicommon_ai_deepseek_hint),
+                icon = iconForPracticeExamAiMenuAction(PracticeExamAiMenuAction.DeepSeek),
+                iconTint = tokens.brandBlue,
+                iconBg = tokens.brandBlueSoft,
+                onClick = {
+                    onDismiss()
+                    onDeepSeek()
+                },
+            ),
+            AppElevatedActionItem(
+                title = sparkLabel,
+                subtitle = stringResource(R.string.uicommon_ai_spark_hint),
+                icon = iconForPracticeExamAiMenuAction(PracticeExamAiMenuAction.SparkAsk),
+                iconTint = tokens.accentPurple,
+                iconBg = tokens.accentPurpleSoft,
+                onClick = {
+                    onDismiss()
+                    onSparkAsk()
+                },
+            ),
+        ),
+    )
 }

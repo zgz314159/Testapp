@@ -6,6 +6,10 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import com.example.testapp.core.common.LocalizedResult
+import com.example.testapp.uicommon.design.AppConfirmDialog
+import com.example.testapp.uicommon.design.AppOverlayMetrics
+import com.example.testapp.uicommon.design.appOverlayContainerColor
+import com.example.testapp.uicommon.design.appOverlayDialogShape
 import com.example.testapp.uicommon.design.AppLoadingIndicator
 
 @Composable
@@ -18,18 +22,12 @@ fun PracticeConfirmDialog(
     onConfirm: () -> Unit
 ) {
     if (!show) return
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        confirmButton = {
-            TextButton(onClick = {
-                onDismiss()
-                onConfirm()
-            }) { Text(confirmLabel) }
-        },
-        dismissButton = {
-            TextButton(onClick = onDismiss) { Text(dismissLabel) }
-        },
-        text = { Text(message) }
+    AppConfirmDialog(
+        onDismiss = onDismiss,
+        message = message,
+        confirmLabel = confirmLabel,
+        dismissLabel = dismissLabel,
+        onConfirm = onConfirm,
     )
 }
 
@@ -65,6 +63,9 @@ fun PracticeChatGptDialog(
                     Text(resultText)
                 }
             }
-        }
+        },
+        shape = appOverlayDialogShape(),
+        containerColor = appOverlayContainerColor(),
+        tonalElevation = AppOverlayMetrics.dialogElevation,
     )
 }

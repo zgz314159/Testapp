@@ -1,7 +1,8 @@
 package com.example.testapp.presentation.screen.result
 
 import com.example.testapp.domain.model.HistoryRecord
-import java.util.Locale
+import com.example.testapp.domain.model.calculateResultHistoryRecordStats
+import com.example.testapp.domain.model.formatResultPercent
 
 data class ResultDisplayStats(
     val isExamMode: Boolean,
@@ -90,6 +91,12 @@ fun buildResultDisplayStats(
         else -> "练习" to quizId
     }
 
+    // 折线图：使用统一的 calculateResultHistoryRecordStats，取最近 9 条
+    val accuracyList = sameFileHistory.takeLast(9).map { record ->
+        val stats = calculateResultHistoryRecordStats(record)
+        stats.rate.toFloat()
+    }
+
     return ResultDisplayStats(
         isExamMode = isExamMode,
         modeText = modeText,
@@ -116,18 +123,6 @@ fun buildResultDisplayStats(
         overallRateText = formatResultPercent(overallRate),
         sameFileHistory = sameFileHistory,
         actualExamCount = cumulativeExamCount ?: sameFileHistory.size,
-        accuracyList = sameFileHistory.takeLast(9).map { record ->
-            val answered = (record.total - record.unanswered).coerceAtLeast(0)
-            if (answered > 0) {
-                (record.score.toFloat() / answered).coerceIn(0f, 1f)
-            } else {
-                0f
-            }
-        },
+        accuracyList = accuracyList,
     )
-}
-
-fun formatResultPercent(rate: Double): String {
-    val percent = rate.coerceIn(0.0, 1.0) * 100.0
-    return String.format(Locale.US, "%.2f", percent).trimEnd('0').trimEnd('.')
 }
