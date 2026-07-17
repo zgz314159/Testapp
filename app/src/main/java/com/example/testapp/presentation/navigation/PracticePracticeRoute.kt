@@ -58,6 +58,7 @@ fun PracticePracticeRoute(
             onAskSpark = practiceNavCallbacks.onAskSpark,
             onAskBaidu = practiceNavCallbacks.onAskBaidu,
             onViewExplanation = practiceNavCallbacks.onViewExplanation,
+            onEditCorrectAnswer = practiceNavCallbacks.onEditCorrectAnswer,
             onEditNote = practiceNavCallbacks.onEditNote,
         )
     }
@@ -108,6 +109,7 @@ fun ReviewPracticeRoute(
             onAskSpark = practiceNavCallbacks.onAskSpark,
             onAskBaidu = practiceNavCallbacks.onAskBaidu,
             onViewExplanation = practiceNavCallbacks.onViewExplanation,
+            onEditCorrectAnswer = practiceNavCallbacks.onEditCorrectAnswer,
             onEditNote = practiceNavCallbacks.onEditNote,
         )
     }

@@ -32,10 +32,10 @@ fun AppCard(
         shape = RoundedCornerShape(20.dp),
         colors = CardDefaults.elevatedCardColors(containerColor = containerColor),
         elevation = CardDefaults.elevatedCardElevation(
-            defaultElevation = 4.dp,
-            pressedElevation = 2.dp,
-            focusedElevation = 5.dp,
-            hoveredElevation = 5.dp,
+            defaultElevation = 8.dp,
+            pressedElevation = 4.dp,
+            focusedElevation = 10.dp,
+            hoveredElevation = 10.dp,
         ),
     ) {
         Column(modifier = contentPadding, content = content)

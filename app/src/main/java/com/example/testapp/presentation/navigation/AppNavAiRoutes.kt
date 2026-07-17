@@ -10,6 +10,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.navArgument
 import com.example.testapp.presentation.screen.ai.BaiduAskScreen
 import com.example.testapp.presentation.screen.ai.BaiduScreen
+import com.example.testapp.presentation.screen.ai.CorrectAnswerEditScreen
 import com.example.testapp.presentation.screen.ai.DeepSeekAskScreen
 import com.example.testapp.presentation.screen.ai.SparkAskScreen
 import com.example.testapp.presentation.screen.ai.SparkScreen
@@ -146,6 +147,27 @@ fun NavGraphBuilder.registerAiOverlayRoutes(
             onBack = onBack,
             onOpenDeepSeekAsk = { enc -> navController.navigateAiAsk("deepseek_ask", id, index, enc) },
             onSave = { AppNavAiWritebackPipeline.saveNote(sessions, id, index, it) },
+        )
+    }
+
+    composable("correct_answer/{id}/{index}/{text}", arguments = aiOverlayIdIndexTextArgs) { entry ->
+        val encoded = entry.arguments?.getString("text") ?: ""
+        val navText = com.example.testapp.util.safeDecode(encoded)
+        val index = entry.arguments?.getInt("index") ?: 0
+        val sessions = rememberAiOverlayParentSessions(navController, entry)
+        val examQuestions by (sessions.examBindings?.questions?.collectAsState(initial = emptyList())
+            ?: remember { androidx.compose.runtime.mutableStateOf(emptyList()) })
+        val practiceQuestions by (sessions.practiceBindings?.questions?.collectAsState(initial = emptyList())
+            ?: remember { androidx.compose.runtime.mutableStateOf(emptyList()) })
+        val liveAnswer = when {
+            sessions.examBindings != null -> examQuestions.getOrNull(index)?.answer
+            sessions.practiceBindings != null -> practiceQuestions.getOrNull(index)?.answer
+            else -> null
+        }
+        CorrectAnswerEditScreen(
+            initialAnswer = liveAnswer?.takeIf { it.isNotBlank() } ?: navText,
+            onBack = onBack,
+            onSave = { AppNavAiWritebackPipeline.updateQuestionAnswer(sessions, index, it) },
         )
     }
 

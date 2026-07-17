@@ -103,6 +103,7 @@ fun ExamScreenContent(
     onViewBaidu: (String, Int, Int) -> Unit = { _, _, _ -> },
     onAskBaidu: (String, Int, Int) -> Unit = { _, _, _ -> },
     onViewExplanation: (String) -> Unit = {},
+    onEditCorrectAnswer: (String, Int, Int) -> Unit = { _, _, _ -> },
     onEditNote: (String, Int, Int) -> Unit = { _, _, _ -> }
 ) {
     val questions by bindings.questions.collectAsState()
@@ -431,6 +432,7 @@ fun ExamScreenContent(
                     onViewSpark = { text, qId, idx -> timer.pause(); onViewSpark(text, qId, idx) },
                     onViewBaidu = { text, qId, idx -> timer.pause(); onViewBaidu(text, qId, idx) },
                     onViewExplanation = onViewExplanation,
+                    onEditCorrectAnswer = { text, qId, idx -> timer.pause(); onEditCorrectAnswer(text, qId, idx) },
                     onShowDeleteNoteDialog = { timer.cancel(); ds.showDeleteNoteDialog = true },
                     onSetDeleteTargetAndShow = { target ->
                         timer.cancel()

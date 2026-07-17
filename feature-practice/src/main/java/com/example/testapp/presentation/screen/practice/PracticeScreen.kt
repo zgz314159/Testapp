@@ -52,6 +52,7 @@ fun PracticeScreen(
     onAskSpark: (String, Int, Int) -> Unit = { _, _, _ -> },
     onAskBaidu: (String, Int, Int) -> Unit = { _, _, _ -> },
     onViewExplanation: (String) -> Unit = {},
+    onEditCorrectAnswer: (String, Int, Int) -> Unit = { _, _, _ -> },
     onEditNote: (String, Int, Int) -> Unit = { _, _, _ -> },
 ) {
     val randomPractice by settingsViewModel.randomPractice.collectAsState()
@@ -182,6 +183,7 @@ fun PracticeScreen(
         onAskSpark = onAskSpark,
         onAskBaidu = onAskBaidu,
         onViewExplanation = onViewExplanation,
+        onEditCorrectAnswer = onEditCorrectAnswer,
         onEditNote = onEditNote,
     )
 }

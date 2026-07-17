@@ -55,6 +55,7 @@ fun PracticeScreenQuestionScrollContent(
     onRetryCurrent: () -> Unit,
     onRetryWrongBlanks: () -> Unit,
     onViewExplanation: (String) -> Unit,
+    onEditCorrectAnswer: (String, Int, Int) -> Unit,
     onEditNote: (String, Int, Int) -> Unit,
     onViewDeepSeek: (String, Int, Int) -> Unit,
     onViewSpark: (String, Int, Int) -> Unit,
@@ -151,8 +152,6 @@ fun PracticeScreenQuestionScrollContent(
         } else {
             stringResource(R.string.answer_wrong_format, answerResult.correctText)
         }
-        val correctAnswerFullscreenText =
-            stringResource(R.string.correct_answer_prefix) + answerResult.correctText
         PracticeResultSection(
             question = question,
             showResult = showResult,
@@ -169,7 +168,8 @@ fun PracticeScreenQuestionScrollContent(
             onInteraction = { autoAdvance.cancel() },
             onDoubleTap = {
                 autoAdvance.cancel()
-                onViewExplanation(correctAnswerFullscreenText)
+                val rawAnswer = question.answer.ifBlank { resolvedFillAnswer }
+                onEditCorrectAnswer(rawAnswer.ifBlank { " " }, question.id, currentIndex)
             },
         )
         val analysisPrefix = stringResource(R.string.analysis_prefix)

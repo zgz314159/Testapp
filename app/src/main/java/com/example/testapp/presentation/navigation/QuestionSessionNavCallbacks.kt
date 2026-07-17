@@ -13,6 +13,7 @@ data class QuestionSessionNavCallbacks(
     val onAskSpark: (String, Int, Int) -> Unit,
     val onAskBaidu: (String, Int, Int) -> Unit,
     val onViewExplanation: (String) -> Unit,
+    val onEditCorrectAnswer: (String, Int, Int) -> Unit,
     val onEditNote: (String, Int, Int) -> Unit,
 )
 
@@ -48,6 +49,10 @@ fun NavHostController.rememberQuestionSessionNavCallbacks(): QuestionSessionNavC
             onViewExplanation = { text ->
                 val encodedText = safeEncode(text)
                 nav.navigate("explanation/$encodedText")
+            },
+            onEditCorrectAnswer = { text, id, index ->
+                val encodedText = safeEncode(text)
+                nav.navigate("correct_answer/$id/$index/$encodedText")
             },
             onEditNote = { text, id, index ->
                 val encodedText = safeEncode(text)

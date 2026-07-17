@@ -58,6 +58,7 @@ fun ExamExamRoute(
             onAskSpark = examNavCallbacks.onAskSpark,
             onAskBaidu = examNavCallbacks.onAskBaidu,
             onViewExplanation = examNavCallbacks.onViewExplanation,
+            onEditCorrectAnswer = examNavCallbacks.onEditCorrectAnswer,
             onEditNote = examNavCallbacks.onEditNote,
         )
     }

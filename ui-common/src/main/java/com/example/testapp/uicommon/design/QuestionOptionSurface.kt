@@ -35,7 +35,7 @@ fun QuestionOptionSurface(
         label = "questionOptionScale",
     )
     val elevation by animateDpAsState(
-        targetValue = if (pressed) 1.dp else 4.dp,
+        targetValue = if (pressed) 2.dp else 7.dp,
         label = "questionOptionElevation",
     )
     Surface(
@@ -47,7 +47,7 @@ fun QuestionOptionSurface(
         enabled = enabled,
         shape = RoundedCornerShape(16.dp),
         color = containerColor,
-        tonalElevation = 1.dp,
+        tonalElevation = 2.dp,
         shadowElevation = elevation,
         interactionSource = interactionSource,
     ) {

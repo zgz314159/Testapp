@@ -6,12 +6,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
-import com.example.testapp.core.util.answerToOptionIndices
-import com.example.testapp.core.util.resolveDisplayOptions
 import com.example.testapp.core.util.resolveFillCorrectAnswer
 import com.example.testapp.domain.model.Question
 import com.example.testapp.feature.exam.R
-import com.example.testapp.presentation.screen.exam.resolveExamAnswerResultWrongToken
 import com.example.testapp.uicommon.design.AnalysisSectionTone
 import com.example.testapp.uicommon.design.analysisSectionColors
 
@@ -40,24 +37,21 @@ fun ExamAnalysisArea(
     onViewSpark: (String, Int, Int) -> Unit,
     onViewBaidu: (String, Int, Int) -> Unit,
     onViewExplanation: (String) -> Unit = {},
+    onEditCorrectAnswer: (String, Int, Int) -> Unit = { _, _, _ -> },
     onShowDeleteNoteDialog: () -> Unit,
     onSetDeleteTargetAndShow: (String) -> Unit
 ) {
     val analysisLabel = stringResource(R.string.analysis_prefix)
     if (showResult) {
-        val correctAnswerLabel = stringResource(R.string.correct_answer_prefix)
-        val correctAnswerBody = resolveExamAnswerResultWrongToken(
-            question = question,
-            correctIndices = answerToOptionIndices(question),
-            displayOptions = resolveDisplayOptions(question),
-            resolvedFillAnswer = resolveFillCorrectAnswer(question),
-        )
         AnswerResultRow(
             question = question,
             selectedOption = selectedOption,
             textAnswer = textAnswer,
             questionFontSize = questionFontSize,
-            onDoubleTap = { onViewExplanation(correctAnswerLabel + correctAnswerBody) },
+            onDoubleTap = {
+                val rawAnswer = question.answer.ifBlank { resolveFillCorrectAnswer(question) }
+                onEditCorrectAnswer(rawAnswer.ifBlank { " " }, question.id, currentIndex)
+            },
         )
         if (question.explanation.isNotBlank()) {
             val collapsed = expandedSection != 0

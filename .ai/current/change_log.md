@@ -1,5 +1,17 @@
 # Change Log
 
+## 2026-07-17 — 答题页立体感加深（保护眼底色）
+
+在 `8b6c53a` Material 规格上仅提高 elevation：顶栏 9dp、主卡 8dp、选项 7→2dp、底栏 10dp；提交钮 56dp / 12dp 阴影并上浮 6dp。卡片色仍 `#F0F0F2`，页面护眼背景不变。
+
+## 2026-07-17 — 还原答题界面为 APK 既定 Material 规格
+
+撤销 soft-card 轻拟物尝试，答题 chrome 回到 `8b6c53a`：`Surface`/`ElevatedCard`、顶栏 56dp、底栏内嵌 52dp 提交钮。导航箭头保留 AutoMirrored。
+
+## 2026-07-17 — 正确答案全屏可编辑写回
+
+双击「正确答案」进入 `CorrectAnswerEditScreen`（交互对齐笔记全屏）；退出有改动时确认保存；经 `AppNavAiWritebackPipeline.updateQuestionAnswer` 写回 Session（练习 `UpdateQuestionAllFields` / 考试 `SaveEditedQuestionFields`）；`DrawingAnswerEditPipeline` 保 DRAWING 标签不丢图。解析区仍走只读 `ExplanationScreen`。
+
 ## 2026-07-17 — 正确答案区双击全屏
 
 答题结果区双击进入与解析相同的 `ExplanationScreen`；练习/考试对称接线；`ReadingCollapsibleSection` 增加 `onDoubleTap`。

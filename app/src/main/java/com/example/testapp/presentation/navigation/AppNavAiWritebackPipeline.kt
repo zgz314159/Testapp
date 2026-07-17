@@ -83,4 +83,37 @@ internal object AppNavAiWritebackPipeline {
             dispatchPracticeCommand(it, SessionCommand.AppendNote(questionId, index, text))
         }
     }
+
+    /** 正确答案全屏编辑写回：练习走 UpdateQuestionAllFields（含落盘），考试走 SaveEditedQuestionFields。 */
+    fun updateQuestionAnswer(
+        sessions: AiOverlayParentSessions,
+        index: Int,
+        answer: String,
+    ) {
+        sessions.practiceBindings?.let { bindings ->
+            val question = bindings.questions.value.getOrNull(index) ?: return@let
+            dispatchPracticeCommand(
+                bindings,
+                SessionCommand.UpdateQuestionAllFields(
+                    index = index,
+                    content = question.content,
+                    options = question.options,
+                    answer = answer,
+                    explanation = question.explanation,
+                ),
+            )
+        }
+        sessions.examBindings?.let { bindings ->
+            val question = bindings.questions.value.getOrNull(index) ?: return@let
+            dispatchExamCommand(
+                bindings,
+                SessionCommand.SaveEditedQuestionFields(
+                    index = index,
+                    content = question.content,
+                    answer = answer,
+                    options = question.options,
+                ),
+            )
+        }
+    }
 }

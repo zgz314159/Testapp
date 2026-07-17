@@ -37,6 +37,7 @@ fun AdaptiveFadingPracticeRoute(
             onAskSpark = practiceNavCallbacks.onAskSpark,
             onAskBaidu = practiceNavCallbacks.onAskBaidu,
             onViewExplanation = practiceNavCallbacks.onViewExplanation,
+            onEditCorrectAnswer = practiceNavCallbacks.onEditCorrectAnswer,
             onEditNote = practiceNavCallbacks.onEditNote,
         )
     }

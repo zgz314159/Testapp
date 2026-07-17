@@ -22,8 +22,8 @@ fun PracticeExamTopBarShell(
         modifier = modifier.fillMaxWidth(),
         shape = RoundedCornerShape(20.dp),
         color = MaterialTheme.colorScheme.surface,
-        tonalElevation = 1.dp,
-        shadowElevation = 5.dp,
+        tonalElevation = 2.dp,
+        shadowElevation = 9.dp,
     ) {
         Row(
             modifier = Modifier

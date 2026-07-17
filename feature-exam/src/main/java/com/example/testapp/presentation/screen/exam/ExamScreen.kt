@@ -47,6 +47,7 @@ fun ExamScreen(
     onViewBaidu: (String, Int, Int) -> Unit = { _, _, _ -> },
     onAskBaidu: (String, Int, Int) -> Unit = { _, _, _ -> },
     onViewExplanation: (String) -> Unit = {},
+    onEditCorrectAnswer: (String, Int, Int) -> Unit = { _, _, _ -> },
     onEditNote: (String, Int, Int) -> Unit = { _, _, _ -> },
 ) {
     val context = LocalContext.current
@@ -151,6 +152,7 @@ fun ExamScreen(
         onViewBaidu = onViewBaidu,
         onAskBaidu = onAskBaidu,
         onViewExplanation = onViewExplanation,
+        onEditCorrectAnswer = onEditCorrectAnswer,
         onEditNote = onEditNote,
     )
 

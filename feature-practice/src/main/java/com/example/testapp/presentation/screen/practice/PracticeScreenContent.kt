@@ -72,6 +72,7 @@ fun PracticeScreenContent(
     onAskSpark: (String, Int, Int) -> Unit = { _, _, _ -> },
     onAskBaidu: (String, Int, Int) -> Unit = { _, _, _ -> },
     onViewExplanation: (String) -> Unit = {},
+    onEditCorrectAnswer: (String, Int, Int) -> Unit = { _, _, _ -> },
     onEditNote: (String, Int, Int) -> Unit = { _, _, _ -> }
 ) {
     val randomPractice = externalState.randomPractice
@@ -339,6 +340,9 @@ fun PracticeScreenContent(
                         sendCommand(SessionCommand.RetryWrongBlanks(currentIndex))
                     },
                     onViewExplanation = { overlayNav { onViewExplanation(it) } },
+                    onEditCorrectAnswer = { text, id, idx ->
+                        if (persistentQuestionActionsEnabled) overlayNav { onEditCorrectAnswer(text, id, idx) }
+                    },
                     onEditNote = { note, id, idx ->
                         if (persistentQuestionActionsEnabled) overlayNav { onEditNote(note, id, idx) }
                     },
