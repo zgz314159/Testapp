@@ -1,5 +1,16 @@
 # 项目重构方案与进度
 
+## Phase 27: 自适应渐隐原子练习（P80 🟡）
+
+| 批次 | 内容 | 状态 |
+|------|------|------|
+| P80a | 方案、ADR、Session Kind/Creator/Registry/Policy | ✅ |
+| P80b | 双池抽题、四阶段渐隐、错答回退、独立 Room 状态 | ✅ |
+| P80c | SQLite/DB 首页入口、结果页隔离、纯函数测试 | ✅ |
+| P80d | JDK 21 全量编译、lint、单测、APK 冒烟 | ⏳ 环境网络阻塞 |
+
+约束：不替换普通练习管道，不修改原子题库源数据；后续个性化间隔在 MVP 数据验证后另立 ADR。
+
 ## Phase 1: 统一状态模型 — 已完成
 - UnifiedQuestionState + UnifiedSessionState 创建
 - Old types 标记 @Deprecated (保留 JSON 反序列化兼容)

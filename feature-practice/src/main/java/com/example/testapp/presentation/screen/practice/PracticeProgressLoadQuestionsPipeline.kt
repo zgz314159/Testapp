@@ -49,6 +49,7 @@ object PracticeProgressLoadQuestionsPipeline {
         progressCoordinator: PracticeProgressCoordinator,
         persistenceConfig: SessionPersistenceConfig,
         progressId: String,
+        skipFillTransform: Boolean = false,
     ): Outcome {
         if (originalQuestions.isEmpty()) {
             return Outcome.Empty(
@@ -59,13 +60,13 @@ object PracticeProgressLoadQuestionsPipeline {
         val sourceCatalog = originalQuestions.distinctBy { it.id }
         val curFillSignature = fillConfig.signature()
         val fillConfigSensitive = PracticeFillConfigPipeline.isFillConfigSensitive(originalQuestions, sourceId)
+        var progress = existingProgress.takeIf { persistenceConfig.restoreProgress }
         val canReuseByFill = progressCoordinator.canReuseByFillSignature(
-            existingProgress?.sessionId,
+            progress?.sessionId,
             curFillSignature,
             fillConfigSensitive,
         )
 
-        var progress = existingProgress
         val fillSignatureUpgrade =
             PracticeProgressLoadRoundContextPipeline.maybeUpgradeFillSignature(
                 existingProgress = progress,
@@ -96,9 +97,14 @@ object PracticeProgressLoadQuestionsPipeline {
             questionCount = questionCount,
             newSessionStartTime = newSessionStartTime,
         )
-        val fillTransformed = withContext(Dispatchers.Default) {
-            PracticeFillConfigPipeline.applyTransform(orderedSourceQuestions, fillConfig, roundContext.fillSeed)
-        }
+        val fillTransformed =
+            if (skipFillTransform) {
+                orderedSourceQuestions
+            } else {
+                withContext(Dispatchers.Default) {
+                    PracticeFillConfigPipeline.applyTransform(orderedSourceQuestions, fillConfig, roundContext.fillSeed)
+                }
+            }
         val questionsWithFixedOrder =
             PracticePinnedQuestionPipeline.ensurePinned(
                 ordered =
@@ -112,7 +118,10 @@ object PracticeProgressLoadQuestionsPipeline {
             )
 
         val newRoundProgress =
-            if (PracticeProgressLoadRoundContextPipeline.shouldWriteNewRoundProgress(roundContext)) {
+            if (
+                persistenceConfig.persistProgress &&
+                PracticeProgressLoadRoundContextPipeline.shouldWriteNewRoundProgress(roundContext)
+            ) {
                 PracticeNewRoundProgressPipeline.build(
                     prior = progress,
                     progressId = progressId,

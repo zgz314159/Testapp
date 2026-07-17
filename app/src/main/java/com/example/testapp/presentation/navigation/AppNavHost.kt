@@ -27,6 +27,10 @@ fun AppNavHost(
                     val encoded = java.net.URLEncoder.encode(quizId, "UTF-8")
                     navController.navigate("question/$encoded")
                 },
+                onStartAdaptive = { quizId ->
+                    val encoded = java.net.URLEncoder.encode(quizId, "UTF-8")
+                    navController.navigate("adaptive/$encoded")
+                },
                 onBrowseQuestion = { fileName, questionId ->
                     val encoded = java.net.URLEncoder.encode(fileName, "UTF-8")
                     navController.navigate(
@@ -114,6 +118,7 @@ fun AppNavHost(
                 cumulativeCorrect = cumulativeCorrect,
                 cumulativeAnswered = cumulativeAnswered,
                 cumulativeExamCount = cumulativeExamCount,
+                detailEnabled = !quizId.startsWith("adaptive_"),
                 onBackHome = { navController.popBackStack("home", false) },
                 onViewDetail = {
                     val progressId = sessionProgressId ?: quizId

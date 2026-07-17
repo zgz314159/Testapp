@@ -27,6 +27,7 @@ data class StatisticsSnapshot(
 )
 
 data class SessionSnapshot(
+    val kind: QuestionSessionKind? = null,
     val currentIndex: Int = 0,
     val questions: List<QuestionSnapshot> = emptyList(),
     val ui: UiSnapshot = UiSnapshot(),

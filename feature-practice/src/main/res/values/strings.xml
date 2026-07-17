@@ -93,6 +93,7 @@
     <string name="home_bottom_mine">我的</string>
     <string name="home_start_practice">开始练习</string>
     <string name="home_continue_practice">接着练习</string>
+    <string name="home_start_adaptive_fading">自适应渐隐练习</string>
     <string name="home_start_exam">开始考试</string>
     <string name="home_continue_exam">接着考试</string>
     <string name="home_restart_quiz">重答</string>

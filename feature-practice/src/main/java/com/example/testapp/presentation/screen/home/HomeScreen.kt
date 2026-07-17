@@ -47,6 +47,7 @@ fun HomeScreen(
     drawerViewModel: QuestionBankDrawerViewModel,
     settingsViewModel: SettingsViewModel,
     onStartQuiz: (quizId: String) -> Unit = {},
+    onStartAdaptive: (quizId: String) -> Unit = {},
     onBrowseQuestion: (fileName: String, questionId: Int) -> Unit = { fileName, _ -> onStartQuiz(fileName) },
     onEditQuestion: (fileName: String, questionId: Int) -> Unit = { _, _ -> },
     onStartExam: (quizId: String) -> Unit = {},
@@ -321,7 +322,10 @@ fun HomeScreen(
                         viewModel.preloadQuestionFile(fileName)
                         persistFileUsage(fileName)
                         // 有进度时打开 sheet（可接着/重答）；无进度直接开始练习
-                        if ((practiceProgress[fileName] ?: 0) > 0) {
+                        if (
+                            (practiceProgress[fileName] ?: 0) > 0 ||
+                            HomeAdaptiveModeEligibilityPipeline.isEligible(fileName)
+                        ) {
                             showSheet = true
                         } else {
                             onStartQuiz(fileName)
@@ -347,6 +351,7 @@ fun HomeScreen(
                     bottomNavIndex = navPrefs.bottomNavIndex,
                     onDismissSheet = { showSheet = false },
                     onStartQuiz = onStartQuiz,
+                    onStartAdaptive = onStartAdaptive,
                     onStartExam = onStartExam,
                     onRestartQuiz = { fileName ->
                         viewModel.clearProgressForFile(fileName)

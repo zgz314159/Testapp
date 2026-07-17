@@ -18,6 +18,8 @@
 
 | ID | Issue | Status |
 |----|-------|--------|
+| **AF-001** | 自适应渐隐 MVP 缺少当前环境 Gradle/JDK 21 门禁结果 | OPEN — 腾讯 Gradle 镜像网络不可达 |
+| **LOC-001** | 现有 3 个 Kotlin 文件超过 500 行 | OPEN — 见 `loc_audit.md`，本次未扩大 |
 | **K-007** | Exam route device smoke | **CLOSED** — 2026-07-05 真机 PASS |
 | **D-003** | detekt tightened (unused/dead-code + EmptyCatchBlock + IgnoredReturnValue) | **CLOSED** — P78 |
 

@@ -40,10 +40,10 @@ fun buildResultDisplayStats(
     totalQuestions: Int,
 ): ResultDisplayStats {
     val isExamMode = quizId.startsWith("exam_")
+    val isAdaptiveMode = quizId.startsWith("adaptive_")
     val latest = historyList.maxByOrNull { it.time }
     val currentFileName = latest?.fileName.orEmpty()
     val sameFileHistory = historyList.filter { it.fileName == currentFileName }.sortedBy { it.time }
-    val overallTotal = totalQuestions.takeIf { it > 0 } ?: (latest?.total ?: 0)
 
     val safeTotal = total.coerceAtLeast(0)
     val safeUnanswered = unanswered.coerceIn(0, safeTotal)
@@ -51,28 +51,33 @@ fun buildResultDisplayStats(
     val currentScore = score.coerceIn(0, currentAnswered)
     val currentWrong = currentAnswered - currentScore
     val currentRate = if (currentAnswered > 0) currentScore.toDouble() / currentAnswered else 0.0
+    val overallTotal =
+        if (isAdaptiveMode) safeTotal else totalQuestions.takeIf { it > 0 } ?: (latest?.total ?: 0)
 
-    val (rawOverallScore, rawOverallAnswered) = if (isExamMode) {
-        (cumulativeCorrect ?: currentScore) to (cumulativeAnswered ?: currentAnswered)
-    } else {
-        val practiceScore = cumulativeCorrect ?: run {
-            if (sameFileHistory.isNotEmpty()) {
-                val latestRecord = sameFileHistory.first()
-                val totalAnswered = (overallTotal - latestRecord.unanswered).coerceAtLeast(0)
-                minOf(sameFileHistory.maxOf { it.score } + currentScore, totalAnswered)
-            } else {
-                0
+    val (rawOverallScore, rawOverallAnswered) =
+        when {
+            isAdaptiveMode -> currentScore to currentAnswered
+            isExamMode -> (cumulativeCorrect ?: currentScore) to (cumulativeAnswered ?: currentAnswered)
+            else -> {
+                val practiceScore = cumulativeCorrect ?: run {
+                    if (sameFileHistory.isNotEmpty()) {
+                        val latestRecord = sameFileHistory.first()
+                        val totalAnswered = (overallTotal - latestRecord.unanswered).coerceAtLeast(0)
+                        minOf(sameFileHistory.maxOf { it.score } + currentScore, totalAnswered)
+                    } else {
+                        0
+                    }
+                }
+                val practiceAnswered = cumulativeAnswered ?: run {
+                    if (sameFileHistory.isNotEmpty()) {
+                        (overallTotal - sameFileHistory.first().unanswered).coerceAtLeast(0)
+                    } else {
+                        0
+                    }
+                }
+                practiceScore to practiceAnswered
             }
         }
-        val practiceAnswered = cumulativeAnswered ?: run {
-            if (sameFileHistory.isNotEmpty()) {
-                (overallTotal - sameFileHistory.first().unanswered).coerceAtLeast(0)
-            } else {
-                0
-            }
-        }
-        practiceScore to practiceAnswered
-    }
     val overallAnswered = rawOverallAnswered.coerceAtLeast(0)
     val overallScore = rawOverallScore.coerceIn(0, overallAnswered)
     val overallWrong = overallAnswered - overallScore
@@ -81,6 +86,7 @@ fun buildResultDisplayStats(
     val (modeText, fileName) = when {
         quizId.startsWith("exam_") -> "考试" to quizId.removePrefix("exam_")
         quizId.startsWith("practice_") -> "练习" to quizId.removePrefix("practice_")
+        quizId.startsWith("adaptive_") -> "自适应渐隐" to quizId.removePrefix("adaptive_")
         else -> "练习" to quizId
     }
 
@@ -89,7 +95,11 @@ fun buildResultDisplayStats(
         modeText = modeText,
         fileName = fileName,
         currentLabel = if (isExamMode) "本次考试" else "本次练习",
-        overallLabel = if (isExamMode) "考试总计" else "题库总计",
+        overallLabel = when {
+            isExamMode -> "考试总计"
+            isAdaptiveMode -> "本轮渐隐"
+            else -> "题库总计"
+        },
         currentScore = currentScore,
         currentTotal = safeTotal,
         currentUnanswered = safeUnanswered,

@@ -61,6 +61,7 @@ fun PracticeScreenContent(
     dispatchCommand: (SessionCommand) -> PracticeCommandOutcome?,
     externalState: ExternalPracticeState = ExternalPracticeState(),
     sessionHosted: Boolean = false,
+    persistentQuestionActionsEnabled: Boolean = true,
     onQuizEnd: (score: Int, total: Int, unanswered: Int, cumulativeCorrect: Int?, cumulativeAnswered: Int?) -> Unit = { _, _, _, _, _ -> },
     onSubmit: (Boolean) -> Unit = {},
     onExitWithoutAnswer: () -> Unit = {},
@@ -292,7 +293,7 @@ fun PracticeScreenContent(
                     favoriteRemoveLabel = stringResource(R.string.favorite_remove),
                     notesLabel = stringResource(R.string.notes),
                     onEditNote = {
-                        overlayNav {
+                        if (persistentQuestionActionsEnabled) overlayNav {
                             onEditNote(noteList.getOrNull(currentIndex)?.takeIf { it.isNotBlank() } ?: " ", question.id, currentIndex)
                         }
                     },
@@ -308,15 +309,19 @@ fun PracticeScreenContent(
                     onToggleFavorite = externalState.onToggleFavorite,
                     onOpenTypography = { showTypographySheet = true },
                     onEditQuestion = {
-                        sendCommand(SessionCommand.ClearEditableQuestion)
-                        sendCommand(SessionCommand.PrepareEditableQuestion(question.id))
-                        showEditQuestionDialog = true
+                        if (persistentQuestionActionsEnabled) {
+                            sendCommand(SessionCommand.ClearEditableQuestion)
+                            sendCommand(SessionCommand.PrepareEditableQuestion(question.id))
+                            showEditQuestionDialog = true
+                        }
                     },
                     settingsLabel = stringResource(R.string.settings),
                     settingsMenuExpanded = menuExpanded,
                     onMenuToggle = { menuExpanded = true },
                     onMenuDismiss = { menuExpanded = false },
-                    hasAnyAnalysis = hasDeepSeekAnalysis || hasSparkAnalysis || hasBaiduAnalysis
+                    hasAnyAnalysis = hasDeepSeekAnalysis || hasSparkAnalysis || hasBaiduAnalysis,
+                    questionActionsEnabled = persistentQuestionActionsEnabled,
+                    aiActionsEnabled = persistentQuestionActionsEnabled,
                 )
             },
             scrollContent = {
@@ -334,13 +339,28 @@ fun PracticeScreenContent(
                         sendCommand(SessionCommand.RetryWrongBlanks(currentIndex))
                     },
                     onViewExplanation = { overlayNav { onViewExplanation(it) } },
-                    onEditNote = { note, id, idx -> overlayNav { onEditNote(note, id, idx) } },
-                    onViewDeepSeek = { text, id, idx -> overlayNav { onViewDeepSeek(text, id, idx) } },
-                    onViewSpark = { text, id, idx -> overlayNav { onViewSpark(text, id, idx) } },
-                    onViewBaidu = { text, id, idx -> overlayNav { onViewBaidu(text, id, idx) } },
-                    onDeleteExplanation = { showDeleteExplanationDialog = true },
-                    onDeleteNote = { showDeleteNoteDialog = true },
-                    onDeleteAnalysis = { deleteTarget = it; showDeleteDialog = true },
+                    onEditNote = { note, id, idx ->
+                        if (persistentQuestionActionsEnabled) overlayNav { onEditNote(note, id, idx) }
+                    },
+                    onViewDeepSeek = { text, id, idx ->
+                        if (persistentQuestionActionsEnabled) overlayNav { onViewDeepSeek(text, id, idx) }
+                    },
+                    onViewSpark = { text, id, idx ->
+                        if (persistentQuestionActionsEnabled) overlayNav { onViewSpark(text, id, idx) }
+                    },
+                    onViewBaidu = { text, id, idx ->
+                        if (persistentQuestionActionsEnabled) overlayNav { onViewBaidu(text, id, idx) }
+                    },
+                    onDeleteExplanation = {
+                        if (persistentQuestionActionsEnabled) showDeleteExplanationDialog = true
+                    },
+                    onDeleteNote = { if (persistentQuestionActionsEnabled) showDeleteNoteDialog = true },
+                    onDeleteAnalysis = {
+                        if (persistentQuestionActionsEnabled) {
+                            deleteTarget = it
+                            showDeleteDialog = true
+                        }
+                    },
                     onTextAnswerChange = { sendCommand(SessionCommand.UpdateTextAnswer(it)) },
                     onOptionClick = { idx ->
                         PracticeScreenOptionSubmitHandlers.onOptionClick(

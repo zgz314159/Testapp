@@ -28,6 +28,7 @@ fun HomeStartQuizSheet(
     hasProgress: Boolean,
     onDismiss: () -> Unit,
     onStartQuiz: (String) -> Unit,
+    onStartAdaptive: (String) -> Unit,
     onStartExam: (String) -> Unit,
     onRestart: (String) -> Unit,
 ) {
@@ -67,6 +68,18 @@ fun HomeStartQuizSheet(
                 )
             }
             Spacer(modifier = Modifier.height(AppSpacing.sm))
+            if (HomeAdaptiveModeEligibilityPipeline.isEligible(pendingFileName)) {
+                OutlinedButton(
+                    onClick = {
+                        onDismiss()
+                        onStartAdaptive(pendingFileName)
+                    },
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    Text(stringResource(R.string.home_start_adaptive_fading))
+                }
+                Spacer(modifier = Modifier.height(AppSpacing.sm))
+            }
             Button(
                 onClick = {
                     onDismiss()

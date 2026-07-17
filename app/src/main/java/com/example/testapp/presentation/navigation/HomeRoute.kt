@@ -9,6 +9,7 @@ import com.example.testapp.presentation.screen.settings.SettingsViewModel
 @Composable
 fun HomeRoute(
     onStartQuiz: (quizId: String) -> Unit = {},
+    onStartAdaptive: (quizId: String) -> Unit = {},
     onBrowseQuestion: (fileName: String, questionId: Int) -> Unit = { fileName, _ -> onStartQuiz(fileName) },
     onEditQuestion: (fileName: String, questionId: Int) -> Unit = { _, _ -> },
     onStartExam: (quizId: String) -> Unit = {},
@@ -26,6 +27,7 @@ fun HomeRoute(
         drawerViewModel = hiltViewModel(),
         settingsViewModel = settingsViewModel,
         onStartQuiz = onStartQuiz,
+        onStartAdaptive = onStartAdaptive,
         onBrowseQuestion = onBrowseQuestion,
         onEditQuestion = onEditQuestion,
         onStartExam = onStartExam,

@@ -48,7 +48,9 @@ fun PracticeExamTopBar(
     settingsMenuExpanded: Boolean,
     onMenuToggle: () -> Unit,
     onMenuDismiss: () -> Unit,
-    hasAnyAnalysis: Boolean
+    hasAnyAnalysis: Boolean,
+    questionActionsEnabled: Boolean = true,
+    aiActionsEnabled: Boolean = true,
 ) {
     val timerTitle = formatPracticeExamTimer(elapsedSeconds)
     val typographyLabel = stringResource(R.string.uicommon_typography_settings)
@@ -62,52 +64,56 @@ fun PracticeExamTopBar(
                 contentDescription = exitContentDescription
             )
         }
-        Box {
-            AppTopBarIconButton(onClick = onAiMenuToggle, size = iconSize) {
+        if (aiActionsEnabled) {
+            Box {
+                AppTopBarIconButton(onClick = onAiMenuToggle, size = iconSize) {
+                    Icon(
+                        imageVector = Icons.Filled.AutoAwesome,
+                        contentDescription = aiParseLabel,
+                        tint = if (hasAnyAnalysis) {
+                            MaterialTheme.colorScheme.primary
+                        } else {
+                            LocalContentColor.current
+                        }
+                    )
+                }
+                PracticeExamAiDropdown(
+                    expanded = aiMenuExpanded,
+                    onDismiss = onAiMenuDismiss,
+                    deepSeekLabel = deepSeekLabel,
+                    sparkLabel = sparkLabel,
+                    onDeepSeek = onOpenAiMenu,
+                    onSparkAsk = onOpenAskMenu
+                )
+            }
+        }
+        Text(
+            text = timerTitle,
+            style = MaterialTheme.typography.titleMedium
+        )
+        if (questionActionsEnabled) {
+            AppTopBarIconButton(onClick = onToggleFavorite, size = iconSize) {
                 Icon(
-                    imageVector = Icons.Filled.AutoAwesome,
-                    contentDescription = aiParseLabel,
-                    tint = if (hasAnyAnalysis) {
+                    imageVector = if (isFavorite) Icons.Filled.Star else Icons.Outlined.StarBorder,
+                    contentDescription = if (isFavorite) favoriteRemoveLabel else favoriteAddLabel,
+                    tint = if (isFavorite) {
                         MaterialTheme.colorScheme.primary
                     } else {
                         LocalContentColor.current
                     }
                 )
             }
-            PracticeExamAiDropdown(
-                expanded = aiMenuExpanded,
-                onDismiss = onAiMenuDismiss,
-                deepSeekLabel = deepSeekLabel,
-                sparkLabel = sparkLabel,
-                onDeepSeek = onOpenAiMenu,
-                onSparkAsk = onOpenAskMenu
-            )
-        }
-        Text(
-            text = timerTitle,
-            style = MaterialTheme.typography.titleMedium
-        )
-        AppTopBarIconButton(onClick = onToggleFavorite, size = iconSize) {
-            Icon(
-                imageVector = if (isFavorite) Icons.Filled.Star else Icons.Outlined.StarBorder,
-                contentDescription = if (isFavorite) favoriteRemoveLabel else favoriteAddLabel,
-                tint = if (isFavorite) {
-                    MaterialTheme.colorScheme.primary
-                } else {
-                    LocalContentColor.current
-                }
-            )
-        }
-        AppTopBarIconButton(onClick = onEditNote, size = iconSize) {
-            Icon(
-                imageVector = Icons.AutoMirrored.Outlined.StickyNote2,
-                contentDescription = notesLabel,
-                tint = if (hasNote) {
-                    MaterialTheme.colorScheme.primary
-                } else {
-                    LocalContentColor.current
-                }
-            )
+            AppTopBarIconButton(onClick = onEditNote, size = iconSize) {
+                Icon(
+                    imageVector = Icons.AutoMirrored.Outlined.StickyNote2,
+                    contentDescription = notesLabel,
+                    tint = if (hasNote) {
+                        MaterialTheme.colorScheme.primary
+                    } else {
+                        LocalContentColor.current
+                    }
+                )
+            }
         }
         Box {
             AppTopBarIconButton(onClick = onMenuToggle, size = iconSize) {
@@ -124,16 +130,18 @@ fun PracticeExamTopBar(
                         Icon(Icons.Filled.FormatSize, contentDescription = null)
                     }
                 )
-                DropdownMenuItem(
-                    text = { Text(editQuestionLabel) },
-                    onClick = {
-                        onMenuDismiss()
-                        onEditQuestion()
-                    },
-                    leadingIcon = {
-                        Icon(Icons.Filled.Edit, contentDescription = null)
-                    }
-                )
+                if (questionActionsEnabled) {
+                    DropdownMenuItem(
+                        text = { Text(editQuestionLabel) },
+                        onClick = {
+                            onMenuDismiss()
+                            onEditQuestion()
+                        },
+                        leadingIcon = {
+                            Icon(Icons.Filled.Edit, contentDescription = null)
+                        },
+                    )
+                }
             }
         }
     }

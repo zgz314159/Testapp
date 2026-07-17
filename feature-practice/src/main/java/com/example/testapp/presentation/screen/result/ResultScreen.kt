@@ -32,6 +32,7 @@ fun ResultScreen(
     cumulativeCorrect: Int? = null,
     cumulativeAnswered: Int? = null,
     cumulativeExamCount: Int? = null,
+    detailEnabled: Boolean = true,
     onBackHome: () -> Unit,
     onViewDetail: () -> Unit = {},
     onBack: () -> Unit = onBackHome,
@@ -73,7 +74,7 @@ fun ResultScreen(
             ResultBottomActionBar(
                 onBackHome = onBackHome,
                 onViewDetail = onViewDetail,
-                detailEnabled = quizId.isNotBlank(),
+                detailEnabled = detailEnabled && quizId.isNotBlank(),
             )
         },
     ) { innerPadding ->

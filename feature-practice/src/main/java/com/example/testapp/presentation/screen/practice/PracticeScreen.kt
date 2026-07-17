@@ -35,6 +35,7 @@ fun PracticeScreen(
     onReviewBack: () -> Unit = {},
     bindings: PracticeScreenBindings,
     sessionHosted: Boolean = false,
+    persistentQuestionActionsEnabled: Boolean = true,
     settingsViewModel: SettingsViewModel = hiltViewModel(),
     aiViewModel: DeepSeekViewModel = hiltViewModel(),
     sparkViewModel: SparkViewModel = hiltViewModel(),
@@ -80,7 +81,9 @@ fun PracticeScreen(
 
     val wrongBookViewModel: WrongBookViewModel = hiltViewModel()
     val favoriteViewModel: FavoriteViewModel = hiltViewModel()
-    LaunchedEffect(Unit) { favoriteViewModel.ensureFullListLoaded() }
+    if (persistentQuestionActionsEnabled) {
+        LaunchedEffect(Unit) { favoriteViewModel.ensureFullListLoaded() }
+    }
 
     val questions by bindings.questions.collectAsState()
     val currentIndex by bindings.currentIndex.collectAsState()
@@ -89,8 +92,9 @@ fun PracticeScreen(
     val sparkPair by sparkViewModel.analysis.collectAsState()
     val baiduPair by baiduQianfanViewModel.analysisResult.collectAsState()
     val favoriteQuestions by favoriteViewModel.favoriteQuestions.collectAsState()
-    val isFavorite = remember(question?.id, favoriteQuestions) {
-        question?.id?.let { FavoriteSessionPipeline.isFavorite(it, favoriteQuestions) } ?: false
+    val isFavorite = remember(question?.id, favoriteQuestions, persistentQuestionActionsEnabled) {
+        persistentQuestionActionsEnabled &&
+            (question?.id?.let { FavoriteSessionPipeline.isFavorite(it, favoriteQuestions) } ?: false)
     }
     val showResultList by bindings.showResultList.collectAsState()
     val showResult = showResultList.getOrNull(currentIndex) == true
@@ -104,21 +108,23 @@ fun PracticeScreen(
         { command -> dispatchPracticeCommand(bindings, command) }
     }
 
-    PracticeAISyncEffects(
-        question = question,
-        currentIndex = currentIndex,
-        showResult = showResult,
-        resultDisplayReady = resultDisplayReady,
-        parsingText = parsingText,
-        analysisPair = analysisPair,
-        sparkPair = sparkPair,
-        baiduPair = baiduPair,
-        aiViewModel = aiViewModel,
-        sparkViewModel = sparkViewModel,
-        baiduQianfanViewModel = baiduQianfanViewModel,
-        dispatchCommand = sendCommand,
-        loader = rememberSessionAnalysisLoader(),
-    )
+    if (persistentQuestionActionsEnabled) {
+        PracticeAISyncEffects(
+            question = question,
+            currentIndex = currentIndex,
+            showResult = showResult,
+            resultDisplayReady = resultDisplayReady,
+            parsingText = parsingText,
+            analysisPair = analysisPair,
+            sparkPair = sparkPair,
+            baiduPair = baiduPair,
+            aiViewModel = aiViewModel,
+            sparkViewModel = sparkViewModel,
+            baiduQianfanViewModel = baiduQianfanViewModel,
+            dispatchCommand = sendCommand,
+            loader = rememberSessionAnalysisLoader(),
+        )
+    }
 
     PracticeScreenContent(
         quizId = quizId,
@@ -132,6 +138,7 @@ fun PracticeScreen(
         bindings = bindings,
         dispatchCommand = dispatchCommand,
         sessionHosted = sessionHosted,
+        persistentQuestionActionsEnabled = persistentQuestionActionsEnabled,
         externalState = ExternalPracticeState(
             randomPractice = randomPractice,
             practiceCount = practiceCount,
@@ -143,7 +150,7 @@ fun PracticeScreen(
             settingsReady = settingsReady,
             isFavorite = isFavorite,
             onToggleFavorite = {
-                question?.let { q ->
+                if (persistentQuestionActionsEnabled) question?.let { q ->
                     if (isFavorite) favoriteViewModel.removeFavorite(q.id) else favoriteViewModel.addFavorite(q)
                 }
             },
@@ -152,7 +159,11 @@ fun PracticeScreen(
             baiduPair = baiduPair,
             playCorrect = soundEffects::playCorrect,
             playWrong = soundEffects::playWrong,
-            onWrongAnswer = { q, options -> wrongBookViewModel.addWrongQuestion(WrongQuestion(q, options)) },
+            onWrongAnswer = { q, options ->
+                if (persistentQuestionActionsEnabled) {
+                    wrongBookViewModel.addWrongQuestion(WrongQuestion(q, options))
+                }
+            },
             onClearDeepSeek = { aiViewModel.clear() },
             onClearSpark = { sparkViewModel.clear() },
             onClearBaidu = { baiduQianfanViewModel.clearResult() },

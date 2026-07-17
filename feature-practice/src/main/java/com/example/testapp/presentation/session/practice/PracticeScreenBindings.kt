@@ -90,6 +90,11 @@ interface PracticeScreenBindings : SessionAnalysisSyncBindings {
         pinnedQuestionId: Int? = null,
     )
 
+    fun loadPreparedAdaptiveQuestions(
+        sourceId: String,
+        questions: List<Question>,
+    )
+
     fun goToQuestionById(
         questionId: Int,
         source: String = "questionId",

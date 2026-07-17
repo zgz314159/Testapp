@@ -1,6 +1,7 @@
 package com.example.testapp.di
 
 import com.example.testapp.domain.session.SessionExtension
+import com.example.testapp.presentation.session.adaptive.AdaptiveFadingProgressExtension
 import com.example.testapp.presentation.session.extension.SessionAiAnalysisExtension
 import dagger.Module
 import dagger.Provides
@@ -14,4 +15,10 @@ object SessionExtensionModule {
     @Provides
     @IntoSet
     fun provideAiAnalysisExtension(ext: SessionAiAnalysisExtension): SessionExtension = ext
+
+    @Provides
+    @IntoSet
+    fun provideAdaptiveFadingProgressExtension(
+        ext: AdaptiveFadingProgressExtension,
+    ): SessionExtension = ext
 }

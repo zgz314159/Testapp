@@ -1,5 +1,30 @@
 # Change Log
 
+## 2026-07-16 — 自适应渐隐原子练习（MVP）
+
+### 边界
+- 新增独立 `AdaptiveFading` Session；常规练习、考试、复习、错题与原子填空转换保持原路径。
+- 仅对 `.sqlite` / `.db` 原子题库显示新入口；源题只读，学习状态写入独立 `adaptive_atom_states`。
+
+### 实现
+| 项 | 变更 |
+|----|------|
+| 抽题 | 核心池 + 15% 探测池；同轮同条文最多一个原子；遗忘→已学到期→新原子排序 |
+| 渐隐 | `CHOICE → HINTED → RECALL → MATURE`；选项不足自动降级为提示填空 |
+| 调度 | 固定间隔 MVP；错答降阶、10 分钟后复习并提升至核心池 |
+| 持久化 | Room 26→27 显式迁移；按 `bankId + atomId` 隔离状态 |
+| Session | 新 Kind / Creator / Registry / Policy / Extension；复用 Practice UI，跳过常规填空再转换 |
+| 结果 | 显示本轮成绩，不写常规练习历史、不生成普通错题/收藏副作用、不提供无效详情入口 |
+| 隔离 | 不读取普通进度、不加载普通题目元数据；源题编辑、AI、笔记、收藏入口在新模式隐藏 |
+
+### 文档与测试
+- 根目录：`ADAPTIVE_FADING_ATOM_PRACTICE.md`
+- ADR：`.ai/ADR/006-adaptive-fading-atom-practice.md`
+- 新增抽题与阶段推进单元测试。
+- 独立 Kotlin JVM 编译：domain 契约、Session policies/Snapshot、data Repository、Room 迁移源码、进度 Extension 均 PASS。
+- 真实执行阶段推进、双池比例、同条文避让、到期优先、数字单位干扰项及自适应结果统计：PASS。
+- 构建验证受环境网络限制：Gradle 腾讯镜像不可达；需在可联网 JDK 21 环境补跑门禁。
+
 ## 2026-07-15 — 导入重复 / 绘图答案图 / DeepSeek 返回题号
 
 ### 问题

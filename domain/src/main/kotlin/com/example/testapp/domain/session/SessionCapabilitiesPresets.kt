@@ -4,6 +4,14 @@ object SessionCapabilitiesPresets {
 
     val practice: SessionCapabilities = SessionCapabilities()
 
+    val adaptiveFading: SessionCapabilities =
+        practice.copy(
+            canPersistProgress = false,
+            canRestoreProgress = false,
+            canUseAiAsk = false,
+            canEditQuestion = false,
+        )
+
     val browse: SessionCapabilities = SessionCapabilities(
         canSubmit = false,
         canPersistProgress = false,
@@ -38,6 +46,7 @@ object SessionCapabilitiesPresets {
 
     fun forKind(kind: QuestionSessionKind): SessionCapabilities = when (kind) {
         is QuestionSessionKind.Practice -> practice
+        is QuestionSessionKind.AdaptiveFading -> adaptiveFading
         is QuestionSessionKind.Browse -> browse
         is QuestionSessionKind.Review -> review
         is QuestionSessionKind.Exam -> if (kind.reviewProgressId != null) review else exam

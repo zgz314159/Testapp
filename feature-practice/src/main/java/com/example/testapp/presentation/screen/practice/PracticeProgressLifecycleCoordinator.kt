@@ -125,11 +125,38 @@ internal class PracticeProgressLifecycleCoordinator(
         }
     }
 
+    fun loadPreparedAdaptiveQuestions(
+        sourceId: String,
+        questions: List<Question>,
+    ) {
+        setProgressIdValue("practice_adaptive_$sourceId")
+        setQuestionSourceId(sourceId)
+        setRandomPracticeEnabled(false)
+        lastQuestionCount = questions.size
+        val sessionStartTime = System.currentTimeMillis()
+        sessionState.value = sessionState.value.copy(
+            progressLoaded = false,
+            sessionStartTime = sessionStartTime,
+        )
+        loadQuestionsJob?.cancel()
+        loadQuestionsJob = scope.launch {
+            loadQuestionsForCurrentSource(
+                questionCount = questions.size,
+                newSessionStartTime = sessionStartTime,
+                sourceQuestions = questions,
+                skipFillTransform = true,
+                skipRepositoryContentLoad = true,
+            )
+        }
+    }
+
     private suspend fun loadQuestionsForCurrentSource(
         questionCount: Int,
         newSessionStartTime: Long,
         sourceQuestions: List<Question>? = null,
-        preserveCurrentIndex: Int? = null
+        preserveCurrentIndex: Int? = null,
+        skipFillTransform: Boolean = false,
+        skipRepositoryContentLoad: Boolean = false,
     ) {
         val sourceId = questionSourceId()
         val originalQuestions = sourceQuestions ?: loadOriginalQuestions(sourceId)
@@ -140,7 +167,13 @@ internal class PracticeProgressLifecycleCoordinator(
 
         val fillConfig = PracticeFillConfigPipeline.read(fontSettings)
         onFillConfigApplied(fillConfig)
-        var existingProgress = facade.progress.getFlow(progressId()).firstOrNull()
+        val persistenceConfig = activePersistenceConfig()
+        val existingProgress =
+            if (persistenceConfig.restoreProgress) {
+                facade.progress.getFlow(progressId()).firstOrNull()
+            } else {
+                null
+            }
         val pinnedId = pendingPinnedQuestionId
         pendingPinnedQuestionId = null
 
@@ -156,8 +189,9 @@ internal class PracticeProgressLifecycleCoordinator(
                 pinnedQuestionId = pinnedId,
                 preserveCurrentIndex = preserveCurrentIndex,
                 progressCoordinator = progressCoordinator,
-                persistenceConfig = activePersistenceConfig(),
+                persistenceConfig = persistenceConfig,
                 progressId = progressId(),
+                skipFillTransform = skipFillTransform,
             )
         ) {
             is PracticeProgressLoadQuestionsPipeline.Outcome.Empty -> {
@@ -211,7 +245,9 @@ internal class PracticeProgressLifecycleCoordinator(
                     onProgressRestored(applied.questionsWithState, applied.startIndex)
                 }
                 lastAppliedInitKey = applied.initKey
-                scope.launch { repositoryContentLoader.loadOnce() }
+                if (!skipRepositoryContentLoad) {
+                    scope.launch { repositoryContentLoader.loadOnce() }
+                }
                 loadProgress()
             }
         }

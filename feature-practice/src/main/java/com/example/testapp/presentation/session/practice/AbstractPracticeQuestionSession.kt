@@ -64,7 +64,7 @@ abstract class AbstractPracticeQuestionSession(
     }
 
     protected fun publishSnapshot(state: PracticeSessionState = engine.sessionState.value) {
-        _snapshot.value = BrowseSessionSnapshotMapper.toSnapshot(state)
+        _snapshot.value = BrowseSessionSnapshotMapper.toSnapshot(state).copy(kind = kind)
     }
 
     protected fun emitQuestionChanged(
@@ -89,6 +89,7 @@ abstract class AbstractPracticeQuestionSession(
         index: Int,
         questionId: Int,
     ) {
+        publishSnapshot()
         scope.launch {
             val event = SessionEvent.AnswerSubmitted(index, questionId)
             _events.emit(event)

@@ -1,11 +1,18 @@
 # LOC 审计（>500 行）
 
 > 生成方式：`scripts/check-loc-over-500.ps1`（Windows）/ `scripts/check-loc-over-500.sh`（CI/Linux）  
-> 最后扫描：2026-07-15（Excel 题库兼容扩展）
+> 最后扫描：2026-07-16（自适应渐隐原子练习）
 
 ## 超过 500 行的文件
 
-**0 个** — 全仓库已清零 ✅
+当前 HEAD 基线仍有 3 个超过 500 行的文件；本次触及的 `PracticeSessionEngine.kt` 已保持在 498 行。
+
+| 文件 | 行数 | 状态 |
+|------|------|------|
+| `feature-exam/.../ExamViewModel.kt` | 538 | 既有基线，待拆 |
+| `feature-exam/.../ExamSessionEngine.kt` | 551 | 既有基线，待拆 |
+| `feature-practice/.../PracticeEditorCoordinator.kt` | 578 | 既有基线，待拆 |
+| `feature-practice/.../PracticeSessionEngine.kt` | 498 | 本次守住红线 ✅ |
 
 ## 近期热点 LOC（Excel 兼容 + Phase Home）
 

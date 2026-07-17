@@ -28,7 +28,16 @@ class ResultViewModel @Inject constructor(
 
     fun load(fileName: String) {
         viewModelScope.launch {
-            val cleanFileName = fileName.removePrefix("exam_").removePrefix("practice_")
+            val cleanFileName =
+                fileName
+                    .removePrefix("exam_")
+                    .removePrefix("practice_")
+                    .removePrefix("adaptive_")
+            if (fileName.startsWith("adaptive_")) {
+                _history.value = emptyList()
+                _totalQuestions.value = getQuestionsUseCase(cleanFileName).first().size
+                return@launch
+            }
             val historyFlow = if (fileName.startsWith("exam_") || fileName.startsWith("practice_")) {
                 getHistoryListByFileUseCase(fileName)
             } else {

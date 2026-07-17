@@ -2,7 +2,6 @@ package com.example.testapp.presentation.session.practice
 
 import com.example.testapp.core.common.FontSettingsRepository
 import com.example.testapp.core.util.FillQuestionGenerationMode
-import com.example.testapp.domain.model.HistoryRecord
 import com.example.testapp.domain.model.PracticeSessionState
 import com.example.testapp.domain.model.Question
 import com.example.testapp.domain.session.QuestionSessionKind
@@ -216,6 +215,11 @@ class PracticeSessionEngine(
         )
     }
 
+    override fun loadPreparedAdaptiveQuestions(
+        sourceId: String,
+        questions: List<Question>,
+    ) = progressLifecycle.loadPreparedAdaptiveQuestions(sourceId, questions)
+
     override fun goToQuestionById(
         questionId: Int,
         source: String,
@@ -383,13 +387,7 @@ class PracticeSessionEngine(
         score: Int,
         total: Int,
         unanswered: Int,
-    ) {
-        scope.launch {
-            val id = "practice_$questionSourceId"
-            val actualAnswered = total - unanswered
-            if (actualAnswered > 0) deps.facade.history.add(HistoryRecord(score, total, unanswered, id))
-        }
-    }
+    ) = recordPracticeHistory(scope, deps.facade, questionSourceId, score, total, unanswered, persistenceConfig().persistProgress)
 
     override fun saveNote(
         questionId: Int,

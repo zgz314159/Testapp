@@ -15,6 +15,7 @@ object PersistencePolicyFactory {
             is QuestionSessionKind.QuestionEdit,
             -> browse
             is QuestionSessionKind.Review -> review
+            is QuestionSessionKind.AdaptiveFading -> browse
             is QuestionSessionKind.Practice -> practice
             is QuestionSessionKind.Exam ->
                 if (kind.reviewProgressId != null) review else exam

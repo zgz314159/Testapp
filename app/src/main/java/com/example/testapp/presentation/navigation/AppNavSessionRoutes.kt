@@ -17,6 +17,31 @@ fun NavGraphBuilder.registerPracticeSessionRoutes(
     sessionNavCallbacks: QuestionSessionNavCallbacks,
 ) {
     composable(
+        route = "adaptive/{quizId}",
+        arguments = listOf(navArgument("quizId") { type = NavType.StringType }),
+    ) { backStackEntry ->
+        val encoded = backStackEntry.arguments?.getString("quizId") ?: "default"
+        val quizId = com.example.testapp.util.safeDecode(encoded)
+        AdaptiveFadingPracticeRoute(
+            quizId = quizId,
+            settingsViewModel = settingsViewModel,
+            onQuizEnd = { score, total, unanswered ->
+                navController.navToResult(
+                    prefix = "adaptive",
+                    quizId = quizId,
+                    score = score,
+                    total = total,
+                    unanswered = unanswered,
+                    cumulativeCorrect = null,
+                    cumulativeAnswered = null,
+                )
+            },
+            onExitWithoutAnswer = { navController.popBackStack() },
+            practiceNavCallbacks = sessionNavCallbacks,
+        )
+    }
+
+    composable(
         route = "question/{quizId}?targetQuestionId={targetQuestionId}",
         arguments =
             listOf(

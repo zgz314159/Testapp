@@ -8,6 +8,10 @@ sealed class QuestionSessionKind {
         val favoriteFileName: String? = null
     ) : QuestionSessionKind()
 
+    data class AdaptiveFading(
+        val quizId: String,
+    ) : QuestionSessionKind()
+
     data class Browse(
         val quizId: String,
         val targetQuestionId: Int

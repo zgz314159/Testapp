@@ -3,6 +3,7 @@ package com.example.testapp.data.local
 import androidx.room.Database
 import androidx.room.RoomDatabase
 import androidx.room.TypeConverters
+import com.example.testapp.data.local.dao.AdaptiveAtomStateDao
 import com.example.testapp.data.local.dao.ExamHistoryRecordDao
 import com.example.testapp.data.local.dao.ExamProgressDao
 import com.example.testapp.data.local.dao.FavoriteQuestionDao
@@ -13,6 +14,7 @@ import com.example.testapp.data.local.dao.QuestionAskDao
 import com.example.testapp.data.local.dao.QuestionDao
 import com.example.testapp.data.local.dao.QuestionNoteDao
 import com.example.testapp.data.local.dao.WrongQuestionDao
+import com.example.testapp.data.local.entity.AdaptiveAtomStateEntity
 import com.example.testapp.data.local.entity.ExamHistoryRecordEntity
 import com.example.testapp.data.local.entity.ExamProgressEntity
 import com.example.testapp.data.local.entity.FavoriteQuestionEntity
@@ -31,8 +33,8 @@ import com.example.testapp.data.local.entity.converter.NestedIntListConverter
 import com.example.testapp.data.local.entity.converter.StringListConverter
 
 @Database(
-    entities = [QuestionEntity::class, WrongQuestionEntity::class, HistoryRecordEntity::class, ExamHistoryRecordEntity::class, FavoriteQuestionEntity::class, PracticeProgressEntity::class, ExamProgressEntity::class, QuestionAnalysisEntity::class, QuestionNoteEntity::class, QuestionAskEntity::class, FileFolderEntity::class, FolderEntity::class],
-    version = 26,
+    entities = [QuestionEntity::class, WrongQuestionEntity::class, HistoryRecordEntity::class, ExamHistoryRecordEntity::class, FavoriteQuestionEntity::class, PracticeProgressEntity::class, ExamProgressEntity::class, QuestionAnalysisEntity::class, QuestionNoteEntity::class, QuestionAskEntity::class, FileFolderEntity::class, FolderEntity::class, AdaptiveAtomStateEntity::class],
+    version = 27,
     exportSchema = false
 )
 @TypeConverters(
@@ -54,4 +56,5 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun questionAskDao(): QuestionAskDao
     abstract fun fileFolderDao(): com.example.testapp.data.local.dao.FileFolderDao
     abstract fun folderDao(): com.example.testapp.data.local.dao.FolderDao
+    abstract fun adaptiveAtomStateDao(): AdaptiveAtomStateDao
 }

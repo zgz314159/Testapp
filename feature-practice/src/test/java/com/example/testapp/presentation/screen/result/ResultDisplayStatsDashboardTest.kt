@@ -60,6 +60,28 @@ class ResultDisplayStatsDashboardTest {
         assertTrue(buildStats(history = emptyList()).accuracyList.isEmpty())
     }
 
+    @Test
+    fun `adaptive result exposes its mode and original bank name`() {
+        val stats =
+            buildResultDisplayStats(
+                quizId = "adaptive_bank.sqlite",
+                score = 8,
+                total = 10,
+                unanswered = 0,
+                cumulativeCorrect = null,
+                cumulativeAnswered = null,
+                cumulativeExamCount = null,
+                historyList = emptyList(),
+                totalQuestions = 100,
+            )
+
+        assertEquals("自适应渐隐", stats.modeText)
+        assertEquals("bank.sqlite", stats.fileName)
+        assertEquals(8, stats.overallScore)
+        assertEquals(10, stats.overallAnswered)
+        assertEquals("本轮渐隐", stats.overallLabel)
+    }
+
     private fun buildStats(
         score: Int = 1,
         total: Int = 10,

@@ -6,6 +6,7 @@ import com.example.testapp.core.common.FontSettingsRepository
 import com.example.testapp.data.datastore.FontSettingsRepositoryImpl
 import com.example.testapp.data.init.QuestionDataInitializer
 import com.example.testapp.data.local.AppDatabase
+import com.example.testapp.data.local.AppDatabaseMigrations
 import com.example.testapp.data.local.dao.FavoriteQuestionDao
 import com.example.testapp.data.local.dao.QuestionDao
 import com.example.testapp.data.repository.QuestionRepositoryImpl
@@ -60,6 +61,11 @@ abstract class DataBindModule {
 
     @Binds
     abstract fun bindFontSettingsRepository(impl: FontSettingsRepositoryImpl): FontSettingsRepository
+
+    @Binds
+    abstract fun bindAdaptiveAtomRepository(
+        impl: com.example.testapp.data.repository.AdaptiveAtomRepositoryImpl,
+    ): com.example.testapp.domain.repository.AdaptiveAtomRepository
 }
 
 @Module
@@ -69,6 +75,7 @@ object DataProvidesModule {
     @Singleton
     fun provideDatabase(@ApplicationContext context: Context): AppDatabase {
         return Room.databaseBuilder(context, AppDatabase::class.java, "app_db")
+            .addMigrations(AppDatabaseMigrations.migration26To27)
             .fallbackToDestructiveMigration()
             .build()
     }
@@ -116,4 +123,9 @@ object DataProvidesModule {
 
     @Provides
     fun provideFolderDao(db: AppDatabase): com.example.testapp.data.local.dao.FolderDao = db.folderDao()
+
+    @Provides
+    fun provideAdaptiveAtomStateDao(
+        db: AppDatabase,
+    ): com.example.testapp.data.local.dao.AdaptiveAtomStateDao = db.adaptiveAtomStateDao()
 }
