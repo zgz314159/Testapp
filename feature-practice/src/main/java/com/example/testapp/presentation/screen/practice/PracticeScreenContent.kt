@@ -275,7 +275,7 @@ fun PracticeScreenContent(
         QuestionSessionChromeLayout(
             scrollState = mainScrollState,
             onScrollInProgress = { if (it) autoAdvance.cancel() },
-            modifier = contentModifier.fillMaxSize().padding(AppSpacing.md)
+            modifier = contentModifier.fillMaxSize().padding(AppSpacing.lg)
                 .cancelAutoAdvanceOnTouch { autoAdvance.cancel() }
                 .practiceHistorySwipe(
                     currentIndex, showResult, inAnsweredHistory, dispatchCommand,

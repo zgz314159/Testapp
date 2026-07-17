@@ -9,14 +9,12 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.ime
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 
 /**
- * 顶栏 / 底栏锚定在屏幕上下缘（Box 层叠），中间 scroll 区填充。
+ * 顶栏 / 底栏锚定在屏幕上下缘。外层使用不裁切的 Box，确保软阴影能显示在护眼背景上。
  * 底栏不消费 IME 位移，键盘弹出时由 scroll 末尾 spacer 提供可滚空间。
  */
 @Composable
@@ -26,7 +24,7 @@ fun QuestionSessionChromeLayout(
     modifier: Modifier = Modifier,
     topBar: @Composable () -> Unit,
     bottomBar: @Composable () -> Unit,
-    scrollContent: @Composable ColumnScope.() -> Unit
+    scrollContent: @Composable ColumnScope.() -> Unit,
 ) {
     val insets = QuestionSessionChromeInsetsPipeline
     Box(modifier = modifier.fillMaxSize()) {
@@ -37,25 +35,23 @@ fun QuestionSessionChromeLayout(
                 .fillMaxSize()
                 .padding(
                     top = insets.scrollTopInset(),
-                    bottom = insets.scrollBottomInset()
+                    bottom = insets.scrollBottomInset(),
                 ),
-            content = scrollContent
+            content = scrollContent,
         )
-        Surface(
+        Box(
             modifier = Modifier
                 .align(Alignment.TopCenter)
                 .fillMaxWidth()
                 .consumeWindowInsets(WindowInsets.ime),
-            color = Color.Transparent
         ) {
             topBar()
         }
-        Surface(
+        Box(
             modifier = Modifier
                 .align(Alignment.BottomCenter)
                 .fillMaxWidth()
                 .consumeWindowInsets(WindowInsets.ime),
-            color = Color.Transparent
         ) {
             bottomBar()
         }

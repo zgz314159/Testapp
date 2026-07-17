@@ -290,7 +290,7 @@ fun ExamScreenContent(
                     timer.cancel()
                 }
             },
-            modifier = contentModifier.fillMaxSize().padding(AppSpacing.md)
+            modifier = contentModifier.fillMaxSize().padding(AppSpacing.lg)
                 .onSizeChanged { gesture.containerWidth = it.width.toFloat() }
                 .cancelAutoAdvanceOnTouch { timer.cancel() }
                 .examScreenGesture(

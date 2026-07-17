@@ -29,11 +29,20 @@ fun resolveAnswerChoicePalette(
 @Composable
 fun answerChoicePalette(): AnswerChoicePalette {
     val scheme = MaterialTheme.colorScheme
+    val darkTheme = isSystemInDarkTheme()
     return resolveAnswerChoicePalette(
-        darkTheme = isSystemInDarkTheme(),
-        surface = questionSessionFloatingContainerColor(),
-        secondaryContainer = scheme.secondaryContainer
+        darkTheme = darkTheme,
+        surface = questionSessionOptionColor(),
+        secondaryContainer = if (darkTheme) scheme.secondaryContainer else Color(0xFFF1F5FF)
     )
+}
+
+@Composable
+fun answerChoiceBorderColor(tone: AnswerChoiceTone): Color = when (tone) {
+    AnswerChoiceTone.Default -> questionSessionBorderColor()
+    AnswerChoiceTone.Selected -> Color(0xFFBFD0FF)
+    AnswerChoiceTone.Correct -> Color(0xFF72B879)
+    AnswerChoiceTone.Wrong -> Color(0xFFE58B8B)
 }
 
 fun AnswerChoicePalette.colorFor(tone: AnswerChoiceTone): Color = when (tone) {

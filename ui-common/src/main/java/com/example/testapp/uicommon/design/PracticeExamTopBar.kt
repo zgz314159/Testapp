@@ -19,6 +19,8 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.sp
 import com.example.testapp.uicommon.R
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -89,7 +91,10 @@ fun PracticeExamTopBar(
         }
         Text(
             text = timerTitle,
-            style = MaterialTheme.typography.titleMedium
+            style = MaterialTheme.typography.titleLarge.copy(
+                fontSize = 26.sp,
+                fontWeight = FontWeight.SemiBold,
+            ),
         )
         if (questionActionsEnabled) {
             AppTopBarIconButton(onClick = onToggleFavorite, size = iconSize) {

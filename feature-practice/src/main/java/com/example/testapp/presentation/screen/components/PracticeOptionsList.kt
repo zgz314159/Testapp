@@ -20,6 +20,7 @@ import com.example.testapp.domain.model.Question
 import com.example.testapp.uicommon.component.LocalFontFamily
 import com.example.testapp.uicommon.component.RichText
 import com.example.testapp.uicommon.design.QuestionOptionSurface
+import com.example.testapp.uicommon.design.answerChoiceBorderColor
 import com.example.testapp.uicommon.design.answerChoicePalette
 import com.example.testapp.uicommon.design.colorFor
 import com.example.testapp.uicommon.design.resolveAnswerChoiceTone
@@ -43,12 +44,12 @@ fun ExamOptionsList(
         val isSelected = selectedOption.contains(idx)
         val isCorrect = showResult && correctIndices.contains(idx)
 
-        val backgroundColor = palette.colorFor(
-            resolveAnswerChoiceTone(showResult, isSelected, isCorrect)
-        )
+        val tone = resolveAnswerChoiceTone(showResult, isSelected, isCorrect)
+        val backgroundColor = palette.colorFor(tone)
 
         QuestionOptionSurface(
             containerColor = backgroundColor,
+            borderColor = answerChoiceBorderColor(tone),
             enabled = !showResult,
             onClick = { onOptionClick(idx) },
             modifier = Modifier

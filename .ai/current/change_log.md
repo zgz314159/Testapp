@@ -4,6 +4,22 @@
 
 答题结果区双击进入与解析相同的 `ExplanationScreen`；练习/考试对称接线；`ReadingCollapsibleSection` 增加 `onDoubleTap`。
 
+## 2026-07-17 — 答题页立体视觉恢复为既定成功规格
+
+### 原因
+- 前一提交误用 Material `ElevatedCard` 近似重做，未严格复用 2026-07-16 已完成并通过 208 个 Gradle 任务的立体化方案。
+- 本次按 `ANSWER_SCREEN_3D_REDESIGN_CODEX.md` 原规格纠正，不再另起视觉体系。
+
+### 恢复内容
+- `shadow(clip=false) + background + 1dp soft border` 作为统一轻拟物卡片结构。
+- 顶栏 72dp / 24dp 圆角；进度条 6dp；题型卡最小 86dp / 22dp 圆角；主卡 28dp / 22dp 内边距。
+- 选项卡 18dp 圆角、轻阴影、状态边框及 `0.985f` 按压反馈。
+- 底栏 108dp / 28dp 圆角，中央 84dp 浅色托盘继续承载原深色提交图标，并保留系统导航安全区。
+- 顶栏和底栏外层使用不裁切的 `Box`，避免软阴影被父 `Surface` 截断。
+
+### 业务边界
+- Practice、Exam、Adaptive 继续共用现有 Session / Command；未修改判题、进度、AI、收藏、错题、笔记或数据库。
+
 ## 2026-07-17 — 共用答题页立体视觉外壳
 
 ### 范围
