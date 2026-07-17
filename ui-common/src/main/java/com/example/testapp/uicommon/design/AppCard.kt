@@ -21,18 +21,19 @@ val QuestionSessionCardContainerLight = Color(0xFFF0F0F2)
 fun AppCard(
     modifier: Modifier = Modifier,
     contentPadding: Modifier = Modifier.padding(AppSpacing.md),
+    containerColor: Color? = null,
     content: @Composable ColumnScope.() -> Unit
 ) {
-    val containerColor = if (isSystemInDarkTheme()) {
+    val resolvedContainerColor = containerColor ?: if (isSystemInDarkTheme()) {
         MaterialTheme.colorScheme.surface
     } else {
         QuestionSessionCardContainerLight
     }
     ElevatedCard(
         modifier = modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(12.dp),
-        colors = CardDefaults.elevatedCardColors(containerColor = containerColor),
-        elevation = CardDefaults.elevatedCardElevation(defaultElevation = 1.dp)
+        shape = RoundedCornerShape(20.dp),
+        colors = CardDefaults.elevatedCardColors(containerColor = resolvedContainerColor),
+        elevation = CardDefaults.elevatedCardElevation(defaultElevation = 5.dp)
     ) {
         Column(modifier = contentPadding, content = content)
     }

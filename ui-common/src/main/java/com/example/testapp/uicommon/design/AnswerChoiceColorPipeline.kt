@@ -31,7 +31,7 @@ fun answerChoicePalette(): AnswerChoicePalette {
     val scheme = MaterialTheme.colorScheme
     return resolveAnswerChoicePalette(
         darkTheme = isSystemInDarkTheme(),
-        surface = scheme.surface,
+        surface = questionSessionFloatingContainerColor(),
         secondaryContainer = scheme.secondaryContainer
     )
 }

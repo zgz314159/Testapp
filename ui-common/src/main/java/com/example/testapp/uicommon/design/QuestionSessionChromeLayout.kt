@@ -9,11 +9,11 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.ime
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 
 /**
  * 顶栏 / 底栏锚定在屏幕上下缘（Box 层叠），中间 scroll 区填充。
@@ -46,7 +46,7 @@ fun QuestionSessionChromeLayout(
                 .align(Alignment.TopCenter)
                 .fillMaxWidth()
                 .consumeWindowInsets(WindowInsets.ime),
-            color = MaterialTheme.colorScheme.background
+            color = Color.Transparent
         ) {
             topBar()
         }
@@ -55,7 +55,7 @@ fun QuestionSessionChromeLayout(
                 .align(Alignment.BottomCenter)
                 .fillMaxWidth()
                 .consumeWindowInsets(WindowInsets.ime),
-            color = MaterialTheme.colorScheme.background
+            color = Color.Transparent
         ) {
             bottomBar()
         }

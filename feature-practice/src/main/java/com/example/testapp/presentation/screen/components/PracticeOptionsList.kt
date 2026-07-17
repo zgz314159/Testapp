@@ -1,9 +1,6 @@
 package com.example.testapp.presentation.screen.components
 
-import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -22,6 +19,7 @@ import com.example.testapp.core.util.resolveDisplayOptions
 import com.example.testapp.domain.model.Question
 import com.example.testapp.uicommon.component.LocalFontFamily
 import com.example.testapp.uicommon.component.RichText
+import com.example.testapp.uicommon.design.QuestionOptionSurface
 import com.example.testapp.uicommon.design.answerChoicePalette
 import com.example.testapp.uicommon.design.colorFor
 import com.example.testapp.uicommon.design.resolveAnswerChoiceTone
@@ -49,17 +47,17 @@ fun ExamOptionsList(
             resolveAnswerChoiceTone(showResult, isSelected, isCorrect)
         )
 
-        Row(
+        QuestionOptionSurface(
+            containerColor = backgroundColor,
+            enabled = !showResult,
+            onClick = { onOptionClick(idx) },
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(vertical = 8.dp)
-                .background(backgroundColor)
-                .clickable(enabled = !showResult) { onOptionClick(idx) },
-            verticalAlignment = Alignment.CenterVertically
+                .padding(vertical = 7.dp),
         ) {
             Box(
                 modifier = Modifier
-                    .size(60.dp)
+                    .size(64.dp)
                     .padding(4.dp),
                 contentAlignment = Alignment.Center
             ) {
@@ -75,7 +73,7 @@ fun ExamOptionsList(
                 text = option,
                 modifier = Modifier
                     .weight(1f)
-                    .padding(vertical = 12.dp),
+                    .padding(vertical = 16.dp, horizontal = 4.dp),
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 fontSize = optionFontSize.sp,
                 fontFamily = LocalFontFamily.current,

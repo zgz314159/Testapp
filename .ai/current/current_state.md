@@ -23,6 +23,7 @@
 | 模块化 P78 | `refactoring_plan.md` Phase 25 | **✅ 完成** |
 | CI / lint | `.github/workflows/build.yml` | **✅** — ktlint + detekt（P78 收紧规则） |
 | 自适应渐隐原子练习 | 根目录方案 + ADR-006 | **🟡 已实现，待联网环境编译门禁** |
+| 共用答题页立体视觉 | `:ui-common` question-session chrome | **🟡 已实现，待本地 Android 编译与真机视觉冒烟** |
 | L6 Self-Evolving OS | `LEVEL6_OVERVIEW.md` | Deployed 2026-06-11 |
 
 ## System health: **🟢 STABLE**（逻辑层）
@@ -42,6 +43,7 @@
 
 - **Session:** Practice / Review / Exam / Browse / QuestionEdit 经 `SessionRegistry` + `SessionHost`
 - **AdaptiveFading:** 独立 Session + 双池抽题 + 四阶段渐隐 + Room 独立调度状态；原题库只读
+- **Question session UI:** Practice / Exam / Adaptive 共用悬浮顶栏、题型卡、选项卡与立体底栏；业务回调和 Session 边界不变
 - **Command CQRS:** 选题/填空/导航/交卷/Init/Overlay/Lifecycle restore 经 `SessionCommand`（Handler 内 bindings 委托）
 - **AI 同步:** `SessionAiAnalysisExtension` + `SessionExtensionEventWiring`（Host / 裸引擎 / QuestionEdit）
 - **Policy:** Persistence / Navigation / Reveal / Exit 工厂 + `SessionCommand` CQRS 主路径
@@ -62,6 +64,7 @@
 ## What is not done
 
 - 自适应渐隐 MVP 尚需在可联网 JDK 21 环境执行全量 Gradle 编译、lint、单测与 APK 冒烟。
+- 共用答题页立体视觉尚需在本地 Android 环境执行编译，并对窄屏、长选项、深色模式和 IME 做真机冒烟。
 - 个性化间隔、学习统计面板属于后续增强，不在 MVP 内。
 
 ## Session 迁移进度（P26–P63）

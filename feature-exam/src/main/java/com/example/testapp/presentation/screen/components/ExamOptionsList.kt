@@ -1,7 +1,5 @@
 package com.example.testapp.presentation.screen.exam.components
 
-import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
@@ -10,8 +8,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.unit.dp
 import com.example.testapp.core.util.answerLettersToIndices
+import com.example.testapp.domain.QuestionTypes
 import com.example.testapp.uicommon.component.LocalFontFamily
 import com.example.testapp.uicommon.component.LocalFontSize
+import com.example.testapp.uicommon.design.QuestionOptionSurface
 import com.example.testapp.uicommon.design.answerChoicePalette
 import com.example.testapp.uicommon.design.colorFor
 import com.example.testapp.uicommon.design.resolveAnswerChoiceTone
@@ -36,21 +36,21 @@ fun ExamOptionsList(
             resolveAnswerChoiceTone(showResult, isSelected, isCorrect)
         )
 
-        Row(
+        QuestionOptionSurface(
+            containerColor = backgroundColor,
+            enabled = !showResult,
+            onClick = { onOptionClick(idx) },
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(vertical = 8.dp)
-                .background(backgroundColor)
-                .clickable(enabled = !showResult) { onOptionClick(idx) },
-            verticalAlignment = Alignment.CenterVertically
+                .padding(vertical = 7.dp),
         ) {
             Box(
                 modifier = Modifier
-                    .size(60.dp)
+                    .size(64.dp)
                     .padding(4.dp),
                 contentAlignment = Alignment.Center
             ) {
-                if (question.type == "多选题") {
+                if (QuestionTypes.isMulti(question.type)) {
                     Checkbox(
                         checked = isSelected,
                         onCheckedChange = { onOptionClick(idx) },
@@ -71,12 +71,10 @@ fun ExamOptionsList(
                 text = option,
                 modifier = Modifier
                     .weight(1f)
-                    .padding(vertical = 12.dp),
+                    .padding(vertical = 16.dp, horizontal = 4.dp),
                 fontSize = LocalFontSize.current,
                 fontFamily = LocalFontFamily.current
             )
         }
     }
 }
-
-
