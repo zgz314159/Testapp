@@ -27,6 +27,7 @@ fun ReadingCollapsibleSection(
     resetKey: Any?,
     modifier: Modifier = Modifier,
     onInteraction: () -> Unit = {},
+    onDoubleTap: (() -> Unit)? = null,
     collapsedContent: @Composable () -> Unit,
     expandedContent: @Composable () -> Unit
 ) {
@@ -38,12 +39,18 @@ fun ReadingCollapsibleSection(
             .padding(vertical = AppSpacing.xs)
             .background(containerColor)
             .padding(AppSpacing.sm)
-            .pointerInput(resetKey) {
+            .pointerInput(resetKey, onDoubleTap) {
                 detectTapGestures(
                     onTap = {
                         onInteraction()
                         collapsed = !collapsed
-                    }
+                    },
+                    onDoubleTap = onDoubleTap?.let { action ->
+                        {
+                            onInteraction()
+                            action()
+                        }
+                    },
                 )
             }
     ) {

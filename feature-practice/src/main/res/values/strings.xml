@@ -25,6 +25,7 @@
     <string name="question_type_prefix">题型：</string>
     <string name="answer_correct">回答正确！</string>
     <string name="answer_wrong_format">回答错误，正确答案：%1$s</string>
+    <string name="correct_answer_prefix">正确答案：</string>
     <string name="analysis_prefix">解析：</string>
     <string name="note_prefix">笔记：</string>
     <string name="remove">移除</string>

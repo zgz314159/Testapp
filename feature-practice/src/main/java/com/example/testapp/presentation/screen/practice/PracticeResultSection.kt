@@ -51,7 +51,9 @@ fun PracticeResultSection(
 
     answerResultText: String,
 
-    onInteraction: () -> Unit = {}
+    onInteraction: () -> Unit = {},
+
+    onDoubleTap: (() -> Unit)? = null,
 
 ) {
 
@@ -82,6 +84,8 @@ fun PracticeResultSection(
         resetKey = listOf(question.id, answerResultText, textAnswer),
 
         onInteraction = onInteraction,
+
+        onDoubleTap = onDoubleTap,
 
         collapsedContent = {
 

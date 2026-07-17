@@ -1,5 +1,9 @@
 # Change Log
 
+## 2026-07-17 — 正确答案区双击全屏
+
+答题结果区双击进入与解析相同的 `ExplanationScreen`；练习/考试对称接线；`ReadingCollapsibleSection` 增加 `onDoubleTap`。
+
 ## 2026-07-17 — 共用答题页立体视觉外壳
 
 ### 范围

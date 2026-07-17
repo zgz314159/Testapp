@@ -151,6 +151,8 @@ fun PracticeScreenQuestionScrollContent(
         } else {
             stringResource(R.string.answer_wrong_format, answerResult.correctText)
         }
+        val correctAnswerFullscreenText =
+            stringResource(R.string.correct_answer_prefix) + answerResult.correctText
         PracticeResultSection(
             question = question,
             showResult = showResult,
@@ -164,7 +166,11 @@ fun PracticeScreenQuestionScrollContent(
             questionLetterSpacing = fc.questionLetterSpacing,
             allCorrect = answerResult.allCorrect,
             answerResultText = answerResultText,
-            onInteraction = { autoAdvance.cancel() }
+            onInteraction = { autoAdvance.cancel() },
+            onDoubleTap = {
+                autoAdvance.cancel()
+                onViewExplanation(correctAnswerFullscreenText)
+            },
         )
         val analysisPrefix = stringResource(R.string.analysis_prefix)
         val cancelAutoAdvance = { autoAdvance.cancel() }

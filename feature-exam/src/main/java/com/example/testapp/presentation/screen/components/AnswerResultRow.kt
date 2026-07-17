@@ -37,7 +37,8 @@ fun AnswerResultRow(
     selectedOption: List<Int>,
     textAnswer: String,
     questionFontSize: Float,
-    letterSpacing: Float = 0f
+    letterSpacing: Float = 0f,
+    onDoubleTap: (() -> Unit)? = null,
 ) {
     val correctIndices = answerToOptionIndices(question)
     val displayOptions = resolveDisplayOptions(question)
@@ -69,6 +70,7 @@ fun AnswerResultRow(
         containerColor = feedbackColors.resultContainer,
         contentColor = contentColor,
         resetKey = sectionKey,
+        onDoubleTap = onDoubleTap,
         collapsedContent = {
             Text(
                 text = previewLine,
