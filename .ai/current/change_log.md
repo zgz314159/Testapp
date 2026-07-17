@@ -7,14 +7,14 @@
 ## 2026-07-17 — 答题页立体视觉恢复为既定成功规格
 
 ### 原因
-- 前一提交误用 Material `ElevatedCard` 近似重做，未严格复用 2026-07-16 已完成并通过 208 个 Gradle 任务的立体化方案。
-- 本次按 `ANSWER_SCREEN_3D_REDESIGN_CODEX.md` 原规格纠正，不再另起视觉体系。
+- 前两次提交仅按设计说明近似重做，未严格复用 2026-07-16 已完成并通过 208 个 Gradle 任务的实际实现。
+- 本次以用户保留的原 `app-debug.apk` 反编译实参为准恢复，不再凭截图估算尺寸。
 
 ### 恢复内容
-- `shadow(clip=false) + background + 1dp soft border` 作为统一轻拟物卡片结构。
-- 顶栏 72dp / 24dp 圆角；进度条 6dp；题型卡最小 86dp / 22dp 圆角；主卡 28dp / 22dp 内边距。
-- 选项卡 18dp 圆角、轻阴影、状态边框及 `0.985f` 按压反馈。
-- 底栏 108dp / 28dp 圆角，中央 84dp 浅色托盘继续承载原深色提交图标，并保留系统导航安全区。
+- 使用 APK 中实际采用的 Material3 `Surface` / `ElevatedCard` elevation，不使用后加的自定义 `questionSessionSoftCard` 视觉体系。
+- 顶栏高 56dp、20dp 圆角、1/5dp tonal/shadow elevation；进度条 4dp；题目卡 20dp 圆角、浅色 `#FFF0F0F2`、默认阴影 4dp。
+- 选项卡 16dp 圆角、`0.985f` 弹性按压反馈，阴影随按压从 4dp 降至 1dp。
+- 底栏 20dp 圆角、5dp 阴影；中央提交按钮 52dp、6dp 阴影；导航箭头保持 48dp 点击区。
 - 顶栏和底栏外层使用不裁切的 `Box`，避免软阴影被父 `Surface` 截断。
 
 ### 业务边界
