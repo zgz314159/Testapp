@@ -12,7 +12,6 @@ import com.example.testapp.domain.QuestionTypes
 import com.example.testapp.uicommon.component.LocalFontFamily
 import com.example.testapp.uicommon.component.LocalFontSize
 import com.example.testapp.uicommon.design.QuestionOptionSurface
-import com.example.testapp.uicommon.design.answerChoiceBorderColor
 import com.example.testapp.uicommon.design.answerChoicePalette
 import com.example.testapp.uicommon.design.colorFor
 import com.example.testapp.uicommon.design.resolveAnswerChoiceTone
@@ -38,16 +37,15 @@ fun ExamOptionsList(
 
         QuestionOptionSurface(
             containerColor = backgroundColor,
-            borderColor = answerChoiceBorderColor(tone),
             enabled = !showResult,
             onClick = { onOptionClick(idx) },
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(vertical = 7.dp),
+                .padding(vertical = 6.dp),
         ) {
             Box(
                 modifier = Modifier
-                    .size(64.dp)
+                    .size(60.dp)
                     .padding(4.dp),
                 contentAlignment = Alignment.Center
             ) {
@@ -72,7 +70,7 @@ fun ExamOptionsList(
                 text = option,
                 modifier = Modifier
                     .weight(1f)
-                    .padding(vertical = 16.dp, horizontal = 4.dp),
+                    .padding(vertical = 12.dp),
                 fontSize = LocalFontSize.current,
                 fontFamily = LocalFontFamily.current
             )
