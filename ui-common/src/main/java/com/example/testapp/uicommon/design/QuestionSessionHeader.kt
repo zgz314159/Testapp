@@ -21,6 +21,7 @@ fun QuestionSessionHeader(
     modifier: Modifier = Modifier,
     questionListLabel: String? = null,
     onOpenQuestionList: (() -> Unit)? = null,
+    modeLabel: String? = null,
     extraContent: @Composable ColumnScope.() -> Unit = {},
 ) {
     Column(modifier = modifier.fillMaxWidth()) {
@@ -39,6 +40,7 @@ fun QuestionSessionHeader(
                 progressLabel = "${currentIndex + 1}/$total",
                 questionListLabel = questionListLabel,
                 onOpenQuestionList = onOpenQuestionList,
+                modeLabel = modeLabel,
             )
             extraContent()
         }

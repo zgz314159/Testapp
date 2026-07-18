@@ -89,6 +89,21 @@ class HomeDashboardPipelineTest {
     }
 
     @Test
+    fun `reorderFileNames keeps all recent usage then original import order`() {
+        val names = listOf("import-1", "import-2", "import-3", "import-4", "import-5")
+        val result = pipeline.reorderFileNames(
+            fileNames = names,
+            storedFileName = "import-4",
+            recentFileNames = listOf("import-4", "import-2", "import-5", "import-1"),
+        )
+
+        assertEquals(
+            listOf("import-4", "import-2", "import-5", "import-1", "import-3"),
+            result,
+        )
+    }
+
+    @Test
     fun `reorderFileNames empty input`() {
         val result = pipeline.reorderFileNames(
             fileNames = emptyList(),

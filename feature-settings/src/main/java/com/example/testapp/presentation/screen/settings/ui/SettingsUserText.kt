@@ -17,8 +17,10 @@ fun SettingsHeadlineText(text: String, fontSize: Float, modifier: Modifier = Mod
         modifier = modifier,
         style = MaterialTheme.typography.bodyLarge.copy(
             fontSize = fontSize.sp,
-            fontFamily = LocalFontFamily.current
-        )
+            fontFamily = LocalFontFamily.current,
+            fontWeight = androidx.compose.ui.text.font.FontWeight.SemiBold,
+            color = com.example.testapp.uicommon.design.AppElevatedActionSheetTokens.textPrimary,
+        ),
     )
 }
 

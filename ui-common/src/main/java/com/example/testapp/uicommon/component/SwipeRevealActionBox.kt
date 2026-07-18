@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.width
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.rememberUpdatedState
@@ -39,6 +40,7 @@ fun SwipeRevealActionBox(
     val offset = remember { Animatable(0f) }
     val density = LocalDensity.current
     val viewConfiguration = LocalViewConfiguration.current
+    val enabledState = rememberUpdatedState(enabled)
     val closeActionState = rememberUpdatedState<(Boolean) -> Unit> { animateClosed ->
         scope.launch {
             if (animateClosed) {
@@ -50,71 +52,73 @@ fun SwipeRevealActionBox(
     }
     val actionWidthPx = with(density) { revealWidth.toPx() }
 
+    // enabled 翻转时不得拆除 pointerInput/offset，否则会取消子节点正在进行的长按拖拽。
+    LaunchedEffect(enabled) {
+        if (!enabled && offset.value != 0f) {
+            offset.snapTo(0f)
+        }
+    }
+
     Box(modifier = modifier) {
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .then(
-                    if (enabled) {
-                        Modifier
-                            .pointerInput(actionWidthPx, viewConfiguration.touchSlop) {
-                                awaitEachGesture {
-                                    val down = awaitFirstDown(requireUnconsumed = false)
-                                    var totalDx = 0f
-                                    var totalDy = 0f
-                                    var horizontalLocked = false
-                                    var released = false
+                .pointerInput(actionWidthPx, viewConfiguration.touchSlop) {
+                    awaitEachGesture {
+                        val down = awaitFirstDown(requireUnconsumed = false)
+                        if (!enabledState.value) return@awaitEachGesture
 
-                                    while (!released) {
-                                        val event = awaitPointerEvent()
-                                        val change = event.changes.firstOrNull { it.id == down.id }
-                                            ?: event.changes.firstOrNull()
-                                        if (change == null) {
-                                            released = true
-                                            continue
-                                        }
+                        var totalDx = 0f
+                        var totalDy = 0f
+                        var horizontalLocked = false
+                        var released = false
 
-                                        if (!change.pressed) {
-                                            released = true
-                                            continue
-                                        }
+                        while (!released) {
+                            val event = awaitPointerEvent()
+                            val change = event.changes.firstOrNull { it.id == down.id }
+                                ?: event.changes.firstOrNull()
+                            if (change == null) {
+                                released = true
+                                continue
+                            }
 
-                                        val delta = change.position - change.previousPosition
+                            if (!change.pressed) {
+                                released = true
+                                continue
+                            }
 
-                                        if (!horizontalLocked) {
-                                            totalDx += delta.x
-                                            totalDy += delta.y
+                            val delta = change.position - change.previousPosition
 
-                                            if (abs(totalDy) > viewConfiguration.touchSlop && abs(totalDy) >= abs(totalDx)) {
-                                                return@awaitEachGesture
-                                            }
+                            if (!horizontalLocked) {
+                                totalDx += delta.x
+                                totalDy += delta.y
 
-                                            if (abs(totalDx) > viewConfiguration.touchSlop && abs(totalDx) > abs(totalDy) * 1.25f) {
-                                                horizontalLocked = true
-                                            }
-                                        }
+                                if (abs(totalDy) > viewConfiguration.touchSlop && abs(totalDy) >= abs(totalDx)) {
+                                    return@awaitEachGesture
+                                }
 
-                                        if (horizontalLocked) {
-                                            change.consume()
-                                            scope.launch {
-                                                offset.snapTo((offset.value + delta.x).coerceIn(-actionWidthPx, 0f))
-                                            }
-                                        }
-                                    }
-
-                                    if (horizontalLocked) {
-                                        val snapTarget = if (-offset.value >= actionWidthPx / 2f) -actionWidthPx else 0f
-                                        scope.launch {
-                                            offset.animateTo(snapTarget, animationSpec = tween(180))
-                                        }
-                                    }
+                                if (abs(totalDx) > viewConfiguration.touchSlop && abs(totalDx) > abs(totalDy) * 1.25f) {
+                                    horizontalLocked = true
                                 }
                             }
-                            .offset { IntOffset(offset.value.roundToInt(), 0) }
-                    } else {
-                        Modifier
+
+                            if (horizontalLocked) {
+                                change.consume()
+                                scope.launch {
+                                    offset.snapTo((offset.value + delta.x).coerceIn(-actionWidthPx, 0f))
+                                }
+                            }
+                        }
+
+                        if (horizontalLocked) {
+                            val snapTarget = if (-offset.value >= actionWidthPx / 2f) -actionWidthPx else 0f
+                            scope.launch {
+                                offset.animateTo(snapTarget, animationSpec = tween(180))
+                            }
+                        }
                     }
-                )
+                }
+                .offset { IntOffset(offset.value.roundToInt(), 0) },
         ) {
             content()
         }

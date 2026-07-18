@@ -13,7 +13,7 @@ fun reorderByRecentUsage(
 			add(primaryFileName)
 		}
 		addAll(recentFileNames.filter { it in visibleFileNames && it != primaryFileName })
-	}
+	}.distinct()
 	pinnedFileNames + visibleFileNames.filterNot(pinnedFileNames::contains)
 }
 
@@ -24,13 +24,13 @@ fun buildRootDisplayFileNames(
 	recentFileNames: List<String>
 ): List<String> = traceSection("Home.buildRootFiles") {
 	if (allFileNames.isEmpty()) return@traceSection emptyList()
-	val prioritizedRecentFiles = buildList {
-		if (primaryFileName.isNotBlank() && primaryFileName in allFileNames) {
-			add(primaryFileName)
-		}
-		addAll(recentFileNames.filter { it in allFileNames && it != primaryFileName })
-	}.distinct().take(3)
-	prioritizedRecentFiles + rootVisibleFileNames.filterNot(prioritizedRecentFiles::contains)
+	// 只置顶仍在根目录的最近题库：已归入分组的文件不回流首页根列表，
+	// 否则拖拽合并分组后卡片原地不动，用户会感知“分组失效”。
+	reorderByRecentUsage(
+		visibleFileNames = rootVisibleFileNames,
+		primaryFileName = primaryFileName,
+		recentFileNames = recentFileNames,
+	)
 }
 
 fun buildFolderFileCounts(

@@ -51,11 +51,12 @@ import com.example.testapp.domain.usecase.FileStatistics
 import com.example.testapp.feature.practice.R
 import com.example.testapp.presentation.screen.file.DragDropViewModel
 import com.example.testapp.presentation.screen.file.FileFolderViewModel
-import com.example.testapp.presentation.screen.home.components.DraggingFileOverlay
+import com.example.testapp.presentation.screen.home.components.HomeDraggingFileOverlay
 import com.example.testapp.presentation.screen.home.components.HomeFileList
 import com.example.testapp.presentation.screen.home.design.HomeDesignTokens
 import com.example.testapp.uicommon.component.LocalFontFamily
 import com.example.testapp.uicommon.component.LocalFontSize
+import com.example.testapp.uicommon.design.AppElevatedConfirmDialog
 import com.example.testapp.uicommon.design.AppEmptyState
 import com.example.testapp.uicommon.design.AppTopBar
 
@@ -330,10 +331,10 @@ fun ScopedQuestionLibraryScreen(
             }
 
             draggingFile?.let { file ->
-                DraggingFileOverlay(
+                HomeDraggingFileOverlay(
                     fileName = file,
                     statistics = fileStatistics[file] ?: FileStatistics(),
-                    folderDisplayName = layout.scopedFolders[file],
+                    progressCount = 0,
                     dragPosition = dragPosition,
                     dragOffset = dragOffset,
                     dragItemSize = dragItemSize,
@@ -373,38 +374,38 @@ fun ScopedQuestionLibraryScreen(
     }
 
     if (showDeleteFolderDialog && folderToDelete != null) {
-        AlertDialog(
-            onDismissRequest = { showDeleteFolderDialog = false },
-            confirmButton = {
-                TextButton(onClick = {
-                    showDeleteFolderDialog = false
-                    folderToDelete?.let { folderViewModel.deleteFolder(scoped(it)) }
-                }) { Text(stringResource(R.string.confirm)) }
+        val targetFolder = folderToDelete
+        AppElevatedConfirmDialog(
+            onDismiss = {
+                showDeleteFolderDialog = false
+                folderToDelete = null
             },
-            dismissButton = {
-                TextButton(onClick = { showDeleteFolderDialog = false }) {
-                    Text(stringResource(R.string.cancel))
-                }
+            title = stringResource(R.string.library_delete_folder_title),
+            message = stringResource(R.string.confirm_delete_target, targetFolder ?: ""),
+            confirmLabel = stringResource(R.string.delete),
+            dismissLabel = stringResource(R.string.cancel),
+            onConfirm = {
+                targetFolder?.let { folderViewModel.deleteFolder(scoped(it)) }
             },
-            text = { Text(stringResource(R.string.confirm_delete_target, folderToDelete ?: "")) }
+            confirmDestructive = true,
         )
     }
 
     if (showDeleteFileDialog && fileToDelete != null) {
-        AlertDialog(
-            onDismissRequest = { showDeleteFileDialog = false },
-            confirmButton = {
-                TextButton(onClick = {
-                    showDeleteFileDialog = false
-                    fileToDelete?.let(onDeleteFile)
-                }) { Text(stringResource(R.string.confirm)) }
+        val targetFile = fileToDelete
+        AppElevatedConfirmDialog(
+            onDismiss = {
+                showDeleteFileDialog = false
+                fileToDelete = null
             },
-            dismissButton = {
-                TextButton(onClick = { showDeleteFileDialog = false }) {
-                    Text(stringResource(R.string.cancel))
-                }
+            title = stringResource(R.string.library_delete_file_title),
+            message = stringResource(R.string.confirm_delete_target, targetFile ?: ""),
+            confirmLabel = stringResource(R.string.delete),
+            dismissLabel = stringResource(R.string.cancel),
+            onConfirm = {
+                targetFile?.let(onDeleteFile)
             },
-            text = { Text(stringResource(R.string.confirm_delete_target, fileToDelete ?: "")) }
+            confirmDestructive = true,
         )
     }
 }

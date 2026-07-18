@@ -25,6 +25,7 @@ fun AdaptiveFadingPracticeRoute(
             bindings = hosted.bindings,
             sessionHosted = true,
             persistentQuestionActionsEnabled = false,
+            adaptiveFadingMode = true,
             settingsViewModel = settingsViewModel,
             correctSoundResId = R.raw.correct,
             wrongSoundResId = R.raw.wrong,

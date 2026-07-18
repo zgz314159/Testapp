@@ -146,14 +146,13 @@ private fun LazyListScope.homeFileListColumnFiles(
     cardElev: androidx.compose.material3.CardElevation,
 ) {
     items(items = displayFileNames, key = { it }, contentType = { "file_card" }) { fileName ->
-        val isScrolling = isScrollingRef.value
         val fileStats = fileStatistics[fileName] ?: FileStatistics()
         val progressCount = practiceProgress[fileName] ?: 0
         val qc = fileStats.questionCount
         val pct = if (qc > 0) (progressCount * 100 / qc).coerceIn(0, 100) else 0
         val dn = remember(fileName) { HomeDashboardPipeline.cleanupDisplayName(fileName) }
         SwipeRevealActionBox(
-            enabled = !isScrolling && canKeepSwipeNodeStable(fileName),
+            enabled = canKeepSwipeNodeStable(fileName),
             modifier = Modifier.fillMaxWidth().then(
                 if (shouldTrackDropTargets) {
                     Modifier.onGloballyPositioned { coords -> onReportCardBounds(fileName, coords.boundsInRoot()) }
@@ -173,8 +172,10 @@ private fun LazyListScope.homeFileListColumnFiles(
                 isDragging = draggingFile == fileName,
                 showTypeSummary = false,
                 useCompactStyle = false,
-                // 不把 isScrolling 编进 enableDragDrop，避免滚动时重建 pointerInput
-                enableDragDrop = !isScrolling && canHandleDrag(fileName, false),
+                // 不把 isScrolling 编进 enableDragDrop：拖拽触发边缘自动滚动时
+                // isScrollInProgress 会变 true，若据此拆除 pointerInput 会在手势中途
+                // 取消拖拽（长按合并分组失效的根因）。滚动门禁只在 allowDragStart 里判定。
+                enableDragDrop = canHandleDrag(fileName, false),
                 allowDragStart = { canHandleDrag(fileName, isScrollingRef.value) },
                 enableLongClickAction = false,
                 cardShapeOverride = cardShape,

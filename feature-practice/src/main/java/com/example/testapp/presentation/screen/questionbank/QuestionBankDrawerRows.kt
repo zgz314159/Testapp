@@ -1,7 +1,6 @@
 package com.example.testapp.presentation.screen.questionbank
 
 import androidx.compose.foundation.ExperimentalFoundationApi
-import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
@@ -15,6 +14,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material.icons.Icons
@@ -25,7 +25,6 @@ import androidx.compose.material.icons.filled.Folder
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -66,22 +65,32 @@ internal fun QuestionBankSearchBar(
         modifier = modifier.height(QUESTION_BANK_SEARCH_BAR_HEIGHT_DP.dp),
         shape = shape,
         color = HomeDesignTokens.surfaceLight,
-        shadowElevation = 1.dp,
-        tonalElevation = 0.dp,
+        shadowElevation = HomeDesignTokens.elevationMedium,
+        tonalElevation = 2.dp,
     ) {
         Row(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(start = 14.dp, end = 6.dp),
+                .padding(start = 10.dp, end = 6.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Icon(
-                imageVector = Icons.Filled.Search,
-                contentDescription = null,
-                modifier = Modifier.size(20.dp),
-                tint = HomeDesignTokens.primary,
-            )
-            Spacer(modifier = Modifier.width(8.dp))
+            Surface(
+                modifier = Modifier.size(32.dp),
+                shape = CircleShape,
+                color = HomeDesignTokens.primaryContainer,
+                tonalElevation = 1.dp,
+                shadowElevation = HomeDesignTokens.elevationLow,
+            ) {
+                Box(contentAlignment = Alignment.Center) {
+                    Icon(
+                        imageVector = Icons.Filled.Search,
+                        contentDescription = null,
+                        modifier = Modifier.size(18.dp),
+                        tint = HomeDesignTokens.primary,
+                    )
+                }
+            }
+            Spacer(modifier = Modifier.width(10.dp))
             BasicTextField(
                 value = value,
                 onValueChange = onValueChange,
@@ -89,6 +98,7 @@ internal fun QuestionBankSearchBar(
                 textStyle = TextStyle(
                     color = HomeDesignTokens.textPrimaryLight,
                     fontSize = 14.sp,
+                    fontWeight = FontWeight.Medium,
                 ),
                 cursorBrush = SolidColor(HomeDesignTokens.primary),
                 modifier = Modifier.weight(1f),
@@ -106,13 +116,22 @@ internal fun QuestionBankSearchBar(
                 },
             )
             if (value.isNotEmpty()) {
-                IconButton(onClick = onClear, modifier = Modifier.size(36.dp)) {
-                    Icon(
-                        imageVector = Icons.Filled.Close,
-                        contentDescription = "清空搜索",
-                        modifier = Modifier.size(18.dp),
-                        tint = HomeDesignTokens.textSecondaryLight,
-                    )
+                Surface(
+                    onClick = onClear,
+                    modifier = Modifier.size(32.dp),
+                    shape = CircleShape,
+                    color = HomeDesignTokens.surfaceVariantLight,
+                    tonalElevation = 1.dp,
+                    shadowElevation = 3.dp,
+                ) {
+                    Box(contentAlignment = Alignment.Center) {
+                        Icon(
+                            imageVector = Icons.Filled.Close,
+                            contentDescription = "清空搜索",
+                            modifier = Modifier.size(16.dp),
+                            tint = HomeDesignTokens.textSecondaryLight,
+                        )
+                    }
                 }
             }
         }
@@ -139,8 +158,8 @@ private fun DrawerTreeRow(
             .clickable(onClick = onClick),
         shape = RoundedCornerShape(18.dp),
         color = HomeDesignTokens.surfaceLight,
-        shadowElevation = 1.dp,
-        tonalElevation = 0.dp,
+        shadowElevation = HomeDesignTokens.elevationHigh,
+        tonalElevation = 2.dp,
     ) {
         Row(
             modifier = Modifier
@@ -148,22 +167,24 @@ private fun DrawerTreeRow(
                 .padding(horizontal = 12.dp, vertical = 12.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Box(
-                modifier = Modifier
-                    .size(44.dp)
-                    .clip(RoundedCornerShape(14.dp))
-                    .background(accentContainer),
-                contentAlignment = Alignment.Center,
+            Surface(
+                modifier = Modifier.size(44.dp),
+                shape = RoundedCornerShape(14.dp),
+                color = accentContainer,
+                tonalElevation = 2.dp,
+                shadowElevation = HomeDesignTokens.elevationMedium,
             ) {
-                if (trailingLoading) {
-                    AppLoadingIndicator(modifier = Modifier.size(18.dp))
-                } else {
-                    Icon(
-                        imageVector = trailingIcon,
-                        contentDescription = null,
-                        tint = accentIcon,
-                        modifier = Modifier.size(22.dp),
-                    )
+                Box(contentAlignment = Alignment.Center) {
+                    if (trailingLoading) {
+                        AppLoadingIndicator(modifier = Modifier.size(18.dp))
+                    } else {
+                        Icon(
+                            imageVector = trailingIcon,
+                            contentDescription = null,
+                            tint = accentIcon,
+                            modifier = Modifier.size(22.dp),
+                        )
+                    }
                 }
             }
             Spacer(modifier = Modifier.width(12.dp))
@@ -186,12 +207,22 @@ private fun DrawerTreeRow(
                 )
             }
             Spacer(modifier = Modifier.width(8.dp))
-            Icon(
-                imageVector = if (isExpanded) Icons.Filled.KeyboardArrowDown else Icons.Filled.ChevronRight,
-                contentDescription = null,
-                tint = HomeDesignTokens.primary,
-                modifier = Modifier.size(22.dp),
-            )
+            Surface(
+                modifier = Modifier.size(28.dp),
+                shape = CircleShape,
+                color = HomeDesignTokens.primaryContainer,
+                tonalElevation = 1.dp,
+                shadowElevation = 3.dp,
+            ) {
+                Box(contentAlignment = Alignment.Center) {
+                    Icon(
+                        imageVector = if (isExpanded) Icons.Filled.KeyboardArrowDown else Icons.Filled.ChevronRight,
+                        contentDescription = null,
+                        tint = HomeDesignTokens.primary,
+                        modifier = Modifier.size(18.dp),
+                    )
+                }
+            }
         }
     }
 }
@@ -257,9 +288,9 @@ internal fun QuestionBankSearchQuestionRow(
             .clip(RoundedCornerShape(14.dp))
             .combinedClickable(onClick = onClick, onLongClick = onLongClick),
         shape = RoundedCornerShape(14.dp),
-        color = HomeDesignTokens.surfaceVariantLight,
-        tonalElevation = 0.dp,
-        shadowElevation = 0.dp,
+        color = HomeDesignTokens.surfaceLight,
+        tonalElevation = 1.dp,
+        shadowElevation = HomeDesignTokens.elevationMedium,
     ) {
         Column(
             modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp),
@@ -334,29 +365,52 @@ internal fun QuestionBankQuestionRow(
     Surface(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(start = indent.dp, top = 2.dp, bottom = 2.dp)
-            .clip(RoundedCornerShape(14.dp))
+            .padding(start = indent.dp, top = 3.dp, bottom = 3.dp)
+            .clip(RoundedCornerShape(16.dp))
             .combinedClickable(onClick = onClick, onLongClick = onLongClick),
-        shape = RoundedCornerShape(14.dp),
-        color = HomeDesignTokens.surfaceVariantLight,
-        tonalElevation = 0.dp,
-        shadowElevation = 0.dp,
+        shape = RoundedCornerShape(16.dp),
+        color = HomeDesignTokens.surfaceLight,
+        tonalElevation = 1.dp,
+        shadowElevation = HomeDesignTokens.elevationMedium,
     ) {
-        Column(modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp)) {
-            Text(
-                text = rememberHighlightedQuestionBankText(text, query),
-                maxLines = 2,
-                overflow = TextOverflow.Ellipsis,
-                fontSize = 13.sp,
-                color = HomeDesignTokens.textPrimaryLight,
-            )
-            Spacer(modifier = Modifier.height(4.dp))
-            Text(
-                text = formatQuestionBankRowIndex(questionIndex),
-                fontSize = 10.sp,
-                fontWeight = FontWeight.Medium,
-                color = HomeDesignTokens.textSecondaryLight,
-            )
+        Row(
+            modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Surface(
+                modifier = Modifier.size(28.dp),
+                shape = CircleShape,
+                color = HomeDesignTokens.primaryContainer,
+                tonalElevation = 1.dp,
+                shadowElevation = HomeDesignTokens.elevationLow,
+            ) {
+                Box(contentAlignment = Alignment.Center) {
+                    Text(
+                        text = "${questionIndex + 1}",
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = HomeDesignTokens.primary,
+                    )
+                }
+            }
+            Spacer(modifier = Modifier.width(10.dp))
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = rememberHighlightedQuestionBankText(text, query),
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
+                    fontSize = 13.sp,
+                    fontWeight = FontWeight.Medium,
+                    color = HomeDesignTokens.textPrimaryLight,
+                )
+                Spacer(modifier = Modifier.height(3.dp))
+                Text(
+                    text = formatQuestionBankRowIndex(questionIndex),
+                    fontSize = 10.sp,
+                    fontWeight = FontWeight.Medium,
+                    color = HomeDesignTokens.textSecondaryLight,
+                )
+            }
         }
     }
 }

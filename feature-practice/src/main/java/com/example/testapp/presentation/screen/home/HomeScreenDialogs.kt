@@ -1,13 +1,16 @@
 package com.example.testapp.presentation.screen.home
 
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.dp
+import com.example.testapp.uicommon.design.AppElevatedActionSheetTokens
+import com.example.testapp.uicommon.design.AppElevatedConfirmDialog
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HomeScreenDialogs(
     showDeleteDialog: Boolean,
@@ -30,47 +33,97 @@ fun HomeScreenDialogs(
     onConfirmDeleteFolder: () -> Unit,
 ) {
     if (showDeleteDialog) {
-        AlertDialog(
-            onDismissRequest = onDismissDeleteFile,
-            confirmButton = { TextButton(onClick = onConfirmDeleteFile) { Text("确定") } },
-            dismissButton = { TextButton(onClick = onDismissDeleteFile) { Text("取消") } },
-            text = { Text("确认删除 $fileToDelete 及其相关数据？") }
+        AppElevatedConfirmDialog(
+            onDismiss = onDismissDeleteFile,
+            title = "删除题库",
+            message = "确认删除 $fileToDelete 及其相关数据？",
+            confirmLabel = "删除",
+            dismissLabel = "取消",
+            onConfirm = onConfirmDeleteFile,
+            confirmDestructive = true,
         )
     }
     if (showAddFolderDialog) {
-        AlertDialog(
-            onDismissRequest = onDismissAddFolder,
-            confirmButton = { TextButton(onClick = onConfirmAddFolder) { Text("确定") } },
-            dismissButton = { TextButton(onClick = onDismissAddFolder) { Text("取消") } },
-            text = {
-                OutlinedTextField(
-                    value = newFolderName,
-                    onValueChange = onNewFolderNameChange,
-                    label = { Text("文件夹名") }
-                )
-            }
+        HomeInputDialog(
+            title = "新建文件夹",
+            value = newFolderName,
+            onValueChange = onNewFolderNameChange,
+            label = "文件夹名",
+            onDismiss = onDismissAddFolder,
+            onConfirm = onConfirmAddFolder,
         )
     }
     if (renameFolderTarget != null) {
-        AlertDialog(
-            onDismissRequest = onDismissRenameFolder,
-            confirmButton = { TextButton(onClick = onConfirmRenameFolder) { Text("确定") } },
-            dismissButton = { TextButton(onClick = onDismissRenameFolder) { Text("取消") } },
-            text = {
-                OutlinedTextField(
-                    value = renameFolderName,
-                    onValueChange = onRenameFolderNameChange,
-                    label = { Text("重命名") }
-                )
-            }
+        HomeInputDialog(
+            title = "重命名文件夹",
+            value = renameFolderName,
+            onValueChange = onRenameFolderNameChange,
+            label = "重命名",
+            onDismiss = onDismissRenameFolder,
+            onConfirm = onConfirmRenameFolder,
         )
     }
     if (showDeleteFolderDialog && folderToDelete != null) {
-        AlertDialog(
-            onDismissRequest = onDismissDeleteFolder,
-            confirmButton = { TextButton(onClick = onConfirmDeleteFolder) { Text("确定") } },
-            dismissButton = { TextButton(onClick = onDismissDeleteFolder) { Text("取消") } },
-            text = { Text("确认删除 $folderToDelete 吗？") }
+        AppElevatedConfirmDialog(
+            onDismiss = onDismissDeleteFolder,
+            title = "删除文件夹",
+            message = "确认删除 $folderToDelete 吗？",
+            confirmLabel = "删除",
+            dismissLabel = "取消",
+            onConfirm = onConfirmDeleteFolder,
+            confirmDestructive = true,
         )
     }
+}
+
+@Composable
+private fun HomeInputDialog(
+    title: String,
+    value: String,
+    onValueChange: (String) -> Unit,
+    label: String,
+    onDismiss: () -> Unit,
+    onConfirm: () -> Unit,
+) {
+    val tokens = AppElevatedActionSheetTokens
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        confirmButton = {
+            TextButton(
+                onClick = {
+                    onConfirm()
+                    onDismiss()
+                },
+            ) {
+                Text(
+                    text = "确定",
+                    color = tokens.brandBlue,
+                    fontWeight = FontWeight.SemiBold,
+                )
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text(text = "取消", color = tokens.textSecondary)
+            }
+        },
+        title = {
+            Text(
+                text = title,
+                color = tokens.textPrimary,
+                fontWeight = FontWeight.SemiBold,
+            )
+        },
+        text = {
+            OutlinedTextField(
+                value = value,
+                onValueChange = onValueChange,
+                label = { Text(label) },
+                singleLine = true,
+            )
+        },
+        shape = RoundedCornerShape(tokens.cardCorner),
+        containerColor = tokens.cardWhite,
+        tonalElevation = 4.dp,
+    )
 }

@@ -7,10 +7,10 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import com.example.testapp.core.common.LocalizedResult
 import com.example.testapp.uicommon.design.AppConfirmDialog
+import com.example.testapp.uicommon.design.AppLoadingIndicator
 import com.example.testapp.uicommon.design.AppOverlayMetrics
 import com.example.testapp.uicommon.design.appOverlayContainerColor
 import com.example.testapp.uicommon.design.appOverlayDialogShape
-import com.example.testapp.uicommon.design.AppLoadingIndicator
 
 @Composable
 fun PracticeConfirmDialog(

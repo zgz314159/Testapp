@@ -269,7 +269,15 @@ fun HomeScreen(
             homeInteractionReady = homeInteractionReady,
             homeRootCoordsRef = homeRootCoordsRef,
             homeRootDragModifier = homeRootDragModifier,
-            onLongPressAddFolder = { showAddFolderDialog = true },
+            onBlankAreaLongPress = { localOffset ->
+                // 题库/文件夹卡片上的长按用于拖拽或重命名，不得误开「新建分组」。
+                val rootPos = homeRootCoordsRef.value?.localToRoot(localOffset) ?: localOffset
+                val hitCard = fileCardBounds.values.any { it.contains(rootPos) }
+                val hitFolder = folderBounds.values.any { it.contains(rootPos) }
+                if (!hitCard && !hitFolder) {
+                    showAddFolderDialog = true
+                }
+            },
             librarySection = {
                 HomeScreenLibrarySection(
                     currentFolder = currentFolder,
@@ -337,11 +345,11 @@ fun HomeScreen(
             overlays = {
                 HomeActionOverlays(
                     context = context,
-                    viewModel = viewModel,
+                    fileStatistics = fileStatistics,
+                    practiceProgress = practiceProgress,
                     isLoading = isLoading,
                     importProgress = importProgress,
                     draggingFile = draggingFile,
-                    folders = folders,
                     dragPosition = dragPosition,
                     dragOffset = dragOffset,
                     dragItemSize = dragItemSize,

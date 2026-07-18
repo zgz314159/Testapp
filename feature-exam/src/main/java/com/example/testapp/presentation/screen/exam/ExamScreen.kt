@@ -130,6 +130,7 @@ fun ExamScreen(
             examCount = examCount,
             randomExam = randomExam,
             fillConfigVersion = fillConfigVersion,
+            fillGenerationMode = fillQuestionGenerationMode,
             examMemoryMode = examMemoryMode,
             examMemoryBatchSize = examMemoryBatchSize,
             examMemoryWrongMode = examMemoryWrongMode,

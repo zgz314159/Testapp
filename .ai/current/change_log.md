@@ -3,6 +3,138 @@
 > 记录各 Phase 的主要变更。
 > 格式：`YYYY-MM-DD | Phase-N | 描述`
 
+## 2026-07-18 | 主页混合列表：题库在前、文件夹在后
+
+- 根因：`HomeScreenLibrarySection` 曾设 `showFilesFirst=false`，文件夹排在题库前。改为 `true`：题库卡在前，文件夹在后。
+- 题库顺序继续走 `buildRootDisplayFileNames` / `reorderByRecentUsage`（使用时间倒序，未使用项保持导入序）；已入分组的题库不回流根列表。
+- 文件夹顺序：`FolderDao.getAll()` 改为 `ORDER BY rowid ASC`（SQLite 插入序 ≈ 建立时间升序），`filterVisibleHomeFolders` 保持该序并过滤空文件夹。
+- 默认值 `HomeFileList` / `HomeFileListContainer` 的 `showFilesFirst` 同步改为 `true`。
+
+## 2026-07-18 | 消灭"空白文件夹"图标
+
+- 用户反馈部分文件夹图标内部没有标记（题型名分组和哈希兜底用了纯 `Folder`）。`HomeFolderVisual` 新增 `badge` 字段：题型名文件夹保留 Folder 外形，把该题型 glyph（EditNote/FactCheck 等）以纸张色镂空徽标叠加在文件夹腹部。
+- 哈希兜底变体中的纯 `Folder` 换成 `FolderCopy`，五个变体全部自带内部标记。
+- 新增回归测试：所有文件夹图标要么自带内部标记，要么必须携带徽标；编译、ktlint、单测通过。
+
+## 2026-07-18 | 文件夹卡改为文件夹剪影形状（双层材质版）
+
+- `HomeFolderCard` 从与题库卡同构的白卡改为文件夹剪影：自绘 `GenericShape`（左上标签页 + cubic 平滑斜边 + 圆角主体），阴影/裁剪沿剪影轮廓。
+- 参考 M3 Expressive「颜色容器 + 形状表达」：底层为类型色渐变夹背（含标签页），上覆近白纸张前层，只露出顶缘和 tab，形成真实纸质文件夹的双层材质；拖拽悬停时夹背更饱和、纸张加深并加主色边框。
+- 左侧改为类型色大号裸图标（不再套渐变方块，与题库卡图标容器错开）；右侧数量胶囊徽章 + chevron（容器语义，区别于题库卡的进度/CTA）。
+
+## 2026-07-18 | 文件夹图标改为文件夹家族形状
+
+- 用户反馈文件夹用文档类图标（Article/Assignment 等）与题库卡无法区分。`HomeFolderVisualPipeline` 全部图标改为文件夹家族：SnippetFolder（归档）/RuleFolder（法规）/Topic（学习）/FolderSpecial（职业）/Folder+题型配色（题型名文件夹）/Folder 变体（哈希兜底）；类型区分主要靠配色，形状统一为"文件夹"。
+- icons-extended 1.6.7 无这些图标的 AutoMirrored 变体，使用 `filled` 包。新增回归：所有文件夹视觉图标名必须含 Folder/Topic。
+- 顺手清理 3 处既有 ktlint 违规（import 排序 ×2、未用 import ×1），`:feature-practice` ktlint 门禁恢复绿色。
+
+## 2026-07-18 | 文件夹视觉、主页排序与跨题库悬浮卡统一
+
+- 文件夹卡新增 `HomeFolderVisualPipeline`：优先按归档/法规/题型/学习/职业等语义显示 Material 图标和配色，无法识别时按文件夹名哈希分配稳定渐变，避免全部同图标同颜色。
+- 最近使用记录移除仅保留 3 项的截断：根目录与分组内均按完整使用记录倒序；从未使用的题库继续保持 `QuestionDao.getOrderedFileNames()` 的导入顺序；已入分组的最近项仍不会回流根列表。
+- 错题库/收藏库删除旧 `DraggingFileOverlay`/`DraggingFileCard` 路径，统一复用主页 `HomeDraggingFileOverlay` + `HomeQuestionBankCard`，长按悬浮图标、颜色和卡片结构保持一致。
+- 新增文件夹视觉与完整最近排序回归测试；`:feature-practice` 全量单测和相关模块编译通过。
+
+## 2026-07-18 | 修复主页长按拖起闪一下即消失
+
+- 根因 A（父树拆除）：`HomeScreenScaffoldContent` 曾用 `draggingFile == null` 条件挂载 `homeRootDragModifier`；拖起瞬间父 Box modifier 变化，取消卡片上的 `detectDragGesturesAfterLongPress`。改为交互就绪时始终挂载；空白区长按用 `rememberUpdatedState` 门禁，不拆除 pointerInput。
+- 根因 B（空白长按抢事件）：根节点「长按新建分组」与题库卡长按拖拽同时触发；现仅在未命中 `fileCardBounds`/`folderBounds` 时打开新建对话框。
+- 根因 C（Swipe 拆除）：`SwipeRevealActionBox` 在 `enabled=false` 时拆除 pointerInput/offset，拖起后同样取消子手势；改为 pointerInput 常驻，内部读 `enabledState`，禁用时 snap 关闭。
+
+## 2026-07-18 | 修复主页长按拖拽合并分组 + 分组文件夹新版 UI
+
+- 根因 1（手势中断）：`HomeFileListColumn` 曾把 `isScrolling` 编进 `enableDragDrop` 与 SwipeReveal `enabled`——拖拽触发边缘自动滚动（`listState.scrollBy`）时 `isScrollInProgress=true`，pointerInput 被结构性拆除、拖拽手势中途取消。回退为仅在 `allowDragStart` 判滚动（与原注释一致）。
+- 根因 2（状态悬挂）：`onDragCancel` 原为 no-op，手势被打断后 `draggingFile` 悬挂、首页滚动锁死；改为 `dragViewModel.endDragging()` 复位。
+- 根因 3（结果不可见）：根列表「最近使用」置顶曾包含已入分组的文件，合并后卡片原地不动、且文件夹排在所有散卡之后（屏外）——`buildRootDisplayFileNames` 改为只置顶根目录可见文件；`showFilesFirst=false` 让分组文件夹排在散卡之前（Drive/Files 信息层级）。
+- UI：`HomeFolderCard` 重绘为主页白卡浮起样式（渐变文件夹图标 + 「N 个题库」+ chevron，悬停高亮为放置目标）；拖拽悬浮层 `HomeDraggingFileOverlay` 改用 `HomeQuestionBankCard` 视觉，与列表卡片一致。
+
+## 2026-07-18 | 填空题类内：规则与标签折叠为摘要子区
+
+- 「出题规则」「答案标签侧重练习」由平铺改为填空题类内的两个折叠子区（默认收起），标题下显示当前值摘要（每题填空数 / 已选 N 个标签 / 当前模式不使用）；`SettingsExpandableCardSection` 增加可选 `supportingText`。
+- 点开填空题不再直接铺满一屏标签，符合渐进披露的常见设置页做法。
+
+## 2026-07-18 | 出题模式页：三大类信息架构
+
+- 设置主入口「填空题设置」更名为「出题模式」；子页分区标题改为「原子题库出题模式」。
+- 子页重组为三大可折叠类：填空题（原五种模式 + 出题规则 + 标签侧重）、自适应渐隐（独立说明 + 预留筛选扩展）、记忆模式（从答题设置卡迁入）。
+- 新增 `SettingsAtomBankModePanel`；`SettingsAnswerSettingsCard` 去掉记忆段，仅保留练习/考试。
+
+## 2026-07-18 | Mode badge polish + adaptive fading surfacing
+
+- 徽标重构为共享组件 `SessionModeBadge`（胶囊形、浅蓝底 + 细蓝描边），`QuestionCardHeaderRow` 改三段布局：题型左对齐、徽标在中间弹性区真正居中、进度右对齐。
+- 「自适应渐隐」纳入模式展示：ui-common 新增 `adaptiveFadingModeLabel`；填空设置页出题模式卡底部新增说明行（徽标 + 「独立练习方式，不受出题模式/标签/分值影响」）；`AdaptiveFadingPracticeRoute → PracticeScreen(adaptiveFadingMode) → ExternalPracticeState.adaptiveFading` 下传，自适应会话答题头部显示「自适应渐隐」徽标（优先于填空模式徽标）。
+
+## 2026-07-18 | Fill mode ↔ tag filter interlock + header mode badge
+
+- 互锁策略收敛到 `FillQuestionGenerationMode.usesTagFilter / usesScoreRange`（唯一裁决点）：标签筛选仅「标签随机模式」参与出题，其余模式忽略残留标签，消除模式切换后的串扰；出题过滤与设置页 UI 均改用该属性。
+- 设置页「答案标签侧重练习」在非标签随机模式下整卡置灰禁点，头部显示「切换到标签随机模式后生效」提示；help 文案同步去掉全答/分值范围模式的标签描述。
+- 答题头部（练习 + 考试）在「题型：」与「N/总数」之间新增出题模式蓝底徽标（仅动态填空题显示）：`QuestionCardHeaderRow/QuestionSessionHeader/ExamHeader` 加 `modeLabel`，ui-common 新增 `fillModeShortLabel` + 5 条短名字符串；模式经 `ExternalPracticeState/ExternalExamState.fillGenerationMode` 下传。
+- `AnswerTagFilterCodecTest` 补 2 条互锁回归（全答模式忽略残留标签、模式属性裁决表）。
+
+## 2026-07-18 | AnswerTagFilterCodec: single tag-filter contract
+
+- 新建 `core/util/AnswerTagFilterCodec`（encode「、」拼接 / decode 兼容逗号顿号分号空白），设置页 UI 与 `FillQuestionTransformUtils` 出题过滤统一改用，删除两端重复正则。
+- 新增 `AnswerTagFilterCodecTest`（6 用例）：往返、旧空格格式、混合分隔符、去重，以及多标签出题过滤命中/未命中两条回归。`:core` 补 junit 测试依赖（原缺失致既有测试无法编译）。
+
+## 2026-07-18 | Fix core tag-filter regex mojibake ("暂无题目")
+
+- `FillQuestionTransformUtils` 的标签分隔正则源码中全角「，、；」曾被损坏为字面 `???`，导致「、」拼接的多选标签被当成单个不存在的标签，出题全被过滤 → 练习页「暂无题目」。
+- 修正为 `[,，、；;\s]+`，与设置页 UI 解析一致。
+
+## 2026-07-18 | Fix tag multi-select serialization
+
+- 标签多选失效根因：UI 用空格拼接保存，但 UI/出题过滤解析端分隔符均不含空格，选第二个标签后整串变单 token、全部失去选中态。
+- 改为「、」拼接；UI 解析端加 `\s` 兼容旧空格数据，点选一次即自愈重存。
+
+## 2026-07-18 | Mode rows / tag tiles: clickable affordance
+
+- 出题模式行与标签瓦片未选态改白底 + 1dp 细描边 + 2dp 轻阴影（原纯浅底无边框像说明文字）；选中态蓝底 + 1.5dp 蓝描边。标签改 20dp 胶囊形，更「标签」。
+
+## 2026-07-18 | Tag tiles: uniform 2-column grid
+
+- 标签改为等宽两列瓦片栅格（40dp 高、10dp 均匀间距），文本居中、选中蓝底 + 对勾；替代宽度参差的流式 Chip，删除 `SettingsChoiceChip`。
+
+## 2026-07-18 | Tag chips: M3 check + tonal borderless
+
+- 标签 Chip 选中态按 M3 规范加前置对勾；去边框，未选浅灰蓝调性底、选中蓝底，直接铺白卡（移除灰色内嵌底板），行距收紧。
+
+## 2026-07-18 | Fill mode radio list + tag panel polish
+
+- 出题模式：5 个 Chip 流式排列 → 竖排单选列表（选中蓝底 + CheckCircle，未选浅底 + 空圈），互斥语义一眼可读。
+- 答案标签：头部「已选 N / 提示」+ 右侧清除文字钮；标签 Chip 收进浅色内嵌底板；统计摘要移到分隔线下带 Info 图标脚注。删除 `SettingsFillTagClearChip`。
+
+## 2026-07-18 | Fill settings page restructure
+
+- 填空题设置拆为三个分区卡：出题模式 / 出题规则 / 答案标签，替代单张长卡 + 冒号标签堆叠。
+- 默认米色 FilterChip → `SettingsChoiceChip`（白卡/蓝底选中，2dp 浮起）；全答完成条件与轮次顺序二选一改用 `SettingsSegmentedControl`（从外观卡抽出共享）。
+- 每题填空数/分值范围收入浅色内嵌面板；帮助文案仍由「查看详细说明」控制，右上角切换。
+
+## 2026-07-18 | Settings practice/exam inset panels
+
+- 练习/考试展开内容收入浅色内嵌面板（`SettingsInsetPanel`），与外观「文字」区一致，消除展开行贴边错位。
+- 答对/答错/答题延迟三条 0–10s 长滑条 → 加减步进（Xs），去掉 0s/10s 刻度行。
+
+## 2026-07-18 | Settings data accordion + typography polish
+
+- 数据管理：三张重复导入/导出卡 → 单卡折叠（题库/错题本/收藏），展开后显示导入导出；一次只开一项。
+- 外观文字：摘要行 + Aa 实时预览；字号步进与样式分段控件收入浅色内嵌区，去掉提示文案与 FilterChip。
+
+## 2026-07-17 | Settings typography: stepper + merged style
+
+- 字号改为离散加减步进（14–32），去掉长滑条。
+- 字号与字体样式合并进同一「文字」区块；FilterChip 统一白卡色，消除米色底板。
+
+## 2026-07-17 | Wrong/favorite delete + drawer questions + settings depth
+
+- 错题库/收藏库删除确认改用 `AppElevatedConfirmDialog` 白卡主页风格。
+- 抽屉题库行 elevation 再加深；展开题目行白卡浮起 + 序号圆钮，便于分辨。
+- 设置页：分组卡 10dp、分区标题阴影、顶栏返回浮起、列表 leading/chevron 立体图标。
+
+## 2026-07-17 | Drawer depth + home delete dialog unify
+
+- 左侧题库抽屉：标题文字阴影、关闭/搜索/题库图标浮起；搜索框 elevation 加深。
+- 主页划动删除确认改用 `AppElevatedConfirmDialog`（白卡主页风格）；划动删除钮改为浮起红底圆钮。
+
 ## 2026-07-17 | AI fullscreen + typography + result depth
 
 - AI 全屏：页底 `#F8FAFD`、用户/助手白卡浮起气泡、输入条与发送钮加深阴影，对齐主页。

@@ -44,6 +44,18 @@ enum class FillQuestionGenerationMode(val storageValue: String) {
     SCORE_RANGE_RANDOM("score_range_random"),
     FULL_ANSWER("full_answer");
 
+    /**
+     * 模式与筛选条件的互锁策略（唯一裁决点）：
+     * 标签筛选只在「标签随机模式」参与出题，其余模式忽略，
+     * 防止切换模式后残留标签造成串扰。
+     */
+    val usesTagFilter: Boolean
+        get() = this == TAG_RANDOM
+
+    /** 分值范围只在「分值范围随机 / 全答」两个模式参与出题。 */
+    val usesScoreRange: Boolean
+        get() = this == SCORE_RANGE_RANDOM || this == FULL_ANSWER
+
     companion object {
         fun fromStorageValue(value: String?): FillQuestionGenerationMode {
             return entries.firstOrNull { it.storageValue == value } ?: SCORE_RANGE_RANDOM
@@ -102,10 +114,11 @@ fun transformQuestionVariantsForFillSettings(
 
     val safeMinScore = minAnswerScore.coerceIn(1, 10)
     val safeMaxScore = maxAnswerScore.coerceIn(safeMinScore, 10)
-    val requiredTagTokens = answerTagFilter
-        .split(Regex("[,???;\\n\\r]+"))
-        .map { it.trim() }
-        .filter { it.isNotBlank() }
+    val requiredTagTokens = if (generationMode.usesTagFilter) {
+        AnswerTagFilterCodec.decode(answerTagFilter)
+    } else {
+        emptyList()
+    }
     val scoredBlankPresent = descriptors.take(answerableBlankCount).any { it.score != null }
     val tagFilterPresent = requiredTagTokens.isNotEmpty()
     val eligibleBlankIndices = (0 until answerableBlankCount).filter { index ->

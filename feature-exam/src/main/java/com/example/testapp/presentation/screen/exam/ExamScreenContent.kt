@@ -27,6 +27,7 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.LifecycleOwner
+import com.example.testapp.core.util.FillQuestionGenerationMode
 import com.example.testapp.core.util.SessionAnalysisResolvePipeline
 import com.example.testapp.domain.QuestionTypes
 import com.example.testapp.domain.session.SessionCommand
@@ -55,6 +56,7 @@ import com.example.testapp.uicommon.design.PracticeExamTopBar
 import com.example.testapp.uicommon.design.QuestionSessionActionRow
 import com.example.testapp.uicommon.design.QuestionSessionChromeLayout
 import com.example.testapp.uicommon.design.QuestionSessionSideAction
+import com.example.testapp.uicommon.design.fillModeShortLabel
 import com.example.testapp.uicommon.layout.ScreenSafeScaffold
 import com.example.testapp.uicommon.util.formatQuestionForAi
 import com.example.testapp.uicommon.util.formatQuestionForCopy
@@ -65,6 +67,7 @@ data class ExternalExamState(
     val examCount: Int = 0,
     val randomExam: Boolean = false,
     val fillConfigVersion: String = "",
+    val fillGenerationMode: FillQuestionGenerationMode? = null,
     val examMemoryMode: Boolean = false,
     val examMemoryBatchSize: Int = 0,
     val examMemoryWrongMode: Int = 0,
@@ -349,7 +352,10 @@ fun ExamScreenContent(
                     currentIndex = currentIndex,
                     total = questions.size,
                     questionListLabel = stringResource(R.string.total_questions, questions.size),
-                    onOpenQuestionList = { ds.showList = true }
+                    onOpenQuestionList = { ds.showList = true },
+                    modeLabel = externalState.fillGenerationMode
+                        ?.takeIf { QuestionTypes.isInlineBlank(question.type) }
+                        ?.let { fillModeShortLabel(it) }
                 ) {
                     FillAnswerRoundLabel(
                         questionId = question.id,

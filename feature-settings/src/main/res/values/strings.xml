@@ -10,7 +10,7 @@
     <string name="settings_data_favorites">收藏</string>
     <string name="settings_import">导入</string>
     <string name="settings_export">导出</string>
-    <string name="settings_fill_settings">填空题设置</string>
+    <string name="settings_fill_settings">出题模式</string>
     <string name="settings_import_quiz_choice_title">导入题库</string>
     <string name="settings_import_quiz_file">选择文件</string>
     <string name="settings_import_quiz_local">浏览本机存储</string>
@@ -19,6 +19,14 @@
 
     <string name="font_size_label_short">字体大小</string>
     <string name="font_style_label_short">字体样式</string>
+    <string name="settings_typography_section">文字</string>
+    <string name="settings_typography_summary">%1$d · %2$s</string>
+    <string name="expand_data_quiz">展开题库导入导出</string>
+    <string name="collapse_data_quiz">收起题库导入导出</string>
+    <string name="expand_data_wrongbook">展开错题本导入导出</string>
+    <string name="collapse_data_wrongbook">收起错题本导入导出</string>
+    <string name="expand_data_favorites">展开收藏导入导出</string>
+    <string name="collapse_data_favorites">收起收藏导入导出</string>
     <string name="sound_label_short">声音效果</string>
     <string name="dark_mode_label_short">深色模式</string>
     <string name="font_style_normal">常规</string>
@@ -55,6 +63,23 @@
     <string name="memory_batch_count_template">每轮随机题数：%1$d</string>
     <string name="memory_mode_help_text">记忆模式支持两种候选池推进方式：进出模式会即时补题，轮换模式会在当前候选池全部答完后再开启下一轮。</string>
 
+    <string name="fill_section_mode">原子题库出题模式</string>
+    <string name="fill_category_blank">填空题</string>
+    <string name="fill_category_adaptive">自适应渐隐</string>
+    <string name="expand_fill_blank">展开填空题出题设置</string>
+    <string name="collapse_fill_blank">收起填空题出题设置</string>
+    <string name="expand_fill_rules">展开出题规则</string>
+    <string name="collapse_fill_rules">收起出题规则</string>
+    <string name="expand_fill_tags">展开答案标签侧重练习</string>
+    <string name="collapse_fill_tags">收起答案标签侧重练习</string>
+    <string name="fill_tag_inactive_short">当前模式不使用，切换到「标签随机模式」生效</string>
+    <string name="expand_adaptive_fading">展开自适应渐隐设置</string>
+    <string name="collapse_adaptive_fading">收起自适应渐隐设置</string>
+    <string name="fill_section_rules">出题规则</string>
+    <string name="fill_section_tags">答案标签侧重练习</string>
+    <string name="fill_tag_none_selected">点选标签可多选，未选则全部参与</string>
+    <string name="fill_tag_selected_count">已选 %1$d 个标签</string>
+    <string name="fill_blank_count_label">每题填空数</string>
     <string name="fill_blank_count_all">每题填空数：全部</string>
     <string name="fill_blank_count_template">每题填空数：%1$d</string>
     <string name="fill_question_generation_mode_label">动态填空出题模式：</string>
@@ -69,8 +94,8 @@
     <string name="fill_mode_score_desc_help_text">按"每题填空数"从高分到低分依次出空；未被选中的答案会直接回填。</string>
     <string name="fill_mode_score_asc_help_text">按"每题填空数"从低分到高分依次出空；未被选中的答案会直接回填。</string>
     <string name="fill_mode_tag_random_help_text">只根据已选答案标签筛出可出空答案，再按"每题填空数"随机出空；分值范围在该模式下不参与出题。</string>
-    <string name="fill_mode_score_range_random_help_text">先按分值范围和标签筛出可出空答案，再按"每题填空数"随机出空；如果该题没有命中范围的答案，则整题不出。</string>
-    <string name="fill_mode_full_answer_help_text">先按分值范围和标签筛出可出空答案，再按"每题填空数"把同一题的可出空答案拆成多轮不重复出题；当前练习或考试本身的随机/顺序设置决定下一题顺序。</string>
+    <string name="fill_mode_score_range_random_help_text">先按分值范围筛出可出空答案，再按"每题填空数"随机出空；如果该题没有命中范围的答案，则整题不出。标签筛选在该模式下不参与出题。</string>
+    <string name="fill_mode_full_answer_help_text">先按分值范围筛出可出空答案，再按"每题填空数"把同一题的可出空答案拆成多轮不重复出题；当前练习或考试本身的随机/顺序设置决定下一题顺序。标签筛选在该模式下不参与出题。</string>
     <string name="fill_full_answer_completion_label">全答完成条件：</string>
     <string name="fill_full_answer_completion_answered">全答</string>
     <string name="fill_full_answer_completion_correct">全答对</string>
@@ -84,7 +109,10 @@
     <string name="fill_answer_score_help_text">仅对答案片段自带"【分类】【x分】"标记的动态填空生效。若整题没有任何答案命中这个范围，该题将不会进入本次练习或考试。</string>
     <string name="fill_answer_tag_filter_label">答案标签侧重练习：</string>
     <string name="fill_answer_tag_filter_placeholder">导入动态填空题库后，这里会显示可选标签。</string>
-    <string name="fill_answer_tag_filter_help_text">留空表示不过滤。填写一个或多个标签关键字后，仅对匹配这些标签的答案片段优先出空；多个标签可用逗号、顿号或分号分隔。</string>
+    <string name="fill_answer_tag_filter_help_text">仅在「标签随机模式」参与出题。留空表示不过滤；选中一个或多个标签后，只对匹配这些标签的答案片段出空。</string>
+    <string name="fill_tag_filter_inactive_hint">当前出题模式不使用标签筛选，切换到「标签随机模式」后生效</string>
+    <string name="fill_mode_adaptive_fading_note">从主页题库卡片进入的独立练习方式：按记忆阶段自动在选择、提示、回忆间渐进，与「填空题」出题模式、标签与分值筛选互不影响。</string>
+    <string name="fill_adaptive_future_hint">后续将在此增加标签、阶段等筛选设置。</string>
     <string name="fill_answer_tag_filter_clear">清除标签</string>
     <string name="fill_question_filter_summary">当前动态填空题共 %1$d 题，可出题 %2$d 题，已过滤 %3$d 题。</string>
     <string name="fill_full_answer_exam_completion_note">考试模式下全答完成条件固定为「全答」；「全答对」仅练习模式生效。</string>

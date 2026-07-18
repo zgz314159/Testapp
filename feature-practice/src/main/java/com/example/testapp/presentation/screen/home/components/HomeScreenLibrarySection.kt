@@ -122,6 +122,9 @@ fun HomeScreenLibrarySection(
                         hoverFolder = hoverFolder,
                         hoverFile = hoverFile,
                         useGridLayout = columnCount > 1,
+                        // 2026 常见做法：分组文件夹排在散卡之前（Drive/Files 同款信息层级），
+                        // 拖拽合并后新文件夹出现在列表顶部、即时可见。
+                        // 根目录：题库卡在前（使用时间倒序），文件夹在后（建立时间升序）
                         showFilesFirst = true,
                         onFolderClick = onCurrentFolderChange,
                         onFolderLongPress = {
@@ -147,7 +150,8 @@ fun HomeScreenLibrarySection(
                         },
                         onDragUpdate = { position -> onUpdateDragHover(position, currentFolder, homeDropTargetKey, currentFolderFileNames) },
                         onDragEnd = { fileName -> onFinishDrag(fileName, currentFolder, homeDropTargetKey, currentFolderFileNames) },
-                        onDragCancel = { _ -> },
+                        // 手势被系统/窗口打断时必须复位，否则 draggingFile 悬挂导致首页滚动被锁死
+                        onDragCancel = { _ -> dragViewModel.endDragging() },
                         onReportFolderBounds = { name, rect -> folderBounds[name] = rect },
                         onReportCardBounds = { name, rect -> fileCardBounds[name] = rect },
                         onFileCtaClick = onFileCtaClick,

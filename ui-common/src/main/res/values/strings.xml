@@ -34,4 +34,10 @@
     <string name="uicommon_label_wrong_questions">错题数</string>
     <string name="uicommon_label_favorite_count">收藏数</string>
     <string name="uicommon_label_progress_count">进度数</string>
+    <string name="uicommon_fill_mode_score_desc">高低分</string>
+    <string name="uicommon_fill_mode_score_asc">低高分</string>
+    <string name="uicommon_fill_mode_tag_random">标签随机</string>
+    <string name="uicommon_fill_mode_score_range_random">分值范围随机</string>
+    <string name="uicommon_fill_mode_full_answer">全答</string>
+    <string name="uicommon_mode_adaptive_fading">自适应渐隐</string>
 </resources>

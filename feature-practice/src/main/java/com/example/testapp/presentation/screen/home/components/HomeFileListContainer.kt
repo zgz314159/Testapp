@@ -23,7 +23,7 @@ fun HomeFileListContainer(
     hoverFolder: String?,
     hoverFile: String?,
     useGridLayout: Boolean = false,
-    showFilesFirst: Boolean = false,
+    showFilesFirst: Boolean = true,
     onFolderClick: (String) -> Unit,
     onFolderLongPress: (String) -> Unit,
     onDeleteFolderClick: (String) -> Unit,

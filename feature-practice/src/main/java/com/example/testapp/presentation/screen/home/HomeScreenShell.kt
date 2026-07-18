@@ -12,8 +12,10 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.snapshots.SnapshotStateMap
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.onGloballyPositioned
@@ -40,10 +42,18 @@ fun HomeScreenScaffoldContent(
     homeInteractionReady: Boolean,
     homeRootCoordsRef: HomeRootCoordsRef,
     homeRootDragModifier: Modifier,
-    onLongPressAddFolder: () -> Unit,
+    /** 根节点空白区长按；入参为相对 Scaffold 内容区的坐标。 */
+    onBlankAreaLongPress: (Offset) -> Unit,
     librarySection: @Composable () -> Unit,
     overlays: @Composable () -> Unit,
 ) {
+    // 根 pointerInput 必须始终挂着：用 draggingFile 条件拆除会在拖起瞬间改父树，
+    // 连带取消卡片上的 detectDragGesturesAfterLongPress（长按闪一下就消失的根因）。
+    val blankLongPressEnabled = homeInteractionReady && draggingFile == null && !drawerOpen
+    val currentBlankLongPressEnabled = rememberUpdatedState(blankLongPressEnabled)
+    val currentOnBlankAreaLongPress = rememberUpdatedState(onBlankAreaLongPress)
+    val rootPointerReady = homeInteractionReady && !drawerOpen
+
     Scaffold(
         containerColor = MaterialTheme.colorScheme.background,
         bottomBar = {
@@ -62,21 +72,20 @@ fun HomeScreenScaffoldContent(
                 .fillMaxSize()
                 .padding(innerPadding)
                 .onGloballyPositioned { homeRootCoordsRef.value = it }
+                .then(if (rootPointerReady) homeRootDragModifier else Modifier)
                 .then(
-                    if (homeInteractionReady && draggingFile == null && !drawerOpen) {
-                        homeRootDragModifier
-                    } else {
-                        Modifier
-                    }
-                )
-                .then(
-                    if (homeInteractionReady && !drawerOpen) {
+                    if (rootPointerReady) {
                         Modifier.pointerInput(Unit) {
-                            detectTapGestures(onLongPress = { onLongPressAddFolder() })
+                            detectTapGestures(
+                                onLongPress = { offset ->
+                                    if (!currentBlankLongPressEnabled.value) return@detectTapGestures
+                                    currentOnBlankAreaLongPress.value(offset)
+                                },
+                            )
                         }
                     } else {
                         Modifier
-                    }
+                    },
                 ),
         ) {
             Column(modifier = Modifier.fillMaxSize()) {

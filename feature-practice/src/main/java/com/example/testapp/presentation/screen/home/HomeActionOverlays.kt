@@ -8,6 +8,7 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.unit.IntSize
 import com.example.testapp.data.datastore.FontSettingsDataStore
+import com.example.testapp.domain.usecase.FileStatistics
 import com.example.testapp.presentation.screen.home.components.HomeDraggingFileOverlay
 import com.example.testapp.presentation.screen.home.components.HomeImportLoadingOverlay
 
@@ -15,11 +16,11 @@ import com.example.testapp.presentation.screen.home.components.HomeImportLoading
 @Composable
 fun HomeActionOverlays(
     context: Context,
-    viewModel: HomeViewModel,
+    fileStatistics: Map<String, FileStatistics>,
+    practiceProgress: Map<String, Int>,
     isLoading: Boolean,
     importProgress: Float,
     draggingFile: String?,
-    folders: Map<String, String>,
     dragPosition: Offset,
     dragOffset: Offset,
     dragItemSize: IntSize,
@@ -55,13 +56,12 @@ fun HomeActionOverlays(
 
     draggingFile?.let { file ->
         HomeDraggingFileOverlay(
-            viewModel = viewModel,
             fileName = file,
-            folderDisplayName = folders[file],
+            statistics = fileStatistics[file] ?: FileStatistics(),
+            progressCount = practiceProgress[file] ?: 0,
             dragPosition = dragPosition,
             dragOffset = dragOffset,
             dragItemSize = dragItemSize,
-            showTypeSummary = false,
             modifier = Modifier.graphicsLayer { scaleX = 0.75f; scaleY = 0.75f }
         )
     }

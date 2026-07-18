@@ -9,7 +9,8 @@ import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface FolderDao {
-    @Query("SELECT * FROM folders")
+    /** rowid 即插入序，等同文件夹建立时间升序（旧 → 新）。 */
+    @Query("SELECT * FROM folders ORDER BY rowid ASC")
     fun getAll(): Flow<List<FolderEntity>>
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)

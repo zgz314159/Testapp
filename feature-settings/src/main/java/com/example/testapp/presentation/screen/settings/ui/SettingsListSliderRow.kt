@@ -4,12 +4,13 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.material3.Icon
 import androidx.compose.material3.ListItem
+import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.Slider
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.sp
 import com.example.testapp.uicommon.component.LocalFontFamily
@@ -26,18 +27,18 @@ fun SettingsListSliderRow(
     valueLabel: (Float) -> String = { "${it.roundToInt()}" },
     showRangeLabels: Boolean = false,
     rangeMinLabel: String = valueRange.start.roundToInt().toString(),
-    rangeMaxLabel: String = valueRange.endInclusive.roundToInt().toString()
+    rangeMaxLabel: String = valueRange.endInclusive.roundToInt().toString(),
 ) {
     ListItem(
         headlineContent = { SettingsHeadlineText(label, fontSize) },
         leadingContent = leadingIcon?.let { icon ->
-            { Icon(imageVector = icon, contentDescription = null) }
+            { SettingsElevatedLeadingIcon(icon = icon) }
         },
         trailingContent = {
             Text(
                 text = valueLabel(value),
                 fontSize = fontSize.sp,
-                fontFamily = LocalFontFamily.current
+                fontFamily = LocalFontFamily.current,
             )
         },
         supportingContent = {
@@ -46,7 +47,7 @@ fun SettingsListSliderRow(
                     value = value,
                     onValueChange = onValueChange,
                     valueRange = valueRange,
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier.fillMaxWidth(),
                 )
                 if (showRangeLabels) {
                     Row(modifier = Modifier.fillMaxWidth()) {
@@ -56,6 +57,7 @@ fun SettingsListSliderRow(
                     }
                 }
             }
-        }
+        },
+        colors = ListItemDefaults.colors(containerColor = Color.Transparent),
     )
 }

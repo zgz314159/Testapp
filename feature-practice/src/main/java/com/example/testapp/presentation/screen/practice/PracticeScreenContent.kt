@@ -330,6 +330,8 @@ fun PracticeScreenContent(
                     questions, question, currentIndex, isReviewMode, textAnswer, showResult, resultDisplayReady,
                     selectedOption, displayOptions, resolvedFillAnswer, correctIndices, fc, questionCopyText,
                     analysisText, sparkText, baiduText, noteList, bindings, autoAdvance,
+                    fillGenerationMode = externalState.fillGenerationMode,
+                    adaptiveFading = externalState.adaptiveFading,
                     onOpenQuestionList = { showList = true },
                     onRetryCurrent = {
                         setAnsweredThisSession(false)

@@ -1,12 +1,15 @@
 package com.example.testapp.presentation.screen.practice
 
 import com.example.testapp.core.common.LocalizedResult
+import com.example.testapp.core.util.FillQuestionGenerationMode
 import com.example.testapp.domain.model.Question
 
 data class ExternalPracticeState(
     val randomPractice: Boolean = false,
     val practiceCount: Int = 0,
     val fillConfigVersion: String = "",
+    val fillGenerationMode: FillQuestionGenerationMode? = null,
+    val adaptiveFading: Boolean = false,
     val fontSize: Float = 16f,
     val correctDelay: Int = 0,
     val wrongDelay: Int = 0,

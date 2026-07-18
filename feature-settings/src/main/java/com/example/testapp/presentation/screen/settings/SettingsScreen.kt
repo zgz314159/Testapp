@@ -18,7 +18,6 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.EditNote
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
@@ -48,6 +47,7 @@ import com.example.testapp.presentation.screen.settings.ui.SettingsNavListItem
 import com.example.testapp.presentation.screen.settings.ui.SettingsSectionHeader
 import com.example.testapp.presentation.screen.settings.ui.SettingsTopBar
 import com.example.testapp.presentation.screen.settings.ui.importSnackbarMessages
+import com.example.testapp.uicommon.design.AppElevatedActionSheetTokens
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -67,10 +67,6 @@ fun SettingsScreen(
     val examDelay by viewModel.examDelay.collectAsState()
     val soundEnabled by viewModel.soundEnabled.collectAsState()
     val darkTheme by viewModel.darkTheme.collectAsState()
-    val practiceMemoryMode by viewModel.practiceMemoryMode.collectAsState()
-    val practiceMemoryBatchSize by viewModel.practiceMemoryBatchSize.collectAsState()
-    val practiceMemoryWrongMode by viewModel.practiceMemoryWrongMode.collectAsState()
-    val practiceMemoryPoolMode by viewModel.practiceMemoryPoolMode.collectAsState()
     val isLoading by viewModel.isLoading.collectAsState()
     val importProgress by viewModel.progress.collectAsState()
     val context = LocalContext.current
@@ -78,7 +74,6 @@ fun SettingsScreen(
 
     var examExpanded by remember { mutableStateOf(false) }
     var practiceExpanded by remember { mutableStateOf(false) }
-    var memoryExpanded by remember { mutableStateOf(false) }
     var showFileBrowser by remember { mutableStateOf(false) }
     var showStoragePermissionDialog by remember { mutableStateOf(false) }
     var showExportFilePicker by remember { mutableStateOf(false) }
@@ -227,7 +222,7 @@ fun SettingsScreen(
 
     Scaffold(
         modifier = Modifier.fillMaxSize(),
-        containerColor = MaterialTheme.colorScheme.background,
+        containerColor = AppElevatedActionSheetTokens.sheetBg,
         topBar = { SettingsTopBar(onBack = onNavigateHome) },
         snackbarHost = { SnackbarHost(hostState = snackbarHostState) }
     ) { innerPadding ->
@@ -266,14 +261,8 @@ fun SettingsScreen(
                     correctDelay = correctDelay,
                     wrongDelay = wrongDelay,
                     examDelay = examDelay,
-                    memoryExpanded = memoryExpanded,
-                    memoryEnabled = practiceMemoryMode,
-                    memoryBatchSize = practiceMemoryBatchSize,
-                    memoryWrongMode = practiceMemoryWrongMode,
-                    memoryPoolMode = practiceMemoryPoolMode,
                     onPracticeExpandedChange = { practiceExpanded = it },
                     onExamExpandedChange = { examExpanded = it },
-                    onMemoryExpandedChange = { memoryExpanded = it },
                     onRandomPracticeChange = { viewModel.setRandomPractice(context, it) },
                     onRandomExamChange = { viewModel.setRandomExam(context, it) },
                     onPracticeCountChange = { viewModel.setPracticeQuestionCount(context, it) },
@@ -281,10 +270,6 @@ fun SettingsScreen(
                     onCorrectDelayChange = { viewModel.setCorrectDelay(context, it) },
                     onWrongDelayChange = { viewModel.setWrongDelay(context, it) },
                     onExamDelayChange = { viewModel.setExamDelay(context, it) },
-                    onMemoryModeChange = { viewModel.setMemoryMode(context, it) },
-                    onMemoryBatchSizeChange = { viewModel.setMemoryBatchSize(context, it) },
-                    onMemoryWrongModeChange = { viewModel.setMemoryWrongMode(context, it) },
-                    onMemoryPoolModeChange = { viewModel.setMemoryPoolMode(context, it) }
                 )
                 SettingsCardGroup {
                     SettingsNavListItem(
@@ -297,6 +282,7 @@ fun SettingsScreen(
 
                 SettingsSectionHeader(stringResource(R.string.settings_section_data))
                 SettingsDataManagementSection(
+                    fontSize = fontSize,
                     onImportQuiz = { showImportQuizSheet = true },
                     onExportQuiz = { requestExport("quiz", quizFileNames) },
                     onImportWrong = {

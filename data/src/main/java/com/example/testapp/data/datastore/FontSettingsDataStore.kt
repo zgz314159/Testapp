@@ -141,7 +141,7 @@ object FontSettingsDataStore {
             val updated = buildList {
                 add(fileName)
                 addAll(existing)
-            }.take(3)
+            }
             preferences[RECENT_SELECTED_FILES_KEY] = updated.joinToString("|")
         }
     }

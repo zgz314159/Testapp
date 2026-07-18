@@ -10,6 +10,7 @@ import androidx.compose.runtime.key
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.sp
+import com.example.testapp.core.util.FillQuestionGenerationMode
 import com.example.testapp.domain.QuestionTypes
 import com.example.testapp.domain.model.Question
 import com.example.testapp.feature.practice.R
@@ -28,6 +29,8 @@ import com.example.testapp.uicommon.design.AppSpacing
 import com.example.testapp.uicommon.design.QuestionSessionActionRow
 import com.example.testapp.uicommon.design.QuestionSessionHeader
 import com.example.testapp.uicommon.design.QuestionSessionSideAction
+import com.example.testapp.uicommon.design.adaptiveFadingModeLabel
+import com.example.testapp.uicommon.design.fillModeShortLabel
 import com.example.testapp.uicommon.util.buildPracticeAnswerResult
 
 @Composable
@@ -51,6 +54,8 @@ fun PracticeScreenQuestionScrollContent(
     noteList: List<String>,
     bindings: PracticeScreenBindings,
     autoAdvance: PracticeAutoAdvanceController,
+    fillGenerationMode: FillQuestionGenerationMode? = null,
+    adaptiveFading: Boolean = false,
     onOpenQuestionList: () -> Unit,
     onRetryCurrent: () -> Unit,
     onRetryWrongBlanks: () -> Unit,
@@ -74,7 +79,13 @@ fun PracticeScreenQuestionScrollContent(
         currentIndex = currentIndex,
         total = questions.size,
         questionListLabel = stringResource(R.string.total_questions, questions.size),
-        onOpenQuestionList = onOpenQuestionList
+        onOpenQuestionList = onOpenQuestionList,
+        modeLabel = when {
+            adaptiveFading -> adaptiveFadingModeLabel()
+            QuestionTypes.isInlineBlank(question.type) ->
+                fillGenerationMode?.let { fillModeShortLabel(it) }
+            else -> null
+        }
     ) {
         FillAnswerRoundLabel(
             questionId = question.id,

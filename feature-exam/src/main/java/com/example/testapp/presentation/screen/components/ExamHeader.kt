@@ -13,6 +13,7 @@ fun ExamHeader(
     modifier: Modifier = Modifier,
     questionListLabel: String? = null,
     onOpenQuestionList: (() -> Unit)? = null,
+    modeLabel: String? = null,
     extraContent: @Composable ColumnScope.() -> Unit = {}
 ) {
     QuestionSessionHeader(
@@ -22,6 +23,7 @@ fun ExamHeader(
         modifier = modifier,
         questionListLabel = questionListLabel,
         onOpenQuestionList = onOpenQuestionList,
+        modeLabel = modeLabel,
         extraContent = extraContent
     )
 }

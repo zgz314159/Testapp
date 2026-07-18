@@ -21,15 +21,15 @@ fun SettingsStepperRow(
     minValue: Int,
     maxValue: Int,
     formatDisplay: (Int) -> String = Int::toString,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
 ) {
     Row(
         modifier = modifier
             .fillMaxWidth()
-            .heightIn(min = 64.dp)
-            .padding(horizontal = 16.dp, vertical = 8.dp),
+            .heightIn(min = 48.dp)
+            .padding(horizontal = 0.dp, vertical = 4.dp),
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(12.dp)
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         Box(modifier = Modifier.weight(1f)) {
             label()

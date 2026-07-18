@@ -1,7 +1,9 @@
 package com.example.testapp.uicommon.design
 
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.List
@@ -20,7 +22,8 @@ fun QuestionCardHeaderRow(
     questionTypeLabel: String,
     progressLabel: String,
     questionListLabel: String? = null,
-    onOpenQuestionList: (() -> Unit)? = null
+    onOpenQuestionList: (() -> Unit)? = null,
+    modeLabel: String? = null
 ) {
     Row(
         modifier = Modifier.fillMaxWidth(),
@@ -29,10 +32,20 @@ fun QuestionCardHeaderRow(
         Text(
             text = questionTypeLabel,
             style = MaterialTheme.typography.bodyMedium,
-            modifier = Modifier.weight(1f),
             maxLines = 1,
             overflow = TextOverflow.Ellipsis
         )
+        // 中间弹性区：徽标始终居中于「题型」与「进度」之间
+        Box(
+            modifier = Modifier
+                .weight(1f)
+                .padding(horizontal = 8.dp),
+            contentAlignment = Alignment.Center
+        ) {
+            if (modeLabel != null) {
+                SessionModeBadge(label = modeLabel)
+            }
+        }
         Text(
             text = progressLabel,
             style = MaterialTheme.typography.bodyMedium

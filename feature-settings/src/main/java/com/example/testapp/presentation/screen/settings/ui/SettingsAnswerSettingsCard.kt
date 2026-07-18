@@ -7,7 +7,6 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.res.stringResource
 import com.example.testapp.feature.settings.R
-import kotlin.math.roundToInt
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -22,14 +21,8 @@ fun SettingsAnswerSettingsCard(
     correctDelay: Int,
     wrongDelay: Int,
     examDelay: Int,
-    memoryExpanded: Boolean,
-    memoryEnabled: Boolean,
-    memoryBatchSize: Int,
-    memoryWrongMode: Int,
-    memoryPoolMode: Int,
     onPracticeExpandedChange: (Boolean) -> Unit,
     onExamExpandedChange: (Boolean) -> Unit,
-    onMemoryExpandedChange: (Boolean) -> Unit,
     onRandomPracticeChange: (Boolean) -> Unit,
     onRandomExamChange: (Boolean) -> Unit,
     onPracticeCountChange: (Int) -> Unit,
@@ -37,10 +30,6 @@ fun SettingsAnswerSettingsCard(
     onCorrectDelayChange: (Int) -> Unit,
     onWrongDelayChange: (Int) -> Unit,
     onExamDelayChange: (Int) -> Unit,
-    onMemoryModeChange: (Boolean) -> Unit,
-    onMemoryBatchSizeChange: (Int) -> Unit,
-    onMemoryWrongModeChange: (Int) -> Unit,
-    onMemoryPoolModeChange: (Int) -> Unit
 ) {
     SettingsCardGroup {
         SettingsExpandableCardSection(
@@ -52,53 +41,45 @@ fun SettingsAnswerSettingsCard(
             collapseDescription = stringResource(R.string.collapse_practice),
             leadingIcon = Icons.Filled.Edit
         ) {
-            SettingsListSwitchRow(
-                label = stringResource(R.string.random_practice_label_short),
-                fontSize = fontSize,
-                checked = randomPractice,
-                onCheckedChange = onRandomPracticeChange
-            )
-            SettingsCardDivider()
             val practiceCountLabel = resolveOptionalCountStepperDescription(
                 count = practiceCount,
                 allLabel = stringResource(R.string.practice_count_all_short),
                 countedLabel = stringResource(R.string.practice_count_template, practiceCount)
             )
-            SettingsStepperRow(
-                label = {
-                    SettingsHeadlineText(stringResource(R.string.settings_question_count_label), fontSize)
-                },
-                contentDescription = practiceCountLabel,
-                value = practiceCount,
-                onValueChange = onPracticeCountChange,
-                minValue = 0,
-                maxValue = 100,
-                formatDisplay = ::formatCountStepperDisplay
-            )
-            SettingsCardDivider()
-            SettingsListSliderRow(
-                label = stringResource(R.string.correct_delay_label_short),
-                fontSize = fontSize,
-                value = correctDelay.toFloat(),
-                valueRange = 0f..10f,
-                onValueChange = { onCorrectDelayChange(it.roundToInt()) },
-                valueLabel = { "${it.roundToInt()}s" },
-                showRangeLabels = true,
-                rangeMinLabel = "0s",
-                rangeMaxLabel = "10s"
-            )
-            SettingsCardDivider()
-            SettingsListSliderRow(
-                label = stringResource(R.string.wrong_delay_label_short),
-                fontSize = fontSize,
-                value = wrongDelay.toFloat(),
-                valueRange = 0f..10f,
-                onValueChange = { onWrongDelayChange(it.roundToInt()) },
-                valueLabel = { "${it.roundToInt()}s" },
-                showRangeLabels = true,
-                rangeMinLabel = "0s",
-                rangeMaxLabel = "10s"
-            )
+            SettingsInsetPanel {
+                SettingsInsetSwitchRow(
+                    label = stringResource(R.string.random_practice_label_short),
+                    checked = randomPractice,
+                    onCheckedChange = onRandomPracticeChange,
+                )
+                SettingsInsetStepperRow(
+                    label = stringResource(R.string.settings_question_count_label),
+                    contentDescription = practiceCountLabel,
+                    value = practiceCount,
+                    onValueChange = onPracticeCountChange,
+                    minValue = 0,
+                    maxValue = 100,
+                    formatDisplay = ::formatCountStepperDisplay,
+                )
+                SettingsInsetStepperRow(
+                    label = stringResource(R.string.correct_delay_label_short),
+                    contentDescription = stringResource(R.string.correct_delay_label_short),
+                    value = correctDelay,
+                    onValueChange = onCorrectDelayChange,
+                    minValue = 0,
+                    maxValue = 10,
+                    formatDisplay = ::formatSecondsStepperDisplay,
+                )
+                SettingsInsetStepperRow(
+                    label = stringResource(R.string.wrong_delay_label_short),
+                    contentDescription = stringResource(R.string.wrong_delay_label_short),
+                    value = wrongDelay,
+                    onValueChange = onWrongDelayChange,
+                    minValue = 0,
+                    maxValue = 10,
+                    formatDisplay = ::formatSecondsStepperDisplay,
+                )
+            }
         }
         SettingsCardDivider()
         SettingsExpandableCardSection(
@@ -110,55 +91,36 @@ fun SettingsAnswerSettingsCard(
             collapseDescription = stringResource(R.string.collapse_exam),
             leadingIcon = Icons.AutoMirrored.Filled.Assignment
         ) {
-            SettingsListSwitchRow(
-                label = stringResource(R.string.random_exam_label_short),
-                fontSize = fontSize,
-                checked = randomExam,
-                onCheckedChange = onRandomExamChange
-            )
-            SettingsCardDivider()
             val examCountLabel = resolveOptionalCountStepperDescription(
                 count = examCount,
                 allLabel = stringResource(R.string.exam_count_all_short),
                 countedLabel = stringResource(R.string.exam_count_template, examCount)
             )
-            SettingsStepperRow(
-                label = {
-                    SettingsHeadlineText(stringResource(R.string.settings_question_count_label), fontSize)
-                },
-                contentDescription = examCountLabel,
-                value = examCount,
-                onValueChange = onExamCountChange,
-                minValue = 0,
-                maxValue = 100,
-                formatDisplay = ::formatCountStepperDisplay
-            )
-            SettingsCardDivider()
-            SettingsListSliderRow(
-                label = stringResource(R.string.answer_delay_short),
-                fontSize = fontSize,
-                value = examDelay.toFloat(),
-                valueRange = 0f..10f,
-                onValueChange = { onExamDelayChange(it.roundToInt()) },
-                valueLabel = { "${it.roundToInt()}s" },
-                showRangeLabels = true,
-                rangeMinLabel = "0s",
-                rangeMaxLabel = "10s"
-            )
+            SettingsInsetPanel {
+                SettingsInsetSwitchRow(
+                    label = stringResource(R.string.random_exam_label_short),
+                    checked = randomExam,
+                    onCheckedChange = onRandomExamChange,
+                )
+                SettingsInsetStepperRow(
+                    label = stringResource(R.string.settings_question_count_label),
+                    contentDescription = examCountLabel,
+                    value = examCount,
+                    onValueChange = onExamCountChange,
+                    minValue = 0,
+                    maxValue = 100,
+                    formatDisplay = ::formatCountStepperDisplay,
+                )
+                SettingsInsetStepperRow(
+                    label = stringResource(R.string.answer_delay_short),
+                    contentDescription = stringResource(R.string.answer_delay_short),
+                    value = examDelay,
+                    onValueChange = onExamDelayChange,
+                    minValue = 0,
+                    maxValue = 10,
+                    formatDisplay = ::formatSecondsStepperDisplay,
+                )
+            }
         }
-        SettingsCardDivider()
-        SettingsMemoryCardSection(
-            fontSize = fontSize,
-            expanded = memoryExpanded,
-            memoryEnabled = memoryEnabled,
-            batchSize = memoryBatchSize,
-            wrongMode = memoryWrongMode,
-            poolMode = memoryPoolMode,
-            onExpandedChange = onMemoryExpandedChange,
-            onMemoryModeChange = onMemoryModeChange,
-            onBatchSizeChange = onMemoryBatchSizeChange,
-            onWrongModeChange = onMemoryWrongModeChange,
-            onPoolModeChange = onMemoryPoolModeChange
-        )
     }
 }

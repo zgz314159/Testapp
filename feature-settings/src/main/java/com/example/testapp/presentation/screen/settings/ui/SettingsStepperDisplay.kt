@@ -5,3 +5,5 @@ fun formatCountStepperDisplay(value: Int): String =
 
 fun formatBlankCountDisplay(value: Int): String =
     if (value == 0) "∞" else value.toString()
+
+fun formatSecondsStepperDisplay(value: Int): String = "${value}s"

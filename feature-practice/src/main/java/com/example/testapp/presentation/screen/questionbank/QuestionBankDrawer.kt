@@ -177,7 +177,7 @@ fun QuestionBankDrawer(
             },
         drawerContainerColor = HomeDesignTokens.backgroundLight,
         drawerContentColor = HomeDesignTokens.textPrimaryLight,
-        drawerTonalElevation = 0.dp,
+        drawerTonalElevation = 4.dp,
     ) {
         Column(
             modifier = Modifier

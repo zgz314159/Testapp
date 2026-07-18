@@ -12,7 +12,6 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -192,27 +191,6 @@ fun OptimizedFileCard(
         elevation = appliedElevation,
     ) {
         Column(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 16.dp)) {
-            Text(text = displayName, fontSize = LocalFontSize.current, fontFamily = LocalFontFamily.current, maxLines = 1, overflow = TextOverflow.Ellipsis)
-            Spacer(modifier = Modifier.height(8.dp))
-            FileCardStatsRow(labels = statLabels, statistics = statistics, progressCount = progressCount, statColors = statColors)
-        }
-    }
-}
-
-@Composable
-fun DraggingFileCard(
-    fileName: String, statistics: FileStatistics, progressCount: Int = 0, folderDisplayName: String?,
-    dragPosition: Offset, dragOffset: Offset, dragItemSize: IntSize, showTypeSummary: Boolean = true, modifier: Modifier = Modifier,
-) {
-    val statLabels = rememberFileCardStatLabels()
-    val displayName = folderDisplayName?.let { "$it/$fileName" } ?: fileName
-    val palette = rememberFileCardPalette(fileName, statistics)
-    val statColors = fileStatPalette()
-    Card(modifier = modifier, shape = RoundedCornerShape(16.dp),
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)),
-        colors = CardDefaults.cardColors(containerColor = palette.containerColor),
-        elevation = CardDefaults.cardElevation(defaultElevation = 10.dp)) {
-        Column(Modifier.fillMaxSize().padding(horizontal = 16.dp, vertical = 16.dp)) {
             Text(text = displayName, fontSize = LocalFontSize.current, fontFamily = LocalFontFamily.current, maxLines = 1, overflow = TextOverflow.Ellipsis)
             Spacer(modifier = Modifier.height(8.dp))
             FileCardStatsRow(labels = statLabels, statistics = statistics, progressCount = progressCount, statColors = statColors)
