@@ -39,13 +39,15 @@ fun DeepSeekAskScreen(
     val chatTurns by viewModel.chatTurns.collectAsState()
     val errorMessage by viewModel.errorMessage.collectAsState()
     val isParsing by viewModel.isParsing.collectAsState()
+    val webSearchEnabled by viewModel.webSearchEnabled.collectAsState()
     val parsingText = stringResource(R.string.parsing)
     val parsingKeyword = parsingText.removeSuffix("...")
     val sendLabel = stringResource(R.string.ai_send)
     val inputPlaceholder = stringResource(R.string.ai_input_placeholder)
+    val webSearchContentDescription = stringResource(
+        if (webSearchEnabled) R.string.ai_web_search_disable else R.string.ai_web_search_enable,
+    )
     val settingsText = stringResource(R.string.settings)
-    val increaseFontText = stringResource(R.string.increase_font)
-    val decreaseFontText = stringResource(R.string.decrease_font)
     val saveText = stringResource(R.string.save)
     val dontSaveText = stringResource(R.string.cancel)
     val confirmSaveText = stringResource(R.string.confirm_save_changes)
@@ -122,8 +124,6 @@ fun DeepSeekAskScreen(
                 onFontSizeChange = fontState.setSize,
                 fontSizeStore = fontState.persistSize,
                 settingsLabel = settingsText,
-                increaseFontLabel = increaseFontText,
-                decreaseFontLabel = decreaseFontText,
             )
         }
     ) { contentModifier ->
@@ -147,6 +147,10 @@ fun DeepSeekAskScreen(
             assistantFontSize = fontState.size.sp,
             assistantFontFamily = LocalFontFamily.current,
             assistantTextToolbar = toolbar,
+            webSearchEnabled = webSearchEnabled,
+            webSearchToggleEnabled = !isParsing,
+            webSearchContentDescription = webSearchContentDescription,
+            onWebSearchToggle = viewModel::setWebSearchEnabled,
             onAssistantContentChange = { messageIndex, value ->
                 viewModel.updateAssistantByMessageIndex(messageIndex, value)
             },

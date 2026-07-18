@@ -10,6 +10,7 @@ fun FavoriteRoute(
     onBack: () -> Unit,
     onOpenFile: (String) -> Unit,
     onStartFavoriteQuiz: (String) -> Unit,
+    onStartFavoriteExam: (String) -> Unit = {},
 ) {
     FavoriteScreen(
         fileName = fileName,
@@ -18,5 +19,6 @@ fun FavoriteRoute(
         onBack = onBack,
         onOpenFile = onOpenFile,
         onStartFavoriteQuiz = onStartFavoriteQuiz,
+        onStartFavoriteExam = onStartFavoriteExam,
     )
 }

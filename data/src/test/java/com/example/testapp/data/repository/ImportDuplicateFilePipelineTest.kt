@@ -51,4 +51,30 @@ class ImportDuplicateFilePipelineTest {
             ),
         )
     }
+
+    @Test
+    fun exportedTimestampCopy_isImportable() {
+        assertFalse(
+            ImportDuplicateFilePipeline.isDuplicate(
+                listOf("（旧版）技师计算题.xlsx"),
+                "（旧版）技师计算题_20260620_1455.xlsx",
+            ),
+        )
+        assertFalse(
+            ImportDuplicateFilePipeline.isDuplicate(
+                listOf("高压电工完整题库（1347题）_final_20260620_1454.xlsx"),
+                "高压电工完整题库（1347题）_final_20260620_1455.xlsx",
+            ),
+        )
+    }
+
+    @Test
+    fun downloadCopySuffix_isImportable() {
+        assertFalse(
+            ImportDuplicateFilePipeline.isDuplicate(
+                listOf("营业线施工管理试题（水电）.xlsx"),
+                "营业线施工管理试题（水电） (1).xlsx",
+            ),
+        )
+    }
 }

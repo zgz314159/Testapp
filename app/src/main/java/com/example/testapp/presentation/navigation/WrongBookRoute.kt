@@ -10,6 +10,7 @@ fun WrongBookRoute(
     onBack: () -> Unit,
     onOpenFile: (String) -> Unit,
     onStartWrongBookQuiz: (String) -> Unit,
+    onStartWrongBookExam: (String) -> Unit = {},
 ) {
     WrongBookScreen(
         fileName = fileName,
@@ -18,5 +19,6 @@ fun WrongBookRoute(
         onBack = onBack,
         onOpenFile = onOpenFile,
         onStartWrongBookQuiz = onStartWrongBookQuiz,
+        onStartWrongBookExam = onStartWrongBookExam,
     )
 }

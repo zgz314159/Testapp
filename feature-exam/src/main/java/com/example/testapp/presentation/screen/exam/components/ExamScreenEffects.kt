@@ -14,8 +14,8 @@ import com.example.testapp.presentation.screen.exam.ExamFontController
 import com.example.testapp.presentation.screen.exam.ExternalExamState
 import com.example.testapp.presentation.screen.exam.suspendExamCommand
 import com.example.testapp.presentation.session.exam.ExamScreenBindings
+import com.example.testapp.presentation.screen.ai.AiQuestionEditDialog
 import com.example.testapp.uicommon.component.AnswerCardDisplayInfo
-import com.example.testapp.uicommon.component.QuestionEditDialog
 import com.example.testapp.uicommon.design.QuestionTypographySheet
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
@@ -143,7 +143,7 @@ fun ExamScreenOverlays(
         onDismiss = { ds.showTypographySheet = false }
     )
     if (ds.showEditQuestionDialog) {
-        QuestionEditDialog(
+        AiQuestionEditDialog(
             editableQuestion = editableQuestion,
             initialQuestionContent = "",
             initialQuestionAnswer = "",
@@ -161,7 +161,7 @@ fun ExamScreenOverlays(
             onDismiss = {
                 ds.showEditQuestionDialog = false
                 dispatchCommand(SessionCommand.ClearEditableQuestion)
-            }
+            },
         )
     }
     QuestionListDialog(

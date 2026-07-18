@@ -1,5 +1,6 @@
 package com.example.testapp.presentation.session.practice
 
+import com.example.testapp.core.util.extractSourceQuestionId
 import com.example.testapp.domain.model.PracticeSessionState
 import com.example.testapp.domain.model.Question
 import com.example.testapp.domain.model.updateAt
@@ -98,8 +99,10 @@ internal class PracticeSessionQuestionContentDelegate(
             if (existingQuestions.isEmpty()) return@launch
             val toSave =
                 if (mergeById) {
+                    // 动态填空派生变体是负 id，必须映射回源题 id 才能命中文件里的原题。
+                    val sourceId = extractSourceQuestionId(updatedQuestion.id)
                     existingQuestions.map { q ->
-                        if (q.id == updatedQuestion.id) updatedQuestion else q
+                        if (q.id == sourceId) updatedQuestion.copy(id = sourceId) else q
                     }
                 } else {
                     state.questionsWithState.map { it.question }.filter { it.fileName == fileName }

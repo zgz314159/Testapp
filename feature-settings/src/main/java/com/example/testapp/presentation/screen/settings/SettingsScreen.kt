@@ -16,6 +16,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.EditNote
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Scaffold
@@ -54,7 +55,8 @@ import com.example.testapp.uicommon.design.AppElevatedActionSheetTokens
 fun SettingsScreen(
     viewModel: SettingsViewModel = hiltViewModel(),
     onNavigateHome: () -> Unit = {},
-    onNavigateFillSettings: () -> Unit = {}
+    onNavigateFillSettings: () -> Unit = {},
+    onNavigateAiService: () -> Unit = {},
 ) {
     val fontSize by viewModel.fontSize.collectAsState()
     val fontStyle by viewModel.fontStyle.collectAsState()
@@ -277,6 +279,16 @@ fun SettingsScreen(
                         fontSize = fontSize,
                         onClick = onNavigateFillSettings,
                         leadingIcon = Icons.Filled.EditNote
+                    )
+                }
+
+                SettingsSectionHeader(stringResource(R.string.settings_section_ai))
+                SettingsCardGroup {
+                    SettingsNavListItem(
+                        label = stringResource(R.string.settings_ai_service),
+                        fontSize = fontSize,
+                        onClick = onNavigateAiService,
+                        leadingIcon = Icons.Filled.AutoAwesome,
                     )
                 }
 

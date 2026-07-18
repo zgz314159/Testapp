@@ -10,6 +10,21 @@
     <string name="parsing">解析中…</string>
     <string name="ai_send">发送</string>
     <string name="ai_input_placeholder">输入问题…</string>
+    <string name="ai_web_search_enable">开启联网搜索</string>
+    <string name="ai_web_search_disable">关闭联网搜索</string>
     <string name="parse_failed">解析失败</string>
     <string name="ask">提问</string>
+    <string name="ai_correct_preview_title">AI纠题建议</string>
+    <string name="ai_correct_verified_online">已联网核验</string>
+    <string name="ai_correct_unverified">未检索到来源，请人工核对</string>
+    <string name="ai_correct_confidence_format">置信度 %1$d%%</string>
+    <string name="ai_correct_default_reason">模型给出的修改建议</string>
+    <string name="ai_correct_field_content">题干</string>
+    <string name="ai_correct_field_options">选项</string>
+    <string name="ai_correct_field_answer">答案</string>
+    <string name="ai_correct_sources">参考来源</string>
+    <string name="ai_correct_before_format">原：%1$s</string>
+    <string name="ai_correct_after_format">建议：%1$s</string>
+    <string name="ai_correct_apply">应用到编辑框</string>
+    <string name="ai_correct_loading">正在联网纠题…</string>
 </resources>

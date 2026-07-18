@@ -28,7 +28,11 @@ fun AiChatConversationLayout(
     assistantTextToolbar: androidx.compose.ui.platform.TextToolbar? = null,
     assistantContent: (@Composable (String) -> Unit)? = null,
     onAssistantContentChange: ((messageIndex: Int, text: String) -> Unit)? = null,
-    geminiStyle: Boolean = true
+    geminiStyle: Boolean = true,
+    webSearchEnabled: Boolean = false,
+    webSearchToggleEnabled: Boolean = true,
+    webSearchContentDescription: String = "",
+    onWebSearchToggle: ((Boolean) -> Unit)? = null,
 ) {
     Scaffold(
         modifier = modifier.fillMaxSize(),
@@ -40,7 +44,11 @@ fun AiChatConversationLayout(
                 onSend = onSend,
                 sendEnabled = sendEnabled,
                 sendContentDescription = sendContentDescription,
-                placeholder = inputPlaceholder
+                placeholder = inputPlaceholder,
+                webSearchEnabled = webSearchEnabled,
+                webSearchToggleEnabled = webSearchToggleEnabled,
+                webSearchContentDescription = webSearchContentDescription,
+                onWebSearchToggle = onWebSearchToggle,
             )
         }
     ) { innerPadding ->

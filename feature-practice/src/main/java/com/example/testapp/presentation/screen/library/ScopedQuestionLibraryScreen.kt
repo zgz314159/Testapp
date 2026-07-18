@@ -1,5 +1,6 @@
 package com.example.testapp.presentation.screen.library
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -72,7 +73,9 @@ fun ScopedQuestionLibraryScreen(
     folderViewModel: FileFolderViewModel,
     dragViewModel: DragDropViewModel,
     onDeleteFile: (String) -> Unit,
-    onOpenFile: (String) -> Unit
+    onOpenFile: (String) -> Unit,
+    onFileCtaClick: ((String) -> Unit)? = null,
+    practiceProgress: Map<String, Int> = emptyMap(),
 ) {
     val folders by folderViewModel.folders.collectAsState()
     val folderNames by folderViewModel.folderNames.collectAsState()
@@ -93,6 +96,9 @@ fun ScopedQuestionLibraryScreen(
 
     val folderBounds = remember { mutableStateMapOf<String, Rect>() }
     val fileCardBounds = remember { mutableStateMapOf<String, Rect>() }
+
+    // 分组内系统返回（手势/按键）先退回根列表，而不是退出页面
+    BackHandler(enabled = currentFolder != null) { currentFolder = null }
 
     val layout = remember(fileNames, folders, folderNames, currentFolder, scope) {
         buildScopedQuestionLibraryLayout(scope, fileNames, folders, folderNames, currentFolder)
@@ -167,7 +173,7 @@ fun ScopedQuestionLibraryScreen(
                         },
                         folders = layout.scopedFolders,
                         fileStatistics = fileStatistics,
-                        practiceProgress = emptyMap(),
+                        practiceProgress = practiceProgress,
                         selectedFileName = "",
                         draggingFile = draggingFile,
                         dragPosition = dragPosition,
@@ -260,6 +266,7 @@ fun ScopedQuestionLibraryScreen(
                         onDragCancel = { dragViewModel.endDragging() },
                         onReportFolderBounds = { name, rect -> folderBounds[name] = rect },
                         onReportCardBounds = { name, rect -> fileCardBounds[name] = rect },
+                        onFileCtaClick = onFileCtaClick ?: onOpenFile,
                         modifier = Modifier.weight(1f)
                     )
                 }

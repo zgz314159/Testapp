@@ -24,6 +24,7 @@
 | CI / lint | `.github/workflows/build.yml` | **✅** — ktlint + detekt（P78 收紧规则） |
 | 自适应渐隐原子练习 | 根目录方案 + ADR-006 | **🟡 已实现，待联网环境编译门禁** |
 | 共用答题页立体视觉 | `:ui-common` question-session chrome | **🟡 已实现，待本地 Android 编译与真机视觉冒烟** |
+| AI 联网纠题 / BYOK | ADR-008 | **🟡 已实现** — 用户自备 DeepSeek + 检索 Key（博查/Tavily 双通道，优先博查）；问答输入栏可显式开启联网；托管额度插口预留；待真机填 Key 验收 |
 | L6 Self-Evolving OS | `LEVEL6_OVERVIEW.md` | Deployed 2026-06-11 |
 
 ## System health: **🟢 STABLE**（逻辑层）
@@ -53,6 +54,9 @@
 - **QuestionBank:** 点击→Browse；**长按**→`question_edit` → `DrawerQuestionEditHost`
 - **题库详情:** `onViewQuestionDetail` → Browse Session（`targetQuestionId=0`）；legacy `QuestionScreen` 已删
 - **AI 叠层写回:** `AppNavAiWritebackPipeline` → `SessionCommand`（含 `AppendNote`）
+- **AI BYOK:** 用户自备 DeepSeek + 检索 Key（博查/Tavily，都填优先博查；加密本机）；`AiBackend` 路由；托管 entitlement 插口；纠题仅回填编辑草稿
+- **AI 问答联网:** DeepSeek 问答输入栏联网图标按钮；开启后先检索再回答，正文编号引用；来源以「N 个网页」胶囊 + 底部搜索结果列表展示（`AiChatSourcesPipeline` 拆分，编辑回写重挂来源块）；关闭保持普通问答
+- **AI 纠题入口:** 练习/考试/题库抽屉统一 `AiQuestionEditDialog`；设置 → AI 服务管理 Key
 - **Settings IO:** 全量在 `feature-settings`（含 coordinators / Uri pipeline）
 - **FontSettings:** 接口 `:core`；`FontSettingsDataStore` + `FontSettingsRepositoryImpl` → `:data`
 - **Progress:** `PracticeProgressLifecycleCoordinator` 328；load/save/apply/review/reset 经 Pipeline
@@ -65,6 +69,7 @@
 
 - 自适应渐隐 MVP 尚需在可联网 JDK 21 环境执行全量 Gradle 编译、lint、单测与 APK 冒烟。
 - 共用答题页立体视觉尚需在本地 Android 环境执行编译，并对窄屏、长选项、深色模式和 IME 做真机冒烟。
+- AI BYOK：真机填写 DeepSeek + 博查（或 Tavily）Key 后验收解析与联网纠题；托管支付尚未实现。
 - 个性化间隔、学习统计面板属于后续增强，不在 MVP 内。
 
 ## Session 迁移进度（P26–P63）

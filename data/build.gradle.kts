@@ -30,7 +30,7 @@ android {
     defaultConfig {
         minSdk = 26
         targetSdk = 35
-        buildConfigField("String", "DEEPSEEK_API_KEY", buildConfigString(apiKey("DEEPSEEK_API_KEY")))
+        // DeepSeek / Tavily：用户 BYOK（加密存本机）。BAIDU/SPARK 仍可用 local.properties。
         buildConfigField("String", "BAIDU_API_KEY", buildConfigString(apiKey("BAIDU_API_KEY")))
         buildConfigField("String", "SPARK_API_KEY", buildConfigString(apiKey("SPARK_API_KEY")))
     }

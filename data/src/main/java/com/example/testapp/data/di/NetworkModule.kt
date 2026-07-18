@@ -1,8 +1,14 @@
 package com.example.testapp.data.di
 
+import com.example.testapp.data.network.ai.AiBackend
+import com.example.testapp.data.network.ai.ManagedAiBackend
+import com.example.testapp.data.network.ai.RoutingAiBackend
+import com.example.testapp.data.network.ai.UserKeysAiBackend
 import com.example.testapp.data.network.baidu.BaiduApiService
 import com.example.testapp.data.network.deepseek.DeepSeekApiService
 import com.example.testapp.data.network.spark.SparkApiService
+import com.example.testapp.domain.repository.AiCredentialsRepository
+import com.example.testapp.domain.repository.AiEntitlementRepository
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -44,7 +50,22 @@ object NetworkModule {
 
     @Provides
     @Singleton
-    fun provideDeepSeekApiService(client: HttpClient): DeepSeekApiService = DeepSeekApiService(client)
+    fun provideAiBackend(
+        credentialsRepository: AiCredentialsRepository,
+        entitlementRepository: AiEntitlementRepository,
+        userKeysAiBackend: UserKeysAiBackend,
+        managedAiBackend: ManagedAiBackend,
+    ): AiBackend = RoutingAiBackend(
+        credentialsRepository = credentialsRepository,
+        entitlementRepository = entitlementRepository,
+        userKeysAiBackend = userKeysAiBackend,
+        managedAiBackend = managedAiBackend,
+    )
+
+    @Provides
+    @Singleton
+    fun provideDeepSeekApiService(aiBackend: AiBackend): DeepSeekApiService =
+        DeepSeekApiService(aiBackend)
 
     @Provides
     @Singleton

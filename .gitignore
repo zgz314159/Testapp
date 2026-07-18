@@ -13,5 +13,9 @@
 .externalNativeBuild
 .cxx
 local.properties
+cloudflare-worker/.dev.vars
+cloudflare-worker/.env
+cloudflare-worker/node_modules/
+cloudflare-worker/.wrangler/
 .history/
 **/bin/

@@ -2,8 +2,11 @@ package com.example.testapp.uicommon.component
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
@@ -12,6 +15,10 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
@@ -20,6 +27,7 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
 import com.example.testapp.uicommon.design.AiChatPromptDesignTokens
+import com.example.testapp.uicommon.design.AiChatSourcesPipeline
 import com.example.testapp.uicommon.design.AppSpacing
 import com.example.testapp.uicommon.model.AiChatMessageRole
 
@@ -159,30 +167,58 @@ private fun AssistantMessageBody(
     assistantContent: (@Composable (String) -> Unit)?,
     onContentChange: ((String) -> Unit)?,
 ) {
-    when {
-        assistantContent != null -> assistantContent(content)
-        onContentChange != null ->
-            SelectionContainer {
-                BasicTextField(
-                    value = content,
-                    onValueChange = onContentChange,
-                    modifier = Modifier.fillMaxWidth(),
-                    textStyle = TextStyle(
+    val split = remember(content) { AiChatSourcesPipeline.split(content) }
+    var showSources by remember { mutableStateOf(false) }
+    val answerTransformation = remember(assistantFontSize) {
+        AiChatCitationVisualTransformation(
+            citationColor = AiChatPromptDesignTokens.brandBlue,
+            citationFontSize = assistantFontSize * 0.78f,
+        )
+    }
+    Column(modifier = Modifier.fillMaxWidth()) {
+        when {
+            assistantContent != null -> assistantContent(split.body)
+            onContentChange != null ->
+                SelectionContainer {
+                    BasicTextField(
+                        value = split.body,
+                        onValueChange = { edited ->
+                            onContentChange(AiChatSourcesPipeline.reattach(edited, split.sources))
+                        },
+                        modifier = Modifier.fillMaxWidth(),
+                        textStyle = TextStyle(
+                            color = contentColor,
+                            fontSize = assistantFontSize,
+                            fontFamily = assistantFontFamily,
+                            lineHeight = assistantFontSize * 1.6f,
+                        ),
+                        visualTransformation = answerTransformation,
+                        cursorBrush = SolidColor(contentColor),
+                    )
+                }
+            else ->
+                SelectionContainer {
+                    RichText(
+                        text = split.body,
                         color = contentColor,
                         fontSize = assistantFontSize,
                         fontFamily = assistantFontFamily,
-                    ),
-                    cursorBrush = SolidColor(contentColor),
-                )
-            }
-        else ->
-            SelectionContainer {
-                RichText(
-                    text = content,
-                    color = contentColor,
-                    fontSize = assistantFontSize,
-                    fontFamily = assistantFontFamily,
-                )
-            }
+                        lineSpacingMultiplier = 1.5f,
+                    )
+                }
+        }
+        if (split.sources.isNotEmpty()) {
+            Spacer(modifier = Modifier.height(AppSpacing.sm))
+            AiChatSourcesChip(
+                count = split.sources.size,
+                onClick = { showSources = true },
+            )
+        }
+    }
+    if (showSources) {
+        AiChatSourcesSheet(
+            sources = split.sources,
+            onDismiss = { showSources = false },
+        )
     }
 }

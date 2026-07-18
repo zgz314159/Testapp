@@ -46,7 +46,8 @@ class PracticeAnswerHandler {
         fullAnswerModeActive: Boolean,
         fullAnswerRequireCorrect: Boolean
     ): Boolean {
-        if (fullAnswerModeActive || fullAnswerRequireCorrect) {
+        // 「答错需重答」是全答模式的子设置：模式未激活时残留开关不得串扰其他出题模式。
+        if (fullAnswerModeActive) {
             if (!questionWithState.showResult) return true
             if (fullAnswerRequireCorrect && questionWithState.isCorrect != true) return true
             return false

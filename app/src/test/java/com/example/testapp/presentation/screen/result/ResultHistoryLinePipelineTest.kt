@@ -20,8 +20,27 @@ class ResultHistoryLinePipelineTest {
 
         val line = formatResultHistoryLine(0, record, "2026-06-28 12:00:00")
 
+        // 正确率口径 = 正确 / 已答（10 题答 9 对 8 → 88.89%），百分比去尾零。
         assertEquals(
-            "1. 正确:8 错误:1 正确率:80.00% 时间:2026-06-28 12:00:00",
+            "1. 正确:8 错误:1 正确率:88.89% 时间:2026-06-28 12:00:00",
+            line
+        )
+    }
+
+    @Test
+    fun formatResultHistoryLine_trimsTrailingZerosInRate() {
+        val record = HistoryRecord(
+            fileName = "quiz.json",
+            score = 8,
+            total = 10,
+            unanswered = 0,
+            time = LocalDateTime.of(2026, 6, 28, 12, 0, 0)
+        )
+
+        val line = formatResultHistoryLine(0, record, "2026-06-28 12:00:00")
+
+        assertEquals(
+            "1. 正确:8 错误:2 正确率:80% 时间:2026-06-28 12:00:00",
             line
         )
     }

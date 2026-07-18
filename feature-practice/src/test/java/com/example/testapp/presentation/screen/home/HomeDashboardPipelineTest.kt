@@ -146,20 +146,17 @@ class HomeDashboardPipelineTest {
     }
 
     @Test
-    fun `cleanupDisplayName_removes_final_suffix`() {
-        assertEquals("data", pipeline.cleanupDisplayName("data_final.txt"))
-        assertEquals("report", pipeline.cleanupDisplayName("report_final_3.json"))
-    }
-
-    @Test
-    fun `cleanupDisplayName_removes_date_suffix`() {
-        assertEquals("notes", pipeline.cleanupDisplayName("notes_20260714.txt"))
-        assertEquals("summary", pipeline.cleanupDisplayName("summary_v2.json"))
-    }
-
-    @Test
-    fun `cleanupDisplayName removes generated tail and question count`() {
-        assertEquals("高压电工完整题库", pipeline.cleanupDisplayName("高压电工完整题库（1347题）_final_2.txt"))
-        assertEquals("高级技师计算题", pipeline.cleanupDisplayName("高级技师计算题_20260714_v3.xlsx"))
+    fun `cleanupDisplayName keeps generated suffixes so similar banks stay distinguishable`() {
+        assertEquals("data_final", pipeline.cleanupDisplayName("data_final.txt"))
+        assertEquals("notes_20260714", pipeline.cleanupDisplayName("notes_20260714.txt"))
+        assertEquals("summary_v2", pipeline.cleanupDisplayName("summary_v2.json"))
+        assertEquals(
+            "高压电工完整题库（1347题）_final_2",
+            pipeline.cleanupDisplayName("高压电工完整题库（1347题）_final_2.txt"),
+        )
+        assertEquals(
+            "（旧版）技师计算题_20260620_1455",
+            pipeline.cleanupDisplayName("（旧版）技师计算题_20260620_1455.xlsx"),
+        )
     }
 }

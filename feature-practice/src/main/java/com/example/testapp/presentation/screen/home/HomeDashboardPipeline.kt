@@ -131,11 +131,10 @@ object HomeDashboardPipeline {
     }
 
     /**
-     * 清理文件名中的技术后缀，生成友好的展示名。
+     * 生成展示名：仅去掉文件扩展名（.txt, .json 等），其余部分完整保留。
      *
-     * - 去掉文件扩展名（.txt, .json 等）
-     * - 去掉明显的生成后缀：_final、_final_数字、日期、编号后缀
-     * - 不伪造业务名称
+     * 不剥离时间戳/final/版本号等后缀——同名不同后缀的文件是不同题库
+     * （导入允许并存），展示时必须能区分，见 change_log 2026-07-18。
      */
     fun cleanupDisplayName(fileName: String): String {
         val noExt = fileName
@@ -145,13 +144,8 @@ object HomeDashboardPipeline {
             .removeSuffix(".xls")
             .removeSuffix(".docx")
             .removeSuffix(".doc")
-        return noExt
-            .replace(Regex("[（(]\\s*\\d+\\s*题\\s*[）)]"), "")
-            .replace(Regex("(?i)_final.*$"), "")
-            .replace(Regex("(?i)_v[\\d]+$"), "")
-            .replace(Regex("_20\\d{2}.*$"), "")
             .trim()
-            .ifEmpty { noExt }
+        return noExt.ifEmpty { fileName }
     }
 
     /**

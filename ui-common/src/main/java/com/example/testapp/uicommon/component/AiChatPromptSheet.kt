@@ -23,6 +23,10 @@ fun AiChatPromptSheet(
     placeholder: String,
     modifier: Modifier = Modifier,
     maxLines: Int = 6,
+    webSearchEnabled: Boolean = false,
+    webSearchToggleEnabled: Boolean = true,
+    webSearchContentDescription: String = "",
+    onWebSearchToggle: ((Boolean) -> Unit)? = null,
 ) {
     val tokens = AiChatPromptDesignTokens
     Surface(
@@ -42,6 +46,14 @@ fun AiChatPromptSheet(
             horizontalArrangement = Arrangement.spacedBy(AppSpacing.sm),
             verticalAlignment = Alignment.Bottom,
         ) {
+            if (onWebSearchToggle != null) {
+                AiChatWebSearchButton(
+                    checked = webSearchEnabled,
+                    enabled = webSearchToggleEnabled,
+                    contentDescription = webSearchContentDescription,
+                    onCheckedChange = onWebSearchToggle,
+                )
+            }
             AiChatPromptField(
                 value = value,
                 onValueChange = onValueChange,

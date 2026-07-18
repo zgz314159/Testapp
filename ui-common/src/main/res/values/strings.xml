@@ -10,10 +10,13 @@
     <string name="uicommon_paste_fill_answers">粘贴答案</string>
     <string name="uicommon_clear_fill_answers">清空答案</string>
     <string name="uicommon_blank_answer_label_format">第%1$d空答案</string>
+    <string name="uicommon_blank_tag_label">属性标签</string>
+    <string name="uicommon_blank_score_label">分值</string>
     <string name="uicommon_remove_blank">减少填空</string>
     <string name="uicommon_answer_label">答案</string>
     <string name="uicommon_cancel">取消</string>
     <string name="uicommon_save_changes">保存修改</string>
+    <string name="uicommon_ai_correct_question">AI纠题</string>
     <string name="uicommon_copy_question">复制本题</string>
     <string name="uicommon_copy_question_success">题目已复制</string>
     <string name="uicommon_typography_settings_title">排版设置</string>
@@ -40,4 +43,6 @@
     <string name="uicommon_fill_mode_score_range_random">分值范围随机</string>
     <string name="uicommon_fill_mode_full_answer">全答</string>
     <string name="uicommon_mode_adaptive_fading">自适应渐隐</string>
+    <string name="uicommon_ai_sources_count">%1$d 个网页</string>
+    <string name="uicommon_ai_sources_sheet_title">搜索结果</string>
 </resources>

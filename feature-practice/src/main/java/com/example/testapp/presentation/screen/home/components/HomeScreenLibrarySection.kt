@@ -121,7 +121,8 @@ fun HomeScreenLibrarySection(
                         dragPosition = dragPosition ?: Offset.Zero,
                         hoverFolder = hoverFolder,
                         hoverFile = hoverFile,
-                        useGridLayout = columnCount > 1,
+                        // 分组内与错题库/收藏库一致：两列网格；根目录仅宽屏才多列
+                        useGridLayout = columnCount > 1 || currentFolder != null,
                         // 2026 常见做法：分组文件夹排在散卡之前（Drive/Files 同款信息层级），
                         // 拖拽合并后新文件夹出现在列表顶部、即时可见。
                         // 根目录：题库卡在前（使用时间倒序），文件夹在后（建立时间升序）

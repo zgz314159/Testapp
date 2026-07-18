@@ -1,20 +1,21 @@
 # LOC 审计（>500 行）
 
 > 生成方式：`scripts/check-loc-over-500.ps1`（Windows）/ `scripts/check-loc-over-500.sh`（CI/Linux）  
-> 最后扫描：2026-07-18（主页文件夹视觉 / 排序 / 悬浮卡统一）
+> 最后扫描：2026-07-18（BYOK AI / ADR-008）
 
 ## 超过 500 行的文件
 
-当前 HEAD 基线仍有 3 个超过 500 行的文件；本次触及的 `PracticeSessionEngine.kt` 已保持在 498 行。
+当前 HEAD 基线仍有 3 个超过 500 行的文件；本次未扩大。
 
 | 文件 | 行数 | 状态 |
 |------|------|------|
 | `feature-exam/.../ExamViewModel.kt` | 538 | 既有基线，待拆 |
 | `feature-exam/.../ExamSessionEngine.kt` | 551 | 既有基线，待拆 |
 | `feature-practice/.../PracticeEditorCoordinator.kt` | 578 | 既有基线，待拆 |
-| `feature-practice/.../PracticeSessionEngine.kt` | 498 | 本次守住红线 ✅ |
 
-本次新增 `HomeFolderVisualPipeline.kt`，并复用 `HomeDraggingFileOverlay` 删除旧悬浮卡路径；全仓 LOC 脚本通过，未新增 >500 行文件。
+BYOK / 问答联网相关新文件均低于 500：`AiServiceSettingsScreen`、`QuestionCorrectionOrchestrator`、`AiWebSearchOrchestrator`、`AiWebSearchPromptPipeline`、`AiChatSourcesPipeline`、`AiChatSourcesViews`、`DeepSeekDirectClient`、`BochaDirectClient`、`RoutingAiBackend` 等；未新增 >500 行文件（2026-07-18 复扫通过）。
+
+填空三框编辑：`QuestionEditDialog.kt` ~378、`QuestionEditFieldRows.kt` ~217，均低于 500（2026-07-18 复扫通过）。
 
 ## 近期热点 LOC（Excel 兼容 + Phase Home）
 

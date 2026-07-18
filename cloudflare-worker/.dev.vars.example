@@ -1,0 +1,4 @@
+DEEPSEEK_API_KEY=sk-xxx
+TAVILY_API_KEY=tvly-xxx
+PLAY_CLOUD_PROJECT_NUMBER=123456789012
+GOOGLE_SERVICE_ACCOUNT_JSON={"type":"service_account","project_id":"...","private_key":"-----BEGIN PRIVATE KEY-----\n...\n-----END PRIVATE KEY-----\n","client_email":"...@....iam.gserviceaccount.com","token_uri":"https://oauth2.googleapis.com/token"}

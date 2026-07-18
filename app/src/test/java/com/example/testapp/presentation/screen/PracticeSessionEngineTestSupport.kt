@@ -8,6 +8,7 @@ import com.example.testapp.core.session.SessionMemoryMode
 import com.example.testapp.core.session.SessionProgressManager
 import com.example.testapp.domain.QuestionTypes
 import com.example.testapp.domain.model.AIAnalysisData
+import com.example.testapp.domain.model.AdaptiveAtomState
 import com.example.testapp.domain.model.FavoriteQuestion
 import com.example.testapp.domain.model.HistoryRecord
 import com.example.testapp.domain.model.LibraryCatalog
@@ -18,6 +19,7 @@ import com.example.testapp.domain.model.SessionMode
 import com.example.testapp.domain.model.UnifiedQuestionState
 import com.example.testapp.domain.model.UnifiedSessionState
 import com.example.testapp.domain.model.WrongQuestion
+import com.example.testapp.domain.repository.AdaptiveAtomRepository
 import com.example.testapp.domain.repository.FavoriteQuestionRepository
 import com.example.testapp.domain.repository.HistoryRepository
 import com.example.testapp.domain.repository.MarkdownCleanupPreview
@@ -174,6 +176,7 @@ internal fun createEngine(
                 ),
             questionFlowCache = QuestionFlowCache(GetQuestionsUseCase(questionRepository)),
             fontSettings = FakeFontSettingsRepository(),
+            adaptiveAtoms = FakeAdaptiveAtomRepository,
         )
     return createPracticeSessionEngine(scope, deps) as PracticeSessionEngine
 }
@@ -383,6 +386,16 @@ internal class FakePracticeProgressRepository : PracticeProgressRepository {
 
     private fun flowFor(id: String): MutableStateFlow<PracticeProgress?> =
         progressFlows.getOrPut(id) { MutableStateFlow(null) }
+}
+
+private object FakeAdaptiveAtomRepository : AdaptiveAtomRepository {
+    override suspend fun getStates(bankId: String): List<AdaptiveAtomState> = emptyList()
+
+    override suspend fun getState(bankId: String, atomId: Int): AdaptiveAtomState? = null
+
+    override suspend fun upsertStates(states: List<AdaptiveAtomState>) = Unit
+
+    override suspend fun deleteByBank(bankId: String) = Unit
 }
 
 private object FakeWrongBookRepository : WrongBookRepository {

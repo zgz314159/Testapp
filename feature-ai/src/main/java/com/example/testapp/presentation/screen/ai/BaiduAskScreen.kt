@@ -37,8 +37,6 @@ fun BaiduAskScreen(
     val sendLabel = stringResource(R.string.ai_send)
     val inputPlaceholder = stringResource(R.string.ai_input_placeholder)
     val settingsText = stringResource(R.string.settings)
-    val increaseFontText = stringResource(R.string.increase_font)
-    val decreaseFontText = stringResource(R.string.decrease_font)
     val saveText = stringResource(R.string.save)
     val dontSaveText = stringResource(R.string.cancel)
     val confirmSaveText = stringResource(R.string.confirm_save_changes)
@@ -100,9 +98,7 @@ fun BaiduAskScreen(
                 screenFontSize = fontState.size,
                 onFontSizeChange = fontState.setSize,
                 fontSizeStore = fontState.persistSize,
-                settingsLabel = settingsText,
-                increaseFontLabel = increaseFontText,
-                decreaseFontLabel = decreaseFontText
+                settingsLabel = settingsText
             )
         }
     ) { contentModifier ->

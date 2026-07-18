@@ -20,6 +20,8 @@ object AiChatPromptDesignTokens {
     val bubbleElevation = 8.dp
     val sendButtonSize = 48.dp
     val sendButtonElevation = 10.dp
+    val promptIconSize = 28.dp
+    val promptIconShadowAlpha = 0.22f
     val sheetHorizontalPadding = 16.dp
     val sheetVerticalPadding = 12.dp
     val fieldInnerHorizontalPadding = 16.dp

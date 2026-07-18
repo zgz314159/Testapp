@@ -2,7 +2,8 @@ package com.example.testapp.data.repository
 
 /**
  * 题库导入重复判定：同名（含忽略大小写）或仅扩展名不同视为同一题库。
- * 避免「xxx.xlsx」与「xxx」并存，首页展示名去扩展后看起来像重复导入。
+ * 避免「xxx.xlsx」与「xxx」并存。名字有任何其它差异（如导出时间戳、副本编号）视为
+ * 不同题库，允许导入——展示层完整显示文件名，由用户自行辨别。
  */
 object ImportDuplicateFilePipeline {
 

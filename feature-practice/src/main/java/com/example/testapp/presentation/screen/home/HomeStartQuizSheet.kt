@@ -65,6 +65,7 @@ fun HomeStartQuizSheet(
     onStartAdaptive: (String) -> Unit,
     onStartExam: (String) -> Unit,
     onRestart: (String) -> Unit,
+    showAdaptiveOption: Boolean = true,
 ) {
     if (!visible) return
 
@@ -131,7 +132,7 @@ fun HomeStartQuizSheet(
             )
             Spacer(modifier = Modifier.height(12.dp))
 
-            if (HomeAdaptiveModeEligibilityPipeline.isEligible(pendingFileName)) {
+            if (showAdaptiveOption && HomeAdaptiveModeEligibilityPipeline.isEligible(pendingFileName)) {
                 HomeStartQuizActionCard(
                     title = stringResource(R.string.home_start_adaptive_fading),
                     subtitle = stringResource(R.string.home_start_quiz_adaptive_hint),

@@ -140,7 +140,7 @@ internal object PracticeSessionCoordinatorAssembly {
                 loadProgress = progressLifecycle::loadProgress,
             )
 
-        val questionEditCoordinator = PracticeQuestionEditCoordinator(ctx.deps.facade, ctx.sessionState)
+        val questionEditCoordinator = PracticeQuestionEditCoordinator(ctx.deps.facade, ctx.sessionState, ctx.scope)
         val noteCoordinator = PracticeNoteCoordinator(ctx.deps.facade, ctx.sessionState)
 
         return PracticeSessionCoordinatorHub(

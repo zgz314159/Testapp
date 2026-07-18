@@ -1,5 +1,6 @@
 package com.example.testapp.presentation.screen.home
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -70,6 +71,8 @@ fun HomeScreen(
     val importProgress by settingsViewModel.progress.collectAsState()
 
     var currentFolder by remember { mutableStateOf<String?>(null) }
+    // 分组内系统返回（手势/按键）先退回主页根列表，而不是退出 App
+    BackHandler(enabled = currentFolder != null) { currentFolder = null }
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     val selectedFileName = remember { mutableStateOf("") }

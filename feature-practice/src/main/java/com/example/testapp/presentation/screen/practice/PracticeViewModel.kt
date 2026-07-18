@@ -35,7 +35,7 @@ class PracticeViewModel @Inject constructor(
     )
     private val answerHandler = PracticeAnswerHandler()
     private val navigationCoordinator = PracticeNavigationCoordinator()
-    private val questionEditCoordinator = PracticeQuestionEditCoordinator(facade, _sessionState)
+    private val questionEditCoordinator = PracticeQuestionEditCoordinator(facade, _sessionState, viewModelScope)
     private val noteCoordinator = PracticeNoteCoordinator(facade, _sessionState)
     private val sessionFlows = PracticeViewModelSessionFlows.create(_sessionState, viewModelScope)
     val questions = sessionFlows.questions

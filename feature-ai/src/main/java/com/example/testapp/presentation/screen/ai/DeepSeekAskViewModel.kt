@@ -11,7 +11,6 @@ import com.example.testapp.data.network.deepseek.DeepSeekAskPersistFormatPipelin
 import com.example.testapp.data.network.deepseek.DeepSeekAskPersistPipeline
 import com.example.testapp.data.network.deepseek.DeepSeekAskSavePipeline
 import com.example.testapp.data.network.deepseek.DeepSeekAskSessionRestorePipeline
-import com.example.testapp.data.network.deepseek.DeepSeekChatConfig
 import com.example.testapp.data.network.deepseek.DeepSeekChatTurn
 import com.example.testapp.data.network.deepseek.DeepSeekExamAnchor
 import com.example.testapp.data.network.deepseek.DeepSeekMultiTurnMessagesPipeline
@@ -51,6 +50,9 @@ class DeepSeekAskViewModel @Inject constructor(
     private val _isParsing = MutableStateFlow(false)
     val isParsing: StateFlow<Boolean> = _isParsing.asStateFlow()
 
+    private val _webSearchEnabled = MutableStateFlow(false)
+    val webSearchEnabled: StateFlow<Boolean> = _webSearchEnabled.asStateFlow()
+
     private val turns = mutableListOf<DeepSeekChatTurn>()
     private var firstQuestion: String = ""
     private var examAnchor: DeepSeekExamAnchor? = null
@@ -65,6 +67,7 @@ class DeepSeekAskViewModel @Inject constructor(
         _chatTurns.value = emptyList()
         _errorMessage.value = null
         _isParsing.value = false
+        _webSearchEnabled.value = false
         turns.clear()
         firstQuestion = ""
         examAnchor = null
@@ -218,13 +221,12 @@ class DeepSeekAskViewModel @Inject constructor(
                 nextUserContent = nextUser,
                 examAnchor = examAnchor
             )
-            val attachSearch = resolved.enableThinking &&
-                DeepSeekChatConfig.ATTACH_WEB_SEARCH_TOOL_ON_REVIEW
+            val useWebSearch = _webSearchEnabled.value
             runCatching {
                 api.chat(
                     messages = messages,
                     enableThinking = resolved.enableThinking,
-                    attachWebSearchTool = attachSearch,
+                    useWebSearch = useWebSearch,
                 )
             }
                 .onSuccess { response ->
@@ -240,6 +242,12 @@ class DeepSeekAskViewModel @Inject constructor(
                     _errorMessage.value = "${PARSE_FAILED_PREFIX}: ${it.message ?: "未知错误"}"
                 }
             _isParsing.value = false
+        }
+    }
+
+    fun setWebSearchEnabled(enabled: Boolean) {
+        if (!_isParsing.value) {
+            _webSearchEnabled.value = enabled
         }
     }
 

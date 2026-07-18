@@ -66,6 +66,23 @@ abstract class DataBindModule {
     abstract fun bindAdaptiveAtomRepository(
         impl: com.example.testapp.data.repository.AdaptiveAtomRepositoryImpl,
     ): com.example.testapp.domain.repository.AdaptiveAtomRepository
+
+    @Binds
+    abstract fun bindQuestionCorrectionRepository(
+        impl: com.example.testapp.data.repository.QuestionCorrectionRepositoryImpl,
+    ): com.example.testapp.domain.repository.QuestionCorrectionRepository
+
+    @Binds
+    @Singleton
+    abstract fun bindAiCredentialsRepository(
+        impl: com.example.testapp.data.repository.AiCredentialsRepositoryImpl,
+    ): com.example.testapp.domain.repository.AiCredentialsRepository
+
+    @Binds
+    @Singleton
+    abstract fun bindAiEntitlementRepository(
+        impl: com.example.testapp.data.repository.AiEntitlementRepositoryImpl,
+    ): com.example.testapp.domain.repository.AiEntitlementRepository
 }
 
 @Module

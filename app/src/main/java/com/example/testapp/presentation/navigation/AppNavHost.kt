@@ -10,6 +10,7 @@ import androidx.navigation.navArgument
 import com.example.testapp.core.session.route.BrowseSessionRoutePipeline
 import com.example.testapp.core.session.route.QuestionEditSessionRoutePipeline
 import com.example.testapp.core.util.safeDecode
+import com.example.testapp.presentation.screen.settings.AiServiceSettingsScreen
 import com.example.testapp.presentation.screen.settings.FillSettingsScreen
 import com.example.testapp.presentation.screen.settings.SettingsScreen
 
@@ -142,6 +143,10 @@ fun AppNavHost(
                     val encoded = java.net.URLEncoder.encode(name, "UTF-8")
                     navController.navigate("practice_wrongbook/$encoded")
                 },
+                onStartWrongBookExam = { name ->
+                    val encoded = java.net.URLEncoder.encode(name, "UTF-8")
+                    navController.navigate("exam_wrongbook/$encoded")
+                },
             )
         }
         composable(
@@ -161,6 +166,10 @@ fun AppNavHost(
                     val enc = java.net.URLEncoder.encode(name, "UTF-8")
                     navController.navigate("practice_wrongbook/$enc")
                 },
+                onStartWrongBookExam = { name ->
+                    val enc = java.net.URLEncoder.encode(name, "UTF-8")
+                    navController.navigate("exam_wrongbook/$enc")
+                },
             )
         }
 
@@ -171,11 +180,17 @@ fun AppNavHost(
                 viewModel = settingsViewModel,
                 onNavigateHome = { navController.popBackToHome() },
                 onNavigateFillSettings = { navController.navigate("settings/fill") },
+                onNavigateAiService = { navController.navigate("settings/ai") },
             )
         }
         composable("settings/fill") {
             FillSettingsScreen(
                 viewModel = settingsViewModel,
+                onBack = { navController.popBackStack() },
+            )
+        }
+        composable("settings/ai") {
+            AiServiceSettingsScreen(
                 onBack = { navController.popBackStack() },
             )
         }
@@ -190,6 +205,10 @@ fun AppNavHost(
                 onStartFavoriteQuiz = { name ->
                     val encoded = java.net.URLEncoder.encode(name, "UTF-8")
                     navController.navigate("practice_favorite/$encoded")
+                },
+                onStartFavoriteExam = { name ->
+                    val encoded = java.net.URLEncoder.encode(name, "UTF-8")
+                    navController.navigate("exam_favorite/$encoded")
                 },
             )
         }
@@ -209,6 +228,10 @@ fun AppNavHost(
                 onStartFavoriteQuiz = { name ->
                     val enc = java.net.URLEncoder.encode(name, "UTF-8")
                     navController.navigate("practice_favorite/$enc")
+                },
+                onStartFavoriteExam = { name ->
+                    val enc = java.net.URLEncoder.encode(name, "UTF-8")
+                    navController.navigate("exam_favorite/$enc")
                 },
             )
         }

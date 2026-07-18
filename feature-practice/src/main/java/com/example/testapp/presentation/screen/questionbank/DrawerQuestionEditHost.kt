@@ -14,10 +14,10 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import com.example.testapp.domain.session.SessionCommand
 import com.example.testapp.feature.practice.R
+import com.example.testapp.presentation.screen.ai.AiQuestionEditDialog
 import com.example.testapp.presentation.screen.practice.suspendPracticeCommand
 import com.example.testapp.presentation.session.practice.PracticeSessionCommandHandler
 import com.example.testapp.presentation.session.practice.rememberQuestionEditSessionBindings
-import com.example.testapp.uicommon.component.QuestionEditDialog
 import kotlinx.coroutines.launch
 
 @Composable
@@ -80,7 +80,7 @@ fun DrawerQuestionEditHost(
         }
     }
 
-    QuestionEditDialog(
+    AiQuestionEditDialog(
         editableQuestion = editableQuestion,
         initialQuestionContent = initialQuestionContent,
         initialQuestionAnswer = initialQuestionAnswer,
@@ -91,7 +91,7 @@ fun DrawerQuestionEditHost(
                 newContent,
                 newOptions,
                 finalAnswer,
-            ) ?: return@QuestionEditDialog
+            ) ?: return@AiQuestionEditDialog
             coroutineScope.launch {
                 suspendPracticeCommand(bindings, SessionCommand.SaveEditedQuestion(editedQuestion))
             }

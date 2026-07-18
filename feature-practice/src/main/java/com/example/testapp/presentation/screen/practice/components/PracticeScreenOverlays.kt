@@ -10,6 +10,7 @@ import com.example.testapp.core.common.LocalizedResult
 import com.example.testapp.domain.model.Question
 import com.example.testapp.domain.session.SessionCommand
 import com.example.testapp.feature.practice.R
+import com.example.testapp.presentation.screen.ai.AiQuestionEditDialog
 import com.example.testapp.presentation.screen.practice.PracticeAutoAdvanceController
 import com.example.testapp.presentation.screen.practice.PracticeDialogsHost
 import com.example.testapp.presentation.screen.practice.PracticeFontController
@@ -18,7 +19,6 @@ import com.example.testapp.presentation.screen.practice.suspendPracticeCommand
 import com.example.testapp.presentation.session.practice.PracticeScreenBindings
 import com.example.testapp.uicommon.component.AnswerCardDisplayInfo
 import com.example.testapp.uicommon.component.LocalFontFamily
-import com.example.testapp.uicommon.component.QuestionEditDialog
 import com.example.testapp.uicommon.design.AppConfirmDialog
 import com.example.testapp.uicommon.design.AppScrollBottomSheet
 import com.example.testapp.uicommon.design.AppSpacing
@@ -99,13 +99,13 @@ fun PracticeScreenOverlays(
         onSelect = onSelectQuestion
     )
     if (showEditQuestionDialog) {
-        QuestionEditDialog(
+        AiQuestionEditDialog(
             editableQuestion = editableQuestion,
             initialQuestionContent = editedQuestionContent,
             initialQuestionAnswer = editedQuestionAnswer,
             initialAnswerParts = editedAnswerParts,
             onConfirm = onConfirmEdit,
-            onDismiss = onDismissEdit
+            onDismiss = onDismissEdit,
         )
     }
     if (showExplanationFull) {

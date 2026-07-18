@@ -1,11 +1,14 @@
 package com.example.testapp.uicommon.util
 
 import com.example.testapp.core.util.FILL_PART_DELIMITER
+import com.example.testapp.core.util.parseFillAnswerPartDescriptor
 import com.example.testapp.core.util.splitFillAnswerParts
 
 private val EDITABLE_BLANK_REGEX = Regex("_{2,}|（\\s*）|\\(\\s*\\)|【\\s*】|\\[\\s*]")
 private val PASTED_NUMBERED_LINE_REGEX = Regex("^\\s*(\\d+)[.、．:：]\\s*(.+?)\\s*$")
 private const val DEFAULT_EDITABLE_BLANK = "____"
+/** 选择题题干空位，与常见卷面 `( )` 一致。 */
+private const val DEFAULT_CHOICE_BLANK = "( )"
 
 data class EditableBlankInsertion(
     val content: String,
@@ -33,22 +36,33 @@ fun appendEditableBlank(content: String): String {
     return content + suffix + DEFAULT_EDITABLE_BLANK
 }
 
-fun insertEditableBlankAtCursor(content: String, cursor: Int): EditableBlankInsertion {
+fun insertEditableBlankAtCursor(content: String, cursor: Int): EditableBlankInsertion =
+    insertMarkerAtCursor(content, cursor, DEFAULT_EDITABLE_BLANK)
+
+/** 在光标处插入选择题空位 `( )`，并返回插入后内容与光标位置。 */
+fun insertEditableChoiceBlankAtCursor(content: String, cursor: Int): EditableBlankInsertion =
+    insertMarkerAtCursor(content, cursor, DEFAULT_CHOICE_BLANK)
+
+private fun insertMarkerAtCursor(
+    content: String,
+    cursor: Int,
+    marker: String,
+): EditableBlankInsertion {
     val safeCursor = cursor.coerceIn(0, content.length)
     val leadingSpace = safeCursor > 0 && !content[safeCursor - 1].isWhitespace()
     val trailingSpace = safeCursor < content.length && !content[safeCursor].isWhitespace()
     val insertionText = buildString {
         if (leadingSpace) append(' ')
-        append(DEFAULT_EDITABLE_BLANK)
+        append(marker)
         if (trailingSpace) append(' ')
     }
     val blankIndex = EDITABLE_BLANK_REGEX.findAll(content.substring(0, safeCursor)).count()
     val newContent = content.substring(0, safeCursor) + insertionText + content.substring(safeCursor)
-    val cursorPosition = safeCursor + (if (leadingSpace) 1 else 0) + DEFAULT_EDITABLE_BLANK.length
+    val cursorPosition = safeCursor + (if (leadingSpace) 1 else 0) + marker.length
     return EditableBlankInsertion(
         content = newContent,
         blankIndex = blankIndex,
-        cursorPosition = cursorPosition
+        cursorPosition = cursorPosition,
     )
 }
 
@@ -85,6 +99,38 @@ fun removeEditableBlankAt(content: String, blankIndex: Int): String {
 
 fun buildEditableFillAnswer(answerParts: List<String>): String {
     return answerParts.joinToString(FILL_PART_DELIMITER)
+}
+
+/** 单空答案的编辑视图字段：答案正文 / 属性标签 / 分值，均不含「【】」。 */
+data class EditableFillAnswerFields(
+    val answerText: String,
+    val tag: String,
+    val score: String,
+)
+
+/** 把存储串 `答案【标签】【N分】` 拆成三个可编辑字段。 */
+fun parseEditableFillAnswerFields(rawPart: String): EditableFillAnswerFields {
+    if (rawPart.isBlank()) return EditableFillAnswerFields("", "", "")
+    val descriptor = parseFillAnswerPartDescriptor(rawPart)
+    return EditableFillAnswerFields(
+        answerText = descriptor.answerText,
+        tag = descriptor.category.orEmpty(),
+        score = descriptor.score?.toString().orEmpty(),
+    )
+}
+
+/**
+ * 把三个字段拼回存储串。答案为空时整体视为空（避免残留孤立后缀）；
+ * 分值按存储规约收敛到 1..10（与 core 解析正则一致）。
+ */
+fun buildEditableFillAnswerPart(answerText: String, tag: String, score: String): String {
+    val text = answerText.trim()
+    if (text.isBlank()) return ""
+    return buildString {
+        append(text)
+        tag.trim().takeIf { it.isNotBlank() }?.let { append('【').append(it).append('】') }
+        score.trim().toIntOrNull()?.coerceIn(1, 10)?.let { append('【').append(it).append("分】") }
+    }
 }
 
 fun insertEditableAnswerPart(answerParts: List<String>, index: Int): List<String> {

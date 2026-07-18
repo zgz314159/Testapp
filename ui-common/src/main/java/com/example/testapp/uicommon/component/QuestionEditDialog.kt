@@ -11,19 +11,15 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ElevatedCard
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -50,10 +46,18 @@ import com.example.testapp.uicommon.util.buildEditableFillAnswer
 import com.example.testapp.uicommon.util.countEditableFillBlanks
 import com.example.testapp.uicommon.util.insertEditableAnswerPart
 import com.example.testapp.uicommon.util.insertEditableBlankAtCursor
+import com.example.testapp.uicommon.util.insertEditableChoiceBlankAtCursor
 import com.example.testapp.uicommon.util.parsePastedEditableFillAnswers
 import com.example.testapp.uicommon.util.removeEditableAnswerPart
 import com.example.testapp.uicommon.util.removeEditableBlankAt
 import com.example.testapp.uicommon.util.syncEditableFillAnswers
+
+/** 仅回填未保存草稿，不触发落库。 */
+data class QuestionEditDraftPatch(
+    val content: String? = null,
+    val options: List<String>? = null,
+    val answer: String? = null,
+)
 
 @Composable
 fun QuestionEditDialog(
@@ -62,7 +66,11 @@ fun QuestionEditDialog(
     initialQuestionAnswer: String,
     initialAnswerParts: List<String>,
     onConfirm: (String, List<String>, String) -> Unit,
-    onDismiss: () -> Unit
+    onDismiss: () -> Unit,
+    onRequestAiCorrect: ((content: String, options: List<String>, answer: String) -> Unit)? = null,
+    draftPatch: QuestionEditDraftPatch? = null,
+    onDraftPatchConsumed: () -> Unit = {},
+    aiCorrectEnabled: Boolean = true,
 ) {
     val isFillQuestion = editableQuestion?.let { QuestionTypes.isInlineBlank(it.type) } == true
     val supportsOptionEditing = editableQuestion?.let {
@@ -142,6 +150,31 @@ fun QuestionEditDialog(
         }
     }
 
+    LaunchedEffect(draftPatch) {
+        val patch = draftPatch ?: return@LaunchedEffect
+        patch.content?.let { content ->
+            contentFieldValue = TextFieldValue(content, TextRange(content.length))
+            if (isFillQuestion) {
+                editedAnswerParts = syncEditableFillAnswers(
+                    editedAnswerParts,
+                    countEditableFillBlanks(content).coerceAtLeast(1),
+                )
+            }
+        }
+        patch.options?.takeIf { supportsOptionEditing && it.isNotEmpty() }?.let { editedOptions = it }
+        patch.answer?.let { answer ->
+            if (isFillQuestion) {
+                editedAnswerParts = syncEditableFillAnswers(
+                    listOf(answer),
+                    countEditableFillBlanks(contentFieldValue.text).coerceAtLeast(1),
+                )
+            } else {
+                editedQuestionAnswer = answer
+            }
+        }
+        onDraftPatchConsumed()
+    }
+
     val blankCount = countEditableFillBlanks(contentFieldValue.text).coerceAtLeast(1)
     val finalOptions = if (supportsOptionEditing) editedOptions else editableQuestion?.options.orEmpty()
     val finalAnswer = if (isFillQuestion) buildEditableFillAnswer(editedAnswerParts) else editedQuestionAnswer
@@ -173,10 +206,16 @@ fun QuestionEditDialog(
                     .fillMaxWidth()
                     .padding(20.dp)
             ) {
-                Text(
-                    text = stringResource(R.string.uicommon_edit_current_question_title),
-                    style = MaterialTheme.typography.titleLarge
-                )
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Text(
+                        text = stringResource(R.string.uicommon_edit_current_question_title),
+                        style = MaterialTheme.typography.titleLarge,
+                        modifier = Modifier.weight(1f),
+                    )
+                }
                 Spacer(modifier = Modifier.height(16.dp))
                 if (editableQuestion == null) {
                     Box(
@@ -215,10 +254,56 @@ fun QuestionEditDialog(
                                 unfocusedContainerColor = MaterialTheme.colorScheme.surface,
                             ),
                         )
+                        QuestionEditToolbar(
+                            showAddOption = supportsOptionEditing,
+                            showAddBlank = isFillQuestion,
+                            showAiCorrect = onRequestAiCorrect != null,
+                            aiCorrectEnabled = aiCorrectEnabled && contentFieldValue.text.isNotBlank(),
+                            onAddOption = {
+                                val insertion = insertEditableChoiceBlankAtCursor(
+                                    content = contentFieldValue.text,
+                                    cursor = contentFieldValue.selection.start,
+                                )
+                                contentFieldValue = TextFieldValue(
+                                    text = insertion.content,
+                                    selection = TextRange(insertion.cursorPosition),
+                                )
+                                editedOptions = editedOptions + ""
+                            },
+                            onAddBlank = {
+                                val insertion = insertEditableBlankAtCursor(
+                                    content = contentFieldValue.text,
+                                    cursor = contentFieldValue.selection.start,
+                                )
+                                contentFieldValue = TextFieldValue(
+                                    text = insertion.content,
+                                    selection = TextRange(insertion.cursorPosition),
+                                )
+                                editedAnswerParts = insertEditableAnswerPart(
+                                    editedAnswerParts,
+                                    insertion.blankIndex,
+                                )
+                            },
+                            onPasteFillAnswers = {
+                                val pastedAnswers = parsePastedEditableFillAnswers(
+                                    pastedText = clipboardManager.getText()?.text.orEmpty(),
+                                    currentContent = contentFieldValue.text,
+                                    blankCount = blankCount,
+                                )
+                                if (pastedAnswers.isNotEmpty()) editedAnswerParts = pastedAnswers
+                            },
+                            onClearFillAnswers = {
+                                editedAnswerParts = List(blankCount) { "" }
+                            },
+                            onAiCorrect = {
+                                onRequestAiCorrect?.invoke(
+                                    contentFieldValue.text,
+                                    finalOptions,
+                                    finalAnswer,
+                                )
+                            },
+                        )
                         if (supportsOptionEditing) {
-                            TextButton(onClick = { editedOptions = editedOptions + "" }) {
-                                Text(stringResource(R.string.uicommon_add_option))
-                            }
                             editedOptions.forEachIndexed { index, option ->
                                 EditableTextRow(
                                     value = option,
@@ -235,45 +320,13 @@ fun QuestionEditDialog(
                             }
                         }
                         if (isFillQuestion) {
-                            Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                                TextButton(
-                                    onClick = {
-                                        val insertion = insertEditableBlankAtCursor(
-                                            content = contentFieldValue.text,
-                                            cursor = contentFieldValue.selection.start
-                                        )
-                                        contentFieldValue = TextFieldValue(
-                                            text = insertion.content,
-                                            selection = TextRange(insertion.cursorPosition)
-                                        )
-                                        editedAnswerParts = insertEditableAnswerPart(editedAnswerParts, insertion.blankIndex)
-                                    }
-                                ) {
-                                    Text(stringResource(R.string.uicommon_add_blank))
-                                }
-                                TextButton(
-                                    onClick = {
-                                        val pastedAnswers = parsePastedEditableFillAnswers(
-                                            pastedText = clipboardManager.getText()?.text.orEmpty(),
-                                            currentContent = contentFieldValue.text,
-                                            blankCount = blankCount
-                                        )
-                                        if (pastedAnswers.isNotEmpty()) editedAnswerParts = pastedAnswers
-                                    }
-                                ) {
-                                    Text(stringResource(R.string.uicommon_paste_fill_answers))
-                                }
-                                TextButton(onClick = { editedAnswerParts = List(blankCount) { "" } }) {
-                                    Text(stringResource(R.string.uicommon_clear_fill_answers))
-                                }
-                            }
                             editedAnswerParts.forEachIndexed { index, part ->
-                                EditableTextRow(
-                                    value = part,
+                                EditableFillAnswerRow(
+                                    rawPart = part,
                                     label = stringResource(R.string.uicommon_blank_answer_label_format, index + 1),
                                     removeContentDescription = stringResource(R.string.uicommon_remove_blank),
                                     removeEnabled = blankCount > 1,
-                                    onValueChange = { newValue ->
+                                    onRawPartChange = { newValue ->
                                         editedAnswerParts = editedAnswerParts.toMutableList().also { it[index] = newValue }
                                     },
                                     onRemove = {
@@ -323,41 +376,3 @@ fun QuestionEditDialog(
     }
 }
 
-@Composable
-private fun EditableTextRow(
-    value: String,
-    label: String,
-    removeContentDescription: String,
-    removeEnabled: Boolean,
-    onValueChange: (String) -> Unit,
-    onRemove: () -> Unit
-) {
-    val fieldShape = RoundedCornerShape(AppOverlayMetrics.listItemCorner)
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        OutlinedTextField(
-            value = value,
-            onValueChange = onValueChange,
-            label = { Text(label) },
-            modifier = Modifier.weight(1f),
-            minLines = 2,
-            shape = fieldShape,
-            colors = OutlinedTextFieldDefaults.colors(
-                focusedContainerColor = MaterialTheme.colorScheme.surface,
-                unfocusedContainerColor = MaterialTheme.colorScheme.surface,
-            ),
-        )
-        IconButton(
-            onClick = onRemove,
-            enabled = removeEnabled
-        ) {
-            Icon(
-                imageVector = Icons.Filled.Delete,
-                contentDescription = removeContentDescription,
-                tint = MaterialTheme.colorScheme.error
-            )
-        }
-    }
-}
