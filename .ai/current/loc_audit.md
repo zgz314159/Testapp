@@ -1,7 +1,7 @@
 # LOC 审计（>500 行）
 
 > 生成方式：`scripts/check-loc-over-500.ps1`（Windows）/ `scripts/check-loc-over-500.sh`（CI/Linux）  
-> 最后扫描：2026-07-18（BYOK AI / ADR-008）
+> 最后扫描：2026-07-18（Home Lazy cache / Baseline Profile）
 
 ## 超过 500 行的文件
 
@@ -16,6 +16,8 @@
 BYOK / 问答联网相关新文件均低于 500：`AiServiceSettingsScreen`、`QuestionCorrectionOrchestrator`、`AiWebSearchOrchestrator`、`AiWebSearchPromptPipeline`、`AiChatSourcesPipeline`、`AiChatSourcesViews`、`DeepSeekDirectClient`、`BochaDirectClient`、`RoutingAiBackend` 等；未新增 >500 行文件（2026-07-18 复扫通过）。
 
 填空三框编辑：`QuestionEditDialog.kt` ~378、`QuestionEditFieldRows.kt` ~217，均低于 500（2026-07-18 复扫通过）。
+
+Home 滚动/返回性能：新增 `HomeFileListCachePolicy.kt`，并调整 Home 列表/卡片模型及返回路径；未新增 >500 行文件（2026-07-18 复扫通过）。
 
 ## 近期热点 LOC（Excel 兼容 + Phase Home）
 

@@ -10,13 +10,18 @@ import com.example.testapp.domain.usecase.GetAllPracticeProgressFlowUseCase
 import com.example.testapp.domain.usecase.GetFileStatisticsUseCase
 import com.example.testapp.domain.usecase.GetQuestionsUseCase
 import com.example.testapp.domain.usecase.QuestionFlowCache
+import com.example.testapp.presentation.screen.home.model.HomeContentState
 import com.example.testapp.presentation.screen.practice.buildHomePracticeProgressMap
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.flowOn
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.onStart
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import javax.inject.Inject
@@ -31,40 +36,59 @@ class HomeViewModel @Inject constructor(
     private val clearExamProgressByFileNameUseCase: ClearExamProgressByFileNameUseCase,
     private val questionRepository: QuestionRepository,
 ) : ViewModel() {
-    private val _fileNames = MutableStateFlow<List<String>>(emptyList())
-    val fileNames: StateFlow<List<String>> = _fileNames.asStateFlow()
+    private var homeCompositionCount = 0
 
-    private val _practiceProgress = MutableStateFlow<Map<String, Int>>(emptyMap())
-    val practiceProgress: StateFlow<Map<String, Int>> = _practiceProgress.asStateFlow()
+    val contentState: StateFlow<HomeContentState> = combine(
+        getQuestionsUseCase.fileNames(),
+        // combine 会等所有上游首帧；统计/进度较慢时先发空值，题库名一到即可出列表。
+        getFileStatisticsUseCase().onStart { emit(emptyMap()) },
+        getAllPracticeProgressFlowUseCase().onStart { emit(emptyList()) },
+    ) { names, statistics, progressList ->
+        val progressById = progressList.associateBy { it.id }
+        HomeContentState(
+            fileNames = names,
+            fileStatistics = statistics,
+            practiceProgress = buildHomePracticeProgressMap(names, progressById),
+            isReady = true,
+        )
+    }
+        .flowOn(Dispatchers.Default)
+        .distinctUntilChanged()
+        .stateIn(
+            scope = viewModelScope,
+            // 离开设置/错题等再回主页时，Home 短暂无订阅；拉长窗口避免上游重跑造成返回闪空白。
+            started = SharingStarted.WhileSubscribed(30_000),
+            initialValue = HomeContentState(),
+        )
 
-    private val _fileStatistics = MutableStateFlow<Map<String, FileStatistics>>(emptyMap())
-    val fileStatistics: StateFlow<Map<String, FileStatistics>> = _fileStatistics.asStateFlow()
+    val fileNames: StateFlow<List<String>> = contentState
+        .map { it.fileNames }
+        .distinctUntilChanged()
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(30_000), emptyList())
 
-    private val _homeContentReady = MutableStateFlow(false)
-    val homeContentReady: StateFlow<Boolean> = _homeContentReady.asStateFlow()
+    val practiceProgress: StateFlow<Map<String, Int>> = contentState
+        .map { it.practiceProgress }
+        .distinctUntilChanged()
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(30_000), emptyMap())
 
-    private var progressById: Map<String, com.example.testapp.domain.model.PracticeProgress> = emptyMap()
+    val fileStatistics: StateFlow<Map<String, FileStatistics>> = contentState
+        .map { it.fileStatistics }
+        .distinctUntilChanged()
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(30_000), emptyMap())
 
-    init {
-        viewModelScope.launch {
-            getAllPracticeProgressFlowUseCase().collect { progressList ->
-                progressById = progressList.associateBy { it.id }
-                _practiceProgress.value = buildHomePracticeProgressMap(_fileNames.value, progressById)
-            }
-        }
+    val homeContentReady: StateFlow<Boolean> = contentState
+        .map { it.isReady }
+        .distinctUntilChanged()
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(30_000), false)
 
-        viewModelScope.launch {
-            combine(
-                getQuestionsUseCase.fileNames(),
-                getFileStatisticsUseCase()
-            ) { names, statistics -> names to statistics }
-                .collect { (names, statistics) ->
-                    _fileNames.value = names
-                    _fileStatistics.value = statistics
-                    _practiceProgress.value = buildHomePracticeProgressMap(names, progressById)
-                    _homeContentReady.value = true
-                }
-        }
+    /**
+     * Home 的 NavBackStackEntry / ViewModel 在子页期间仍存活，而 composition 会被销毁。
+     * 首次为冷启动，后续为从设置/错题/收藏/记录/结果返回。
+     */
+    fun registerHomeCompositionAndIsReturn(): Boolean {
+        val isReturn = homeCompositionCount > 0
+        homeCompositionCount++
+        return isReturn
     }
 
     fun preloadQuestionFile(fileName: String) {

@@ -59,14 +59,19 @@ fun HomeScreen(
     onHistory: () -> Unit = {},
 ) {
     remember { HomePerformanceLog.resetSession() }
+    val isHomeReturn = remember(viewModel) {
+        viewModel.registerHomeCompositionAndIsReturn()
+    }
     DisposableEffect(Unit) {
         onDispose { HomePerformanceLog.event("home_exit") }
     }
-    val fileNames by viewModel.fileNames.collectAsState()
+    val homeContent by viewModel.contentState.collectAsState()
+    val fileNames = homeContent.fileNames
+    val fileStatistics = homeContent.fileStatistics
+    val practiceProgress = homeContent.practiceProgress
+    val homeContentReady = homeContent.isReady
     val folders by folderViewModel.folders.collectAsState()
     val folderNames by folderViewModel.folderNames.collectAsState()
-    val fileStatistics by viewModel.fileStatistics.collectAsState()
-    val homeContentReady by viewModel.homeContentReady.collectAsState()
     val isLoading by settingsViewModel.isLoading.collectAsState()
     val importProgress by settingsViewModel.progress.collectAsState()
 
@@ -84,14 +89,11 @@ fun HomeScreen(
         .getRecentSelectedFiles(context)
         .collectAsState(initial = emptyList())
 
-    val practiceProgress by viewModel.practiceProgress.collectAsState()
-
     val dashboardState = remember(
         fileNames,
         fileStatistics,
         practiceProgress,
         storedFileName,
-        selectedFileName.value,
         recentFileNames,
     ) {
         HomePerformanceLog.measure("dashboard_build files=${fileNames.size}") {
@@ -100,7 +102,6 @@ fun HomeScreen(
                 fileStatistics = fileStatistics,
                 practiceProgressCompleted = practiceProgress,
                 storedFileName = storedFileName,
-                selectedFileName = selectedFileName.value,
                 recentFileNames = recentFileNames,
             )
         }
@@ -291,6 +292,7 @@ fun HomeScreen(
                     homeContentReady = homeContentReady,
                     homeLibraryEmptyReason = libraryState.homeLibraryEmptyReason,
                     viewModel = viewModel,
+                    isHomeReturn = isHomeReturn,
                     selectedFileName = selectedFileName.value,
                     draggingFile = draggingFile,
                     dragPosition = dragPosition,

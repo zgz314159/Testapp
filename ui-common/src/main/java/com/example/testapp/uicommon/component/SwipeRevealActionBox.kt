@@ -12,9 +12,12 @@ import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.width
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.pointer.pointerInput
@@ -37,16 +40,20 @@ fun SwipeRevealActionBox(
     content: @Composable BoxScope.() -> Unit
 ) {
     val scope = rememberCoroutineScope()
-    val offset = remember { Animatable(0f) }
+    var offsetX by remember { mutableFloatStateOf(0f) }
+    val settleAnim = remember { Animatable(0f) }
     val density = LocalDensity.current
     val viewConfiguration = LocalViewConfiguration.current
     val enabledState = rememberUpdatedState(enabled)
     val closeActionState = rememberUpdatedState<(Boolean) -> Unit> { animateClosed ->
         scope.launch {
             if (animateClosed) {
-                offset.animateTo(0f, animationSpec = tween(160))
+                settleAnim.snapTo(offsetX)
+                settleAnim.animateTo(0f, animationSpec = tween(160)) {
+                    offsetX = value
+                }
             } else {
-                offset.snapTo(0f)
+                offsetX = 0f
             }
         }
     }
@@ -54,8 +61,8 @@ fun SwipeRevealActionBox(
 
     // enabled 翻转时不得拆除 pointerInput/offset，否则会取消子节点正在进行的长按拖拽。
     LaunchedEffect(enabled) {
-        if (!enabled && offset.value != 0f) {
-            offset.snapTo(0f)
+        if (!enabled && offsetX != 0f) {
+            offsetX = 0f
         }
     }
 
@@ -104,26 +111,28 @@ fun SwipeRevealActionBox(
 
                             if (horizontalLocked) {
                                 change.consume()
-                                scope.launch {
-                                    offset.snapTo((offset.value + delta.x).coerceIn(-actionWidthPx, 0f))
-                                }
+                                // 同步跟手，避免每个 pointer delta 额外 launch 协程。
+                                offsetX = (offsetX + delta.x).coerceIn(-actionWidthPx, 0f)
                             }
                         }
 
                         if (horizontalLocked) {
-                            val snapTarget = if (-offset.value >= actionWidthPx / 2f) -actionWidthPx else 0f
+                            val snapTarget = if (-offsetX >= actionWidthPx / 2f) -actionWidthPx else 0f
                             scope.launch {
-                                offset.animateTo(snapTarget, animationSpec = tween(180))
+                                settleAnim.snapTo(offsetX)
+                                settleAnim.animateTo(snapTarget, animationSpec = tween(180)) {
+                                    offsetX = value
+                                }
                             }
                         }
                     }
                 }
-                .offset { IntOffset(offset.value.roundToInt(), 0) },
+                .offset { IntOffset(offsetX.roundToInt(), 0) },
         ) {
             content()
         }
 
-        if (enabled && offset.value < -1f) {
+        if (enabled && offsetX < -1f) {
             Box(
                 modifier = Modifier
                     .zIndex(1f)

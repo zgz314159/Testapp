@@ -4,7 +4,6 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -38,10 +37,56 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.testapp.domain.usecase.FileStatistics
+import com.example.testapp.presentation.screen.home.HomeDashboardPipeline
 import com.example.testapp.presentation.screen.home.HomeFileTypeVisualPipeline
 import com.example.testapp.presentation.screen.home.HomePerformanceLog
 import com.example.testapp.presentation.screen.home.design.HomeDesignTokens
+import com.example.testapp.presentation.screen.home.model.HomeQuestionBankCardModel
 
+@Composable
+fun HomeQuestionBankCard(
+    model: HomeQuestionBankCardModel,
+    layout: HomeDashboardPipeline.QuestionBankCardLayout,
+    onCtaClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    DisposableEffect(model.fileName) {
+        HomePerformanceLog.cardEntered(model.fileName)
+        onDispose { }
+    }
+    val iconBrush = remember(model.gradientStart, model.gradientEnd) {
+        Brush.linearGradient(listOf(model.gradientStart, model.gradientEnd))
+    }
+    when (layout) {
+        HomeDashboardPipeline.QuestionBankCardLayout.Dense -> HomeQuestionBankCardDense(
+            displayName = model.displayName,
+            progressPercent = model.progressPercent,
+            questionCount = model.questionCount,
+            wrongCount = model.wrongCount,
+            favoriteCount = model.favoriteCount,
+            icon = model.icon,
+            iconBrush = iconBrush,
+            onCtaClick = onCtaClick,
+            modifier = modifier,
+        )
+        HomeDashboardPipeline.QuestionBankCardLayout.Compact,
+        HomeDashboardPipeline.QuestionBankCardLayout.Wide,
+        -> HomeQuestionBankCardWide(
+            displayName = model.displayName,
+            progressPercent = model.progressPercent,
+            questionCount = model.questionCount,
+            wrongCount = model.wrongCount,
+            favoriteCount = model.favoriteCount,
+            icon = model.icon,
+            iconBrush = iconBrush,
+            isCompact = layout == HomeDashboardPipeline.QuestionBankCardLayout.Compact,
+            onCtaClick = onCtaClick,
+            modifier = modifier,
+        )
+    }
+}
+
+/** 兼容拖拽悬浮层等尚未切到 model 的调用点。 */
 @Composable
 fun HomeQuestionBankCard(
     displayName: String,
@@ -52,46 +97,31 @@ fun HomeQuestionBankCard(
     favoriteCount: Int,
     statistics: FileStatistics,
     onCtaClick: () -> Unit,
+    layout: HomeDashboardPipeline.QuestionBankCardLayout = HomeDashboardPipeline.QuestionBankCardLayout.Wide,
     modifier: Modifier = Modifier,
 ) {
-    DisposableEffect(fileName) {
-        HomePerformanceLog.cardEntered(fileName)
-        onDispose { }
-    }
     val visual = remember(fileName, statistics.primaryQuestionType, statistics.questionTypeStats) {
         HomeFileTypeVisualPipeline.resolve(fileName, statistics)
     }
-    val iconBrush = remember(visual.gradientStart, visual.gradientEnd) {
-        Brush.linearGradient(listOf(visual.gradientStart, visual.gradientEnd))
-    }
-    // 按卡片实际宽度分档（而非屏幕宽度）：网格半宽卡自动切换紧凑竖排布局
-    BoxWithConstraints(modifier = modifier.fillMaxWidth()) {
-        val cardWidth = maxWidth
-        if (cardWidth < 260.dp) {
-            HomeQuestionBankCardDense(
-                displayName = displayName,
-                progressPercent = progressPercent,
-                questionCount = questionCount,
-                wrongCount = wrongCount,
-                favoriteCount = favoriteCount,
-                icon = visual.icon,
-                iconBrush = iconBrush,
-                onCtaClick = onCtaClick,
-            )
-        } else {
-            HomeQuestionBankCardWide(
-                displayName = displayName,
-                progressPercent = progressPercent,
-                questionCount = questionCount,
-                wrongCount = wrongCount,
-                favoriteCount = favoriteCount,
-                icon = visual.icon,
-                iconBrush = iconBrush,
-                isCompact = cardWidth < 380.dp,
-                onCtaClick = onCtaClick,
-            )
-        }
-    }
+    HomeQuestionBankCard(
+        model = HomeQuestionBankCardModel(
+            fileName = fileName,
+            displayName = displayName,
+            progressPercent = progressPercent,
+            questionCount = questionCount,
+            wrongCount = wrongCount,
+            favoriteCount = favoriteCount,
+            progressCount = 0,
+            statistics = statistics,
+            visualKind = visual.kind,
+            icon = visual.icon,
+            gradientStart = visual.gradientStart,
+            gradientEnd = visual.gradientEnd,
+        ),
+        layout = layout,
+        onCtaClick = onCtaClick,
+        modifier = modifier,
+    )
 }
 
 @Composable
@@ -105,6 +135,7 @@ private fun HomeQuestionBankCardWide(
     iconBrush: Brush,
     isCompact: Boolean,
     onCtaClick: () -> Unit,
+    modifier: Modifier = Modifier,
 ) {
     val cardHeight = if (isCompact) 84.dp else 96.dp
     val hPadding = if (isCompact) 10.dp else 14.dp
@@ -114,7 +145,7 @@ private fun HomeQuestionBankCardWide(
     val ctaFont = if (isCompact) 10.sp else 11.sp
 
     Card(
-        modifier = Modifier
+        modifier = modifier
             .fillMaxWidth()
             .height(cardHeight),
         shape = RoundedCornerShape(20.dp),
@@ -204,7 +235,6 @@ private fun HomeQuestionBankCardWide(
     }
 }
 
-/** 网格窄卡（宽 <260dp）：竖排布局，图标/统计/CTA 全部按小尺寸渲染，避免互相挤压。 */
 @Composable
 private fun HomeQuestionBankCardDense(
     displayName: String,
@@ -215,9 +245,10 @@ private fun HomeQuestionBankCardDense(
     icon: ImageVector,
     iconBrush: Brush,
     onCtaClick: () -> Unit,
+    modifier: Modifier = Modifier,
 ) {
     Card(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = modifier.fillMaxWidth(),
         shape = RoundedCornerShape(18.dp),
         colors = CardDefaults.cardColors(containerColor = Color.White),
         elevation = CardDefaults.cardElevation(

@@ -106,6 +106,7 @@ fun OptimizedFileCard(
     val currentOnDragEnd by rememberUpdatedState(onDragEnd)
     val currentOnDragCancel by rememberUpdatedState(onDragCancel)
     val currentAllowDragStart by rememberUpdatedState(allowDragStart)
+    val currentEnableDragDrop by rememberUpdatedState(enableDragDrop)
     val itemCoordsRef = remember { object { var value: LayoutCoordinates? = null } }
 
     val appliedShape = cardShapeOverride ?: RoundedCornerShape(16.dp)
@@ -119,11 +120,14 @@ fun OptimizedFileCard(
                 onReportCardBounds?.invoke(fileName, coords.boundsInRoot())
             }
             .alpha(if (isDragging) 0f else 1f)
-            .then(if (enableDragDrop) Modifier.pointerInput(fileName) {
+            // 始终挂着 pointerInput，避免 homeContentReady / enableDragDrop 翻转时重建手势链。
+            .pointerInput(Unit) {
                 var dragActive = false
                 detectDragGesturesAfterLongPress(
                     onDragStart = { offsetWithinCard ->
-                        if (!currentAllowDragStart()) return@detectDragGesturesAfterLongPress
+                        if (!currentEnableDragDrop || !currentAllowDragStart()) {
+                            return@detectDragGesturesAfterLongPress
+                        }
                         dragActive = true
                         val coords = itemCoordsRef.value
                         val startPos = coords?.localToRoot(offsetWithinCard) ?: Offset.Zero
@@ -139,7 +143,7 @@ fun OptimizedFileCard(
                     onDragEnd = { if (dragActive) { dragActive = false; currentOnDragEnd() } },
                     onDragCancel = { if (dragActive) { dragActive = false; currentOnDragCancel?.invoke() } },
                 )
-            } else Modifier)
+            }
             .then(when {
                 onDoubleClick == null && !enableLongClickAction -> Modifier.clickable(onClick = onCardClick)
                 onDoubleClick == null -> Modifier.combinedClickable(onClick = onCardClick, onLongClick = onLongClick ?: {})

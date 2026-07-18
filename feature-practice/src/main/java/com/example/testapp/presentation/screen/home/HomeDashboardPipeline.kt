@@ -7,35 +7,16 @@ import com.example.testapp.presentation.screen.home.model.HomeDashboardUiState
  * PowerAI 首页仪表板聚合 Pipeline。
  *
  * 纯函数管道：从原始数据（fileNames、fileStatistics、practiceProgressCompleted）
- * 计算出 [HomeDashboardUiState]。
- *
- * 职责：
- * - 问候语按时间动态生成
- * - 副标题无真实学习数据时只显示"继续学习吧"
- * - Hero 文件推导
- * - 四项统计汇总（总题数、错题数、收藏数、已完成）
- * - 题库列表构建
- * - 进度百分比限制在 0..100
+ * 计算出 [HomeDashboardUiState]（仅 header / Hero，不构建题库列表）。
  */
 object HomeDashboardPipeline {
 
-    /**
-     * 构建完整首页 UI State。
-     *
-     * @param fileNames 所有题库文件名
-     * @param fileStatistics fileName → FileStatistics
-     * @param practiceProgressCompleted fileName → 已完成题数（从 [com.example.testapp.presentation.screen.practice.buildHomePracticeProgressMap] 获取）
-     * @param storedFileName DataStore 中最近选中文件名
-     * @param selectedFileName 当前 UI 选中文件名
-     * @param recentFileNames 最近使用文件排序列表
-     */
     fun buildDashboard(
         fileNames: List<String>,
         fileStatistics: Map<String, FileStatistics>,
         practiceProgressCompleted: Map<String, Int>,
         storedFileName: String,
-        selectedFileName: String,
-        recentFileNames: List<String>,
+        recentFileNames: List<String> = emptyList(),
     ): HomeDashboardUiState {
         val greeting = resolveGreeting()
         val subtitle = resolveSubtitle()
@@ -44,9 +25,9 @@ object HomeDashboardPipeline {
         val favoriteCount = fileStatistics.values.sumOf { it.favoriteCount }
         val completedCount = practiceProgressCompleted.values.sum()
 
-        // Hero（继续学习）文件选择：优先 storedFileName，否则第一个题库
         val heroFileName = when {
             storedFileName.isNotBlank() && storedFileName in fileNames -> storedFileName
+            recentFileNames.isNotEmpty() && recentFileNames.first() in fileNames -> recentFileNames.first()
             fileNames.isNotEmpty() -> fileNames.first()
             else -> ""
         }
@@ -57,24 +38,8 @@ object HomeDashboardPipeline {
             val answered = practiceProgressCompleted[heroFileName] ?: 0
             val total = heroStats?.questionCount?.takeIf { it > 0 } ?: 1
             (answered * 100 / total).coerceIn(0, 100)
-        } else 0
-
-        // 题库列表：按最近使用排序
-        val orderedFileNames = reorderFileNames(fileNames, storedFileName, recentFileNames)
-        val questionBankItems = orderedFileNames.map { fileName ->
-            val stats = fileStatistics[fileName] ?: FileStatistics()
-            val progressCount = practiceProgressCompleted[fileName] ?: 0
-            val total = stats.questionCount
-            val pct = if (total > 0) (progressCount * 100 / total).coerceIn(0, 100) else 0
-            HomeDashboardUiState.QuestionBankItem(
-                fileName = fileName,
-                displayName = cleanupDisplayName(fileName),
-                questionCount = stats.questionCount,
-                wrongCount = stats.wrongCount,
-                favoriteCount = stats.favoriteCount,
-                progressPercent = pct,
-                isSelected = fileName == selectedFileName,
-            )
+        } else {
+            0
         }
 
         return HomeDashboardUiState(
@@ -87,17 +52,10 @@ object HomeDashboardPipeline {
             wrongCount = wrongCount,
             favoriteCount = favoriteCount,
             completedCount = completedCount,
-            questionBankItems = questionBankItems,
             showContinueCard = showContinueCard,
         )
     }
 
-    /**
-     * 按本地时间动态生成问候语。
-     * 05:00-11:59 → 早上好
-     * 12:00-17:59 → 下午好
-     * 18:00-04:59 → 晚上好
-     */
     fun resolveGreeting(): String {
         val hour = java.time.LocalTime.now().hour
         return when {
@@ -107,16 +65,8 @@ object HomeDashboardPipeline {
         }
     }
 
-    /**
-     * 副标题：没有真实学习时长时使用"继续学习吧"。
-     * 不得显示虚构分钟数和连续天数。
-     */
     fun resolveSubtitle(): String = "从今天的题库开始吧"
 
-    /**
-     * 文件排序：优先 storedFileName（最近选中），再按 recentFileNames 排序，
-     * 其余保持原始顺序。
-     */
     fun reorderFileNames(
         fileNames: List<String>,
         storedFileName: String,
@@ -124,7 +74,9 @@ object HomeDashboardPipeline {
     ): List<String> {
         val primary = if (storedFileName.isNotBlank() && storedFileName in fileNames) {
             listOf(storedFileName)
-        } else emptyList()
+        } else {
+            emptyList()
+        }
         val recentOrdered = recentFileNames.filter { it in fileNames && it != storedFileName }
         val remaining = fileNames.filter { it != storedFileName && it !in recentOrdered }
         return primary + recentOrdered + remaining
@@ -132,9 +84,6 @@ object HomeDashboardPipeline {
 
     /**
      * 生成展示名：仅去掉文件扩展名（.txt, .json 等），其余部分完整保留。
-     *
-     * 不剥离时间戳/final/版本号等后缀——同名不同后缀的文件是不同题库
-     * （导入允许并存），展示时必须能区分，见 change_log 2026-07-18。
      */
     fun cleanupDisplayName(fileName: String): String {
         val noExt = fileName
@@ -148,12 +97,23 @@ object HomeDashboardPipeline {
         return noExt.ifEmpty { fileName }
     }
 
-    /**
-     * 响应式列数推算。
-     * 360-599dp → 1列；600-839dp → 2列；≥840dp → 2列居中。
-     */
     fun resolveHomeColumnCount(widthDp: Float): Int = when {
         widthDp >= 600 -> 2
         else -> 1
+    }
+
+    enum class QuestionBankCardLayout {
+        Wide,
+        Compact,
+        Dense,
+    }
+
+    fun resolveQuestionBankCardLayout(
+        useGridLayout: Boolean,
+        parentWidthDp: Float,
+    ): QuestionBankCardLayout = when {
+        useGridLayout -> QuestionBankCardLayout.Dense
+        parentWidthDp < 380f -> QuestionBankCardLayout.Compact
+        else -> QuestionBankCardLayout.Wide
     }
 }

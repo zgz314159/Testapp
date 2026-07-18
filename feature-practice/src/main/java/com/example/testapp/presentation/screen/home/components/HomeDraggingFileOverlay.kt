@@ -11,6 +11,7 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.IntSize
+import androidx.compose.ui.unit.dp
 import com.example.testapp.domain.usecase.FileStatistics
 import com.example.testapp.presentation.screen.home.HomeDashboardPipeline
 import kotlin.math.roundToInt
@@ -33,6 +34,13 @@ fun HomeDraggingFileOverlay(
     val density = LocalDensity.current
     val widthDp = with(density) { dragItemSize.width.toDp() }
     val heightDp = with(density) { dragItemSize.height.toDp() }
+    val layout = remember(widthDp) {
+        when {
+            widthDp < 260.dp -> HomeDashboardPipeline.QuestionBankCardLayout.Dense
+            widthDp < 380.dp -> HomeDashboardPipeline.QuestionBankCardLayout.Compact
+            else -> HomeDashboardPipeline.QuestionBankCardLayout.Wide
+        }
+    }
 
     Box(
         modifier = modifier
@@ -53,6 +61,7 @@ fun HomeDraggingFileOverlay(
             wrongCount = statistics.wrongCount,
             favoriteCount = statistics.favoriteCount,
             statistics = statistics,
+            layout = layout,
             onCtaClick = {},
         )
     }

@@ -29,29 +29,26 @@ class HomeDashboardPipelineTest {
             fileStatistics = emptyMap(),
             practiceProgressCompleted = emptyMap(),
             storedFileName = "",
-            selectedFileName = "",
-            recentFileNames = emptyList(),
         )
         assertEquals("", state.continueFileName)
         assertEquals(false, state.showContinueCard)
         assertEquals(0, state.totalQuestions)
-        assertEquals(0, state.questionBankItems.size)
     }
 
     @Test
     fun `buildDashboard with single file`() {
-        val stats = mapOf("test.txt" to FileStatistics(
-            questionCount = 50,
-            wrongCount = 5,
-            favoriteCount = 3,
-        ))
+        val stats = mapOf(
+            "test.txt" to FileStatistics(
+                questionCount = 50,
+                wrongCount = 5,
+                favoriteCount = 3,
+            ),
+        )
         val state = pipeline.buildDashboard(
             fileNames = listOf("test.txt"),
             fileStatistics = stats,
             practiceProgressCompleted = mapOf("test.txt" to 10),
             storedFileName = "test.txt",
-            selectedFileName = "test.txt",
-            recentFileNames = emptyList(),
         )
         assertTrue(state.showContinueCard)
         assertEquals("test.txt", state.continueFileName)
@@ -72,8 +69,6 @@ class HomeDashboardPipelineTest {
             fileStatistics = stats,
             practiceProgressCompleted = emptyMap(),
             storedFileName = "",
-            selectedFileName = "a.txt",
-            recentFileNames = emptyList(),
         )
         assertEquals(30, state.totalQuestions)
         assertEquals(5, state.wrongCount)
@@ -126,6 +121,22 @@ class HomeDashboardPipelineTest {
     }
 
     @Test
+    fun `resolveQuestionBankCardLayout uses dense for grid`() {
+        assertEquals(
+            HomeDashboardPipeline.QuestionBankCardLayout.Dense,
+            pipeline.resolveQuestionBankCardLayout(useGridLayout = true, parentWidthDp = 900f),
+        )
+    }
+
+    @Test
+    fun `resolveQuestionBankCardLayout uses compact for narrow column`() {
+        assertEquals(
+            HomeDashboardPipeline.QuestionBankCardLayout.Compact,
+            pipeline.resolveQuestionBankCardLayout(useGridLayout = false, parentWidthDp = 360f),
+        )
+    }
+
+    @Test
     fun `progress percent is clamped to 0-100`() {
         val stats = mapOf("test.txt" to FileStatistics(questionCount = 0))
         val state = pipeline.buildDashboard(
@@ -133,8 +144,6 @@ class HomeDashboardPipelineTest {
             fileStatistics = stats,
             practiceProgressCompleted = emptyMap(),
             storedFileName = "test.txt",
-            selectedFileName = "test.txt",
-            recentFileNames = emptyList(),
         )
         assertEquals(0, state.continueProgressPercent)
     }

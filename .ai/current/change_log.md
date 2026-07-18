@@ -3,6 +3,28 @@
 > 记录各 Phase 的主要变更。
 > 格式：`YYYY-MM-DD | Phase-N | 描述`
 
+## 2026-07-18 | 修复：从设置/错题/收藏/记录/结果返回主页卡顿
+
+- 根因：NavHost 离开 `home` 会销毁 composition；返回时 Eager 列表又从 `firstPaint=8` 渐进重建。
+- `HomeViewModel.registerHomeCompositionAndIsReturn` 以存活的 Home NavEntry 明确区分冷启动/返回，不再依赖易受错题/收藏复用影响的列表签名。
+- 冷启动仍走已验证的 Eager 路径；返回第一帧直接走 Lazy 可见区恢复（日志 `home_list_return_lazy`），避免先 Eager 再切 Lazy。
+- `HomeViewModel.contentState` 的 `WhileSubscribed` 由 5s 提到 30s，减少短离返回时上游重跑。
+- Navigation Compose 从传递依赖 2.5.1 显式升级至稳定版 2.9.8，采用官方导航图比较性能优化。
+- 视觉与导航行为不变；Hero 位图缓存路径保持。
+
+## 2026-07-18 | 修复：冷启动主页题库卡上下滑动掉帧
+
+- `HomeViewModel`：filenames / statistics / progress 合并为单一 `contentState`（`Dispatchers.Default` + `distinctUntilChanged`），消除冷启动多路 `StateFlow` 突发重组。
+- Dashboard 仅聚合 header/Hero；移除未使用的 `questionBankItems` 热路径与 `selectedFileName` 依赖。
+- 列表改为预聚合 `HomeQuestionBankCardModel`；父级决定 `QuestionBankCardLayout`，去掉每卡 `BoxWithConstraints`；题库卡 Card/CTA elevation 与 `DisposableEffect` 保持原设计和诊断能力不变。
+- `OptimizedFileCard` 始终挂载 `pointerInput(Unit)`（门禁用 `rememberUpdatedState`），Lazy 槽复用到不同 fileName 时不再重启手势协程；`SwipeRevealActionBox` 跟手偏移改为同步 `mutableFloatState`，避免每 delta launch 协程。
+- Column/Grid 保留 `LazyLayoutCacheWindow` 4000dp（大题库回退路径）；真机日志证明冷启动每卡组合约 50–80ms，CacheWindow 空闲帧无法填满，首次下滑仍 `uniqueCardsDelta=17`、回顶 `cardEntriesDelta=21`。
+- 题库+文件夹 ≤48 时改走 `HomeFileListEagerColumn`（`verticalScroll` 一次组合，滚动零创建/销毁）；卡片/阴影/CTA/滑动删除视觉与手势不变；更大列表仍用 Lazy。
+- 对齐 Google defer-reads：禁止在 composition 订阅 `isScrollInProgress`（`HomeScrollProgressFlag` + snapshotFlow）。
+- 去掉可见 `scrollTo` 预热（会把列表滚走造成主页空白）；改为首帧组合 8 张、其余 `delay` 节奏补齐（静止也推进，滑动时暂停避免撞帧）；`contentState` 对统计/进度 `onStart` 空值，题库名一到即出列表。
+- 注：Debug 构建每张富卡片冷组合 ~40ms（无 R8/Baseline Profile/JIT 冷），25 张 ~1s；生产性能须以 Performance APK + Baseline Profile 判定。
+- `HomeJourney` 扩为 5 次到底 + 5 次回顶；单测覆盖 eager 阈值与既有 dashboard/card model。
+
 ## 2026-07-18 | 填空编辑：答案/标签/分值三框拆分
 
 - 「修改当前题目」填空答案行改为三个输入框：答案正文、属性标签、分值；编辑时不再出现「【】」，保存时由 `buildEditableFillAnswerPart` 拼回 `答案【标签】【N分】`。

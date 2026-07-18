@@ -11,6 +11,7 @@ espressoCore = "3.6.1"
 lifecycleRuntimeKtx = "2.9.1"
 activityCompose = "1.10.1"
 composeBom = "2026.06.00"
+navigationCompose = "2.9.8"
 kotlinxSerialization = "1.7.3"
 datastorePreferencesCoreAndroid = "1.1.7"
 room = "2.7.2"
@@ -44,6 +45,7 @@ androidx-ui-test-manifest        = { group = "androidx.compose.ui", name = "ui-t
 androidx-ui-test-junit4          = { group = "androidx.compose.ui", name = "ui-test-junit4" }
 androidx-material3               = { group = "androidx.compose.material3", name = "material3" }
 androidx-material                = { group = "androidx.compose.material", name = "material" }
+androidx-navigation-compose     = { group = "androidx.navigation", name = "navigation-compose", version.ref = "navigationCompose" }
 androidx-benchmark-macro-junit4 = { group = "androidx.benchmark", name = "benchmark-macro-junit4", version.ref = "benchmark" }
 androidx-profileinstaller       = { group = "androidx.profileinstaller", name = "profileinstaller", version.ref = "profileInstaller" }
 androidx-uiautomator            = { group = "androidx.test.uiautomator", name = "uiautomator", version.ref = "uiAutomator" }

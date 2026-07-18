@@ -28,6 +28,7 @@ fun HomeScreenLibrarySection(
     homeContentReady: Boolean,
     homeLibraryEmptyReason: HomeLibraryEmptyReason?,
     viewModel: HomeViewModel,
+    isHomeReturn: Boolean,
     selectedFileName: String,
     draggingFile: String?,
     dragPosition: Offset?,
@@ -99,6 +100,11 @@ fun HomeScreenLibrarySection(
                 modifier = Modifier.fillMaxWidth().weight(1f).padding(bottom = 8.dp)
             ) {
                 val columnCount = HomeDashboardPipeline.resolveHomeColumnCount(maxWidth.value)
+                val useGridLayout = columnCount > 1 || currentFolder != null
+                val cardLayout = HomeDashboardPipeline.resolveQuestionBankCardLayout(
+                    useGridLayout = useGridLayout,
+                    parentWidthDp = maxWidth.value,
+                )
                 val maxContentWidth = if (columnCount > 1) 960.dp else maxWidth
 
                 Box(
@@ -116,17 +122,19 @@ fun HomeScreenLibrarySection(
                         displayFileNames = if (currentFolder == null) displayFileNames else displayFileNames,
                         folders = folders,
                         enableItemGestures = homeContentReady,
+                        preferEagerCompose = !isHomeReturn,
                         selectedFileName = selectedFileName,
                         draggingFile = draggingFile,
                         dragPosition = dragPosition ?: Offset.Zero,
                         hoverFolder = hoverFolder,
                         hoverFile = hoverFile,
                         // 分组内与错题库/收藏库一致：两列网格；根目录仅宽屏才多列
-                        useGridLayout = columnCount > 1 || currentFolder != null,
+                        useGridLayout = useGridLayout,
                         // 2026 常见做法：分组文件夹排在散卡之前（Drive/Files 同款信息层级），
                         // 拖拽合并后新文件夹出现在列表顶部、即时可见。
                         // 根目录：题库卡在前（使用时间倒序），文件夹在后（建立时间升序）
                         showFilesFirst = true,
+                        cardLayout = cardLayout,
                         onFolderClick = onCurrentFolderChange,
                         onFolderLongPress = {
                             onRenameFolderTarget(it); onRenameFolderName(it)

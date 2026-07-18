@@ -3,11 +3,13 @@ package com.example.testapp.presentation.screen.home.components
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.unit.IntSize
 import com.example.testapp.presentation.screen.home.HomeViewModel
+import com.example.testapp.presentation.screen.home.model.HomeQuestionBankCardModelPipeline
 
 @Composable
 fun HomeFileListContainer(
@@ -17,6 +19,7 @@ fun HomeFileListContainer(
     displayFileNames: List<String>,
     folders: Map<String, String?>,
     enableItemGestures: Boolean,
+    preferEagerCompose: Boolean = true,
     selectedFileName: String,
     draggingFile: String?,
     dragPosition: Offset,
@@ -24,6 +27,7 @@ fun HomeFileListContainer(
     hoverFile: String?,
     useGridLayout: Boolean = false,
     showFilesFirst: Boolean = true,
+    cardLayout: com.example.testapp.presentation.screen.home.HomeDashboardPipeline.QuestionBankCardLayout,
     onFolderClick: (String) -> Unit,
     onFolderLongPress: (String) -> Unit,
     onDeleteFolderClick: (String) -> Unit,
@@ -41,17 +45,26 @@ fun HomeFileListContainer(
     showHeader: Boolean = true,
     modifier: Modifier = Modifier
 ) {
-    val fileStatistics by viewModel.fileStatistics.collectAsState()
-    val practiceProgress by viewModel.practiceProgress.collectAsState()
+    val homeContent by viewModel.contentState.collectAsState()
+    val fileCards = remember(
+        displayFileNames,
+        homeContent.fileStatistics,
+        homeContent.practiceProgress,
+    ) {
+        HomeQuestionBankCardModelPipeline.buildList(
+            fileNames = displayFileNames,
+            fileStatistics = homeContent.fileStatistics,
+            practiceProgress = homeContent.practiceProgress,
+        )
+    }
 
     HomeFileList(
         visibleFolders = visibleFolders,
         folderFileCounts = folderFileCounts,
-        displayFileNames = displayFileNames,
+        fileCards = fileCards,
         folders = folders,
-        fileStatistics = fileStatistics,
-        practiceProgress = practiceProgress,
         enableItemGestures = enableItemGestures,
+        preferEagerCompose = preferEagerCompose,
         selectedFileName = selectedFileName,
         draggingFile = draggingFile,
         dragPosition = dragPosition,
@@ -59,6 +72,7 @@ fun HomeFileListContainer(
         hoverFile = hoverFile,
         useGridLayout = useGridLayout,
         showFilesFirst = showFilesFirst,
+        cardLayout = cardLayout,
         onFolderClick = onFolderClick,
         onFolderLongPress = onFolderLongPress,
         onDeleteFolderClick = onDeleteFolderClick,
@@ -74,7 +88,6 @@ fun HomeFileListContainer(
         onFileCtaClick = onFileCtaClick,
         headerContent = headerContent,
         showHeader = showHeader,
-        viewModel = viewModel,
         modifier = modifier
     )
 }

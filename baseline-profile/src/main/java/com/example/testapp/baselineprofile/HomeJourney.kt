@@ -9,6 +9,8 @@ internal const val TARGET_PACKAGE = "com.example.testapp"
 internal object HomeJourney {
     private const val HomeCardMarker = "home_file_card:"
     private const val HomeLoadTimeoutMs = 5_000L
+    private const val FullListSwipeCount = 5
+    private const val SwipeSteps = 28
 
     fun startHomeAndWait(scope: MacrobenchmarkScope) = with(scope) {
         pressHome()
@@ -24,9 +26,13 @@ internal object HomeJourney {
         val upStart = (device.displayHeight * 0.24f).toInt()
         val upEnd = (device.displayHeight * 0.78f).toInt()
 
-        device.swipe(centerX, downStart, centerX, downEnd, 28)
-        device.waitForIdle()
-        device.swipe(centerX, upStart, centerX, upEnd, 28)
-        device.waitForIdle()
+        repeat(FullListSwipeCount) {
+            device.swipe(centerX, downStart, centerX, downEnd, SwipeSteps)
+            device.waitForIdle()
+        }
+        repeat(FullListSwipeCount) {
+            device.swipe(centerX, upStart, centerX, upEnd, SwipeSteps)
+            device.waitForIdle()
+        }
     }
 }
