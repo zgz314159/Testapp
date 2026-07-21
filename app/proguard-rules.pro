@@ -50,10 +50,11 @@
 -dontwarn org.apache.xmlbeans.**
 -dontwarn org.openxmlformats.**
 
-# Keep Apache POI core packages and Apache Commons dependencies used by POI
--keep class org.apache.poi.** { *; }
+# Keep Apache POI core packages and Apache Commons dependencies used by POI.
+# XSLF(PowerPoint) 与 sl.draw 渲染链引用 Android 缺失的 java.awt/Batik，项目从不使用；
+# 将其排除出 keep，让 R8 剔除，消除 "SVGUserAgent does not type check" 告警并减小 APK。
+-keep class !org.apache.poi.xslf.**,!org.apache.poi.sl.draw.**,org.apache.poi.** { *; }
 -dontwarn org.apache.poi.**
--dontwarn org.apache.poi.xslf.draw.**
 -keep class org.apache.commons.** { *; }
 -dontwarn org.apache.commons.**
 

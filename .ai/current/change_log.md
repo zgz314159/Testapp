@@ -3,6 +3,12 @@
 > 记录各 Phase 的主要变更。
 > 格式：`YYYY-MM-DD | Phase-N | 描述`
 
+## 2026-07-21 | Release 构建消除 POI SVGUserAgent R8 告警
+
+- 现象：`:app:lintVitalRelease` / `assembleRelease` 输出 `SVGUserAgent.getViewbox() does not type check`（R8 警告）。
+- 根因：`poi-ooxml` 含 XSLF/sl.draw 桌面渲染链，引用 Android 缺失的 `java.awt.geom.Rectangle2D`；`-dontwarn` 无法压制该类 type-check 警告（Google 判定为 intended）。
+- 修复：`app/build.gradle.kts` 注册 Artifact Transform，在喂给 R8 前从 `poi-ooxml` jar 剔除 `org/apache/poi/xslf/**`、`org/apache/poi/sl/draw/**` 及对应 ServiceLoader 声明；ProGuard keep 同步排除这两包。项目仅用 ss/xssf/xwpf，不影响导入导出。
+
 ## 2026-07-21 | 答题页长按删除 AI 解析无效修复
 
 - 现象：答题界面长按 DeepSeek/Spark/百度解析区弹删除框，确认后解析未被删除（或稍后自动"复活"）。

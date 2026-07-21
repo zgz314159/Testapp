@@ -1,5 +1,8 @@
 // app/build.gradle.kts
 import java.util.Properties
+import java.util.zip.ZipEntry
+import java.util.zip.ZipInputStream
+import java.util.zip.ZipOutputStream
 
 val localProperties = Properties().apply {
     val file = rootProject.file("local.properties")
@@ -14,6 +17,64 @@ val signingProperties = Properties().apply {
         file.inputStream().use(::load)
     }
 }
+
+// ---- 剔除 POI 桌面端渲染类（xslf/sl.draw 依赖 java.awt/Batik，Android 缺失）----
+// R8 对 SVGUserAgent.getViewbox() 的 "does not type check" 告警无法用 -dontwarn 压制
+// （Google 官方判定 intended behavior），唯一干净做法是不把这些类喂给 R8。
+abstract class StripPoiDesktopClasses : TransformAction<TransformParameters.None> {
+    @get:PathSensitive(PathSensitivity.NAME_ONLY)
+    @get:InputArtifact
+    abstract val inputArtifact: Provider<FileSystemLocation>
+
+    override fun transform(outputs: TransformOutputs) {
+        val input = inputArtifact.get().asFile
+        // 只处理 poi-ooxml 主 jar（poi-ooxml-full 是 schemas，不含这些类）
+        if (!input.name.startsWith("poi-ooxml-5")) {
+            outputs.file(input)
+            return
+        }
+        val output = outputs.file("${input.nameWithoutExtension}-stripped.jar")
+        ZipInputStream(input.inputStream().buffered()).use { zin ->
+            ZipOutputStream(output.outputStream().buffered()).use { zout ->
+                while (true) {
+                    val entry = zin.nextEntry ?: break
+                    val name = entry.name
+                    val drop = name.startsWith("org/apache/poi/xslf/") ||
+                        name.startsWith("org/apache/poi/sl/draw/") ||
+                        // 对应的 ServiceLoader 声明也要删，否则 R8 报 missing service class
+                        name.startsWith("META-INF/services/org.apache.poi.sl.")
+                    if (!drop) {
+                        zout.putNextEntry(ZipEntry(name))
+                        zin.copyTo(zout)
+                        zout.closeEntry()
+                    }
+                }
+            }
+        }
+    }
+}
+
+val poiDesktopStripped: Attribute<Boolean> =
+    Attribute.of("poiDesktopStripped", Boolean::class.javaObjectType)
+val artifactTypeAttr: Attribute<String> = Attribute.of("artifactType", String::class.java)
+
+dependencies {
+    attributesSchema { attribute(poiDesktopStripped) }
+    artifactTypes.getByName("jar") {
+        attributes.attribute(poiDesktopStripped, false)
+    }
+    registerTransform(StripPoiDesktopClasses::class) {
+        from.attribute(poiDesktopStripped, false).attribute(artifactTypeAttr, "jar")
+        to.attribute(poiDesktopStripped, true).attribute(artifactTypeAttr, "jar")
+    }
+}
+
+configurations.configureEach {
+    if (isCanBeResolved && name.endsWith("RuntimeClasspath")) {
+        attributes.attribute(poiDesktopStripped, true)
+    }
+}
+// -------------------------------------------------------------------------------
 
 fun apiKey(name: String): String =
     localProperties.getProperty(name)
