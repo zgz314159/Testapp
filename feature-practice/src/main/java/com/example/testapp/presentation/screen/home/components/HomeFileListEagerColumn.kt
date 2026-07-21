@@ -12,6 +12,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
@@ -97,17 +98,25 @@ internal fun HomeFileListEagerColumn(
     }
     val fileNamesKey = remember(fileCards) { fileCards.map { it.fileName } }
     val folderNamesKey = remember(visibleFolders) { visibleFolders.toList() }
+    // 渐进补齐只服务冷启动首帧。首次补齐完成后列表再变化（拖拽合并/入文件夹）
+    // 必须全量组合：否则内容塌缩到一屏高，ScrollState 被钳制到 0，页面跳回顶端。
+    val initialFillDone = remember { mutableStateOf(false) }
     var composedFileCount by remember(fileNamesKey) {
         mutableIntStateOf(
-            fileNamesKey.size.coerceAtMost(HomeQuestionBankCachePolicy.InitialPaintCount),
+            if (initialFillDone.value) {
+                fileNamesKey.size
+            } else {
+                fileNamesKey.size.coerceAtMost(HomeQuestionBankCachePolicy.InitialPaintCount)
+            },
         )
     }
     var composedFolderCount by remember(folderNamesKey, fileNamesKey) {
         mutableIntStateOf(
-            if (fileNamesKey.size <= HomeQuestionBankCachePolicy.InitialPaintCount) {
-                folderNamesKey.size.coerceAtMost(2)
-            } else {
-                0
+            when {
+                initialFillDone.value -> folderNamesKey.size
+                fileNamesKey.size <= HomeQuestionBankCachePolicy.InitialPaintCount ->
+                    folderNamesKey.size.coerceAtMost(2)
+                else -> 0
             },
         )
     }
@@ -131,6 +140,7 @@ internal fun HomeFileListEagerColumn(
             composedFolderCount =
                 (composedFolderCount + 1).coerceAtMost(folderNamesKey.size)
         }
+        initialFillDone.value = true
         HomePerformanceLog.event(
             "eager_compose_done files=$composedFileCount folders=$composedFolderCount",
         )

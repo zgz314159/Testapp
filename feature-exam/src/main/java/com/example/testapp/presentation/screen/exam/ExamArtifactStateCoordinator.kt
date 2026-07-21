@@ -28,8 +28,13 @@ internal class ExamArtifactStateCoordinator(
     private val appendNoteMutex = Mutex()
 
     fun updateAnalysis(index: Int, text: String) {
+        // 空串是显式删除：state 直接清空并落库，不能走 preferStructured（旧文更"富"会吞掉删除）
         sessionState.value.questions.getOrNull(index)?.id?.let { id ->
             scope.launch {
+                if (text.isBlank()) {
+                    facade.analysis.saveDeepSeek(id, "")
+                    return@launch
+                }
                 val existing = facade.analysis.getDeepSeek(id).getOrNull()
                 val richer = com.example.testapp.presentation.screen.shared.SessionDeepSeekAnalysisTextPipeline
                     .preferStructured(existing, text)
@@ -40,10 +45,14 @@ internal class ExamArtifactStateCoordinator(
         }
         sessionState.update { s ->
             val current = s.questionsWithState.getOrNull(index)?.analysis
-            val richer = com.example.testapp.presentation.screen.shared.SessionDeepSeekAnalysisTextPipeline
-                .preferStructured(current, text)
-            if (current == richer) s
-            else s.updateAt(index) { it.copy(analysis = richer) }
+            val next = if (text.isBlank()) {
+                ""
+            } else {
+                com.example.testapp.presentation.screen.shared.SessionDeepSeekAnalysisTextPipeline
+                    .preferStructured(current, text)
+            }
+            if (current == next) s
+            else s.updateAt(index) { it.copy(analysis = next) }
         }
         saveProgress()
     }

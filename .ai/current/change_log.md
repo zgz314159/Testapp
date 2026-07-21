@@ -3,6 +3,21 @@
 > 记录各 Phase 的主要变更。
 > 格式：`YYYY-MM-DD | Phase-N | 描述`
 
+## 2026-07-21 | 答题页长按删除 AI 解析无效修复
+
+- 现象：答题界面长按 DeepSeek/Spark/百度解析区弹删除框，确认后解析未被删除（或稍后自动"复活"）。
+- 根因（三处叠加）：
+  1. 练习 `PracticeStateUpdater.updateAnalysis` 对空串走 `resolvePreferStructured` merge，旧文永远"更富"→ 早退，会话态从未清空；
+  2. 练习 `PracticeSessionEngine.updateAnalysis` 持久化同样走 preferStructured 且 `richer.isNotBlank()` 门禁，删除永不落库；Spark/百度更新根本不落库；
+  3. 由于库里旧值仍在，`PracticeAISyncEffects.syncStored()`（切题/ON_RESUME/showResult 触发）把旧解析重新写回会话 → 删除被"复活"。
+- 修复：空串视为显式删除——练习/考试两侧 state 直接清空（跳过 preferStructured），并同步 `saveDeepSeek/saveSpark/saveBaidu(questionId, "")` 落库；正常非空写入路径与既有 richer merge 行为不变。AI 同步管道仅在存量非空时回写，不受影响。
+
+## 2026-07-21 | Home 拖拽合并后页面跳顶修复
+
+- 现象：长按题库卡片拖到另一卡片合并新建文件夹、或拖入文件夹后，主页滚动位置丢失、跳回最顶端。
+- 根因：`HomeFileListEagerColumn` 的渐进补齐计数 `composedFileCount/composedFolderCount` 以 `remember(fileNamesKey)` 为键，列表任何变化（合并/移动导致文件与文件夹集合变化）都会重置为首帧 4 张，内容高度塌缩到约一屏，`ScrollState.value` 被钳制到 0；随后补齐完成但滚动停留在顶端。
+- 修复：新增 `initialFillDone` 标记——渐进补齐只在冷启动首轮生效；首轮完成后列表再变化直接全量组合，内容高度不塌缩，滚动位置保持。
+
 ## 2026-07-21 | 题库导入 OOM 根治 + 提速（DOM → SAX 流式）
 
 - 根因：`ExcelQuestionParser` 用 `WorkbookFactory.create`（XSSF usermodel/DOM）全量构建工作簿对象树，即便稀疏文件桌面 66MB 可开，手机 app 基线已占 ~130MB，XmlBeans/XSSFCell 对象图叠加突破 368MB 上限 → 每次导入必 OOM。

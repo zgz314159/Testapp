@@ -417,7 +417,9 @@ fun PracticeScreenContent(
         { sendCommand(SessionCommand.ClearExplanation(currentIndex, activeQuestion)); showDeleteExplanationDialog = false },
         showDeleteNoteDialog, { showDeleteNoteDialog = false },
         { sendCommand(SessionCommand.SaveNote(activeQuestion.id, currentIndex, "")); showDeleteNoteDialog = false },
-        showDeleteDialog, deleteTarget, { showDeleteDialog = false; deleteTarget = "" },
+        // AppConfirmDialog 确认时先回调 onDismiss 再 onConfirm：
+        // dismiss 不能清 deleteTarget，否则 confirm 里 when(deleteTarget) 读到空串、删除失效
+        showDeleteDialog, deleteTarget, { showDeleteDialog = false },
         {
             when (deleteTarget) {
                 "deepseek" -> { externalState.onClearDeepSeek(); sendCommand(SessionCommand.UpdateAnalysis(currentIndex, "")) }

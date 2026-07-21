@@ -54,12 +54,17 @@ class PracticeStateUpdater(
 
     fun updateAnalysis(index: Int, text: String) {
         val current = sessionState.value.questionsWithState.getOrNull(index)?.analysis
-        val richer = com.example.testapp.data.network.deepseek.DeepSeekAskLoadSeedPipeline
-            .resolvePreferStructured(current, text)
-        if (current == richer) {
+        // 空串是显式删除，不能走 preferStructured（否则旧文永远"更富"，删除被吞）
+        val next = if (text.isBlank()) {
+            ""
+        } else {
+            com.example.testapp.data.network.deepseek.DeepSeekAskLoadSeedPipeline
+                .resolvePreferStructured(current, text)
+        }
+        if (current == next) {
             return
         }
-        sessionState.value = sessionState.value.updateAt(index) { it.copy(analysis = richer) }
+        sessionState.value = sessionState.value.updateAt(index) { it.copy(analysis = next) }
         saveProgress()
     }
 

@@ -185,7 +185,8 @@ fun ExamScreenOverlays(
             ds.showDeleteNoteDialog = false
         },
         showDeleteDialog = ds.showDeleteDialog,
-        onDismissDelete = { ds.showDeleteDialog = false; ds.deleteTarget = "" },
+        // AppConfirmDialog 确认时先 onDismiss 再 onConfirm：dismiss 不能清 deleteTarget
+        onDismissDelete = { ds.showDeleteDialog = false },
         onConfirmDelete = {
             when (ds.deleteTarget) {
                 "deepseek" -> dispatchCommand(SessionCommand.UpdateAnalysis(currentIndex, ""))

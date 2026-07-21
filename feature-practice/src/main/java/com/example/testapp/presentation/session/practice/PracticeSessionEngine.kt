@@ -327,6 +327,11 @@ class PracticeSessionEngine(
             return
         }
         scope.launch {
+            if (text.isBlank()) {
+                // 长按删除：必须落库清空，否则 syncStored 会把旧解析重新写回会话
+                deps.facade.analysis.saveDeepSeek(questionId, "")
+                return@launch
+            }
             val existing = deps.facade.analysis.getDeepSeek(questionId).getOrNull()
             val richer = com.example.testapp.data.network.deepseek.DeepSeekAskLoadSeedPipeline
                 .resolvePreferStructured(existing, text)
@@ -341,6 +346,11 @@ class PracticeSessionEngine(
         text: String,
     ) {
         stateUpdater.updateSparkAnalysis(index, text)
+        if (text.isBlank()) {
+            _sessionState.value.questionsWithState.getOrNull(index)?.question?.id?.let { questionId ->
+                scope.launch { deps.facade.analysis.saveSpark(questionId, "") }
+            }
+        }
     }
 
     override fun updateBaiduAnalysis(
@@ -348,6 +358,11 @@ class PracticeSessionEngine(
         text: String,
     ) {
         stateUpdater.updateBaiduAnalysis(index, text)
+        if (text.isBlank()) {
+            _sessionState.value.questionsWithState.getOrNull(index)?.question?.id?.let { questionId ->
+                scope.launch { deps.facade.analysis.saveBaidu(questionId, "") }
+            }
+        }
     }
 
     override fun addHistoryRecord(
