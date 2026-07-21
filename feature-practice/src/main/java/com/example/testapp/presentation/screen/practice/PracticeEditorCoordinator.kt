@@ -2,19 +2,12 @@ package com.example.testapp.presentation.screen.practice
 
 
 
-import android.util.Log
 import com.example.testapp.core.common.LocalizedResult
 import com.example.testapp.core.util.extractSourceQuestionId
-import com.example.testapp.core.util.splitFillAnswerParts
-import com.example.testapp.domain.QuestionTypes
 import com.example.testapp.domain.model.PracticeSessionState
 import com.example.testapp.domain.model.Question
-import com.example.testapp.domain.model.QuestionWithState
 import com.example.testapp.domain.usecase.GetQuestionsUseCase
 import com.example.testapp.domain.usecase.SaveQuestionsUseCase
-import com.example.testapp.uicommon.util.buildEditableFillAnswer
-import com.example.testapp.uicommon.util.countEditableFillBlanks
-import com.example.testapp.uicommon.util.syncEditableFillAnswers
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -63,7 +56,7 @@ class PracticeEditorCoordinator(
 
 
 
-    private fun logTrace(message: String) { runCatching { Log.d("EditQuestionTracePractice", message) } }
+    private fun logTrace(message: String) { runCatching { Unit } }
 
 
 
@@ -73,21 +66,7 @@ class PracticeEditorCoordinator(
 
     fun addOption(index: Int) {
 
-        val cs = _sessionState.value; if (index !in cs.questionsWithState.indices) return
-
-        val updated = cs.questionsWithState.mapIndexed { idx, qws ->
-
-            if (idx == index) {
-
-                val opts = qws.question.options?.toMutableList() ?: mutableListOf(); opts.add("")
-
-                qws.copy(question = qws.question.copy(options = opts))
-
-            } else qws
-
-        }
-
-        _sessionState.value = cs.copy(questionsWithState = updated)
+        _sessionState.value = PracticeEditorStatePipeline.addOption(_sessionState.value, index)
 
     }
 
@@ -95,23 +74,7 @@ class PracticeEditorCoordinator(
 
     fun removeOption(index: Int) {
 
-        val cs = _sessionState.value; if (index !in cs.questionsWithState.indices) return
-
-        val updated = cs.questionsWithState.mapIndexed { idx, qws ->
-
-            if (idx == index) {
-
-                val opts = qws.question.options?.toMutableList() ?: mutableListOf()
-
-                if (opts.size > 1) opts.removeAt(opts.lastIndex)
-
-                qws.copy(question = qws.question.copy(options = opts))
-
-            } else qws
-
-        }
-
-        _sessionState.value = cs.copy(questionsWithState = updated)
+        _sessionState.value = PracticeEditorStatePipeline.removeOption(_sessionState.value, index)
 
     }
 
@@ -119,23 +82,8 @@ class PracticeEditorCoordinator(
 
     fun updateOption(questionIndex: Int, optionIndex: Int, newText: String) {
 
-        val cs = _sessionState.value; if (questionIndex !in cs.questionsWithState.indices) return
-
-        val updated = cs.questionsWithState.mapIndexed { idx, qws ->
-
-            if (idx == questionIndex) {
-
-                val opts = qws.question.options?.toMutableList() ?: mutableListOf()
-
-                if (optionIndex in opts.indices) opts[optionIndex] = newText
-
-                qws.copy(question = qws.question.copy(options = opts))
-
-            } else qws
-
-        }
-
-        _sessionState.value = cs.copy(questionsWithState = updated)
+        _sessionState.value =
+            PracticeEditorStatePipeline.updateOption(_sessionState.value, questionIndex, optionIndex, newText)
 
     }
 
@@ -143,15 +91,7 @@ class PracticeEditorCoordinator(
 
     fun updateContent(questionIndex: Int, newContent: String) {
 
-        val cs = _sessionState.value; if (questionIndex !in cs.questionsWithState.indices) return
-
-        val updated = cs.questionsWithState.mapIndexed { idx, qws ->
-
-            if (idx == questionIndex) qws.copy(question = qws.question.copy(content = newContent)) else qws
-
-        }
-
-        _sessionState.value = cs.copy(questionsWithState = updated)
+        _sessionState.value = PracticeEditorStatePipeline.updateContent(_sessionState.value, questionIndex, newContent)
 
     }
 
@@ -159,15 +99,7 @@ class PracticeEditorCoordinator(
 
     fun updateAnswer(questionIndex: Int, newAnswer: String) {
 
-        val cs = _sessionState.value; if (questionIndex !in cs.questionsWithState.indices) return
-
-        val updated = cs.questionsWithState.mapIndexed { idx, qws ->
-
-            if (idx == questionIndex) qws.copy(question = qws.question.copy(answer = newAnswer)) else qws
-
-        }
-
-        _sessionState.value = cs.copy(questionsWithState = updated)
+        _sessionState.value = PracticeEditorStatePipeline.updateAnswer(_sessionState.value, questionIndex, newAnswer)
 
     }
 
@@ -175,15 +107,8 @@ class PracticeEditorCoordinator(
 
     fun updateExplanation(questionIndex: Int, newExplanation: String) {
 
-        val cs = _sessionState.value; if (questionIndex !in cs.questionsWithState.indices) return
-
-        val updated = cs.questionsWithState.mapIndexed { idx, qws ->
-
-            if (idx == questionIndex) qws.copy(question = qws.question.copy(explanation = newExplanation)) else qws
-
-        }
-
-        _sessionState.value = cs.copy(questionsWithState = updated)
+        _sessionState.value =
+            PracticeEditorStatePipeline.updateExplanation(_sessionState.value, questionIndex, newExplanation)
 
     }
 
@@ -253,13 +178,9 @@ class PracticeEditorCoordinator(
 
         val cs = _sessionState.value; if (index !in cs.questionsWithState.indices) return
 
-        val updated = cs.questionsWithState.mapIndexed { idx, qws ->
-
-            if (idx == index) qws.copy(question = qws.question.copy(content = newContent)) else qws
-
-        }
-
-        _sessionState.value = cs.copy(questionsWithState = updated)
+        val updatedState = PracticeEditorStatePipeline.updateContent(cs, index, newContent)
+        val updated = updatedState.questionsWithState
+        _sessionState.value = updatedState
 
         val updatedQuestion = updated[index].question
 
@@ -301,13 +222,12 @@ class PracticeEditorCoordinator(
 
         val cs = _sessionState.value; if (index !in cs.questionsWithState.indices) return
 
-        val updated = cs.questionsWithState.mapIndexed { idx, qws ->
-
-            if (idx == index) qws.copy(question = qws.question.copy(content = newContent, options = newOptions, answer = newAnswer, explanation = newExplanation)) else qws
-
-        }
-
-        _sessionState.value = cs.copy(questionsWithState = updated)
+        val updatedState =
+            PracticeEditorStatePipeline.updateAllFields(
+                cs, index, newContent, newOptions, newAnswer, newExplanation
+            )
+        val updated = updatedState.questionsWithState
+        _sessionState.value = updatedState
 
         val updatedQuestion = updated[index].question
 
@@ -361,9 +281,10 @@ class PracticeEditorCoordinator(
 
         val cs = _sessionState.value; if (index !in cs.questionsWithState.indices) return
 
-        val updatedList = cs.questionsWithState.toMutableList(); val removed = updatedList.removeAt(index)
-
-        _sessionState.value = cs.copy(questionsWithState = updatedList)
+        val deletion = PracticeEditorStatePipeline.delete(cs, index)
+        val removed = deletion.removed ?: return
+        val updatedList = deletion.state.questionsWithState
+        _sessionState.value = deletion.state
 
         scope.launch {
 
@@ -469,15 +390,9 @@ class PracticeEditorCoordinator(
 
                     if (qws.question.id == displayedQuestion.id) {
 
-                        val syncedText = if (QuestionTypes.isFill(updatedSourceQuestion.type)) {
-
-                            val bc = countEditableFillBlanks(updatedDisplayedQuestion.content).coerceAtLeast(1)
-
-                            buildEditableFillAnswer(syncEditableFillAnswers(splitFillAnswerParts(qws.textAnswer), bc))
-
-                        } else qws.textAnswer
-
-                        normalizeEditedQuestionState(qws, updatedDisplayedQuestion, updatedSourceQuestion, syncedText)
+                        PracticeEditorStatePipeline.syncEditedQuestion(
+                            qws, updatedDisplayedQuestion, updatedSourceQuestion
+                        )
 
                     } else qws
 
@@ -521,48 +436,6 @@ class PracticeEditorCoordinator(
 
 
 
-    // ---- Internal helpers ----
-
-
-
-    private fun normalizeEditedQuestionState(
-
-        qws: QuestionWithState, updatedDisplayed: Question, updatedSource: Question, syncedText: String
-
-    ): QuestionWithState {
-
-        if (QuestionTypes.isFill(updatedSource.type)) {
-
-            val has = syncedText.isNotBlank()
-
-            return qws.copy(
-
-                question = updatedDisplayed, textAnswer = syncedText,
-
-                selectedOptions = if (has) listOf(-1) else emptyList(),
-
-                showResult = qws.showResult && has, sessionAnswerTime = if (has) qws.sessionAnswerTime else 0L
-
-            )
-
-        }
-
-        val norm = qws.selectedOptions.distinct().filter { it in updatedDisplayed.options.indices }
-
-        val has = norm.isNotEmpty()
-
-        return qws.copy(
-
-            question = updatedDisplayed, selectedOptions = norm,
-
-            showResult = qws.showResult && has, sessionAnswerTime = if (has) qws.sessionAnswerTime else 0L
-
-        )
-
-    }
-
-
-
     fun indexOfQuestionBySourceId(questionId: Int): Int {
 
         val sid = extractSourceQuestionId(questionId)
@@ -572,7 +445,6 @@ class PracticeEditorCoordinator(
     }
 
 }
-
 
 
 

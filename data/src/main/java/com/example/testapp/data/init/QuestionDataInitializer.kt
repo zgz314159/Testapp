@@ -2,7 +2,6 @@ package com.example.testapp.data.init
 
 import android.content.Context
 import android.content.res.AssetManager
-import android.util.Log
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.io.File
@@ -47,7 +46,6 @@ class QuestionDataInitializer(
                     try {
                         importFromFilesWithOrigin(listOf(file to originName))
                     } catch (t: Throwable) {
-                        Log.e(TAG, "Failed to import built-in quiz from assets: $originName", t)
                     }
                 }
             }

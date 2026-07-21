@@ -85,18 +85,26 @@ abstract class DataBindModule {
     ): com.example.testapp.domain.repository.AiEntitlementRepository
 }
 
+/**
+ * Disk-backed Room binding used by the application.
+ * via @TestInstallIn — production behavior unchanged.
+ */
 @Module
 @InstallIn(SingletonComponent::class)
-object DataProvidesModule {
+object DatabaseModule {
     @Provides
     @Singleton
     fun provideDatabase(@ApplicationContext context: Context): AppDatabase {
         return Room.databaseBuilder(context, AppDatabase::class.java, "app_db")
             .addMigrations(AppDatabaseMigrations.migration26To27)
-            .fallbackToDestructiveMigration()
+            .fallbackToDestructiveMigration(dropAllTables = true)
             .build()
     }
+}
 
+@Module
+@InstallIn(SingletonComponent::class)
+object DataProvidesModule {
     @Provides
     @Singleton
     fun provideQuestionDataInitializer(

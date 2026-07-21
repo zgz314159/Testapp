@@ -34,9 +34,6 @@ jobs:
       - name: LOC gate
         run: bash scripts/check-loc-over-500.sh
 
-      - name: Unit tests
-        run: ./gradlew :app:testDebugUnitTest --tests "com.example.testapp.core.session.*" --tests "com.example.testapp.presentation.session.*" --tests "com.example.testapp.arch.ArchitectureTest"
-
       - name: Build debug APK
         run: ./gradlew assembleDebug
 

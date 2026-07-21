@@ -139,6 +139,7 @@
     <string name="import_failed">题库导入失败，请检查文件格式是否正确</string>
     <string name="import_canceled">已取消导入</string>
     <string name="importing_quiz">正在导入题库...</string>
+    <string name="exporting_quiz">正在导出题库...</string>
     <string name="progress_percent">进度: %d%%</string>
     <string name="import_quiz_local_perm_title">需要文件访问权限</string>
     <string name="import_quiz_local_perm_message">系统文件选择器在本机存储根目录显示异常。授予"所有文件访问"权限后，可在应用内直接浏览并导入题库文件。</string>

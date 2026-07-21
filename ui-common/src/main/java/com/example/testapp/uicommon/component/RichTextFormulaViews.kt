@@ -223,11 +223,14 @@ internal fun RichTextSvgFormula(
             fontSizePx = fontSizePx
         )
     }
-    AsyncImage(
-        model = ImageRequest.Builder(context)
+    val imageRequest = remember(context, svgData) {
+        ImageRequest.Builder(context)
             .data(svgData)
             .decoderFactory(SvgDecoder.Factory())
-            .build(),
+            .build()
+    }
+    AsyncImage(
+        model = imageRequest,
         contentDescription = null,
         modifier = modifier,
         contentScale = ContentScale.Fit

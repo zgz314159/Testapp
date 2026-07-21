@@ -5,6 +5,7 @@ import com.example.testapp.domain.repository.QuestionAnalysisRepository
 import com.example.testapp.domain.repository.QuestionAskRepository
 import com.example.testapp.domain.repository.QuestionNoteRepository
 import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.firstOrNull
 import javax.inject.Inject
@@ -24,9 +25,13 @@ class SupplementaryDataBatchLoader @Inject constructor() {
         askRepo: QuestionAskRepository,
         noteRepo: QuestionNoteRepository
     ): Map<Int, SupplementaryData> = coroutineScope {
-        questionIds.chunked(BATCH_SIZE).flatMap { chunk ->
-            chunk.map { id -> async { loadOne(id, analysisRepo, askRepo, noteRepo) } }
-        }.mapIndexed { i, deferred -> questionIds[i] to deferred.await() }.toMap()
+        buildMap {
+            questionIds.chunked(BATCH_SIZE).forEach { chunk ->
+                chunk.map { id ->
+                    async { id to loadOne(id, analysisRepo, askRepo, noteRepo) }
+                }.awaitAll().forEach { (id, data) -> put(id, data) }
+            }
+        }
     }
 
     private suspend fun loadOne(

@@ -16,12 +16,11 @@ class PracticeAutoAdvanceController {
     /** Practice 页不可见（overlay 路由 / ON_PAUSE）时禁止调度与执行跳题。 */
     fun setScreenActive(active: Boolean) {
         _screenActive = active
-        PracticeJumpDebugLog.screenActive(active, "setScreenActive")
         if (!active) cancel("setScreenActive(false)")
     }
 
     fun cancel(source: String = "cancel") {
-        if (job != null) PracticeJumpDebugLog.autoAdvanceCancel(source)
+        if (job != null) Unit
         job?.cancel()
         job = null
     }
@@ -62,30 +61,24 @@ class PracticeAutoAdvanceController {
     ) {
         job?.cancel()
         if (!_active || !_screenActive) {
-            PracticeJumpDebugLog.autoAdvanceSkip("active=$_active screenActive=$_screenActive")
             return
         }
-        PracticeJumpDebugLog.autoAdvanceSchedule(answeredIndex, delaySec, advanceOnly)
         job = scope.launch {
             if (!_active || !_screenActive) {
-                PracticeJumpDebugLog.autoAdvanceBlocked("launch")
                 return@launch
             }
             if (revealResultFirst) showResult(answeredIndex, true)
             if (delaySec > 0) pausableDelay(delaySec * 1000L)
             ensureActive()
             if (!_active || !_screenActive) {
-                PracticeJumpDebugLog.autoAdvanceBlocked("afterDelay")
                 return@launch
             }
             if (!revealResultFirst && !advanceOnly) showResult(answeredIndex, true)
             if (delaySec <= 0) kotlinx.coroutines.yield()
             ensureActive()
             if (!_active || !_screenActive) {
-                PracticeJumpDebugLog.autoAdvanceBlocked("beforeFire")
                 return@launch
             }
-            PracticeJumpDebugLog.autoAdvanceFired(answeredIndex)
             onAdvance()
         }
     }

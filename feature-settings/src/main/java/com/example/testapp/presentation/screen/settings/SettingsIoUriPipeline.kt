@@ -90,31 +90,26 @@ class SettingsIoUriPipeline @Inject constructor() {
         uri: Uri,
         sheets: Map<String, List<List<String>>>,
         highlightedRowsBySheet: Map<String, Set<Int>> = emptyMap(),
-    ) {
-        val workbook = org.apache.poi.xssf.usermodel.XSSFWorkbook()
-        val editedRowStyle = workbook.createCellStyle().apply {
-            setFont(workbook.createFont().apply { color = org.apache.poi.ss.usermodel.Font.COLOR_RED.toShort() })
-        }
-
+    ) = withContext(Dispatchers.IO) {
+        // 导出不走 POI：XSSF 全量驻留堆内会 OOM，SXSSF 在 Android 上因缺 java.awt 必崩，
+        // 改用 XlsxStreamWriter 手写 OOXML 流式写出，恒定内存。
+        val sanitizedSheets = LinkedHashMap<String, List<List<String>>>()
+        val sanitizedHighlights = HashMap<String, Set<Int>>()
         for ((name, rows) in sheets) {
-            val sanitizedName = sanitizeSheetName(name)
-            val sheet = workbook.createSheet(sanitizedName)
-            val highlightedRows = highlightedRowsBySheet[sanitizedName].orEmpty()
-            for ((rowIndex, columns) in rows.withIndex()) {
-                val row = sheet.createRow(rowIndex)
-                for ((columnIndex, cellValue) in columns.withIndex()) {
-                    val cell = row.createCell(columnIndex)
-                    cell.setCellValue(toExcelCellValue(cellValue))
-                    if (rowIndex in highlightedRows) cell.cellStyle = editedRowStyle
-                }
+            var sanitizedName = sanitizeSheetName(name)
+            var suffix = 2
+            while (sanitizedSheets.containsKey(sanitizedName)) {
+                sanitizedName = sanitizeSheetName("${sanitizedName.take(28)}_$suffix")
+                suffix++
             }
+            sanitizedSheets[sanitizedName] = rows
+            val highlights = highlightedRowsBySheet[sanitizedName] ?: highlightedRowsBySheet[name]
+            if (highlights != null) sanitizedHighlights[sanitizedName] = highlights
         }
 
-        withContext(Dispatchers.IO) {
-            context.contentResolver.openOutputStream(uri)?.use { out -> workbook.write(out) }
-                ?: throw LocalizedException(IOConstants.CANNOT_WRITE_FILE)
-            workbook.close()
-        }
+        context.contentResolver.openOutputStream(uri)?.use { out ->
+            XlsxStreamWriter.write(out, sanitizedSheets, sanitizedHighlights)
+        } ?: throw LocalizedException(IOConstants.CANNOT_WRITE_FILE)
     }
 
     suspend fun importQuizFile(
@@ -198,18 +193,6 @@ class SettingsIoUriPipeline @Inject constructor() {
         return if (result.isBlank()) "Sheet" else result
     }
 
-    private fun toExcelCellValue(value: String): String {
-        val sanitized = value.replace("\u0000", "")
-        return if (sanitized.length > MAX_EXCEL_CELL_TEXT_LENGTH) {
-            sanitized.take(MAX_EXCEL_CELL_TEXT_LENGTH)
-        } else {
-            sanitized
-        }
-    }
-
-    private companion object {
-        const val MAX_EXCEL_CELL_TEXT_LENGTH = 32_767
-    }
 }
 
 data class QuizFileImportOutcome(

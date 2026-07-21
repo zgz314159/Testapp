@@ -3,8 +3,8 @@ package com.example.testapp.presentation.screen.home.components
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.CardElevation
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
@@ -38,10 +38,10 @@ internal fun HomeFileListFileRow(
     onDragCancel: (String) -> Unit,
     onReportCardBounds: (String, Rect) -> Unit,
     onFileCtaClick: ((String) -> Unit)?,
-    cardShape: RoundedCornerShape,
-    cardElev: CardElevation,
 ) {
     val fileName = card.fileName
+    val cardShape = remember { RoundedCornerShape(20.dp) }
+    val outerPadding = remember { PaddingValues(horizontal = 24.dp, vertical = 5.dp) }
     SwipeRevealActionBox(
         enabled = canKeepSwipeNodeStable(fileName),
         modifier = Modifier.fillMaxWidth().then(
@@ -68,10 +68,10 @@ internal fun HomeFileListFileRow(
             enableDragDrop = true,
             allowDragStart = { canHandleDrag(fileName, isScrolling()) },
             enableLongClickAction = false,
+            reportBounds = false,
             cardShapeOverride = cardShape,
             cardContainerColorOverride = Color.Transparent,
-            cardElevationOverride = cardElev,
-            cardOuterPaddingOverride = PaddingValues(horizontal = 24.dp, vertical = 5.dp),
+            cardOuterPaddingOverride = outerPadding,
             visualContent = {
                 HomeQuestionBankCard(
                     model = card,

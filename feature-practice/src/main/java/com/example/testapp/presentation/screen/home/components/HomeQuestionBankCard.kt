@@ -61,9 +61,11 @@ fun HomeQuestionBankCard(
         HomeDashboardPipeline.QuestionBankCardLayout.Dense -> HomeQuestionBankCardDense(
             displayName = model.displayName,
             progressPercent = model.progressPercent,
-            questionCount = model.questionCount,
-            wrongCount = model.wrongCount,
-            favoriteCount = model.favoriteCount,
+            progressPercentLabel = model.progressPercentLabel,
+            questionCountLabel = model.questionCountLabel,
+            wrongCountLabel = model.wrongCountLabel,
+            favoriteCountLabel = model.favoriteCountLabel,
+            ctaLabel = model.ctaLabel,
             icon = model.icon,
             iconBrush = iconBrush,
             onCtaClick = onCtaClick,
@@ -74,9 +76,11 @@ fun HomeQuestionBankCard(
         -> HomeQuestionBankCardWide(
             displayName = model.displayName,
             progressPercent = model.progressPercent,
-            questionCount = model.questionCount,
-            wrongCount = model.wrongCount,
-            favoriteCount = model.favoriteCount,
+            progressPercentLabel = model.progressPercentLabel,
+            questionCountLabel = model.questionCountLabel,
+            wrongCountLabel = model.wrongCountLabel,
+            favoriteCountLabel = model.favoriteCountLabel,
+            ctaLabel = model.ctaLabel,
             icon = model.icon,
             iconBrush = iconBrush,
             isCompact = layout == HomeDashboardPipeline.QuestionBankCardLayout.Compact,
@@ -117,6 +121,11 @@ fun HomeQuestionBankCard(
             icon = visual.icon,
             gradientStart = visual.gradientStart,
             gradientEnd = visual.gradientEnd,
+            progressPercentLabel = "$progressPercent%",
+            questionCountLabel = questionCount.toString(),
+            wrongCountLabel = wrongCount.toString(),
+            favoriteCountLabel = favoriteCount.toString(),
+            ctaLabel = if (progressPercent > 0) "继续学习" else "开始练习",
         ),
         layout = layout,
         onCtaClick = onCtaClick,
@@ -128,9 +137,11 @@ fun HomeQuestionBankCard(
 private fun HomeQuestionBankCardWide(
     displayName: String,
     progressPercent: Int,
-    questionCount: Int,
-    wrongCount: Int,
-    favoriteCount: Int,
+    progressPercentLabel: String,
+    questionCountLabel: String,
+    wrongCountLabel: String,
+    favoriteCountLabel: String,
+    ctaLabel: String,
     icon: ImageVector,
     iconBrush: Brush,
     isCompact: Boolean,
@@ -143,17 +154,22 @@ private fun HomeQuestionBankCardWide(
     val iconGlyph = if (isCompact) 22.dp else 26.dp
     val ctaWidth = if (isCompact) 68.dp else 78.dp
     val ctaFont = if (isCompact) 10.sp else 11.sp
+    val cardShape = remember { RoundedCornerShape(20.dp) }
+    val iconShape = remember { RoundedCornerShape(15.dp) }
+    val ctaShape = remember { RoundedCornerShape(18.dp) }
+    val cardColors = CardDefaults.cardColors(containerColor = Color.White)
+    val cardElevation = CardDefaults.cardElevation(
+        defaultElevation = HomeDesignTokens.questionCardElevation,
+        pressedElevation = HomeDesignTokens.elevationMedium,
+    )
 
     Card(
         modifier = modifier
             .fillMaxWidth()
             .height(cardHeight),
-        shape = RoundedCornerShape(20.dp),
-        colors = CardDefaults.cardColors(containerColor = Color.White),
-        elevation = CardDefaults.cardElevation(
-            defaultElevation = HomeDesignTokens.questionCardElevation,
-            pressedElevation = HomeDesignTokens.elevationMedium,
-        ),
+        shape = cardShape,
+        colors = cardColors,
+        elevation = cardElevation,
     ) {
         Row(
             modifier = Modifier
@@ -165,7 +181,7 @@ private fun HomeQuestionBankCardWide(
             Box(
                 modifier = Modifier
                     .size(iconSize)
-                    .clip(RoundedCornerShape(15.dp))
+                    .clip(iconShape)
                     .background(iconBrush),
                 contentAlignment = Alignment.Center,
             ) {
@@ -196,10 +212,10 @@ private fun HomeQuestionBankCardWide(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.SpaceBetween,
                 ) {
-                    CardStatIconValue(Icons.Default.PieChart, "$progressPercent%", Color(0xFF4F8CFF))
-                    CardStatIconValue(Icons.Default.Quiz, questionCount.toString(), Color(0xFF4F8CFF))
-                    CardStatIconValue(Icons.Default.ErrorOutline, wrongCount.toString(), Color(0xFFE87461))
-                    CardStatIconValue(Icons.Default.Bookmarks, favoriteCount.toString(), Color(0xFFE8A838))
+                    CardStatIconValue(Icons.Default.PieChart, progressPercentLabel, Color(0xFF4F8CFF))
+                    CardStatIconValue(Icons.Default.Quiz, questionCountLabel, Color(0xFF4F8CFF))
+                    CardStatIconValue(Icons.Default.ErrorOutline, wrongCountLabel, Color(0xFFE87461))
+                    CardStatIconValue(Icons.Default.Bookmarks, favoriteCountLabel, Color(0xFFE8A838))
                 }
                 HomeCardProgressBar(
                     progress = progressPercent / 100f,
@@ -211,7 +227,7 @@ private fun HomeQuestionBankCardWide(
                 modifier = Modifier
                     .width(ctaWidth)
                     .clickable(onClick = onCtaClick),
-                shape = RoundedCornerShape(18.dp),
+                shape = ctaShape,
                 color = Color(0xFFF0F6FF),
                 tonalElevation = 1.dp,
                 shadowElevation = 2.dp,
@@ -221,7 +237,7 @@ private fun HomeQuestionBankCardWide(
                     contentAlignment = Alignment.Center,
                 ) {
                     Text(
-                        text = if (progressPercent > 0) "继续学习" else "开始练习",
+                        text = ctaLabel,
                         fontSize = ctaFont,
                         fontWeight = FontWeight.Medium,
                         color = Color(0xFF4F8CFF),
@@ -239,29 +255,36 @@ private fun HomeQuestionBankCardWide(
 private fun HomeQuestionBankCardDense(
     displayName: String,
     progressPercent: Int,
-    questionCount: Int,
-    wrongCount: Int,
-    favoriteCount: Int,
+    progressPercentLabel: String,
+    questionCountLabel: String,
+    wrongCountLabel: String,
+    favoriteCountLabel: String,
+    ctaLabel: String,
     icon: ImageVector,
     iconBrush: Brush,
     onCtaClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val cardShape = remember { RoundedCornerShape(18.dp) }
+    val iconShape = remember { RoundedCornerShape(11.dp) }
+    val ctaShape = remember { RoundedCornerShape(14.dp) }
+    val cardColors = CardDefaults.cardColors(containerColor = Color.White)
+    val cardElevation = CardDefaults.cardElevation(
+        defaultElevation = HomeDesignTokens.questionCardElevation,
+        pressedElevation = HomeDesignTokens.elevationMedium,
+    )
     Card(
         modifier = modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(18.dp),
-        colors = CardDefaults.cardColors(containerColor = Color.White),
-        elevation = CardDefaults.cardElevation(
-            defaultElevation = HomeDesignTokens.questionCardElevation,
-            pressedElevation = HomeDesignTokens.elevationMedium,
-        ),
+        shape = cardShape,
+        colors = cardColors,
+        elevation = cardElevation,
     ) {
         Column(modifier = Modifier.fillMaxWidth().padding(10.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Box(
                     modifier = Modifier
                         .size(34.dp)
-                        .clip(RoundedCornerShape(11.dp))
+                        .clip(iconShape)
                         .background(iconBrush),
                     contentAlignment = Alignment.Center,
                 ) {
@@ -289,10 +312,10 @@ private fun HomeQuestionBankCardDense(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.SpaceBetween,
             ) {
-                CardStatIconValue(Icons.Default.PieChart, "$progressPercent%", Color(0xFF4F8CFF), dense = true)
-                CardStatIconValue(Icons.Default.Quiz, questionCount.toString(), Color(0xFF4F8CFF), dense = true)
-                CardStatIconValue(Icons.Default.ErrorOutline, wrongCount.toString(), Color(0xFFE87461), dense = true)
-                CardStatIconValue(Icons.Default.Bookmarks, favoriteCount.toString(), Color(0xFFE8A838), dense = true)
+                CardStatIconValue(Icons.Default.PieChart, progressPercentLabel, Color(0xFF4F8CFF), dense = true)
+                CardStatIconValue(Icons.Default.Quiz, questionCountLabel, Color(0xFF4F8CFF), dense = true)
+                CardStatIconValue(Icons.Default.ErrorOutline, wrongCountLabel, Color(0xFFE87461), dense = true)
+                CardStatIconValue(Icons.Default.Bookmarks, favoriteCountLabel, Color(0xFFE8A838), dense = true)
             }
             Spacer(modifier = Modifier.height(6.dp))
             HomeCardProgressBar(
@@ -304,7 +327,7 @@ private fun HomeQuestionBankCardDense(
                 modifier = Modifier
                     .fillMaxWidth()
                     .clickable(onClick = onCtaClick),
-                shape = RoundedCornerShape(14.dp),
+                shape = ctaShape,
                 color = Color(0xFFF0F6FF),
                 tonalElevation = 1.dp,
                 shadowElevation = 2.dp,
@@ -314,7 +337,7 @@ private fun HomeQuestionBankCardDense(
                     contentAlignment = Alignment.Center,
                 ) {
                     Text(
-                        text = if (progressPercent > 0) "继续学习" else "开始练习",
+                        text = ctaLabel,
                         fontSize = 10.sp,
                         fontWeight = FontWeight.Medium,
                         color = Color(0xFF4F8CFF),
@@ -333,9 +356,10 @@ private fun HomeCardProgressBar(
     progress: Float,
     modifier: Modifier = Modifier,
 ) {
+    val trackShape = remember { RoundedCornerShape(2.dp) }
     Box(
         modifier = modifier
-            .clip(RoundedCornerShape(2.dp))
+            .clip(trackShape)
             .background(Color(0xFFEEF2F7)),
     ) {
         Box(

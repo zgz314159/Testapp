@@ -5,16 +5,13 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.CardDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableIntStateOf
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
@@ -28,9 +25,9 @@ import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import com.example.testapp.presentation.screen.home.HomeDashboardPipeline
+import com.example.testapp.presentation.screen.home.HomeListBoundsRef
 import com.example.testapp.presentation.screen.home.HomePerformanceLog
 import com.example.testapp.presentation.screen.home.HomeScrollFrameMonitor
-import com.example.testapp.presentation.screen.home.design.HomeDesignTokens
 import com.example.testapp.presentation.screen.home.model.HomeQuestionBankCardModel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.distinctUntilChanged
@@ -138,14 +135,13 @@ internal fun HomeFileListEagerColumn(
             "eager_compose_done files=$composedFileCount folders=$composedFolderCount",
         )
     }
-    var listBounds by remember { mutableStateOf<Rect?>(null) }
-    val currentListBounds by rememberUpdatedState(listBounds)
+    val listBoundsRef = remember { HomeListBoundsRef() }
     val currentListDragPosition by rememberUpdatedState(dragPosition)
     val currentListDraggingFile by rememberUpdatedState(draggingFile)
     LaunchedEffect(draggingFile) {
         while (currentListDraggingFile != null) {
             withFrameNanos { }
-            val bounds = currentListBounds ?: continue
+            val bounds = listBoundsRef.value ?: continue
             val pos = currentListDragPosition
             val scrollDelta = HomeFileListDragScroll.scrollDelta(
                 dragY = pos.y,
@@ -155,15 +151,11 @@ internal fun HomeFileListEagerColumn(
             if (scrollDelta != 0f) scrollState.scrollBy(scrollDelta)
         }
     }
-    val homeCardShape = RoundedCornerShape(20.dp)
-    val homeCardElevation = CardDefaults.cardElevation(
-        defaultElevation = HomeDesignTokens.elevationLow,
-    )
     val isScrolling = remember(scrollFlag) { { scrollFlag.value } }
     Column(
         modifier = modifier
             .fillMaxSize()
-            .onGloballyPositioned { coords -> listBounds = coords.boundsInRoot() }
+            .onGloballyPositioned { coords -> listBoundsRef.value = coords.boundsInRoot() }
             .verticalScroll(scrollState, enabled = userScrollEnabled)
             .padding(bottom = 120.dp),
     ) {
@@ -182,7 +174,7 @@ internal fun HomeFileListEagerColumn(
                 shouldTrackDropTargets, isScrolling, cardLayout,
                 canKeepSwipeNodeStable, canHandleDrag,
                 onCardClick, onDeleteClick, onDragStart, onDragUpdate, onDragEnd, onDragCancel,
-                onReportCardBounds, onFileCtaClick, homeCardShape, homeCardElevation,
+                onReportCardBounds, onFileCtaClick,
             )
             HomeFileListEagerFolders(
                 visibleFolderNames, folderFileCounts, hoverFolder, shouldTrackDropTargets,
@@ -200,7 +192,7 @@ internal fun HomeFileListEagerColumn(
                 shouldTrackDropTargets, isScrolling, cardLayout,
                 canKeepSwipeNodeStable, canHandleDrag,
                 onCardClick, onDeleteClick, onDragStart, onDragUpdate, onDragEnd, onDragCancel,
-                onReportCardBounds, onFileCtaClick, homeCardShape, homeCardElevation,
+                onReportCardBounds, onFileCtaClick,
             )
         }
     }
@@ -226,11 +218,9 @@ private fun HomeFileListEagerFiles(
     onDragCancel: (String) -> Unit,
     onReportCardBounds: (String, Rect) -> Unit,
     onFileCtaClick: ((String) -> Unit)?,
-    cardShape: RoundedCornerShape,
-    cardElev: androidx.compose.material3.CardElevation,
 ) {
     fileCards.forEach { card ->
-        key(card.fileName) {
+        key("file:${card.fileName}") {
             HomeFileListFileRow(
                 card = card,
                 folders = folders,
@@ -250,8 +240,6 @@ private fun HomeFileListEagerFiles(
                 onDragCancel = onDragCancel,
                 onReportCardBounds = onReportCardBounds,
                 onFileCtaClick = onFileCtaClick,
-                cardShape = cardShape,
-                cardElev = cardElev,
             )
         }
     }
@@ -270,7 +258,7 @@ private fun HomeFileListEagerFolders(
     onReportFolderBounds: (String, Rect) -> Unit,
 ) {
     visibleFolders.forEach { folderName ->
-        key("folder_$folderName") {
+        key("folder:$folderName") {
             HomeFileListFolderRow(
                 folderName = folderName,
                 fileCount = folderFileCounts[folderName] ?: 0,

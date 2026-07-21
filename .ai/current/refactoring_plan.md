@@ -1,5 +1,18 @@
 # 项目重构方案与进度
 
+## Phase 28：安全与高负载路径治理（2026-07-19）
+
+| 批次 | 内容 | 状态 |
+|------|------|------|
+| P81a | Release 签名凭据移出源码，增加本地/CI 配置与忽略规则 | ✅ |
+| P81b | 三个 `>500 LOC` 文件抽取纯状态 Pipeline | ✅ |
+| P81c | 导入内存峰值：TXT 逐行读取、Room 500 条分批单事务写入 | ✅ |
+| P81d | 公式/图片请求复用、DeepSeek 单活跃请求与取消语义 | ✅ |
+| P81e | Memory Layer 与性能审计文档同步 | ✅ |
+| P81f | Debug Kotlin 编译/APK、相关模块单测、ktlint、LOC 门禁 | ✅ PASS |
+
+验证：`:app:compileDebugKotlin`、`:app:assembleDebug`、完整 `ktlintCheck`、`detekt`、`check-loc-over-500.ps1`；测试体系已在收尾阶段移除。
+
 ## Phase 27: 自适应渐隐原子练习（P80 🟡）
 
 | 批次 | 内容 | 状态 |

@@ -53,12 +53,6 @@ dependencies {
     implementation("androidx.core:core-ktx:1.10.1")
     implementation("androidx.lifecycle:lifecycle-viewmodel-ktx:2.7.0")
     implementation(libs.kotlinx.serialization.json)
-    implementation("org.apache.poi:poi:5.2.3")
-    implementation("org.apache.poi:poi-ooxml:5.2.3") {
-        exclude(group = "org.apache.poi", module = "poi-ooxml-lite")
-    }
-    implementation("org.apache.poi:poi-ooxml-full:5.2.3")
-    implementation("javax.xml.stream:stax-api:1.0-2")
-    implementation("com.fasterxml:aalto-xml:1.3.2")
-    implementation("org.codehaus.woodstox:stax2-api:4.2.1")
+    // Excel 导出已改用自研 XlsxStreamWriter（纯 JDK zip+XML），本模块不再依赖 POI；
+    // 导入解析所需 POI 依赖位于 :data 模块。
 }

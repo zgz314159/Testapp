@@ -13,9 +13,14 @@
 .externalNativeBuild
 .cxx
 local.properties
+/signing.properties
+*.jks
+*.keystore
 cloudflare-worker/.dev.vars
 cloudflare-worker/.env
 cloudflare-worker/node_modules/
 cloudflare-worker/.wrangler/
 .history/
 **/bin/
+.kotlin/
+/log.txt

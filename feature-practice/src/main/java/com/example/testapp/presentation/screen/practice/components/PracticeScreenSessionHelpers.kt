@@ -9,7 +9,6 @@ import com.example.testapp.domain.session.SessionCommand
 import com.example.testapp.feature.practice.R
 import com.example.testapp.presentation.screen.practice.PracticeAutoAdvanceController
 import com.example.testapp.presentation.screen.practice.PracticeCurrentQuestionUi
-import com.example.testapp.presentation.screen.practice.PracticeJumpDebugLog
 import com.example.testapp.presentation.screen.practice.PracticePostAnswerAdvancePipeline
 import com.example.testapp.presentation.screen.practice.PracticeSessionExitPipeline
 import com.example.testapp.presentation.session.practice.PracticeScreenBindings
@@ -184,17 +183,9 @@ fun rememberPracticePostAnswerAdvance(
         {
             when (val action = PracticePostAnswerAdvancePipeline.resolve(bindings.hasPendingQuestions())) {
                 PracticePostAnswerAdvancePipeline.Action.Advance -> {
-                    PracticeJumpDebugLog.postAnswerAdvance(
-                        "Advance",
-                        currentIndex,
-                    )
                     sendCommand(SessionCommand.NextQuestion)
                 }
                 PracticePostAnswerAdvancePipeline.Action.FinishOrPromptExit -> {
-                    PracticeJumpDebugLog.postAnswerAdvance(
-                        "FinishOrPromptExit",
-                        currentIndex,
-                    )
                     if (sessionAnsweredCount >= bindings.totalCount) {
                         sendCommand(
                             SessionCommand.AddHistoryRecord(

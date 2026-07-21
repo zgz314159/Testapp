@@ -57,31 +57,16 @@ internal fun seedDeepSeekAnalysisFrom(
         ?.trim()
         ?.takeIf { it.isNotEmpty() }
     if (fromPracticeUi != null) {
-        com.example.testapp.data.network.deepseek.DeepSeekAskPersistDebugLog.d(
-            "Nav.seed",
-            "source=practiceUi index=$index ${com.example.testapp.data.network.deepseek.DeepSeekAskPersistDebugLog.meta(fromPracticeUi)} " +
-                "preview=${com.example.testapp.data.network.deepseek.DeepSeekAskPersistDebugLog.preview(fromPracticeUi)}",
-        )
         return fromPracticeUi
     }
     val fromPracticeList = practiceBindings?.analysisList?.value?.getOrNull(index)
         ?.trim()
         ?.takeIf { it.isNotEmpty() }
     if (fromPracticeList != null) {
-        com.example.testapp.data.network.deepseek.DeepSeekAskPersistDebugLog.d(
-            "Nav.seed",
-            "source=practiceList index=$index ${com.example.testapp.data.network.deepseek.DeepSeekAskPersistDebugLog.meta(fromPracticeList)}",
-        )
         return fromPracticeList
     }
     val fromExam = examBindings?.analysisList?.value?.getOrNull(index)
         ?.trim()
         ?.takeIf { it.isNotEmpty() }
-    com.example.testapp.data.network.deepseek.DeepSeekAskPersistDebugLog.d(
-        "Nav.seed",
-        "source=${if (fromExam != null) "examList" else "null"} index=$index " +
-            "hasPractice=${practiceBindings != null} hasExam=${examBindings != null} " +
-            com.example.testapp.data.network.deepseek.DeepSeekAskPersistDebugLog.meta(fromExam),
-    )
     return fromExam
 }

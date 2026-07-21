@@ -251,15 +251,9 @@ fun PracticeScreenContent(
         val postAnswerAdvance: suspend () -> Unit = {
             when (val action = PracticePostAnswerAdvancePipeline.resolve(bindings.hasPendingQuestions())) {
                 PracticePostAnswerAdvancePipeline.Action.Advance -> {
-                    com.example.testapp.presentation.screen.practice.PracticeJumpDebugLog.postAnswerAdvance(
-                        "Advance", currentIndex
-                    )
                     sendCommand(SessionCommand.NextQuestion)
                 }
                 PracticePostAnswerAdvancePipeline.Action.FinishOrPromptExit -> {
-                    com.example.testapp.presentation.screen.practice.PracticeJumpDebugLog.postAnswerAdvance(
-                        "FinishOrPromptExit", currentIndex
-                    )
                     if (sessionAnsweredCount >= bindings.totalCount) {
                         sendCommand(
                             SessionCommand.AddHistoryRecord(

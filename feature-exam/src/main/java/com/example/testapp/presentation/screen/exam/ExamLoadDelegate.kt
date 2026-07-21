@@ -203,18 +203,6 @@ class ExamLoadDelegate @Inject constructor(
             ordered
         }
 
-        ExamRoundLoadLog.loadCore(
-            priorComplete = priorComplete,
-            startNewRound = startNewRound,
-            canReuseSavedOrder = canReuseSavedOrder,
-            finished = progress?.finished == true,
-            savedOrderSize = savedSourceOrder.size,
-            questionCount = count,
-            orderedIds = finalQuestions.map { it.id },
-            answeredSourceIds = answeredSourceIdsForLog,
-            lastRoundSourceIds = if (startNewRound) lastRoundSourceIdsForLog else emptySet(),
-            savedSourcesDone = savedSourcesDone
-        )
 
         val shuffled = navigationHelper.shuffleOptionsIfNeeded(finalQuestions, random, seed)
 

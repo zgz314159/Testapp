@@ -50,11 +50,11 @@ fun HomeFileListGrid(
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         if (showHeader) {
-            item(key = "home_header", span = { GridItemSpan(2) }) {
+            item(key = "header", contentType = "header", span = { GridItemSpan(2) }) {
                 headerContent()
             }
         }
-        items(items = fileCards, key = { it.fileName }, contentType = { "file_card" }) { card ->
+        items(items = fileCards, key = { "file:${it.fileName}" }, contentType = { "file_card" }) { card ->
             val fileName = card.fileName
             OptimizedFileCard(
                 fileName = fileName,
@@ -69,6 +69,7 @@ fun HomeFileListGrid(
                 enableDragDrop = true,
                 allowDragStart = { canHandleDrag(fileName, false) },
                 enableLongClickAction = false,
+                reportBounds = false,
                 cardOuterPaddingOverride = PaddingValues(horizontal = 6.dp, vertical = 4.dp),
                 visualContent = {
                     HomeQuestionBankCard(

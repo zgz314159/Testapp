@@ -48,21 +48,11 @@ class QuestionAnalysisRepositoryImpl @Inject constructor(
     }
 
     override suspend fun getAnalysis(questionId: Int): String? {
-        cache[questionId]?.let {
-            com.example.testapp.data.network.deepseek.DeepSeekAskPersistDebugLog.d(
-                "Repo.getAnalysis",
-                "qId=$questionId source=cache ${com.example.testapp.data.network.deepseek.DeepSeekAskPersistDebugLog.meta(it)}",
-            )
-            return it
-        }
+        cache[questionId]?.let { return it }
 
         val result = loadMergedEntity(questionId)?.analysis?.takeIf { it.isNotBlank() }
 
         if (result != null) cache[questionId] = result
-        com.example.testapp.data.network.deepseek.DeepSeekAskPersistDebugLog.d(
-            "Repo.getAnalysis",
-            "qId=$questionId source=db ${com.example.testapp.data.network.deepseek.DeepSeekAskPersistDebugLog.meta(result)}",
-        )
         return result
     }
 
@@ -73,12 +63,8 @@ class QuestionAnalysisRepositoryImpl @Inject constructor(
         saveMergedEntity(entity)
 
         cache[questionId] = analysis
-        com.example.testapp.data.network.deepseek.DeepSeekAskPersistDebugLog.d(
-            "Repo.saveAnalysis",
-            "qId=$questionId cacheNow.${com.example.testapp.data.network.deepseek.DeepSeekAskPersistDebugLog.meta(cache[questionId])} " +
-                "preview=${com.example.testapp.data.network.deepseek.DeepSeekAskPersistDebugLog.preview(analysis)}",
-        )
     }
+
     override suspend fun getSparkAnalysis(questionId: Int): String? {
         sparkCache[questionId]?.let { return it }
         val result = loadMergedEntity(questionId)?.sparkAnalysis?.takeIf { it.isNotBlank() }

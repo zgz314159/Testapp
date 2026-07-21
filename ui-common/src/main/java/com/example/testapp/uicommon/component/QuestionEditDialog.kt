@@ -25,10 +25,11 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalClipboardManager
+import androidx.compose.ui.platform.LocalClipboard
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.input.TextFieldValue
@@ -51,6 +52,7 @@ import com.example.testapp.uicommon.util.parsePastedEditableFillAnswers
 import com.example.testapp.uicommon.util.removeEditableAnswerPart
 import com.example.testapp.uicommon.util.removeEditableBlankAt
 import com.example.testapp.uicommon.util.syncEditableFillAnswers
+import kotlinx.coroutines.launch
 
 /** 仅回填未保存草稿，不触发落库。 */
 data class QuestionEditDraftPatch(
@@ -77,7 +79,8 @@ fun QuestionEditDialog(
         QuestionTypes.isSingle(it.type) || QuestionTypes.isMulti(it.type) || QuestionTypes.isJudge(it.type)
     } == true
     val minimumOptionCount = 2
-    val clipboardManager = LocalClipboardManager.current
+    val clipboard = LocalClipboard.current
+    val clipboardScope = rememberCoroutineScope()
     val questionSnapshotKey = remember(
         editableQuestion?.id,
         editableQuestion?.content,
@@ -285,12 +288,21 @@ fun QuestionEditDialog(
                                 )
                             },
                             onPasteFillAnswers = {
-                                val pastedAnswers = parsePastedEditableFillAnswers(
-                                    pastedText = clipboardManager.getText()?.text.orEmpty(),
-                                    currentContent = contentFieldValue.text,
-                                    blankCount = blankCount,
-                                )
-                                if (pastedAnswers.isNotEmpty()) editedAnswerParts = pastedAnswers
+                                clipboardScope.launch {
+                                    val pastedText = clipboard.getClipEntry()
+                                        ?.clipData
+                                        ?.takeIf { it.itemCount > 0 }
+                                        ?.getItemAt(0)
+                                        ?.text
+                                        ?.toString()
+                                        .orEmpty()
+                                    val pastedAnswers = parsePastedEditableFillAnswers(
+                                        pastedText = pastedText,
+                                        currentContent = contentFieldValue.text,
+                                        blankCount = blankCount,
+                                    )
+                                    if (pastedAnswers.isNotEmpty()) editedAnswerParts = pastedAnswers
+                                }
                             },
                             onClearFillAnswers = {
                                 editedAnswerParts = List(blankCount) { "" }

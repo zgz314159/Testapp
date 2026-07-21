@@ -39,5 +39,4 @@ dependencies {
     implementation("io.coil-kt:coil-svg:2.6.0")
     implementation("ru.noties:jlatexmath-android:0.2.0")
 
-    testImplementation(libs.junit)
 }

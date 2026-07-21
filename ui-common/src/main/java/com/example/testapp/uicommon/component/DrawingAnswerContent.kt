@@ -84,14 +84,10 @@ fun DrawingAnswerImages(
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
         imagePaths.forEachIndexed { index, path ->
-            val file = File(path)
+            val file = remember(path) { File(path) }
             if (file.exists()) {
-                val context = LocalContext.current
                 AsyncImage(
-                    model = ImageRequest.Builder(context)
-                        .data(file)
-                        .crossfade(true)
-                        .build(),
+                    model = rememberLocalImageRequest(file),
                     contentDescription = null,
                     modifier = Modifier
                         .fillMaxWidth()
@@ -152,14 +148,10 @@ fun TextResponseAnswerContent(
 
         if (hasImages) {
             imagePaths.forEachIndexed { index, path ->
-                val file = File(path)
+                val file = remember(path) { File(path) }
                 if (file.exists()) {
-                    val context = LocalContext.current
                     AsyncImage(
-                        model = ImageRequest.Builder(context)
-                            .data(file)
-                            .crossfade(true)
-                            .build(),
+                        model = rememberLocalImageRequest(file),
                         contentDescription = null,
                         modifier = Modifier
                             .fillMaxWidth()
@@ -265,10 +257,7 @@ fun StemImagesSection(
             val file = remember(path) { File(path) }
             if (file.exists()) {
                 AsyncImage(
-                    model = ImageRequest.Builder(LocalContext.current)
-                        .data(file)
-                        .crossfade(true)
-                        .build(),
+                    model = rememberLocalImageRequest(file),
                     contentDescription = null,
                     modifier = Modifier
                         .fillMaxWidth()
@@ -293,5 +282,16 @@ fun StemImagesSection(
             imagePath = path,
             onDismiss = { selectedImagePath = null }
         )
+    }
+}
+
+@Composable
+private fun rememberLocalImageRequest(file: File): ImageRequest {
+    val context = LocalContext.current
+    return remember(context, file) {
+        ImageRequest.Builder(context)
+            .data(file)
+            .crossfade(true)
+            .build()
     }
 }

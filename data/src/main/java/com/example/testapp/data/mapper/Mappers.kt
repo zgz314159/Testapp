@@ -1,6 +1,5 @@
 package com.example.testapp.data.mapper
 
-import android.util.Log
 import com.example.testapp.core.util.normalizeRichMarkdownStructure
 import com.example.testapp.data.local.entity.ExamProgressEntity
 import com.example.testapp.data.local.entity.FavoriteQuestionEntity
@@ -79,16 +78,6 @@ private fun logMarkdownNormalizationDiff(
     if (!shouldLog) return
 
     runCatching {
-        Log.d(
-            "RichTextDebug",
-            buildString {
-                appendLine("dbRaw questionId=$questionId field=$field")
-                appendLine("raw:")
-                appendLine(raw)
-                appendLine("normalized:")
-                appendLine(normalized)
-            }
-        )
     }
 }
 

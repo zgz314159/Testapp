@@ -1,6 +1,5 @@
 package com.example.testapp.presentation.screen.file
 
-import android.util.Log
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.unit.IntSize
 import androidx.lifecycle.ViewModel
@@ -35,11 +34,9 @@ class DragDropViewModel @Inject constructor() : ViewModel() {
 
     fun tryCommitDrop(): Boolean {
         if (dropCommitted || _draggingFile.value == null) {
-            Log.d(tag, "tryCommitDrop=false committed=$dropCommitted active=${_draggingFile.value}")
             return false
         }
         dropCommitted = true
-        Log.d(tag, "tryCommitDrop=true active=${_draggingFile.value}")
         return true
     }
 
@@ -51,7 +48,6 @@ class DragDropViewModel @Inject constructor() : ViewModel() {
         _dragPosition.value = position
         _dragItemSize.value = size
         _offsetWithinItem.value = offset
-        Log.d(tag, "startDragging file=$file pos=(${position.x.toInt()},${position.y.toInt()})")
     }
 
     fun updatePosition(position: Offset) {
@@ -60,7 +56,6 @@ class DragDropViewModel @Inject constructor() : ViewModel() {
     }
 
     fun endDragging() {
-        Log.d(tag, "endDragging was=${_draggingFile.value}")
         dropCommitted = false
         _draggingFile.value = null
         _hoverFolder.value = null

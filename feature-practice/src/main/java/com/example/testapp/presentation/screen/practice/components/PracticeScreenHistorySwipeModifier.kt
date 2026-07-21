@@ -1,6 +1,5 @@
 package com.example.testapp.presentation.screen.practice.components
 
-import android.util.Log
 import android.widget.Toast
 import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
@@ -45,10 +44,6 @@ fun Modifier.practiceHistorySwipe(
                 val result =
                     (dispatchCommand(SessionCommand.BrowseAnsweredHistoryOlder) as? PracticeCommandOutcome.HistoryOlder)
                         ?.result
-                Log.d(
-                    "PracticeHistorySwipe",
-                    "UI.swipeRight | idx=$currentIndex | showResult=$showResult | result=$result",
-                )
                 when (result) {
                     AnsweredHistoryBackwardResult.AtOldestAnswered,
                     AnsweredHistoryBackwardResult.NoMoreHistory,
@@ -66,10 +61,6 @@ fun Modifier.practiceHistorySwipe(
                 val result =
                     (dispatchCommand(SessionCommand.BrowseAnsweredHistoryNewer) as? PracticeCommandOutcome.HistoryNewer)
                         ?.result
-                Log.d(
-                    "PracticeHistorySwipe",
-                    "UI.swipeLeft | idx=$currentIndex | showResult=$showResult | inHistory=$inAnsweredHistory | result=$result",
-                )
                 when (result) {
                     AnsweredHistoryForwardResult.AtLatestAnswered -> {
                         Toast.makeText(context, atLatestText, Toast.LENGTH_SHORT).show()

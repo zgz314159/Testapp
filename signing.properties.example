@@ -1,0 +1,6 @@
+# Copy this file to signing.properties and keep the real values local.
+# CI may provide the same names as environment variables instead.
+RELEASE_STORE_FILE=app/your-release-key.jks
+RELEASE_STORE_PASSWORD=replace-with-local-secret
+RELEASE_KEY_ALIAS=release
+RELEASE_KEY_PASSWORD=replace-with-local-secret

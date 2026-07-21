@@ -65,10 +65,6 @@
 
 | Path | Lines | Coverage target |
 |------|-------|-----------------|
-| `app/src/test/.../PracticeViewModelTest.kt` | — | Practice VM + navigation + save order |
-| `app/src/test/.../HomeViewModelTest.kt` | — | Home progress aggregation |
-| `app/src/test/.../ProgressScopeTest.kt` | — | Scope ID helpers |
-| `app/src/test/.../GradeExamUseCaseTest.kt` | — | Exam grading |
 
 ---
 

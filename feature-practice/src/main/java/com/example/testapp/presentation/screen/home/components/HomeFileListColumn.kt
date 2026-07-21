@@ -9,16 +9,12 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.CardDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
-import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Modifier
@@ -29,9 +25,9 @@ import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import com.example.testapp.presentation.screen.home.HomeDashboardPipeline
+import com.example.testapp.presentation.screen.home.HomeListBoundsRef
 import com.example.testapp.presentation.screen.home.HomePerformanceLog
 import com.example.testapp.presentation.screen.home.HomeScrollFrameMonitor
-import com.example.testapp.presentation.screen.home.design.HomeDesignTokens
 import com.example.testapp.presentation.screen.home.model.HomeQuestionBankCardModel
 import kotlinx.coroutines.flow.distinctUntilChanged
 
@@ -149,14 +145,13 @@ fun HomeFileListColumn(
             }
     }
     val isScrolling = remember(scrollFlag) { { scrollFlag.value } }
-    var listBounds by remember { mutableStateOf<Rect?>(null) }
-    val currentListBounds by rememberUpdatedState(listBounds)
+    val listBoundsRef = remember { HomeListBoundsRef() }
     val currentListDragPosition by rememberUpdatedState(dragPosition)
     val currentListDraggingFile by rememberUpdatedState(draggingFile)
     LaunchedEffect(draggingFile) {
         while (currentListDraggingFile != null) {
             withFrameNanos { }
-            val bounds = currentListBounds ?: continue
+            val bounds = listBoundsRef.value ?: continue
             val pos = currentListDragPosition
             val scrollDelta = HomeFileListDragScroll.scrollDelta(
                 dragY = pos.y,
@@ -166,13 +161,9 @@ fun HomeFileListColumn(
             if (scrollDelta != 0f) listState.scrollBy(scrollDelta)
         }
     }
-    val homeCardShape = RoundedCornerShape(20.dp)
-    val homeCardElevation = CardDefaults.cardElevation(
-        defaultElevation = HomeDesignTokens.elevationLow,
-    )
     LazyColumn(
         modifier = modifier.fillMaxSize().onGloballyPositioned { coords ->
-            listBounds = coords.boundsInRoot()
+            listBoundsRef.value = coords.boundsInRoot()
         },
         state = listState,
         userScrollEnabled = userScrollEnabled,
@@ -180,7 +171,7 @@ fun HomeFileListColumn(
         verticalArrangement = Arrangement.Top,
     ) {
         if (showHeader) {
-            item(key = "home_header", contentType = "home_header") { headerContent() }
+            item(key = "header", contentType = "header") { headerContent() }
         }
         if (showFilesFirst) {
             homeFileListColumnFiles(
@@ -188,7 +179,7 @@ fun HomeFileListColumn(
                 hoverFile, shouldTrackDropTargets, isScrolling, cardLayout,
                 canKeepSwipeNodeStable, canHandleDrag,
                 onCardClick, onDeleteClick, onDragStart, onDragUpdate, onDragEnd, onDragCancel,
-                onReportCardBounds, onFileCtaClick, homeCardShape, homeCardElevation,
+                onReportCardBounds, onFileCtaClick,
             )
             homeFileListColumnFolders(
                 visibleFolders, folderFileCounts, hoverFolder, shouldTrackDropTargets, swipeRevealEnabled,
@@ -204,7 +195,7 @@ fun HomeFileListColumn(
                 hoverFile, shouldTrackDropTargets, isScrolling, cardLayout,
                 canKeepSwipeNodeStable, canHandleDrag,
                 onCardClick, onDeleteClick, onDragStart, onDragUpdate, onDragEnd, onDragCancel,
-                onReportCardBounds, onFileCtaClick, homeCardShape, homeCardElevation,
+                onReportCardBounds, onFileCtaClick,
             )
         }
     }
@@ -229,10 +220,8 @@ private fun LazyListScope.homeFileListColumnFiles(
     onDragCancel: (String) -> Unit,
     onReportCardBounds: (String, Rect) -> Unit,
     onFileCtaClick: ((String) -> Unit)?,
-    cardShape: RoundedCornerShape,
-    cardElev: androidx.compose.material3.CardElevation,
 ) {
-    items(items = fileCards, key = { it.fileName }, contentType = { "file_card" }) { card ->
+    items(items = fileCards, key = { "file:${it.fileName}" }, contentType = { "file_card" }) { card ->
         HomeFileListFileRow(
             card = card,
             folders = folders,
@@ -252,8 +241,6 @@ private fun LazyListScope.homeFileListColumnFiles(
             onDragCancel = onDragCancel,
             onReportCardBounds = onReportCardBounds,
             onFileCtaClick = onFileCtaClick,
-            cardShape = cardShape,
-            cardElev = cardElev,
         )
     }
 }
@@ -269,7 +256,7 @@ private fun LazyListScope.homeFileListColumnFolders(
     onDeleteFolderClick: (String) -> Unit,
     onReportFolderBounds: (String, Rect) -> Unit,
 ) {
-    items(items = visibleFolders, key = { "folder_$it" }, contentType = { "folder_card" }) { folderName ->
+    items(items = visibleFolders, key = { "folder:$it" }, contentType = { "folder_card" }) { folderName ->
         HomeFileListFolderRow(
             folderName = folderName,
             fileCount = folderFileCounts[folderName] ?: 0,

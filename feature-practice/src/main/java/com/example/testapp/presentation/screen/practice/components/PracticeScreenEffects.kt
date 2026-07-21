@@ -1,6 +1,5 @@
 package com.example.testapp.presentation.screen.practice.components
 
-import android.util.Log
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
@@ -9,14 +8,13 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import com.example.testapp.domain.QuestionTypes
 import com.example.testapp.domain.model.Question
 import com.example.testapp.domain.session.SessionCommand
 import com.example.testapp.presentation.screen.practice.PracticeAutoAdvanceController
-import com.example.testapp.presentation.screen.practice.PracticeJumpDebugLog
 import com.example.testapp.presentation.screen.practice.PracticeOverlayAnchorHolder
 import com.example.testapp.presentation.screen.practice.PracticeOverlayNavigationPipeline
 import com.example.testapp.presentation.screen.practice.PracticeQuizInitReloadPipeline
@@ -72,10 +70,6 @@ fun PracticeScreenQuizInitEffect(
         val count = practiceCount
         val random = randomPractice
 
-        Log.d(
-            "PracticeScreen",
-            "[INIT] randomPractice=$random, isWrongBookMode=$isWrongBookMode, wrongBookFileName=$wrongBookFileName, isFavoriteMode=$isFavoriteMode, favoriteFileName=$favoriteFileName, quizId=$quizId, practiceCount=$count, fillConfig=$fillConfigVersion",
-        )
 
         val targetProgressId = when {
             isWrongBookMode && wrongBookFileName != null -> "practice_wrongbook_$wrongBookFileName"
@@ -162,7 +156,6 @@ fun PracticeScreenOverlayPinEffect(
 ) {
     LaunchedEffect(currentIndex) {
         anchorHolder.shouldPin(currentIndex)?.let { pinned ->
-            PracticeJumpDebugLog.overlayPinRevert(currentIndex, pinned)
             sendCommand(SessionCommand.GoToQuestion(pinned, "overlayPin"))
         }
     }
@@ -175,7 +168,6 @@ fun PracticeScreenIndexWatchEffect(
     showResult: Boolean,
 ) {
     LaunchedEffect(currentIndex, questionId, showResult) {
-        PracticeJumpDebugLog.indexChanged(currentIndex, questionId, showResult)
     }
 }
 
@@ -201,7 +193,6 @@ fun PracticeScreenLifecycleEffect(
                     } else {
                         null
                     }
-                    PracticeJumpDebugLog.lifecycle("ON_PAUSE", anchor, latestIndex)
                     autoAdvance.setScreenActive(false)
                 }
                 Lifecycle.Event.ON_RESUME -> {
@@ -213,7 +204,6 @@ fun PracticeScreenLifecycleEffect(
                     } else {
                         null
                     }
-                    PracticeJumpDebugLog.lifecycle("ON_RESUME", anchor, latestIndex)
                     autoAdvance.setScreenActive(true)
                     val pinnedIndex = anchorHolder.openIndex.takeIf {
                         anchorHolder.isOverlayOpen && it >= 0
@@ -225,10 +215,8 @@ fun PracticeScreenLifecycleEffect(
                         latestIndex,
                     )
                     if (restore != null) {
-                        PracticeJumpDebugLog.overlayRestore(latestIndex, restore)
                         sendCommand(SessionCommand.GoToQuestion(restore, "overlayRestore"))
                     } else {
-                        PracticeJumpDebugLog.overlayNoRestore(latestIndex, anchor)
                     }
                     anchorHolder.close()
                 }

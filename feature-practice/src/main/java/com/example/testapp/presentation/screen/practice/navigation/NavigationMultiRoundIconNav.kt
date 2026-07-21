@@ -1,7 +1,6 @@
 package com.example.testapp.presentation.screen.practice.navigation
 
 import com.example.testapp.domain.model.PracticeSessionState
-import com.example.testapp.presentation.screen.practice.PracticeFullAnswerIconNavDebugLog
 import com.example.testapp.presentation.screen.practice.PracticeFullAnswerIconRetryPipeline
 import com.example.testapp.presentation.screen.practice.PracticeFullAnswerRoundIconNavPipeline
 import com.example.testapp.presentation.screen.practice.PracticeFullAnswerSameSourceRoundAdvancePipeline
@@ -30,19 +29,11 @@ internal class NavigationMultiRoundIconNav(
         val randomOrder = env.iconNavRandomOrder()
         val pendingInRound = pendingInCurrentRoundPool(state)
 
-        PracticeFullAnswerIconNavDebugLog.roundPoolSnapshot(
-            state, currentIdx, requireCorrect, pendingInRound
-        )
 
         if (PracticeFullAnswerSourceTouchPipeline.isSourceCompletelyUntouched(
                 state.questions, state.questionsWithState, currentIdx
             )
         ) {
-            PracticeFullAnswerIconNavDebugLog.branch(
-                forward,
-                "step0_untouchedSource",
-                "no input on any round — direct skipToUnansweredSource"
-            )
             return trySkipToAdjacentSourceOnly(forward)
         }
 
@@ -50,26 +41,14 @@ internal class NavigationMultiRoundIconNav(
             val target = PracticeFullAnswerRoundIconNavPipeline.resolveTargetIndex(
                 currentIdx, pendingInRound, forward, randomOrder
             )
-            PracticeFullAnswerIconNavDebugLog.branch(
-                forward,
-                "step1_inRoundPool",
-                "pending=$pendingInRound target=$target random=$randomOrder"
-            )
             if (target != null && target != currentIdx) {
                 if (forward) {
                     env.history.recordRandomNavigationOrigin(currentIdx, randomOrder)
                 }
                 targets.navigateToQuestion(target, reopenWrongFullAnswerRetry = true)
-                PracticeFullAnswerIconNavDebugLog.result(forward, "Navigated", "step1_inRoundPool")
                 return UnansweredNavResult.Navigated
             }
-            PracticeFullAnswerIconNavDebugLog.branch(
-                forward,
-                "step1_noMove",
-                "target=$target — fall through to step2/step4"
-            )
         } else {
-            PracticeFullAnswerIconNavDebugLog.branch(forward, "step1", "pendingInSourceRound EMPTY")
         }
 
         return trySameSourceOtherRoundThenSkip(state, currentIdx, requireCorrect, forward, randomOrder)
@@ -89,7 +68,6 @@ internal class NavigationMultiRoundIconNav(
             state, roundComplete, requireCorrect
         )?.let { stayIndex ->
             targets.navigateToQuestion(stayIndex, reopenWrongFullAnswerRetry = true)
-            PracticeFullAnswerIconNavDebugLog.result(forward, "Navigated", "wrongRetry stay=$stayIndex")
             return UnansweredNavResult.Navigated
         }
 
@@ -101,39 +79,31 @@ internal class NavigationMultiRoundIconNav(
             forward,
             randomOrder
         )?.let { target ->
-            PracticeFullAnswerIconNavDebugLog.branch(forward, "step2_sameSourceOtherRound", "target=$target")
             if (forward) {
                 env.history.recordRandomNavigationOrigin(currentIdx, randomOrder)
             }
             targets.navigateToQuestion(target, reopenWrongFullAnswerRetry = true)
-            PracticeFullAnswerIconNavDebugLog.result(forward, "Navigated", "step2_sameSourceOtherRound")
             return UnansweredNavResult.Navigated
         }
 
-        PracticeFullAnswerIconNavDebugLog.branch(forward, "step4", "skipToUnansweredSource")
         when (skipSource.skipToUnansweredSource(forward = forward)) {
             SkipUnansweredSourceResult.Navigated -> {
-                PracticeFullAnswerIconNavDebugLog.result(forward, "Navigated", "step4_skipSource")
                 return UnansweredNavResult.Navigated
             }
             else -> Unit
         }
         val boundary = if (forward) UnansweredNavResult.AtLastUnanswered else UnansweredNavResult.AtFirstUnanswered
-        PracticeFullAnswerIconNavDebugLog.result(forward, boundary.name, "step4_skipSourceFailed")
         return boundary
     }
 
     private fun trySkipToAdjacentSourceOnly(forward: Boolean): UnansweredNavResult {
-        PracticeFullAnswerIconNavDebugLog.branch(forward, "step4", "skipToUnansweredSource")
         when (skipSource.skipToUnansweredSource(forward = forward)) {
             SkipUnansweredSourceResult.Navigated -> {
-                PracticeFullAnswerIconNavDebugLog.result(forward, "Navigated", "step4_skipSource")
                 return UnansweredNavResult.Navigated
             }
             else -> Unit
         }
         val boundary = if (forward) UnansweredNavResult.AtLastUnanswered else UnansweredNavResult.AtFirstUnanswered
-        PracticeFullAnswerIconNavDebugLog.result(forward, boundary.name, "step4_skipSourceFailed")
         return boundary
     }
 

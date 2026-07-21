@@ -13,28 +13,14 @@ class TxtQuestionParser @Inject constructor() : SimpleQuestionFileParser {
     override fun parse(file: File, originFileName: String): List<Question> {
         try {
             if (file.length() == 0L) throw LocalizedException(IOConstants.IMPORT_FAILED_TXT_EMPTY_KEY, listOf(file.name))
-            val lines = file.readLines()
-            if (lines.isEmpty()) throw LocalizedException(IOConstants.IMPORT_FAILED_TXT_NO_CONTENT_KEY, listOf(file.name))
-            val questions = lines.mapNotNull { line ->
-                try {
-                    val parts = line.split("|")
-                    if (parts.size >= 11) {
-                        Question(
-                            id = 0,
-                            content = parts[0],
-                            type = parts[1],
-                            options = parts.slice(2..8).filter { it.isNotBlank() },
-                            explanation = parts[9],
-                            answer = parts[10],
-                            isFavorite = false,
-                            isWrong = false,
-                            fileName = originFileName
-                        )
-                    } else null
-                } catch (e: Exception) {
-                    null
-                }
+            var hasLines = false
+            val questions = file.useLines { lines ->
+                lines.mapNotNull { line ->
+                    hasLines = true
+                    parseLine(line, originFileName)
+                }.toList()
             }
+            if (!hasLines) throw LocalizedException(IOConstants.IMPORT_FAILED_TXT_NO_CONTENT_KEY, listOf(file.name))
             if (questions.isEmpty()) throw LocalizedException(IOConstants.IMPORT_FAILED_TXT_PARSE_KEY, listOf(file.name))
             return questions
         } catch (e: LocalizedException) {
@@ -43,4 +29,21 @@ class TxtQuestionParser @Inject constructor() : SimpleQuestionFileParser {
             throw LocalizedException(IOConstants.IMPORT_FAILED_TXT_PARSE_KEY, listOf(e.message ?: ""))
         }
     }
+
+    private fun parseLine(line: String, originFileName: String): Question? =
+        runCatching {
+            val parts = line.split("|")
+            if (parts.size < 11) return@runCatching null
+            Question(
+                id = 0,
+                content = parts[0],
+                type = parts[1],
+                options = parts.slice(2..8).filter { it.isNotBlank() },
+                explanation = parts[9],
+                answer = parts[10],
+                isFavorite = false,
+                isWrong = false,
+                fileName = originFileName
+            )
+        }.getOrNull()
 }

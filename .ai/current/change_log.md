@@ -3,6 +3,222 @@
 > 记录各 Phase 的主要变更。
 > 格式：`YYYY-MM-DD | Phase-N | 描述`
 
+## 2026-07-21 | 题库导入 OOM 根治 + 提速（DOM → SAX 流式）
+
+- 根因：`ExcelQuestionParser` 用 `WorkbookFactory.create`（XSSF usermodel/DOM）全量构建工作簿对象树，即便稀疏文件桌面 66MB 可开，手机 app 基线已占 ~130MB，XmlBeans/XSSFCell 对象图叠加突破 368MB 上限 → 每次导入必 OOM。
+- 修复：无图 xlsx 改走 POI 事件模型（SAX）`XSSFReader + XSSFSheetXMLHandler` 流式逐行读取，恒定内存、无对象树，速度显著优于 DOM；`.xls` 或含 `xl/media` 的文件（体量小）仍回退 usermodel 以保留内嵌图片导入。
+- 抽象：新增 `ExcelRowData`（`PoiExcelRowData` / `MapExcelRowData`），DOM 与 SAX 两条读路径共用同一套 detect/parse 逻辑，行解析函数去除 `DataFormatter`/`Row` 直依赖，零逻辑改动。
+- 新增 `ExcelStreamingRowReader`；`ExcelQuestionParser` 按 zip 条目探测 OOXML/media 决定读路径，`buildQuestions` 统一出口。
+
+## 2026-07-21 | 导出文件回导 OOM 修复（稀疏 cell 写出）
+
+- 现象：新导出的 xlsx 在"数据管理 → 题库导入"失败。桌面 JVM + 同版本 POI、-Xmx384m（对齐手机堆上限）复现：`WorkbookFactory.create` DOM 解析 sheet1.xml 时 `OutOfMemoryError`。
+- 根因：`XlsxStreamWriter` 每行全量写出 165 列（含空 cell），6653 题的 sheet XML 解压后 ~77MB（110 万 cell 节点），导入端 POI XSSF DOM 全量驻留必然 OOM。
+- 修复：空 cell 不写节点（`r` 属性定位列，稀疏行为 OOXML 标准用法）。同文件复验：sheet XML 降 ~99%，POI 384MB 堆 1.1s 打开，6654 行全部可读、表头/列位不变。
+- 旧文件挽救：已用相同规则重打包出「修复可导入版」xlsx 供直接导入。
+
+## 2026-07-21 | 题库导出状态与速度优化
+
+- 导入/导出加载态增加 `isExporting` 区分；导出遮罩由错误的“正在导入题库...”改为“正在导出题库...”。
+- 题库查询、补充数据加载、行快照构建和 XLSX 写出整体移至 `Dispatchers.IO`，消除主线程卡顿。
+- `XlsxStreamWriter` 增加 64KB 双层缓冲、列引用缓存与 ZIP `BEST_SPEED`；常规单元格文本不再无条件复制。
+- 补充数据查询改为每批 30 个并发、批次顺序推进，避免大题库一次创建数千协程并争用 Room。
+
+## 2026-07-21 | 题库 Excel 导出 OOM 修复（导出路径去 POI 化）
+
+- 根因一：`writeWorkbookToUri` 用 `XSSFWorkbook` 全量内存构建工作簿，大题库导出堆涨至 368MB growth limit 抛 OOM，且构建在主线程（跳帧 3066）。
+- 根因二：换 `SXSSFWorkbook` 后在 Android 上必崩——`SXSSFSheet` 构造时急切创建 `AutoSizeColumnTracker`，其静态块依赖 `java.awt.font.FontRenderContext`（Android 无 AWT，POI bug 65260，5.2.4+ 未修复该场景）。
+- 修复：新增 `XlsxStreamWriter`（feature-settings，纯 JDK ZipOutputStream + 手写 OOXML，inline string + 红字行样式），`writeWorkbookToUri` 整体移入 `Dispatchers.IO` 并委托流式写出，恒定内存。
+- `:feature-settings` 移除 POI/stax/aalto 依赖（导入解析仍走 `:data` 的 POI 读路径，不受影响）。
+- 四条 Excel 导出链路（题库 / 错题本 / 收藏 / 历史）共用此出口，一次修复全部生效。
+
+## 2026-07-21 | Home 文件夹创建序排序调整
+
+- `FolderDao.insert` 冲突策略 REPLACE → IGNORE：重复 addFolder 不再 DELETE+重插导致 rowid 被顶到最大、创建序被打乱。
+- 展示链路改为 `ORDER BY rowid DESC`，文件夹按创建时间倒序排列，最后新建的文件夹位于文件夹区首端。
+
+## 2026-07-21 | Home 拖拽误开抽屉修复
+
+- 长按题库卡片拖拽期间（`draggingFile != null`）禁用 `ModalNavigationDrawer` 滑动手势，防止拖动手势被抽屉水平 anchoredDraggable 抢占误开左侧抽屉。
+- `HomeNavigationDrawer` / `HomeScreenDrawerHost` 新增 `gesturesEnabled` 参数；抽屉已打开时仍强制允许手势关闭。
+
+## 2026-07-20 | Deprecation API cleanup
+
+- `LocalClipboardManager` → `LocalClipboard`（`QuestionEditDialog` / `QuestionSessionActionRow` / `PracticeBottomToolbar`）
+- `centerAlignedTopAppBarColors` → `topAppBarColors`（`AppCenterAlignedTopBar`）
+- `LocalLifecycleOwner` 改用 `androidx.lifecycle.compose`（Exam/Practice AI sync + Practice lifecycle）
+- `quadraticBezierTo` → `quadraticTo`（`HomeFolderCard`）
+- Room `fallbackToDestructiveMigration(dropAllTables = true)`；`WrongBookRepositoryImpl.getAll` 补 `@OptIn(ExperimentalCoroutinesApi)`
+
+## 2026-07-19 | Phase 28：安全、LOC、导入与生命周期治理
+
+- Release 签名密码移出 `app/build.gradle.kts`；支持忽略的 `signing.properties` 和 CI 环境变量，新增安全示例。
+- `ExamViewModel` / `ExamSessionEngine` 复用 `ExamQuestionStatePipeline`；`PracticeEditorCoordinator` 抽取 `PracticeEditorStatePipeline`，三者回到 500 / 497 / 451 行。
+- 大文件导入取消完整 Question/Entity 中间副本；Room 500 条分批、单事务写入；TXT 改为逐行读取。
+- AI 审查确认当前为整包响应，不存在逐 chunk UI 刷新；DeepSeek 增加单活跃任务、reset/新请求取消旧请求。
+- 答题页公式位图原有 remember 策略保留；SVG 与本地图片请求对象改为按输入复用。
+- 后续按用户授权完成验证：`:app:compileDebugKotlin` / `:app:assembleDebug` PASS；data/feature-exam/feature-practice/ui-common 单测 PASS，feature-ai 为 `NO-SOURCE`；完整 `ktlintCheck` 与 LOC 门禁 PASS。
+- 验证期间修复 `feature-exam` 缺少 JUnit 且纯 JVM 单测误跑 Hilt Kapt；并机械修正既有 androidTest、feature-exam、feature-settings import/换行格式。
+
+## 2026-07-19 | Performance infrastructure scope closure
+
+- 用户决定不实施第二款物理机基线；从待办/阻塞项移除。
+- 保留现有按 model+SDK 扩展框架；M2007J17C 为当前唯一物理硬门禁，Pixel_7 AVD 继续仅作观察基线。
+- Round21 后当前性能基础设施计划正式收口。
+
+## 2026-07-19 | Round 21 Baseline Profile package semantic budget
+
+- BaselineProfile diff gate 新增 app-entry/navigation/home/startup-settings/data-domain/ui-common 六组包级规则数与精确保留率预算。
+- M2007J17C 真机生成 PASS：4 份 profile × 6 组 = 24/24 PASS，全组 retained=1.0，release 新增 75 条规则。
+- 负向 Home 语义对照 retained=0.3913，正确 EXPECTED FAIL；无生产代码、视觉、业务或依赖改动。
+- 修正测试脚本在不同仓库 owner 的沙箱账号下读取 Git 信息失败；命令级 `safe.directory`，不改全局配置；Gate `20260719-165444` PASS。
+
+## 2026-07-19 | Round 20 Home shader-cache feasibility
+
+- 新增独立 `HomeShaderCacheDiagnosticBenchmark`：测量外预热 Home、仅杀进程并保留 shader cache；不进入硬门禁。
+- M2007J17C 真机 PASS：warm-cache TTID med 309.5ms；首帧 med 111.1ms；RenderThread `DrawFrames` med 20.9ms；shader compile med 3.7ms。
+- 对照确认 Round19 shader 冷编译归因；生产内预热只会前移同一成本，决定不接入，视觉/Eager/业务保持不变。
+
+## 2026-07-19 | Round 19 Home first-frame attribution
+
+- 复用 Round18 真机 `20260719-155654` 的 5 份 Perfetto trace，交叉分析主线程 Compose/measure、thread state 与 RenderThread。
+- 首帧 262.6–294.7ms；RenderThread `DrawFrames` 132.5–149.7ms，`shader_compile` 108.9–125.9ms，5/5 稳定复现。
+- 新增 `startup-first-frame-attribution.sql`，后续 Performance 报告自动输出首帧 Compose / RenderThread 归因。
+- 无 Kotlin、Gradle、资源、视觉、Eager、业务或数据库改动。
+
+## 2026-07-19 | 测试系统 Round18：Home 首帧 / 滚动热路径优化
+
+- Trace：`HomePerformanceLog.measure` 在 performance 构建始终打 `Home:*`；新增 `home-custom-slices.sql`。
+- P1：去掉 contentState 二次订阅；interaction-ready / list-bounds 不再触发整树重组；Eager 首批 8→4；关闭态延后组合 Drawer 重内容。
+- P4：稳定 drag 回调与 Lazy key 命名空间；卡片文案预计算；`OptimizedFileCard.reportBounds` 可选。
+- 真机 M2007J17C：TTID med 566ms，PHYSICAL_GATE + REGRESSION PASS；Gate PASS；见 `performance/audit/round18-home-frame-optimization.md`。
+
+## 2026-07-19 | 测试系统 Round17：依赖清理 + 回归比对门禁
+
+- 删除 `app/build.gradle.kts` 死依赖：okhttp（全仓零引用）、coil-compose/coil-svg、jlatexmath-android（仅 `:ui-common` 使用且已自带声明）。
+- P3 修正：`QuestionDataInitializer` 非死代码（Round2 已接入 `GetQuestionsUseCase.fileNames()`），保留。
+- P2 审计结论：`bindApplication` 110ms 中 ~85ms 为系统 dex/资源加载，`TestApp` 空实现无可 lazy 化项；首帧 270ms 主因 Text measure/layout + 未打点首次组合（留作 P1）。
+- `performance-thresholds.json` regression 门禁启用：同 model+SDK 历史中位数对比，TTID med +15% / frame P99 +30%，`minHistoryRuns=3`。
+- 回归门禁负向验证通过（临时 -90% 限值 → 正确 FAIL exit 20 → 恢复正式阈值）。
+- 修复 Gate 真实 bug：改按报告目录名时间戳取「各 Mode 最新结果」，避免旧目录文件时间刷新遮盖新 PASS。
+- 真机复测 PASS：TTID med 574.2 / 568.1ms 两轮，PHYSICAL_GATE + REGRESSION 双门禁通过；最终 Gate PASS（20260719-152824）；见 `performance/audit/round17-cleanup-regression-gate.md`。
+
+## 2026-07-19 | 测试系统 Round16：破坏性清空 + Profile 语义 diff + 多机型门禁
+
+- 新增 `DestructiveClearIsolationTest`：仅在内存 Room / 测试 DataStore 中验证全清，Isolation 8/8 PASS。
+- BaselineProfile 从数量比较升级为精确规则集合保留率门禁（≥0.95）+ MainActivity/HomeRoute 锚点；4 份 Profile retained=1.0。
+- `performance-thresholds.json` v4：`deviceProfiles[]` 按 model+SDK 匹配；未知物理机 FAIL；AVD 仅观察。
+- 真机 M2007J17C Performance PASS（TTID median 574.9ms）；Pixel_7 AVD 观察基线 PASS（1250.2ms）。
+- 最终 Gate PASS：READY 23/23、run-verified 21/23；见 `performance/audit/round16-destructive-semantic-multidevice.md`。
+
+## 2026-07-19 | 测试系统 Round15：Profile diff + Stress 多种子 + SAF 选择器
+
+- BaselineProfile：对照 `baselines/baseline-profile-ref.json`，rules≥0.9×ref + MainActivity 覆盖；`-UpdateProfileRef` 重钉。真机 REF_UPDATED→PASS。
+- Stress：`-StressSeeds` 多种子；Pixel_7 上 `20260719,20260720` 均 PASS。
+- `SafOpenPickerTest`：设置→导入题库→选择文件→DocumentsUI；Functional 一并跑通（真机 PASS）。
+- Functional `backToHome` 优先底栏「题库」；报告目录同秒去重。
+- 见 `audit/round15-profile-stress-saf.md`。
+
+## 2026-07-19 | 测试系统 Round14：DataStore/AI 错误隔离 + 覆盖率硬门禁
+
+- Isolation 扩至 package 级 7 用例：新增 `DataStoreIsolationTest`（clear 隔离）+ `FakeAiErrorPathTest`（ERROR/TIMEOUT/恢复）。
+- `FakeAiBackend.failureMode`；`coverage-thresholds.json` v3 `gateEnabled=true`（READY≥1.0 / run-verified≥0.8）；负向验证 exit 70。
+- `.gitignore` 补 `.kotlin/` `log.txt` `performance/reports/`；删除根目录 `log.txt`。
+- 真机实测 Isolation PASS `20260719-122354`；Gate PASS `20260719-122617`；见 `audit/round14-isolation-hardening.md`。
+
+## 2026-07-19 | 测试系统 Round13：真机 PHYSICAL_GATE 硬基线
+
+- 真机 M2007J17C（Android 15 / SDK 35）三轮 Performance：TTID med 563.5 / 549.3 / 548.5 ms；`physicalGate: PASS`。
+- `metrics.grade` 按 serial 区分 `PHYSICAL_DEVICE` / `OBSERVATION_EMULATOR`。
+- `performance-thresholds.json` v3：`mode=PHYSICAL_GATE`，阈值 TTID med≤800 / max≤950，frame P95≤400 / P99≤500（仅 pinned model）。
+- `Invoke-Performance` 真机超标 → status FAIL / exit 50；模拟器仍观察级。
+- 报告：`performance/reports/20260719-120821/` + `audit/round13-physical-baseline.md`。
+
+## 2026-07-19 | 测试系统 Round12：Full 全链路收口 + 签名冲突修复
+
+- `Full` 模式：各阶段独立子目录（`01-audit`…`09-gate`），避免 `result.json` 互相覆盖；Gate 递归扫描 `reports/**/result.json`。
+- Isolation 前置 `adb uninstall`，修复 Stress(`benchmarkRelease`)→Isolation(`debug`) 的 `INSTALL_FAILED_UPDATE_INCOMPATIBLE`。
+- Full 实测：Audit→Smoke→Functional→Explore→Recovery→Performance→Stress 均 PASS；Isolation 修复后 PASS；Gate **8/8 Mode PASS**。
+- 报告：`performance/reports/20260719-105011/`（Full 主体）+ `110125`/`110139`（Isolation/Gate 收口）+ `audit/round12-system-closed-loop.md`。
+
+## 2026-07-19 | 测试系统 Round11：@TestInstallIn 内存 Room + Fake AI 隔离
+
+- 生产 DI 最小拆分：`DatabaseModule` / `AiBackendModule`（行为不变，便于 `@TestInstallIn` 替换）。
+- `app` androidTest：`HiltTestRunner` + `InMemoryDatabaseModule` + `FakeAiBackendModule` + `TestDataIsolationTest`（2 用例）。
+- `run-tests.ps1 -Mode Isolation`；Gate 必过 Mode 列表已加入 Isolation。
+- 模拟器实测 PASS：`performance/reports/20260719-104335/`。
+
+## 2026-07-19 | 测试系统 Round10：PerfettoSQL 分析闭环跑通
+
+- 新增 `performance/scripts/fetch-trace-processor.ps1`（下载 v54.0 Windows `trace_processor_shell.exe`，`bin/` gitignore）。
+- SQL 包适配 v54 stdlib（`INCLUDE PERFETTO MODULE android.startup.startups`）；Performance 模式强化 trace 收集 + Start-Process 跑查询并计 ok 数。
+- 实测 PASS：`performance/reports/20260719-103142/` — `perfettoSql=DONE (15/15 ok; 5 traces x 3 queries)`；CSV 含真实 cold launch / FrameTimeline / 主线程 slice。
+
+## 2026-07-19 | 测试系统 Round9：Baseline Profile 生成闭环
+
+- 新增 `run-tests.ps1 -Mode BaselineProfile`：`:app:generateReleaseBaselineProfile` + class 过滤仅跑 `BaselineProfileGenerator`；清理 stale UTP lock；快照规则文件并计数。
+- 模拟器实测 PASS：`performance/reports/20260719-102038/` — release `baseline-prof.txt` **25860** rules，performance **22277** rules；写入 `app/src/{release,performance}/generated/baselineProfiles/`。
+- 首轮失败根因：无 class 过滤时全模块测试（Explore 等）与安装抢包导致 Process crashed；已修复。
+
+## 2026-07-19 | 测试系统 Round8：性能指标提取 + 基线历史 + PerfettoSQL 脚手架
+
+- `Invoke-Performance` 解析 `*benchmarkData.json` → 报告 `metrics.json`（TTID min/med/max + frame P50/P90/P95/P99）；追加 `performance/baselines/baseline-history.jsonl`。
+- 等级标记 `OBSERVATION_EMULATOR`（模拟器数字不作硬门禁）；`performance-thresholds.json` v2 记录最近观察值。
+- 新增 `performance/perfetto/queries/{startup-breakdown,frame-jank,main-thread-blocking}.sql`；有 `trace_processor_shell` 时自动跑，否则 `SKIPPED_NO_TOOL`。
+- 实测 PASS：`performance/reports/20260719-100403/`（TTID med 1130.3ms；frame P95 362.8ms；PerfettoSQL SKIPPED_NO_TOOL）。
+
+## 2026-07-19 | 测试系统 Round7：Gate 覆盖率矩阵 + 质量门禁聚合
+
+- 新增 `run-tests.ps1 -Mode Gate`（无需设备）：从 `actions.json` 生成 `performance/coverage/coverage-matrix.json`；聚合 `reports/*/result.json` 各 Mode 最新真实结果；任一缺失/非 PASS → 退出码 70。
+- 门禁范围：Audit / Smoke / Functional / Explore / Recovery / Performance / Stress 全部 PASS。
+- 覆盖率观察基线：automatable=17，READY=17/17=1.0，run-verified=15/17=0.882；`coverage-thresholds.json` v2（`gateEnabled=false`，数字仅观察）。
+- 实测 PASS：`performance/reports/20260719-095550/`；`Full` 链路末尾已串入 Gate。
+
+## 2026-07-19 | 测试系统 Round6：Recovery 错误处理与恢复
+
+- 新增 `RecoverySuiteTest`：r1 杀进程后「接着练习」恢复；r2 旋转后题干/控件保持；r3 断网冷启动可达首页。
+- `run-tests.ps1 -Mode Recovery`；`Full` 链路已串入；网络在脚本收尾强制恢复。
+- 发现并确认行为：**仅切题不落盘，作答一题才持久化练习进度**（首次运行 r1 因此失败，修正用例后通过；非产品缺陷）。
+- 模拟器实测 PASS：`performance/reports/20260719-095031/`。
+
+## 2026-07-19 | 测试系统 Round5：Stress monkey 随机稳定性（定种子 + 断网）
+
+- `run-tests.ps1 -Mode Stress`：`installBenchmarkRelease` → 关闭 wifi/data → `monkey -p com.example.testapp -s 20260719 --throttle 150 2000` → 拉 monkey.log / crash 缓冲 / ANR。
+- 判定：Events injected=2000 + 无 `// CRASH` / `// NOT RESPONDING` + crash 缓冲无 App FATAL；失败退出码 30。
+- **强制模拟器**：物理设备拒绝执行（STATEFUL_DESTRUCTIVE 仅限隔离 userdata）。
+- 模拟器实测 PASS：`performance/reports/20260719-094157/`；`stability-thresholds.json` 记录观察基线（`gateEnabled=false`）。
+- `Full` 链路已串入 Stress。
+
+## 2026-07-19 | 测试系统 Round4：Explore 确定性遍历（SAFE_READ + 崩溃门禁）
+
+- 新增 `ExploreCrawlTest`（UiAutomator，复用现有文案/contentDescription；不加 testTag，不改视觉）。
+- 遍历：我的→设置→出题模式/AI 服务→首页；错题/收藏/记录→首页；首页抽屉开合；每步做前台/崩溃缓冲断言。
+- `run-tests.ps1 -Mode Explore`：跑遍历、拉截图(`/sdcard/explore`)、拉 `logcat -b crash` 全量；App FATAL 崩溃即判 FAIL（退出码 30）；`Full` 链路已串入 Explore。
+- 模拟器实测 PASS：`performance/reports/20260719-093554/`（7 张截图，崩溃缓冲无 FATAL）。
+
+## 2026-07-19 | 测试系统 Round3：Functional 确定性套件（作答/收藏/考试/Tab）
+
+- 新增 `FunctionalSuiteTest`（UiAutomator，复用现有 contentDescription/文案；不加 testTag，不改视觉）。
+- 用例：t1 单选作答揭示结果；t2 收藏往返；t3 考试入口并返回；t4 底栏 错题/收藏/记录 往返。
+- `run-tests.ps1 -Mode Functional`：编译安装、跑套件、拉截图(`/sdcard/functional`)、junit、logcat；失败退出码 10；`Full` 链路已串入 Functional。
+- 模拟器实测 PASS：`performance/reports/20260719-093057/`（SAFE_WRITE 仅限模拟器测试题库；收藏已回滚）。
+
+## 2026-07-19 | 测试系统 Round2：Smoke 闭环（Home→练习→切题×10→返回）
+
+- 新增 `HomeSmokeTest`（UiAutomator，复用 `home_file_card:` / `下一题` / 「开始练习」文案；不加 testTag，不改视觉）。
+- `run-tests.ps1 -Mode Smoke`：编译安装、跑旅程、拉截图(`/sdcard/smoke`)、junit、logcat；失败退出码 10。
+- 接通 `GetQuestionsUseCase.fileNames()` → `ensureBuiltInQuestionsInitialized()`（原先死代码；prefs 幂等；无 assets 时 no-op）。
+- 仅 `benchmarkRelease` / `nonMinifiedRelease` sourceSet 加入 `assets/tiku/smoke_small_bank.json`（12 题小题库），不影响 debug/release。
+- 模拟器实测 PASS：`performance/reports/20260719-090919/`。
+
+## 2026-07-19 | 测试系统 Round1：审视 + 清单 + 最小 Macrobenchmark 闭环
+
+- 新增 `performance/`：audit / inventory / model / thresholds / test-data / scripts / reports（不改业务视觉与交互）。
+- 复用既有 `:baseline-profile`（`HomeStartupBenchmark` + `HomeJourney`）作为最小闭环；一键入口 `performance/scripts/run-tests.ps1`（Audit/Performance 可运行，其余 Mode 显式 `NOT_IMPLEMENTED`）。
+- `.ai/performance_test_rules.md` / `app_test_inventory.md` / `test_coverage_rules.md` / `performance_baseline.md` 落地。
+- 为模拟器 Macrobenchmark 在 `app` `ndk.abiFilters` 增加 `x86_64`（仅打包 ABI，不改 UI/交互）。
+- 阈值暂为 `OBSERVATION_BASELINE`，不伪造门禁数字。
+
 ## 2026-07-18 | 修复：从设置/错题/收藏/记录/结果返回主页卡顿
 
 - 根因：NavHost 离开 `home` 会销毁 composition；返回时 Eager 列表又从 `firstPaint=8` 渐进重建。
@@ -305,3 +521,9 @@
 - 新增字符串资源：`result_history_title`、`result_history_nth`、`result_correct_label`、`result_wrong_label`、`result_rate_label`
 - 补充 9 项纯单元测试：边界钳制、百分比格式、历史一致性、12条取9等
 - 底部操作栏按钮高度调整为 48dp
+# 2026-07-19 | 收尾清理
+
+- 删除全部 JVM / Android / Worker 测试源码、测试 DI 与测试资源。
+- 删除 `:baseline-profile`、Macrobenchmark、性能脚本、基线、报告和审计目录。
+- 移除测试依赖、测试 CI 步骤、性能构建类型与 Ktor logging 插件。
+- 清除生产代码中的 Logcat、println、Trace 和调试日志对象；Home 性能钩子改为无输出兼容壳。

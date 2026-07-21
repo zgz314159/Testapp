@@ -52,4 +52,5 @@ dependencies {
     implementation(libs.hilt.android)
     kapt(libs.hilt.android.compiler)
     implementation("androidx.core:core-ktx:1.10.1")
+
 }

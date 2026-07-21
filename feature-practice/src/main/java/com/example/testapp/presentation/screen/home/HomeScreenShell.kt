@@ -6,11 +6,15 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.DrawerState
+import androidx.compose.material3.DrawerValue
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.derivedStateOf
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.snapshots.SnapshotStateMap
@@ -39,7 +43,6 @@ fun HomeScreenScaffoldContent(
     onHistory: () -> Unit,
     draggingFile: String?,
     drawerOpen: Boolean,
-    homeInteractionReady: Boolean,
     homeRootCoordsRef: HomeRootCoordsRef,
     homeRootDragModifier: Modifier,
     /** 根节点空白区长按；入参为相对 Scaffold 内容区的坐标。 */
@@ -49,6 +52,8 @@ fun HomeScreenScaffoldContent(
 ) {
     // 根 pointerInput 必须始终挂着：用 draggingFile 条件拆除会在拖起瞬间改父树，
     // 连带取消卡片上的 detectDragGesturesAfterLongPress（长按闪一下就消失的根因）。
+    // Interaction-ready 翻转限制在 Scaffold 子树，避免整棵 Home 重组。
+    val homeInteractionReady = rememberHomeInteractionReady()
     val blankLongPressEnabled = homeInteractionReady && draggingFile == null && !drawerOpen
     val currentBlankLongPressEnabled = rememberUpdatedState(blankLongPressEnabled)
     val currentOnBlankAreaLongPress = rememberUpdatedState(onBlankAreaLongPress)
@@ -109,6 +114,7 @@ fun HomeScreenDrawerHost(
     drawerViewModel: QuestionBankDrawerViewModel,
     onBrowseQuestion: (fileName: String, questionId: Int) -> Unit,
     onEditQuestion: (fileName: String, questionId: Int) -> Unit = { _, _ -> },
+    gesturesEnabled: Boolean = true,
     content: @Composable () -> Unit,
 ) {
     val scope = rememberCoroutineScope()
@@ -127,25 +133,36 @@ fun HomeScreenDrawerHost(
     HomeNavigationDrawer(
         drawerState = drawerState,
         drawerContent = {
-            HomeDrawerContent(
-                fileNames = fileNames,
-                folders = folders,
-                folderNames = folderNames,
-                fileStatistics = fileStatistics,
-                drawerViewModel = drawerViewModel,
-                onQuestionSelected = { fileName, questionId, searchQuery ->
-                    HomeDrawerBrowseNavigationPipeline.captureRestoreBeforeBrowse(searchQuery)
-                    scope.launch { drawerState.close() }
-                    onBrowseQuestion(fileName, questionId)
-                },
-                onQuestionEdit = { fileName, questionId, searchQuery ->
-                    HomeDrawerBrowseNavigationPipeline.captureRestoreBeforeBrowse(searchQuery)
-                    scope.launch { drawerState.close() }
-                    onEditQuestion(fileName, questionId)
-                },
-                onClose = { scope.launch { drawerState.close() } },
-            )
+            // Defer heavy drawer tree until open/opening so cold first-frame
+            // does not subscribe QuestionBankDrawer StateFlows or build search trees.
+            val composeDrawerContent by remember {
+                derivedStateOf {
+                    drawerState.currentValue != DrawerValue.Closed ||
+                        drawerState.targetValue != DrawerValue.Closed
+                }
+            }
+            if (composeDrawerContent) {
+                HomeDrawerContent(
+                    fileNames = fileNames,
+                    folders = folders,
+                    folderNames = folderNames,
+                    fileStatistics = fileStatistics,
+                    drawerViewModel = drawerViewModel,
+                    onQuestionSelected = { fileName, questionId, searchQuery ->
+                        HomeDrawerBrowseNavigationPipeline.captureRestoreBeforeBrowse(searchQuery)
+                        scope.launch { drawerState.close() }
+                        onBrowseQuestion(fileName, questionId)
+                    },
+                    onQuestionEdit = { fileName, questionId, searchQuery ->
+                        HomeDrawerBrowseNavigationPipeline.captureRestoreBeforeBrowse(searchQuery)
+                        scope.launch { drawerState.close() }
+                        onEditQuestion(fileName, questionId)
+                    },
+                    onClose = { scope.launch { drawerState.close() } },
+                )
+            }
         },
+        gesturesEnabled = gesturesEnabled,
         content = content,
     )
 }

@@ -87,7 +87,6 @@ internal class ExamSessionProgressCoordinator(
             finished = s.finished,
             sessionId = fillTransform.buildSessionIdWithFillSignature(progressId(), progressSeedRef(), fs)
         )
-        ExamPipelineLog.save(s.questionsWithState.map { it.sessionAnswerTime })
         sessionEngine.progressManager.saveProgress(
             progressId = progressId(),
             state = state,
@@ -96,7 +95,6 @@ internal class ExamSessionProgressCoordinator(
             fillSignature = fs,
             extras = mapOf("questionStateMap" to fsm, "fixedQuestionOrder" to ffo)
         )
-        ExamRoundLoadLog.save(mapSize = fsm.size, finished = s.finished, fixedOrderSize = ffo.size)
         messageResult.value = LocalizedResult(com.example.testapp.domain.IOConstants.SAVE_SUCCESS)
     }
 
@@ -123,12 +121,6 @@ internal class ExamSessionProgressCoordinator(
                         progress = progress,
                         reviewMode = reviewModeActive(),
                     )
-                    ExamRoundLoadLog.restore(
-                        restoreFromMap = restoreFromMap,
-                        reviewMode = reviewModeActive(),
-                        progressFinished = progress.finished,
-                        mapSize = progress.questionStateMap.size
-                    )
                     persistentQuestionStateMap.clear()
                     persistentQuestionStateMap.putAll(progress.questionStateMap)
                     val qws = ExamSessionRestorePipeline.resolveSessionQuestions(
@@ -136,7 +128,6 @@ internal class ExamSessionProgressCoordinator(
                         progress = progress,
                         restoreFromMap = restoreFromMap
                     )
-                    ExamPipelineLog.load(qws.map { it.sessionAnswerTime })
                     val resumeIndex = if (randomExamEnabled() && s.questionsWithState.isNotEmpty() && !restoreFromMap) {
                         (0 until s.questionsWithState.size).random(kotlin.random.Random(seed))
                     } else if (restoreFromMap) {

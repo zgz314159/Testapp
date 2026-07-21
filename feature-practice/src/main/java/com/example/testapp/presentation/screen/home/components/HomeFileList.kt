@@ -5,6 +5,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
@@ -62,15 +63,40 @@ fun HomeFileList(
         if (draggingFile == null) dragScrollLocked = false
     }
 
-    fun wrapDragStart(fileName: String, pos: Offset, size: IntSize, offset: Offset) {
-        dragScrollLocked = true
-        onDragStart(fileName, pos, size, offset)
+    val currentOnDragStart by rememberUpdatedState(onDragStart)
+    val currentOnDragEnd by rememberUpdatedState(onDragEnd)
+    val currentOnDragCancel by rememberUpdatedState(onDragCancel)
+    val currentEnableItemGestures by rememberUpdatedState(enableItemGestures)
+    val currentDraggingFile by rememberUpdatedState(draggingFile)
+    val currentSwipeRevealEnabled by rememberUpdatedState(swipeRevealEnabled)
+
+    val wrapDragStart = remember<(String, Offset, IntSize, Offset) -> Unit> {
+        { fileName, pos, size, offset ->
+            dragScrollLocked = true
+            currentOnDragStart(fileName, pos, size, offset)
+        }
     }
-    fun wrapDragEnd(fileName: String) { dragScrollLocked = false; onDragEnd(fileName) }
-    fun wrapDragCancel(fileName: String) { dragScrollLocked = false; onDragCancel(fileName) }
-    fun canKeepSwipeNodeStable(fileName: String): Boolean = swipeRevealEnabled
-    fun canHandleDrag(fileName: String, isScrolling: Boolean): Boolean =
-        enableItemGestures && (draggingFile == fileName || (draggingFile == null && !isScrolling))
+    val wrapDragEnd = remember<(String) -> Unit> {
+        { fileName ->
+            dragScrollLocked = false
+            currentOnDragEnd(fileName)
+        }
+    }
+    val wrapDragCancel = remember<(String) -> Unit> {
+        { fileName ->
+            dragScrollLocked = false
+            currentOnDragCancel(fileName)
+        }
+    }
+    val canKeepSwipeNodeStable = remember<(String) -> Boolean> {
+        { _ -> currentSwipeRevealEnabled }
+    }
+    val canHandleDrag = remember<(String, Boolean) -> Boolean> {
+        { fileName, isScrolling ->
+            currentEnableItemGestures &&
+                (currentDraggingFile == fileName || (currentDraggingFile == null && !isScrolling))
+        }
+    }
 
     if (useGridLayout) {
         HomeFileListGrid(
@@ -81,12 +107,12 @@ fun HomeFileList(
             hoverFile = hoverFile,
             userScrollEnabled = userScrollEnabled,
             cardLayout = cardLayout,
-            canHandleDrag = ::canHandleDrag,
+            canHandleDrag = canHandleDrag,
             onCardClick = onCardClick,
-            onDragStart = ::wrapDragStart,
+            onDragStart = wrapDragStart,
             onDragUpdate = onDragUpdate,
-            onDragEnd = ::wrapDragEnd,
-            onDragCancel = ::wrapDragCancel,
+            onDragEnd = wrapDragEnd,
+            onDragCancel = wrapDragCancel,
             onFileCtaClick = onFileCtaClick,
             headerContent = headerContent,
             showHeader = showHeader,
@@ -109,17 +135,17 @@ fun HomeFileList(
             userScrollEnabled = userScrollEnabled,
             preferEagerCompose = preferEagerCompose,
             cardLayout = cardLayout,
-            canKeepSwipeNodeStable = ::canKeepSwipeNodeStable,
-            canHandleDrag = ::canHandleDrag,
+            canKeepSwipeNodeStable = canKeepSwipeNodeStable,
+            canHandleDrag = canHandleDrag,
             onFolderClick = onFolderClick,
             onFolderLongPress = onFolderLongPress,
             onDeleteFolderClick = onDeleteFolderClick,
             onCardClick = onCardClick,
             onDeleteClick = onDeleteClick,
-            onDragStart = ::wrapDragStart,
+            onDragStart = wrapDragStart,
             onDragUpdate = onDragUpdate,
-            onDragEnd = ::wrapDragEnd,
-            onDragCancel = ::wrapDragCancel,
+            onDragEnd = wrapDragEnd,
+            onDragCancel = wrapDragCancel,
             onReportFolderBounds = onReportFolderBounds,
             onReportCardBounds = onReportCardBounds,
             onFileCtaClick = onFileCtaClick,

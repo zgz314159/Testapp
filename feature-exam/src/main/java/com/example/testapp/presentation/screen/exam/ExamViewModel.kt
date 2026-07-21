@@ -11,7 +11,6 @@ import com.example.testapp.domain.model.PracticeSessionState
 import com.example.testapp.domain.model.Question
 import com.example.testapp.domain.model.QuestionWithState
 import com.example.testapp.domain.model.UnifiedQuestionState
-import com.example.testapp.domain.model.updateAt
 import com.example.testapp.domain.session.QuestionSessionKind
 import com.example.testapp.domain.session.persistence.SessionPersistenceContext
 import com.example.testapp.domain.usecase.ExamUseCaseFacade
@@ -169,7 +168,9 @@ class ExamViewModel @Inject constructor(
             randomExamEnabled = { randomExamEnabled },
             memoryModeActive = { memoryModeActive },
             effectiveCurrentMemoryRoundQuestionIds = ::effectiveCurrentMemoryRoundQuestionIdsB,
-            buildExamQuestionState = ::buildExamQuestionState,
+            buildExamQuestionState = { index ->
+                ExamQuestionStatePipeline.toUnified(_sessionState.value, index)
+            },
             advanceMemoryRoundIfNeeded = ::advanceMemoryRoundIfNeeded,
             reopenQuestionForFullAnswerRetry = ::reopenQuestionForFullAnswerRetry,
             scheduleNavigationSave = ::scheduleNavigationSave,
@@ -180,7 +181,7 @@ class ExamViewModel @Inject constructor(
             scope = viewModelScope,
             memoryModeActive = { memoryModeActive },
             randomExamEnabled = { randomExamEnabled },
-            currentFullAnswerCandidateIndices = ::currentFullAnswerCandidateIndicesB,
+            currentFullAnswerCandidateIndices = navigationCoordinator::currentFullAnswerCandidateIndices,
             refreshMemoryRoundPoolIfNeeded = ::refreshMemoryRoundPoolIfNeeded,
             navigateToRandomUnansweredOrAdvanceRound = ::navigateToRandomUnansweredOrAdvanceRound,
             calculateCumulativeStats = ::calculateCumulativeStats,
@@ -297,22 +298,6 @@ class ExamViewModel @Inject constructor(
         )
     }
 
-    private fun buildExamQuestionState(idx: Int): UnifiedQuestionState {
-        val qws = _sessionState.value.questionsWithState.getOrNull(idx)
-            ?: return UnifiedQuestionState(questionId = -1)
-        return UnifiedQuestionState(
-            questionId = qws.question.id,
-            selectedOptions = qws.selectedOptions,
-            textAnswer = qws.textAnswer,
-            showResult = qws.showResult,
-            analysis = qws.analysis,
-            sparkAnalysis = qws.sparkAnalysis,
-            baiduAnalysis = qws.baiduAnalysis,
-            note = qws.note,
-            answerTime = qws.sessionAnswerTime
-        )
-    }
-
     fun buildAnswerCardDisplayInfo(qs: List<Question>) =
         navHelper.buildAnswerCardDisplayInfo(qs, allSourceQuestions, isFullAnswerMode)
 
@@ -357,9 +342,6 @@ class ExamViewModel @Inject constructor(
     private fun effectiveCurrentMemoryRoundQuestionIdsB() =
         memoryModeCoordinator.effectiveCurrentMemoryRoundQuestionIds()
 
-    private fun currentFullAnswerCandidateIndicesB(candidates: List<Int>): List<Int> =
-        navigationCoordinator.currentFullAnswerCandidateIndices(candidates)
-
     private suspend fun navigateToRandomUnansweredOrAdvanceRound() =
         navigationCoordinator.navigateToRandomUnansweredOrAdvanceRound()
 
@@ -387,24 +369,12 @@ class ExamViewModel @Inject constructor(
     fun nextQuestionViaIconDoubleClick(): Boolean = navigationCoordinator.nextQuestionViaIconDoubleClick()
 
     fun retryCurrentQuestion(index: Int) {
-        _sessionState.update { s ->
-            if (index !in s.questionsWithState.indices) return@update s
-            val updated = s.questionsWithState.mapIndexed { idx, qws ->
-                if (idx == index) ExamQuestionRetryPipeline.reopenCurrent(qws) else qws
-            }
-            s.copy(questionsWithState = updated, currentIndex = index, finished = false)
-        }
+        _sessionState.update { ExamQuestionStatePipeline.retryCurrent(it, index) }
         viewModelScope.launch { saveProgressInternal() }
     }
 
     fun retryWrongFillBlanks(index: Int) {
-        _sessionState.update { s ->
-            if (index !in s.questionsWithState.indices) return@update s
-            val updated = s.questionsWithState.mapIndexed { idx, qws ->
-                if (idx == index) ExamQuestionRetryPipeline.reopenWrongBlanks(qws) else qws
-            }
-            s.copy(questionsWithState = updated, currentIndex = index, finished = false)
-        }
+        _sessionState.update { ExamQuestionStatePipeline.retryWrongFillBlanks(it, index) }
         viewModelScope.launch { saveProgressInternal() }
     }
 
@@ -473,15 +443,7 @@ class ExamViewModel @Inject constructor(
     fun goToQuestion(index: Int) = navigationCoordinator.goToQuestion(index)
 
     fun updateShowResult(index: Int, value: Boolean) {
-        _sessionState.update { s ->
-            s.updateAt(index) { qws ->
-                if (value && qws.sessionAnswerTime == 0L) {
-                    qws.copy(showResult = true, sessionAnswerTime = System.currentTimeMillis())
-                } else {
-                    qws.copy(showResult = value)
-                }
-            }
-        }
+        _sessionState.update { ExamQuestionStatePipeline.updateShowResult(it, index, value) }
         saveProgress()
     }
 

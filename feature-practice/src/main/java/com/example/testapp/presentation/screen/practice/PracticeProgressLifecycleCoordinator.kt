@@ -86,7 +86,6 @@ internal class PracticeProgressLifecycleCoordinator(
         lastQuestionCount = questionCount
         lastAppliedInitKey = null
         pendingPinnedQuestionId = pinnedQuestionId
-        android.util.Log.d("PracticeViewModel", "setProgressId: randomPracticeEnabled=${randomPracticeEnabled()}, randomParam=$random")
         val newSessionStartTime = System.currentTimeMillis()
 
         sessionState.value = sessionState.value.copy(
@@ -160,10 +159,6 @@ internal class PracticeProgressLifecycleCoordinator(
     ) {
         val sourceId = questionSourceId()
         val originalQuestions = sourceQuestions ?: loadOriginalQuestions(sourceId)
-        android.util.Log.d(
-            "PracticeViewModel",
-            "loadQuestionsForCurrentSource: originalQuestions.size=${originalQuestions.size}, ids=${originalQuestions.map { it.id }}"
-        )
 
         val fillConfig = PracticeFillConfigPipeline.read(fontSettings)
         onFillConfigApplied(fillConfig)
@@ -216,18 +211,6 @@ internal class PracticeProgressLifecycleCoordinator(
                 cumulativeQuestionStateMap.clear()
                 cumulativeQuestionStateMap.putAll(applied.cumulativeQuestionStateMap)
                 val log = applied.logContext
-                PracticeRoundLoadLog.loadQuestions(
-                    priorComplete = log.priorComplete,
-                    startNewRound = log.startNewRound,
-                    canReuse = log.canReuse,
-                    savedSize = log.savedSize,
-                    questionCount = log.questionCount,
-                    orderedIds = log.orderedIds,
-                    answeredSourceIds = log.answeredSourceIds,
-                    lastRoundSourceIds = log.lastRoundSourceIds,
-                    savedSourcesDone = log.savedSourcesDone,
-                )
-                PracticeRoundLoadLog.restore(log.restoreFromMap, log.restoredMapSize)
                 val prevIndex = sessionState.value.currentIndex
                 val nextState = PracticeProgressApplyLoadedPipeline.patchSessionState(
                     sessionState.value,
@@ -235,11 +218,6 @@ internal class PracticeProgressLifecycleCoordinator(
                 )
                 sessionState.value = nextState
                 if (prevIndex != applied.startIndex) {
-                    PracticeJumpDebugLog.sessionIndexMutation(
-                        prevIndex,
-                        applied.startIndex,
-                        "loadQuestionsForCurrentSource restoreFromMap=${applied.restoreFromMap} preserve=$preserveCurrentIndex",
-                    )
                 }
                 if (applied.restoreFromMap) {
                     onProgressRestored(applied.questionsWithState, applied.startIndex)
@@ -289,7 +267,6 @@ internal class PracticeProgressLifecycleCoordinator(
             fillSignature = fillSignature,
             unifiedState = state.toUnifiedSessionState(),
         )
-        PracticeRoundLoadLog.save(request.logMapSize, request.logFixedOrderSize)
         withContext(Dispatchers.IO) {
             sessionEngine.progressManager.saveProgress(
                 progressId = progressId(),

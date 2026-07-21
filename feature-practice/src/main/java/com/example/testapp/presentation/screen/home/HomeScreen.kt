@@ -171,7 +171,6 @@ fun HomeScreen(
                 drawerState.targetValue == DrawerValue.Open
         }
     }
-    val homeInteractionReady = rememberHomeInteractionReady()
     val homeRootCoordsRef = remember { HomeRootCoordsRef() }
     val dragFinishRef = remember { HomeDragFinishRef() }
 
@@ -260,6 +259,8 @@ fun HomeScreen(
         drawerViewModel = drawerViewModel,
         onBrowseQuestion = onBrowseQuestion,
         onEditQuestion = onEditQuestion,
+        // 长按拖拽题库卡片期间禁用抽屉滑动手势，避免拖动触发左侧抽屉弹出
+        gesturesEnabled = draggingFile == null,
     ) {
         HomeScreenScaffoldContent(
             bottomNavIndex = navPrefs.bottomNavIndex,
@@ -270,7 +271,6 @@ fun HomeScreen(
             onSettings = onSettings,
             draggingFile = draggingFile,
             drawerOpen = drawerOpen,
-            homeInteractionReady = homeInteractionReady,
             homeRootCoordsRef = homeRootCoordsRef,
             homeRootDragModifier = homeRootDragModifier,
             onBlankAreaLongPress = { localOffset ->
@@ -289,6 +289,8 @@ fun HomeScreen(
                     displayFileNames = libraryState.displayFileNames,
                     folderFileCounts = libraryState.folderFileCounts,
                     folders = folders,
+                    fileStatistics = fileStatistics,
+                    practiceProgress = practiceProgress,
                     homeContentReady = homeContentReady,
                     homeLibraryEmptyReason = libraryState.homeLibraryEmptyReason,
                     viewModel = viewModel,

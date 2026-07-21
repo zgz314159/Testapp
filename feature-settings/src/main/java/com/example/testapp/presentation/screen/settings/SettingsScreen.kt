@@ -70,6 +70,7 @@ fun SettingsScreen(
     val soundEnabled by viewModel.soundEnabled.collectAsState()
     val darkTheme by viewModel.darkTheme.collectAsState()
     val isLoading by viewModel.isLoading.collectAsState()
+    val isExporting by viewModel.isExporting.collectAsState()
     val importProgress by viewModel.progress.collectAsState()
     val context = LocalContext.current
     val importSnackbarMessages = remember(context) { importSnackbarMessages(context) }
@@ -321,6 +322,7 @@ fun SettingsScreen(
 
             SettingsImportProgressOverlay(
                 isLoading = isLoading,
+                isExporting = isExporting,
                 importProgress = importProgress,
                 fontSize = fontSize,
                 onCancel = viewModel::cancelImportExport

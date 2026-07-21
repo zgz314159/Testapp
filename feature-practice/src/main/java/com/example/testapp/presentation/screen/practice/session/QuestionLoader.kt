@@ -1,6 +1,5 @@
 package com.example.testapp.presentation.screen.practice.session
 
-import android.util.Log
 import com.example.testapp.core.util.FillQuestionGenerationMode
 import com.example.testapp.domain.model.PracticeSessionState
 import com.example.testapp.domain.model.Question
@@ -96,7 +95,6 @@ class QuestionLoader(
                 loadMemoryModeQuestions(list, existingProgress, newSessionStartTime)
                 return@launch
             }
-            Log.d(noteTraceTag, "loadWrongQuestions: progressId=${progressId()}, fileName=$fileName, questionIds=${list.map { it.id }}")
 
             val savedSourceOrder = existingProgress?.fixedQuestionOrder?.let { savedOrder ->
                 if (fillGenerationMode == FillQuestionGenerationMode.FULL_ANSWER)
@@ -123,7 +121,6 @@ class QuestionLoader(
                 progressLoaded = false,
                 sessionStartTime = newSessionStartTime
             )
-            Log.d(noteTraceTag, "loadWrongQuestions state prepared: progressId=${progressId()}, noteLengths=${questionsWithState.map { it.note.length }}")
             loadProgressFn(false)
         }
     }
@@ -162,7 +159,6 @@ class QuestionLoader(
                 loadMemoryModeQuestions(list, existingProgress, newSessionStartTime)
                 return@launch
             }
-            Log.d(noteTraceTag, "loadFavoriteQuestions: progressId=${progressId()}, fileName=$fileName, questionIds=${list.map { it.id }}")
 
             val savedSourceOrder = existingProgress?.fixedQuestionOrder?.let { savedOrder ->
                 if (fillGenerationMode == FillQuestionGenerationMode.FULL_ANSWER)
@@ -189,7 +185,6 @@ class QuestionLoader(
                 progressLoaded = false,
                 sessionStartTime = newSessionStartTime
             )
-            Log.d(noteTraceTag, "loadFavoriteQuestions state prepared: progressId=${progressId()}, noteLengths=${questionsWithState.map { it.note.length }}")
             loadProgressFn(false)
         }
     }

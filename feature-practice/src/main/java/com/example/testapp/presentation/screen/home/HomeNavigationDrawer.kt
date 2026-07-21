@@ -17,6 +17,7 @@ import kotlinx.coroutines.launch
 fun HomeNavigationDrawer(
     drawerState: DrawerState,
     drawerContent: @Composable () -> Unit,
+    gesturesEnabled: Boolean = true,
     content: @Composable () -> Unit
 ) {
     val scope = rememberCoroutineScope()
@@ -32,9 +33,11 @@ fun HomeNavigationDrawer(
 
     BackHandler(enabled = drawerOpen, onBack = dismissDrawer)
 
+    // 抽屉已打开时始终允许手势关闭；关闭态由调用方控制（拖拽题库卡片期间禁用，
+    // 防止拖拽手势被 ModalNavigationDrawer 的水平 anchoredDraggable 抢占而误开抽屉）。
     ModalNavigationDrawer(
         drawerState = drawerState,
-        gesturesEnabled = true,
+        gesturesEnabled = gesturesEnabled || drawerOpen,
         drawerContent = drawerContent,
         content = content
     )

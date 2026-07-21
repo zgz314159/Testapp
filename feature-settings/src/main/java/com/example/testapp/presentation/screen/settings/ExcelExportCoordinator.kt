@@ -12,7 +12,9 @@ import com.example.testapp.domain.repository.QuestionNoteRepository
 import com.example.testapp.domain.repository.QuestionRepository
 import com.example.testapp.domain.repository.WrongBookRepository
 import com.example.testapp.feature.settings.R
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.firstOrNull
+import kotlinx.coroutines.withContext
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -37,44 +39,41 @@ class ExcelExportCoordinator @Inject constructor(
     ) {
         onLoading(true)
         try {
-            val questions = SettingsExcelExportPipeline.filterByFileName(
-                questionRepository.exportQuestions(),
-                fileName,
-            ) { it.fileName }
-            val supplementary = batchLoader.loadAll(
-                questionIds = questions.map { it.id },
-                analysisRepo = questionAnalysisRepository,
-                askRepo = questionAskRepository,
-                noteRepo = questionNoteRepository,
-            )
-            val exportRows = sheetBuilder.buildQuestionExportSnapshots(questions, supplementary)
-
-            val sheetName = SettingsExcelExportPipeline.resolveSheetBaseName(fileName)
-                ?: context.getString(R.string.export_sheet_question)
-            val description = if (fileName.isNullOrBlank()) {
-                context.getString(R.string.export_quiz_all_description)
-            } else {
-                context.getString(R.string.export_quiz_single_description, fileName)
-            }
-
-            val sheets = mapOf(
-                sheetBuilder.sanitizeSheetName(sheetName) to sheetBuilder.buildStructuredQuestionExportRows(
-                    context = context,
-                    title = sheetName,
-                    description = description,
-                    rows = exportRows,
+            withContext(Dispatchers.IO) {
+                val questions = SettingsExcelExportPipeline.filterByFileName(
+                    questionRepository.exportQuestions(),
+                    fileName,
+                ) { it.fileName }
+                val supplementary = batchLoader.loadAll(
+                    questionIds = questions.map { it.id },
+                    analysisRepo = questionAnalysisRepository,
+                    askRepo = questionAskRepository,
+                    noteRepo = questionNoteRepository,
                 )
-            )
-
-            if (sheets.isEmpty()) return failExport(onLoading, onResult, onMessage)
-
-            val highlightedRows = SettingsExcelExportPipeline.editedQuestionHighlightRows(exportRows)
-            ioUriPipeline.writeWorkbookToUri(
-                context = context,
-                uri = uri,
-                sheets = sheets,
-                highlightedRowsBySheet = sheets.keys.associateWith { highlightedRows },
-            )
+                val exportRows = sheetBuilder.buildQuestionExportSnapshots(questions, supplementary)
+                val sheetName = SettingsExcelExportPipeline.resolveSheetBaseName(fileName)
+                    ?: context.getString(R.string.export_sheet_question)
+                val description = if (fileName.isNullOrBlank()) {
+                    context.getString(R.string.export_quiz_all_description)
+                } else {
+                    context.getString(R.string.export_quiz_single_description, fileName)
+                }
+                val sheets = mapOf(
+                    sheetBuilder.sanitizeSheetName(sheetName) to sheetBuilder.buildStructuredQuestionExportRows(
+                        context = context,
+                        title = sheetName,
+                        description = description,
+                        rows = exportRows,
+                    )
+                )
+                val highlightedRows = SettingsExcelExportPipeline.editedQuestionHighlightRows(exportRows)
+                ioUriPipeline.writeWorkbookToUri(
+                    context = context,
+                    uri = uri,
+                    sheets = sheets,
+                    highlightedRowsBySheet = sheets.keys.associateWith { highlightedRows },
+                )
+            }
 
             onLoading(false)
             onResult(true)

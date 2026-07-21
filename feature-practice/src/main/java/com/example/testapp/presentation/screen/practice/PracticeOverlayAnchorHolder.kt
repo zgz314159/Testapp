@@ -17,7 +17,6 @@ class PracticeOverlayAnchorHolder {
         openIndex = index
         openQuestionId = questionId
         isOverlayOpen = true
-        PracticeJumpDebugLog.overlayOpen(index, questionId)
     }
 
     /** overlay 关闭；返回打开时的 index（供恢复）。 */

@@ -24,7 +24,6 @@
 :feature-exam         (no project deps)
 :ui-common            (no project deps)
 :core                 (no project deps)
-:baseline-profile     (no project deps)
 ```
 
 **Direction**: `app → data → domain` (unidirectional, correct). No cycles detected.

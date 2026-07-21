@@ -22,6 +22,11 @@ data class HomeQuestionBankCardModel(
     val icon: ImageVector,
     val gradientStart: Color,
     val gradientEnd: Color,
+    val progressPercentLabel: String,
+    val questionCountLabel: String,
+    val wrongCountLabel: String,
+    val favoriteCountLabel: String,
+    val ctaLabel: String,
 )
 
 object HomeQuestionBankCardModelPipeline {
@@ -50,6 +55,11 @@ object HomeQuestionBankCardModelPipeline {
             icon = visual.icon,
             gradientStart = visual.gradientStart,
             gradientEnd = visual.gradientEnd,
+            progressPercentLabel = "$progressPercent%",
+            questionCountLabel = questionCount.toString(),
+            wrongCountLabel = statistics.wrongCount.toString(),
+            favoriteCountLabel = statistics.favoriteCount.toString(),
+            ctaLabel = if (progressPercent > 0) "继续学习" else "开始练习",
         )
     }
 

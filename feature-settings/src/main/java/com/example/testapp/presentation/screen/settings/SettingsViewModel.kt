@@ -30,6 +30,8 @@ class SettingsViewModel @Inject constructor(
     // --- VM-owned state (import/export UI) ---
     private val _isLoading = MutableStateFlow(false)
     val isLoading: StateFlow<Boolean> = _isLoading.asStateFlow()
+    private val _isExporting = MutableStateFlow(false)
+    val isExporting: StateFlow<Boolean> = _isExporting.asStateFlow()
     private val _progress = MutableStateFlow(0f)
     val progress: StateFlow<Float> = _progress.asStateFlow()
     private val _messageResult = MutableStateFlow<LocalizedResult?>(null)
@@ -38,6 +40,7 @@ class SettingsViewModel @Inject constructor(
     private val actionPipeline = SettingsActionPipeline(
         scope = viewModelScope,
         isLoading = _isLoading,
+        isExporting = _isExporting,
         progress = _progress,
         messageResult = _messageResult
     )

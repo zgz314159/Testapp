@@ -4,31 +4,28 @@ import com.example.testapp.data.repository.ImportedQuestionPayload
 import com.example.testapp.domain.QuestionTypes
 import com.example.testapp.domain.model.Question
 import com.example.testapp.domain.util.FILL_PART_DELIMITER
-import org.apache.poi.ss.usermodel.DataFormatter
-import org.apache.poi.ss.usermodel.Row
 
 internal fun parseExcelRowByHeader(
-    row: Row,
+    row: ExcelRowData,
     schema: ExcelHeaderSchema,
-    f: DataFormatter,
     workbookSuggestsShortAnswer: Boolean,
     originFileName: String
 ): ImportedQuestionPayload? {
-    val content = excelContentCellText(row, schema.contentIndex, f)
-    val rawType = schema.typeIndex?.let { excelCellText(row, it, f) }.orEmpty()
+    val content = excelContentCellText(row, schema.contentIndex)
+    val rawType = schema.typeIndex?.let { excelCellText(row, it) }.orEmpty()
     if (ExcelImportAnswerNormalizePipeline.shouldSkipInstructionRow(content, rawType)) return null
 
-    val explanation = schema.explanationIndex?.let { excelCellText(row, it, f) }.orEmpty()
+    val explanation = schema.explanationIndex?.let { excelCellText(row, it) }.orEmpty()
     val answerParts = schema.answerPartSlots
         .map { slot ->
             buildAnnotatedAnswerPart(
-                answerText = slot.answerIndex?.let { excelCellText(row, it, f) }.orEmpty(),
-                category = slot.categoryIndex?.let { excelCellText(row, it, f) }.orEmpty(),
-                scoreText = slot.scoreIndex?.let { excelCellText(row, it, f) }.orEmpty()
+                answerText = slot.answerIndex?.let { excelCellText(row, it) }.orEmpty(),
+                category = slot.categoryIndex?.let { excelCellText(row, it) }.orEmpty(),
+                scoreText = slot.scoreIndex?.let { excelCellText(row, it) }.orEmpty()
             )
         }
         .filter { it.isNotBlank() }
-    val directAnswer = schema.answerIndex?.let { excelCellText(row, it, f) }.orEmpty()
+    val directAnswer = schema.answerIndex?.let { excelCellText(row, it) }.orEmpty()
     // 有选项列 + 单列正确答案时，优先单列答案，避免历史误填空槽污染选择题
     val answer = when {
         directAnswer.isNotBlank() && (schema.optionIndices.isNotEmpty() || answerParts.isEmpty()) -> directAnswer
@@ -38,7 +35,7 @@ internal fun parseExcelRowByHeader(
         else -> directAnswer
     }
     val parsedOptions = schema.optionIndices
-        .map { index -> excelCellText(row, index, f) }
+        .map { index -> excelCellText(row, index) }
         .filter { it.isNotBlank() }
         .filterNot { normalizeExcelHeader(it) == normalizeExcelHeader(rawType) }
 
@@ -69,22 +66,21 @@ internal fun parseExcelRowByHeader(
                 options = options, answer = normalizedAnswer, explanation = explanation,
                 isFavorite = false, isWrong = false, fileName = originFileName
             ),
-            deepSeekAnalysis = schema.deepSeekIndex?.let { excelCellText(row, it, f) }.orEmpty(),
-            sparkAnalysis = schema.sparkIndex?.let { excelCellText(row, it, f) }.orEmpty(),
-            baiduAnalysis = schema.baiduIndex?.let { excelCellText(row, it, f) }.orEmpty(),
-            note = schema.noteIndex?.let { excelCellText(row, it, f) }.orEmpty()
+            deepSeekAnalysis = schema.deepSeekIndex?.let { excelCellText(row, it) }.orEmpty(),
+            sparkAnalysis = schema.sparkIndex?.let { excelCellText(row, it) }.orEmpty(),
+            baiduAnalysis = schema.baiduIndex?.let { excelCellText(row, it) }.orEmpty(),
+            note = schema.noteIndex?.let { excelCellText(row, it) }.orEmpty()
         )
     } else null
 }
 
 internal fun parseExcelLegacyCalculationRow(
-    row: Row,
-    f: DataFormatter,
+    row: ExcelRowData,
     workbookSuggestsShortAnswer: Boolean,
     originFileName: String
 ): Question? {
     if (!workbookSuggestsShortAnswer) return null
-    val values = excelRowValues(row, f)
+    val values = excelRowValues(row)
     if (values.count { it.isNotBlank() } < 2) return null
     if (values.any { normalizeExcelHeader(it) in setOf("题干", "题目", "内容", "试题", "问题", "答案", "参考答案", "评分标准") }) {
         return null
@@ -120,18 +116,17 @@ internal fun parseExcelLegacyCalculationRow(
 }
 
 internal fun parseExcelRowStyle1(
-    row: Row,
-    f: DataFormatter,
+    row: ExcelRowData,
     workbookSuggestsShortAnswer: Boolean,
     originFileName: String
 ): Question? {
-    val content = row.getCell(0)?.let { f.formatCellValue(it) } ?: ""
-    val rawType = row.getCell(1)?.let { f.formatCellValue(it) } ?: ""
+    val content = row.cellText(0)
+    val rawType = row.cellText(1)
     val parsedOptions = (2..8)
-        .mapNotNull { row.getCell(it)?.let(f::formatCellValue) }
+        .map { row.cellText(it) }
         .filter { it.isNotBlank() }
-    val explanation = row.getCell(9)?.let { f.formatCellValue(it) } ?: ""
-    val answer = row.getCell(10)?.let { f.formatCellValue(it) } ?: ""
+    val explanation = row.cellText(9)
+    val answer = row.cellText(10)
     val type = resolveExcelQuestionType(rawType, answer, content, workbookSuggestsShortAnswer)
     val options = normalizeExcelOptionsForType(type, parsedOptions)
     val hasValidOptions = options.isNotEmpty() || QuestionTypes.isFill(type)
@@ -145,17 +140,15 @@ internal fun parseExcelRowStyle1(
 }
 
 internal fun parseExcelFillTemplateRow(
-    row: Row,
-    f: DataFormatter,
+    row: ExcelRowData,
     originFileName: String
 ): Question? {
-    val content = row.getCell(0)?.let { f.formatCellValue(it) } ?: ""
-    val rawType = row.getCell(2)?.let { f.formatCellValue(it) } ?: ""
+    val content = row.cellText(0)
+    val rawType = row.cellText(2)
     if (content.isBlank() || !QuestionTypes.isInlineBlank(rawType)) return null
 
     val answers = (3 until row.lastCellNum)
-        .mapNotNull { index -> row.getCell(index)?.let(f::formatCellValue) }
-        .map { it.trim() }
+        .map { index -> row.cellText(index).trim() }
         .filter { it.isNotBlank() }
 
     if (answers.isEmpty()) return null
@@ -171,17 +164,16 @@ internal fun parseExcelFillTemplateRow(
 }
 
 internal fun parseExcelRowStyle2(
-    row: Row,
-    f: DataFormatter,
+    row: ExcelRowData,
     workbookSuggestsShortAnswer: Boolean,
     originFileName: String
 ): Question? {
-    val content = row.getCell(0)?.let { f.formatCellValue(it) } ?: ""
+    val content = row.cellText(0)
     val parsedOptions = (1..3)
-        .mapNotNull { row.getCell(it)?.let(f::formatCellValue) }
+        .map { row.cellText(it) }
         .filter { it.isNotBlank() }
-    val explanation = row.getCell(4)?.let { f.formatCellValue(it) } ?: ""
-    val answer = row.getCell(5)?.let { f.formatCellValue(it) } ?: ""
+    val explanation = row.cellText(4)
+    val answer = row.cellText(5)
     val type = resolveExcelQuestionType("", answer, content, workbookSuggestsShortAnswer)
     val normalizedContent = if (QuestionTypes.isInlineBlank(type)) {
         normalizeImportedFillContent(content, answer)
@@ -200,18 +192,17 @@ internal fun parseExcelRowStyle2(
 }
 
 internal fun parseExcelRowStyle3(
-    row: Row,
-    f: DataFormatter,
+    row: ExcelRowData,
     workbookSuggestsShortAnswer: Boolean,
     originFileName: String
 ): Question? {
-    val content = row.getCell(0)?.let { f.formatCellValue(it) } ?: ""
-    val rawType = row.getCell(1)?.let { f.formatCellValue(it) } ?: ""
+    val content = row.cellText(0)
+    val rawType = row.cellText(1)
     val parsedOptions = (2..4)
-        .mapNotNull { row.getCell(it)?.let(f::formatCellValue) }
+        .map { row.cellText(it) }
         .filter { it.isNotBlank() }
-    val explanation = row.getCell(5)?.let { f.formatCellValue(it) } ?: ""
-    val answer = row.getCell(6)?.let { f.formatCellValue(it) } ?: ""
+    val explanation = row.cellText(5)
+    val answer = row.cellText(6)
     val type = resolveExcelQuestionType(rawType, answer, content, workbookSuggestsShortAnswer)
     val normalizedContent = if (QuestionTypes.isInlineBlank(type)) {
         normalizeImportedFillContent(content, answer)

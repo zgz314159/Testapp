@@ -12,6 +12,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.unit.dp
+import com.example.testapp.domain.usecase.FileStatistics
 import com.example.testapp.presentation.screen.file.DragDropViewModel
 import com.example.testapp.presentation.screen.home.HomeDashboardPipeline
 import com.example.testapp.presentation.screen.home.HomeEmptyLibraryPanel
@@ -25,6 +26,8 @@ fun HomeScreenLibrarySection(
     displayFileNames: List<String>,
     folderFileCounts: Map<String, Int>,
     folders: Map<String, String?>,
+    fileStatistics: Map<String, FileStatistics>,
+    practiceProgress: Map<String, Int>,
     homeContentReady: Boolean,
     homeLibraryEmptyReason: HomeLibraryEmptyReason?,
     viewModel: HomeViewModel,
@@ -116,11 +119,12 @@ fun HomeScreenLibrarySection(
                         )
                 ) {
                     HomeFileListContainer(
-                        viewModel = viewModel,
                         visibleFolders = if (currentFolder == null) displayFolders else emptyList(),
                         folderFileCounts = folderFileCounts,
                         displayFileNames = if (currentFolder == null) displayFileNames else displayFileNames,
                         folders = folders,
+                        fileStatistics = fileStatistics,
+                        practiceProgress = practiceProgress,
                         enableItemGestures = homeContentReady,
                         preferEagerCompose = !isHomeReturn,
                         selectedFileName = selectedFileName,
@@ -132,7 +136,7 @@ fun HomeScreenLibrarySection(
                         useGridLayout = useGridLayout,
                         // 2026 常见做法：分组文件夹排在散卡之前（Drive/Files 同款信息层级），
                         // 拖拽合并后新文件夹出现在列表顶部、即时可见。
-                        // 根目录：题库卡在前（使用时间倒序），文件夹在后（建立时间升序）
+                        // 根目录：题库卡在前（使用时间倒序），文件夹在后（建立时间倒序，最新在首端）
                         showFilesFirst = true,
                         cardLayout = cardLayout,
                         onFolderClick = onCurrentFolderChange,

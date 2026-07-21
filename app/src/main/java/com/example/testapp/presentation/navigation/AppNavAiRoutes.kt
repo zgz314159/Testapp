@@ -49,11 +49,6 @@ fun NavGraphBuilder.registerAiOverlayRoutes(
             ),
             onBack = onBack,
             onSave = {
-                com.example.testapp.presentation.screen.practice.PracticeJumpDebugLog.analysisSave(
-                    routeIndex = index,
-                    practiceCurrentIndex = sessions.practiceBindings?.currentIndex?.value,
-                    questionId = id,
-                )
                 AppNavAiWritebackPipeline.updateAnalysis(sessions, index, it)
             },
         )
@@ -80,11 +75,6 @@ fun NavGraphBuilder.registerAiOverlayRoutes(
             ),
             onBack = onBack,
             onSave = {
-                com.example.testapp.presentation.screen.practice.PracticeJumpDebugLog.analysisSave(
-                    routeIndex = index,
-                    practiceCurrentIndex = sessions.practiceBindings?.currentIndex?.value,
-                    questionId = id,
-                )
                 AppNavAiWritebackPipeline.updateAnalysis(sessions, index, it)
             },
         )

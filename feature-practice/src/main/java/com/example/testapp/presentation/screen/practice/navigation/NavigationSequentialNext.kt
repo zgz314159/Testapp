@@ -3,7 +3,6 @@ package com.example.testapp.presentation.screen.practice.navigation
 import com.example.testapp.core.session.strategy.navigation.SessionPostAnswerAdvanceRoute
 import com.example.testapp.core.session.strategy.navigation.SessionPracticePostAnswerNavigationPipeline
 import com.example.testapp.domain.model.PracticeSessionState
-import com.example.testapp.presentation.screen.practice.PracticeJumpDebugLog
 
 /** Auto-advance / programmatic nextQuestion after answer reveal. */
 internal class NavigationSequentialNext(
@@ -11,7 +10,6 @@ internal class NavigationSequentialNext(
     private val targets: NavigationTargetNavigator
 ) {
     fun nextQuestion() {
-        PracticeJumpDebugLog.vmNextQuestion(env.sessionState.value.currentIndex)
         val orch = env.effectiveOrchestration()
         val stateBeforeFn = env.sessionState.value
         var currentState = env.history.prepareStateForForwardNavigation(stateBeforeFn)
@@ -105,7 +103,6 @@ internal class NavigationSequentialNext(
             env.findAdjacentDerivedQuestionIndex(currentState, true)?.let { targetIndex ->
                 if (targetIndex != currentState.currentIndex) {
                     env.history.recordRandomNavigationOrigin(currentState.currentIndex, env.randomPracticeEnabled())
-                    PracticeJumpDebugLog.sequentialNextDirectIndex(currentState.currentIndex, targetIndex)
                     env.sessionState.value = currentState.copy(currentIndex = targetIndex)
                     env.scheduleNavigationSave()
                 }

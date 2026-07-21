@@ -1,6 +1,5 @@
 package com.example.testapp.presentation.screen.practice.session
 
-import android.util.Log
 import com.example.testapp.domain.model.PracticeProgress
 import com.example.testapp.domain.model.PracticeSessionState
 import com.example.testapp.domain.model.Question
@@ -56,7 +55,6 @@ class ProgressPersistence(
             ?: getNote(restoredQuestion.id)
 
         if (note.isNotBlank() || savedState?.note?.isNullOrBlank() == false) {
-            Log.d(noteTraceTag, "buildStoredQuestionState: progressId=${progressId()}, questionId=${question.id}, savedNoteLength=${savedState?.note?.length ?: 0}, finalNoteLength=${note.length}")
         }
 
         return QuestionWithState(

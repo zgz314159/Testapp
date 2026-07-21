@@ -9,12 +9,12 @@ import androidx.compose.ui.res.stringResource
 import com.example.testapp.domain.model.Question
 import com.example.testapp.domain.session.SessionCommand
 import com.example.testapp.feature.exam.R
+import com.example.testapp.presentation.screen.ai.AiQuestionEditDialog
 import com.example.testapp.presentation.screen.exam.ExamAutoAdvanceTimer
 import com.example.testapp.presentation.screen.exam.ExamFontController
 import com.example.testapp.presentation.screen.exam.ExternalExamState
 import com.example.testapp.presentation.screen.exam.suspendExamCommand
 import com.example.testapp.presentation.session.exam.ExamScreenBindings
-import com.example.testapp.presentation.screen.ai.AiQuestionEditDialog
 import com.example.testapp.uicommon.component.AnswerCardDisplayInfo
 import com.example.testapp.uicommon.design.QuestionTypographySheet
 import kotlinx.coroutines.CoroutineScope

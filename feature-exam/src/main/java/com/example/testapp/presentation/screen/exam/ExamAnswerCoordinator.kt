@@ -38,7 +38,7 @@ class ExamAnswerCoordinator(
                 }
                 qws.copy(
                     selectedOptions = selected,
-                    sessionAnswerTime = if (qws.sessionAnswerTime == 0L && selected.isNotEmpty()) System.currentTimeMillis().also { ExamPipelineLog.answer(idx, it) } else qws.sessionAnswerTime
+                    sessionAnswerTime = if (qws.sessionAnswerTime == 0L && selected.isNotEmpty()) System.currentTimeMillis() else qws.sessionAnswerTime
                 )
             }
         }
@@ -53,7 +53,7 @@ class ExamAnswerCoordinator(
                 qws.copy(
                     textAnswer = answer,
                     selectedOptions = if (answer.isNotBlank()) listOf(-1) else emptyList(),
-                    sessionAnswerTime = if (qws.sessionAnswerTime == 0L && answer.isNotBlank()) System.currentTimeMillis().also { ExamPipelineLog.answer(idx, it) } else qws.sessionAnswerTime
+                    sessionAnswerTime = if (qws.sessionAnswerTime == 0L && answer.isNotBlank()) System.currentTimeMillis() else qws.sessionAnswerTime
                 )
             }
         }

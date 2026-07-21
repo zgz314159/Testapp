@@ -1,62 +1,24 @@
 package com.example.testapp.presentation.screen.home
 
-import android.os.SystemClock
-import android.os.Trace
-import android.util.Log
-import android.view.Choreographer
-import com.example.testapp.feature.practice.BuildConfig
-import java.util.concurrent.ConcurrentHashMap
-import java.util.concurrent.atomic.AtomicInteger
-
-/** Debug-only diagnostics for cold-start Home scrolling. Filter Logcat with tag `HomePerf`. */
+/**
+ * Compatibility hooks retained at call sites so business code stays unchanged.
+ * Runtime logging, frame sampling, and trace emission have been removed.
+ */
 object HomePerformanceLog {
-    const val TAG = "HomePerf"
+    const val enabled: Boolean = false
 
-    private val cardEntries = AtomicInteger()
-    private val uniqueCards = ConcurrentHashMap.newKeySet<String>()
-    private var sessionStartedNs = SystemClock.elapsedRealtimeNanos()
+    fun resetSession() = Unit
 
-    val enabled: Boolean
-        get() = BuildConfig.DEBUG
+    fun event(@Suppress("UNUSED_PARAMETER") message: String) = Unit
 
-    fun resetSession() {
-        if (!enabled) return
-        sessionStartedNs = SystemClock.elapsedRealtimeNanos()
-        cardEntries.set(0)
-        uniqueCards.clear()
-        event("home_enter thread=${Thread.currentThread().name}")
-    }
+    inline fun <T> measure(
+        @Suppress("UNUSED_PARAMETER") section: String,
+        block: () -> T,
+    ): T = block()
 
-    fun event(message: String) {
-        if (!enabled) return
-        val sinceEnterMs = (SystemClock.elapsedRealtimeNanos() - sessionStartedNs) / 1_000_000f
-        Log.d(TAG, "t=%.1fms %s".format(sinceEnterMs, message))
-    }
+    fun cardEntered(@Suppress("UNUSED_PARAMETER") fileName: String) = Unit
 
-    fun <T> measure(section: String, block: () -> T): T {
-        if (!enabled) return block()
-        val traceName = "Home:$section".take(120)
-        val startedNs = SystemClock.elapsedRealtimeNanos()
-        Trace.beginSection(traceName)
-        return try {
-            block()
-        } finally {
-            Trace.endSection()
-            val durationMs = (SystemClock.elapsedRealtimeNanos() - startedNs) / 1_000_000f
-            event("measure section=$section durationMs=%.2f thread=${Thread.currentThread().name}".format(durationMs))
-        }
-    }
-
-    fun cardEntered(fileName: String) {
-        if (!enabled) return
-        cardEntries.incrementAndGet()
-        uniqueCards.add(fileName)
-    }
-
-    fun cardCounters(): CardCounters = CardCounters(
-        entries = cardEntries.get(),
-        unique = uniqueCards.size,
-    )
+    fun cardCounters(): CardCounters = CardCounters(entries = 0, unique = 0)
 }
 
 data class CardCounters(
@@ -64,72 +26,15 @@ data class CardCounters(
     val unique: Int,
 )
 
-/** Counts skipped-vsync intervals while a Home lazy list is actively scrolling. */
-class HomeScrollFrameMonitor(refreshRateHz: Float) : Choreographer.FrameCallback {
-    private val choreographer = Choreographer.getInstance()
-    private val expectedFrameNs = (1_000_000_000.0 / refreshRateHz.coerceAtLeast(30f)).toLong()
-    private val frameDurationsMs = ArrayList<Float>(240)
-    private var running = false
-    private var startedNs = 0L
-    private var previousFrameNs = 0L
-    private var missedVsyncs = 0
-    private var severeFramesLogged = 0
-    private var countersAtStart = CardCounters(0, 0)
+class HomeScrollFrameMonitor(@Suppress("UNUSED_PARAMETER") refreshRateHz: Float) {
+    fun start(
+        @Suppress("UNUSED_PARAMETER") firstVisible: Int,
+        @Suppress("UNUSED_PARAMETER") lastVisible: Int,
+        @Suppress("UNUSED_PARAMETER") totalItems: Int,
+    ) = Unit
 
-    fun start(firstVisible: Int, lastVisible: Int, totalItems: Int) {
-        if (!HomePerformanceLog.enabled || running) return
-        running = true
-        startedNs = SystemClock.elapsedRealtimeNanos()
-        previousFrameNs = 0L
-        missedVsyncs = 0
-        severeFramesLogged = 0
-        frameDurationsMs.clear()
-        countersAtStart = HomePerformanceLog.cardCounters()
-        HomePerformanceLog.event(
-            "scroll_start visible=$firstVisible..$lastVisible total=$totalItems " +
-                "expectedFrameMs=${"%.2f".format(expectedFrameNs / 1_000_000f)}",
-        )
-        choreographer.postFrameCallback(this)
-    }
-
-    fun stop(firstVisible: Int, lastVisible: Int) {
-        if (!running) return
-        running = false
-        choreographer.removeFrameCallback(this)
-        val elapsedMs = (SystemClock.elapsedRealtimeNanos() - startedNs) / 1_000_000f
-        val sorted = frameDurationsMs.sorted()
-        val p95 = sorted.getOrNull((sorted.size * 0.95f).toInt().coerceAtMost(sorted.lastIndex)) ?: 0f
-        val max = sorted.lastOrNull() ?: 0f
-        val slowFrames = sorted.count { it > expectedFrameNs / 1_000_000f * 1.5f }
-        val severeFrames = sorted.count { it > expectedFrameNs / 1_000_000f * 2.5f }
-        val counters = HomePerformanceLog.cardCounters()
-        HomePerformanceLog.event(
-            "scroll_end visible=$firstVisible..$lastVisible durationMs=${"%.1f".format(elapsedMs)} " +
-                "frames=${sorted.size} slow=$slowFrames severe=$severeFrames missedVsyncs=$missedVsyncs " +
-                "p95Ms=${"%.2f".format(p95)} maxMs=${"%.2f".format(max)} " +
-                "cardEntriesDelta=${counters.entries - countersAtStart.entries} " +
-                "uniqueCardsDelta=${counters.unique - countersAtStart.unique}",
-        )
-    }
-
-    override fun doFrame(frameTimeNanos: Long) {
-        if (!running) return
-        if (previousFrameNs != 0L) {
-            val durationNs = frameTimeNanos - previousFrameNs
-            val durationMs = durationNs / 1_000_000f
-            frameDurationsMs += durationMs
-            val skipped = (((durationNs + expectedFrameNs / 2) / expectedFrameNs).toInt() - 1).coerceAtLeast(0)
-            missedVsyncs += skipped
-            if (durationNs > expectedFrameNs * 5 / 2 && severeFramesLogged < 6) {
-                severeFramesLogged++
-                val counters = HomePerformanceLog.cardCounters()
-                HomePerformanceLog.event(
-                    "severe_frame durationMs=${"%.2f".format(durationMs)} skipped=$skipped " +
-                        "cardEntries=${counters.entries} uniqueCards=${counters.unique}",
-                )
-            }
-        }
-        previousFrameNs = frameTimeNanos
-        choreographer.postFrameCallback(this)
-    }
+    fun stop(
+        @Suppress("UNUSED_PARAMETER") firstVisible: Int,
+        @Suppress("UNUSED_PARAMETER") lastVisible: Int,
+    ) = Unit
 }

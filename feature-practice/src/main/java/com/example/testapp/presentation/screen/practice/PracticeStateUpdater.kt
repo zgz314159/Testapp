@@ -57,18 +57,8 @@ class PracticeStateUpdater(
         val richer = com.example.testapp.data.network.deepseek.DeepSeekAskLoadSeedPipeline
             .resolvePreferStructured(current, text)
         if (current == richer) {
-            com.example.testapp.data.network.deepseek.DeepSeekAskPersistDebugLog.d(
-                "StateUpdater.updateAnalysis",
-                "index=$index SKIP equal/prefer ${com.example.testapp.data.network.deepseek.DeepSeekAskPersistDebugLog.meta(richer)}",
-            )
             return
         }
-        com.example.testapp.data.network.deepseek.DeepSeekAskPersistDebugLog.d(
-            "StateUpdater.updateAnalysis",
-            "index=$index before.${com.example.testapp.data.network.deepseek.DeepSeekAskPersistDebugLog.meta(current)} " +
-                "incoming.${com.example.testapp.data.network.deepseek.DeepSeekAskPersistDebugLog.meta(text)} " +
-                "keep.${com.example.testapp.data.network.deepseek.DeepSeekAskPersistDebugLog.meta(richer)}",
-        )
         sessionState.value = sessionState.value.updateAt(index) { it.copy(analysis = richer) }
         saveProgress()
     }

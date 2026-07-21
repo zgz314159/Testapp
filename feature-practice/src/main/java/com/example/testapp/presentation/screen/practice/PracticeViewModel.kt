@@ -1,5 +1,4 @@
 ﻿package com.example.testapp.presentation.screen.practice
-import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.testapp.core.common.FontSettingsRepository
@@ -180,11 +179,6 @@ class PracticeViewModel @Inject constructor(
             _sessionState.collect { state ->
                 val cur = state.currentIndex
                 if (cur != prevIndex) {
-                    PracticeJumpDebugLog.sessionIndexMutation(
-                        prevIndex,
-                        cur,
-                        Exception().stackTraceToString().take(1200)
-                    )
                     prevIndex = cur
                 }
             }
@@ -224,31 +218,18 @@ class PracticeViewModel @Inject constructor(
     }
     fun nextQuestion() {
         if (reviewCoordinator.tryNavigateReviewBrowse(1)) return
-        PracticeJumpDebugLog.vmNextQuestion(_sessionState.value.currentIndex)
         navigationCoordinator.nextQuestion()
     }
     fun prevQuestionViaIcon(): UnansweredNavResult {
         if (reviewCoordinator.tryNavigateReviewBrowse(-1)) return UnansweredNavResult.Navigated
         val idx = _sessionState.value.currentIndex
         val qws = _sessionState.value.questionsWithState.getOrNull(idx)
-        PracticeFullAnswerIconNavDebugLog.tapEntry(
-            forward = false,
-            source = "VM.prevQuestionViaIcon",
-            detail = "idx=$idx fullAnswer=$isFullAnswerMode textLen=${qws?.textAnswer?.length ?: 0} " +
-                "showResult=${qws?.showResult} id=${_sessionState.value.questions.getOrNull(idx)?.id}"
-        )
         return navigationCoordinator.prevQuestionViaIcon()
     }
     fun nextQuestionViaIcon(): UnansweredNavResult {
         if (reviewCoordinator.tryNavigateReviewBrowse(1)) return UnansweredNavResult.Navigated
         val idx = _sessionState.value.currentIndex
         val qws = _sessionState.value.questionsWithState.getOrNull(idx)
-        PracticeFullAnswerIconNavDebugLog.tapEntry(
-            forward = true,
-            source = "VM.nextQuestionViaIcon",
-            detail = "idx=$idx fullAnswer=$isFullAnswerMode textLen=${qws?.textAnswer?.length ?: 0} " +
-                "showResult=${qws?.showResult} id=${_sessionState.value.questions.getOrNull(idx)?.id}"
-        )
         return navigationCoordinator.nextQuestionViaIcon()
     }
     fun prevQuestionViaIconDoubleClick(): Boolean =
@@ -273,25 +254,16 @@ class PracticeViewModel @Inject constructor(
     fun browseAnsweredHistoryOlder(): AnsweredHistoryBackwardResult {
         reviewCoordinator.browseAnsweredHistoryOlder()?.let { return it }
         val result = navigationCoordinator.browseAnsweredHistoryOlder()
-        android.util.Log.d(
-            "PracticeHistorySwipe",
-            "VM.browseOlder | idx=${_sessionState.value.currentIndex} | fullAnswer=$isFullAnswerMode | result=$result"
-        )
         return result
     }
     fun browseAnsweredHistoryNewer(): AnsweredHistoryForwardResult {
         reviewCoordinator.browseAnsweredHistoryNewer()?.let { return it }
         val result = navigationCoordinator.browseAnsweredHistoryNewer()
-        android.util.Log.d(
-            "PracticeHistorySwipe",
-            "VM.browseNewer | idx=${_sessionState.value.currentIndex} | fullAnswer=$isFullAnswerMode | inHistory=${navigationCoordinator.isInAnsweredHistory} | result=$result"
-        )
         return result
     }
     fun goToQuestion(index: Int, source: String = "goToQuestion") {
         val from = _sessionState.value.currentIndex
         if (from != index) {
-            PracticeJumpDebugLog.vmGoToQuestion(from, index, source)
         }
         navigationCoordinator.goToQuestion(index)
     }

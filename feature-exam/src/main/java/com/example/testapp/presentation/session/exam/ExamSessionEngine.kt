@@ -6,7 +6,6 @@ import com.example.testapp.core.session.NavigationSaveScheduler
 import com.example.testapp.domain.model.PracticeSessionState
 import com.example.testapp.domain.model.Question
 import com.example.testapp.domain.model.UnifiedQuestionState
-import com.example.testapp.domain.model.updateAt
 import com.example.testapp.domain.session.QuestionSessionKind
 import com.example.testapp.domain.session.persistence.SessionPersistenceContext
 import com.example.testapp.presentation.screen.exam.*
@@ -170,7 +169,9 @@ class ExamSessionEngine(
                     editableQuestion = _editableQuestion,
                     persistentQuestionStateMap = persistentQuestionStateMap,
                     editedQuestionSnapshotMap = editedQuestionSnapshotMap,
-                    buildExamQuestionState = ::buildExamQuestionState,
+                    buildExamQuestionState = { index ->
+                        ExamQuestionStatePipeline.toUnified(_sessionState.value, index)
+                    },
                     fullAnswerModeActiveNow = ::fullAnswerModeActiveNow,
                     initializeMemoryModeIfNeeded = ::initializeMemoryModeIfNeeded,
                     applyConfiguredFillQuestions = ::applyConfiguredFillQuestions,
@@ -215,23 +216,6 @@ class ExamSessionEngine(
             persistentQuestionStateMap = persistentQuestionStateMap,
             initializeMemoryModeIfNeeded = ::initializeMemoryModeIfNeeded,
             loadProgress = ::loadProgress,
-        )
-    }
-
-    private fun buildExamQuestionState(idx: Int): UnifiedQuestionState {
-        val qws =
-            _sessionState.value.questionsWithState.getOrNull(idx)
-                ?: return UnifiedQuestionState(questionId = -1)
-        return UnifiedQuestionState(
-            questionId = qws.question.id,
-            selectedOptions = qws.selectedOptions,
-            textAnswer = qws.textAnswer,
-            showResult = qws.showResult,
-            analysis = qws.analysis,
-            sparkAnalysis = qws.sparkAnalysis,
-            baiduAnalysis = qws.baiduAnalysis,
-            note = qws.note,
-            answerTime = qws.sessionAnswerTime,
         )
     }
 
@@ -326,26 +310,12 @@ class ExamSessionEngine(
     override fun nextQuestionViaIconDoubleClick(): Boolean = navigationDelegate.nextQuestionViaIconDoubleClick()
 
     override fun retryCurrentQuestion(index: Int) {
-        _sessionState.update { s ->
-            if (index !in s.questionsWithState.indices) return@update s
-            val updated =
-                s.questionsWithState.mapIndexed { idx, qws ->
-                    if (idx == index) ExamQuestionRetryPipeline.reopenCurrent(qws) else qws
-                }
-            s.copy(questionsWithState = updated, currentIndex = index, finished = false)
-        }
+        _sessionState.update { ExamQuestionStatePipeline.retryCurrent(it, index) }
         scope.launch { saveProgressInternal() }
     }
 
     override fun retryWrongFillBlanks(index: Int) {
-        _sessionState.update { s ->
-            if (index !in s.questionsWithState.indices) return@update s
-            val updated =
-                s.questionsWithState.mapIndexed { idx, qws ->
-                    if (idx == index) ExamQuestionRetryPipeline.reopenWrongBlanks(qws) else qws
-                }
-            s.copy(questionsWithState = updated, currentIndex = index, finished = false)
-        }
+        _sessionState.update { ExamQuestionStatePipeline.retryWrongFillBlanks(it, index) }
         scope.launch { saveProgressInternal() }
     }
 
@@ -367,37 +337,23 @@ class ExamSessionEngine(
 
     override fun skipToAdjacentSource(forward: Boolean) = navigationDelegate.skipToAdjacentSource(forward)
 
-    override fun loadQuestions(
-        quizId: String,
-        count: Int,
-        random: Boolean,
-    ) {
+    override fun loadQuestions(quizId: String, count: Int, random: Boolean) {
         quizIdInternal = quizId
         deps.loadDelegate.loadNormalExam(quizId, count, random)
     }
 
-    override fun loadWrongQuestions(
-        fileName: String,
-        count: Int,
-        random: Boolean,
-    ) {
+    override fun loadWrongQuestions(fileName: String, count: Int, random: Boolean) {
         quizIdInternal = fileName
         deps.loadDelegate.loadWrongExam(fileName, count, random)
     }
 
-    override fun loadFavoriteQuestions(
-        fileName: String,
-        count: Int,
-        random: Boolean,
-    ) {
+    override fun loadFavoriteQuestions(fileName: String, count: Int, random: Boolean) {
         quizIdInternal = fileName
         deps.loadDelegate.loadFavoriteExam(fileName, count, random)
     }
 
-    override fun selectOption(
-        option: Int,
-        skipAfterChanged: Boolean,
-    ) = answerCoordinator.selectOption(option, skipAfterChanged)
+    override fun selectOption(option: Int, skipAfterChanged: Boolean) =
+        answerCoordinator.selectOption(option, skipAfterChanged)
 
     override fun updateTextAnswer(answer: String) = answerCoordinator.updateTextAnswer(answer)
 
@@ -405,10 +361,8 @@ class ExamSessionEngine(
 
     override fun clearEditableQuestion() = editCoordinator.clearEditableQuestion()
 
-    fun normalizeEditedSelectedOptions(
-        sel: List<Int>,
-        q: Question,
-    ) = editCoordinator.normalizeEditedSelectedOptions(sel, q)
+    fun normalizeEditedSelectedOptions(sel: List<Int>, q: Question) =
+        editCoordinator.normalizeEditedSelectedOptions(sel, q)
 
     override fun saveEditedQuestion(
         index: Int,
@@ -448,15 +402,7 @@ class ExamSessionEngine(
         index: Int,
         value: Boolean,
     ) {
-        _sessionState.update { s ->
-            s.updateAt(index) { qws ->
-                if (value && qws.sessionAnswerTime == 0L) {
-                    qws.copy(showResult = true, sessionAnswerTime = System.currentTimeMillis())
-                } else {
-                    qws.copy(showResult = value)
-                }
-            }
-        }
+        _sessionState.update { ExamQuestionStatePipeline.updateShowResult(it, index, value) }
         saveProgress()
     }
 

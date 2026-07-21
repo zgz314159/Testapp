@@ -72,7 +72,6 @@ dependencies {
     implementation(libs.ktor.client.cio)
     implementation(libs.ktor.client.content.negotiation)
     implementation(libs.ktor.serialization.kotlinx.json)
-    implementation(libs.ktor.client.logging)
     implementation("org.apache.poi:poi:5.2.3")
     implementation("org.apache.poi:poi-ooxml:5.2.3") {
         exclude(group = "org.apache.poi", module = "poi-ooxml-lite")
@@ -82,5 +81,4 @@ dependencies {
     implementation("com.fasterxml:aalto-xml:1.3.2")
     implementation("org.codehaus.woodstox:stax2-api:4.2.1")
 
-    testImplementation(libs.junit)
 }

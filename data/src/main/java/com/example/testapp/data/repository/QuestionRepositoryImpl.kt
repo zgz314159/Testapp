@@ -64,6 +64,9 @@ class QuestionRepositoryImpl @Inject constructor(
     private val metadataManager: MetadataManager,
     private val markdownNormalizer: MarkdownNormalizer,
 ) : QuestionRepository {
+    private companion object {
+        const val IMPORT_INSERT_BATCH_SIZE = 500
+    }
 
     override fun getQuestions(): Flow<List<Question>> =
         dao.getAll().map { list -> metadataManager.overlayEditedFlags(list.map { it.toDomain() }) }
@@ -180,18 +183,27 @@ class QuestionRepositoryImpl @Inject constructor(
                 throw LocalizedException(IOConstants.IMPORT_FAILED_PARSE_KEY, listOf(e.message ?: ""))
             }
 
-            val questions = importedPayloads.map { it.question }
+            if (importedPayloads.isEmpty()) {
+                throw LocalizedException(IOConstants.IMPORT_FAILED_NO_VALID_QUESTIONS_KEY)
+            }
 
-            if (questions.isEmpty()) throw LocalizedException(IOConstants.IMPORT_FAILED_NO_VALID_QUESTIONS_KEY)
-
-            insertAll(questions)
+            insertImportedQuestions(importedPayloads)
             persistImportedSupplementalData(originFileName, importedPayloads)
             knownFileNames.add(originFileName)
-            total += questions.size
+            total += importedPayloads.size
         }
 
         if (duplicateFiles.isNotEmpty()) throw LocalizedException(IOConstants.IMPORT_FAILED_DUPLICATE_FILES_KEY, duplicateFiles)
         return total
+    }
+
+    private suspend fun insertImportedQuestions(payloads: List<ImportedQuestionPayload>) {
+        database.withTransaction {
+            payloads.asSequence()
+                .map { it.question.toEntity() }
+                .chunked(IMPORT_INSERT_BATCH_SIZE)
+                .forEach { batch -> dao.insertAll(batch) }
+        }
     }
 
     override suspend fun importFromFiles(files: List<File>): Int =

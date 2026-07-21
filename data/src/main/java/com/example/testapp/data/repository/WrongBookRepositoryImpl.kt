@@ -13,6 +13,7 @@ import com.example.testapp.domain.model.WrongQuestion
 import com.example.testapp.domain.repository.WrongBookRepository
 import com.example.testapp.domain.util.extractSourceQuestionId
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.firstOrNull
@@ -37,6 +38,7 @@ class WrongBookRepositoryImpl @Inject constructor(
     private companion object {
         // Export headers centralized in ExportConstants
     }
+    @OptIn(ExperimentalCoroutinesApi::class)
     override fun getAll(): Flow<List<WrongQuestion>> =
         dao.getAll().transformLatest { wrongEntities ->
             emit(resolveWrongQuestions(wrongEntities))

@@ -35,14 +35,6 @@ object AnsweredHistorySwipeNavigator {
             )
         val orderedIndices = browseContext.orderedIndices
         if (orderedIndices.isEmpty()) {
-            NavigationHistoryDebugLog.logSwipe(
-                "swipeRight",
-                currentState,
-                currentNavMode as? AnsweredHistoryNavigationState.Active,
-                null,
-                "NoMoreHistory",
-                { state, index -> answerTimeAt(history, state, index) },
-            )
             return AnsweredHistoryBackwardResult.NoMoreHistory
         }
 
@@ -63,18 +55,6 @@ object AnsweredHistorySwipeNavigator {
                     currentIndex = currentIndex,
                     inActiveHistoryMode = browseContext.inActiveHistoryMode,
                 )
-            NavigationHistoryDebugLog.logSwipe(
-                "swipeRight",
-                currentState,
-                currentNavMode as? AnsweredHistoryNavigationState.Active,
-                null,
-                if (stop == SessionAnsweredHistoryBrowsePipeline.BackwardStop.AtOldestAnswered) {
-                    "AtOldest"
-                } else {
-                    "NoMoreHistory"
-                },
-                { state, index -> answerTimeAt(history, state, index) },
-            )
             return when (stop) {
                 SessionAnsweredHistoryBrowsePipeline.BackwardStop.AtOldestAnswered ->
                     AnsweredHistoryBackwardResult.AtOldestAnswered
@@ -114,14 +94,6 @@ object AnsweredHistorySwipeNavigator {
                 onUpdateSession,
             )
         }
-        NavigationHistoryDebugLog.logSwipe(
-            "swipeRight",
-            currentState,
-            history.navigationState.mode as? AnsweredHistoryNavigationState.Active,
-            targetIndex,
-            "Navigated",
-            { state, index -> answerTimeAt(history, state, index) },
-        )
         onSaveProgress()
         return AnsweredHistoryBackwardResult.Navigated
     }
@@ -150,14 +122,6 @@ object AnsweredHistorySwipeNavigator {
             )
         val orderedIndices = browseContext.orderedIndices
         if (orderedIndices.isEmpty()) {
-            NavigationHistoryDebugLog.logSwipe(
-                "swipeLeft",
-                currentState,
-                currentNavMode as? AnsweredHistoryNavigationState.Active,
-                null,
-                "NotInHistory",
-                { state, index -> answerTimeAt(history, state, index) },
-            )
             return AnsweredHistoryForwardResult.NotInHistory
         }
 
@@ -175,24 +139,8 @@ object AnsweredHistorySwipeNavigator {
             if (SessionAnsweredHistoryCommitPipeline.shouldResumeLiveOnForwardMiss(browseContext.inActiveHistoryMode)) {
                 onUpdateSession(history.resumeFromAnsweredHistory(currentState))
                 onSaveProgress()
-                NavigationHistoryDebugLog.logSwipe(
-                    "swipeLeft",
-                    currentState,
-                    currentNavMode as? AnsweredHistoryNavigationState.Active,
-                    null,
-                    "ResumeLive",
-                    { state, index -> answerTimeAt(history, state, index) },
-                )
                 return AnsweredHistoryForwardResult.Navigated
             }
-            NavigationHistoryDebugLog.logSwipe(
-                "swipeLeft",
-                currentState,
-                null,
-                null,
-                "AtLatest",
-                { state, index -> answerTimeAt(history, state, index) },
-            )
             return AnsweredHistoryForwardResult.AtLatestAnswered
         }
 
@@ -205,14 +153,6 @@ object AnsweredHistorySwipeNavigator {
             browseContext.anchorPoolIndices,
             isQuestionAnswered,
             onUpdateSession,
-        )
-        NavigationHistoryDebugLog.logSwipe(
-            "swipeLeft",
-            currentState,
-            history.navigationState.mode as? AnsweredHistoryNavigationState.Active,
-            targetIndex,
-            "Navigated",
-            { state, index -> answerTimeAt(history, state, index) },
         )
         onSaveProgress()
         return AnsweredHistoryForwardResult.Navigated

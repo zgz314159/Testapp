@@ -1,6 +1,5 @@
 package com.example.testapp.presentation.screen.practice
 
-import android.util.Log
 import com.example.testapp.core.util.extractSourceQuestionId
 import com.example.testapp.domain.model.Question
 
@@ -54,11 +53,6 @@ object PracticeFullAnswerUnansweredSourceNavigation {
         }
         val incomplete = candidateEntries.filter(isSourceIncomplete)
         val picked = if (randomOrder) incomplete.randomOrNull(random) else incomplete.firstOrNull()
-        Log.d(
-            TAG,
-            "resolveUnansweredSource | forward=$forward | currentIdx=$currentIndex | " +
-                "entryPos=$currentEntryPos | candidates=$candidateEntries | incomplete=$incomplete | picked=$picked"
-        )
         return picked
     }
 }

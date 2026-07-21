@@ -12,10 +12,6 @@ object SessionAnalysisInlineDisplayPipeline {
             val display = DeepSeekAskDisplayPipeline.fromTurns(
                 DeepSeekAskPersistFormatPipeline.decode(questionStem, trimmed)
             ).ifBlank { trimmed }
-            DeepSeekAskPersistDebugLog.d(
-                "Inline.toDisplay",
-                "in.${DeepSeekAskPersistDebugLog.meta(trimmed)} out.${DeepSeekAskPersistDebugLog.meta(display)}",
-            )
             return display
         }
         return trimmed

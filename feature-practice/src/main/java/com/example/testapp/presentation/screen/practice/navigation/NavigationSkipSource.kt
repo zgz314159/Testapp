@@ -1,7 +1,6 @@
 package com.example.testapp.presentation.screen.practice.navigation
 
 import com.example.testapp.core.util.FullAnswerMultiRoundSessionPipeline
-import com.example.testapp.presentation.screen.practice.PracticeFullAnswerIconNavDebugLog
 import com.example.testapp.presentation.screen.practice.PracticeFullAnswerRoundSlotPendingPipeline
 import com.example.testapp.presentation.screen.practice.PracticeFullAnswerSourcePendingPipeline
 import com.example.testapp.presentation.screen.practice.PracticeFullAnswerSourceTouchPipeline
@@ -40,7 +39,6 @@ internal class NavigationSkipSource(
         forceCrossSource: Boolean = false
     ): SkipUnansweredSourceResult {
         if (!env.fullAnswerModeActive()) {
-            PracticeFullAnswerIconNavDebugLog.branch(forward, "skipSource", "rejected fullAnswerInactive")
             return if (forward) SkipUnansweredSourceResult.NoNextSource
             else SkipUnansweredSourceResult.NoPrevSource
         }
@@ -69,7 +67,6 @@ internal class NavigationSkipSource(
                     requireCorrect
                 )
             }
-            PracticeFullAnswerIconNavDebugLog.skipSourceBlocked(forward, pending)
             return if (forward) SkipUnansweredSourceResult.NoNextSource
             else SkipUnansweredSourceResult.NoPrevSource
         }
@@ -98,16 +95,13 @@ internal class NavigationSkipSource(
             state.questions, entryIndex, isPendingAt
         )
         if (targetIndex == null) {
-            PracticeFullAnswerIconNavDebugLog.skipSourceAttempt(forward, entryIndex, null)
             return if (forward) SkipUnansweredSourceResult.NoNextSource
             else SkipUnansweredSourceResult.NoPrevSource
         }
 
         env.history.clearAnsweredHistoryNavigation()
         targets.navigateToQuestion(targetIndex, reopenWrongFullAnswerRetry = true)
-        PracticeFullAnswerIconNavDebugLog.skipSourceAttempt(forward, entryIndex, targetIndex)
         if (forceCrossSource) {
-            PracticeFullAnswerIconNavDebugLog.branch(forward, "skipSource", "forceCrossSource=true")
         }
         return SkipUnansweredSourceResult.Navigated
     }

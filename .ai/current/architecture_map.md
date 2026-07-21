@@ -20,7 +20,6 @@ Android quiz/practice app: import question files, practice and exam modes, wrong
  └── :data → :domain
 
 :feature-practice, :feature-exam, :ui-common, :core  (stubs — not primary homes for features yet)
-:baseline-profile  (performance baseline)
 ```
 
 **Rule:** `domain` has no project dependencies. `data` implements domain repositories. `app` hosts UI, ViewModels, DI modules, and most use-case wiring today.

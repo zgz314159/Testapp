@@ -20,6 +20,7 @@ import com.example.testapp.uicommon.design.AppSpacing
 @Composable
 fun SettingsImportProgressOverlay(
     isLoading: Boolean,
+    isExporting: Boolean,
     importProgress: Float,
     fontSize: Float,
     onCancel: () -> Unit
@@ -28,7 +29,7 @@ fun SettingsImportProgressOverlay(
         AppLoadingIndicator()
         Spacer(modifier = Modifier.height(AppSpacing.md))
         Text(
-            stringResource(R.string.importing_quiz),
+            stringResource(if (isExporting) R.string.exporting_quiz else R.string.importing_quiz),
             style = MaterialTheme.typography.bodyLarge.copy(
                 fontSize = fontSize.sp,
                 fontFamily = LocalFontFamily.current

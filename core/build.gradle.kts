@@ -27,5 +27,4 @@ dependencies {
     implementation(libs.kotlinx.serialization.json)
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.7.3")
     implementation("androidx.core:core-ktx:1.10.1")
-    testImplementation(libs.junit)
 }

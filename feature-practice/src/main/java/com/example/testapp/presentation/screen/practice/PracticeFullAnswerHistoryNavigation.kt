@@ -1,6 +1,5 @@
 package com.example.testapp.presentation.screen.practice
 
-import android.util.Log
 import com.example.testapp.core.util.extractSourceQuestionId
 import com.example.testapp.domain.model.Question
 
@@ -93,6 +92,5 @@ object PracticeFullAnswerHistoryNavigation {
     }
 
     fun logStep(step: String, data: Map<String, Any?>) {
-        Log.d(TAG, "$step | ${data.entries.joinToString { "${it.key}=${it.value}" }}")
     }
 }

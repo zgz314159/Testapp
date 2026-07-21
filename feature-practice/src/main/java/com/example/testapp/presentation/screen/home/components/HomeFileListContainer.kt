@@ -1,23 +1,24 @@
 package com.example.testapp.presentation.screen.home.components
 
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.unit.IntSize
-import com.example.testapp.presentation.screen.home.HomeViewModel
+import com.example.testapp.domain.usecase.FileStatistics
+import com.example.testapp.presentation.screen.home.HomeDashboardPipeline
+import com.example.testapp.presentation.screen.home.HomePerformanceLog
 import com.example.testapp.presentation.screen.home.model.HomeQuestionBankCardModelPipeline
 
 @Composable
 fun HomeFileListContainer(
-    viewModel: HomeViewModel,
     visibleFolders: List<String>,
     folderFileCounts: Map<String, Int>,
     displayFileNames: List<String>,
     folders: Map<String, String?>,
+    fileStatistics: Map<String, FileStatistics>,
+    practiceProgress: Map<String, Int>,
     enableItemGestures: Boolean,
     preferEagerCompose: Boolean = true,
     selectedFileName: String,
@@ -27,7 +28,7 @@ fun HomeFileListContainer(
     hoverFile: String?,
     useGridLayout: Boolean = false,
     showFilesFirst: Boolean = true,
-    cardLayout: com.example.testapp.presentation.screen.home.HomeDashboardPipeline.QuestionBankCardLayout,
+    cardLayout: HomeDashboardPipeline.QuestionBankCardLayout,
     onFolderClick: (String) -> Unit,
     onFolderLongPress: (String) -> Unit,
     onDeleteFolderClick: (String) -> Unit,
@@ -43,19 +44,20 @@ fun HomeFileListContainer(
     onFileCtaClick: ((String) -> Unit)? = null,
     headerContent: @Composable () -> Unit = {},
     showHeader: Boolean = true,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
 ) {
-    val homeContent by viewModel.contentState.collectAsState()
     val fileCards = remember(
         displayFileNames,
-        homeContent.fileStatistics,
-        homeContent.practiceProgress,
+        fileStatistics,
+        practiceProgress,
     ) {
-        HomeQuestionBankCardModelPipeline.buildList(
-            fileNames = displayFileNames,
-            fileStatistics = homeContent.fileStatistics,
-            practiceProgress = homeContent.practiceProgress,
-        )
+        HomePerformanceLog.measure("cardModelBuild n=${displayFileNames.size}") {
+            HomeQuestionBankCardModelPipeline.buildList(
+                fileNames = displayFileNames,
+                fileStatistics = fileStatistics,
+                practiceProgress = practiceProgress,
+            )
+        }
     }
 
     HomeFileList(
@@ -88,6 +90,6 @@ fun HomeFileListContainer(
         onFileCtaClick = onFileCtaClick,
         headerContent = headerContent,
         showHeader = showHeader,
-        modifier = modifier
+        modifier = modifier,
     )
 }

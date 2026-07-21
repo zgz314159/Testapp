@@ -4,8 +4,6 @@ import com.example.testapp.core.session.strategy.navigation.SessionNavigationHis
 import com.example.testapp.domain.model.PracticeSessionState
 import com.example.testapp.domain.model.QuestionWithState
 import com.example.testapp.domain.session.navigation.SessionNavigationOrchestration
-import com.example.testapp.presentation.screen.practice.PracticeFullAnswerIconNavDebugLog
-import com.example.testapp.presentation.screen.practice.PracticeJumpDebugLog
 import com.example.testapp.presentation.screen.practice.SkipUnansweredSourceResult
 import com.example.testapp.presentation.screen.practice.UnansweredNavResult
 import kotlinx.coroutines.CoroutineScope
@@ -76,22 +74,12 @@ class NavigationController(
 
     fun nextQuestionViaIconDoubleClick(): Boolean {
         if (!env.fullAnswerModeActive()) return false
-        PracticeFullAnswerIconNavDebugLog.tapEntry(
-            forward = true,
-            source = "VM.nextQuestionViaIconDoubleClick",
-            detail = "forceCrossSource=true"
-        )
         return skipSource.skipToUnansweredSource(forward = true, forceCrossSource = true) ==
             SkipUnansweredSourceResult.Navigated
     }
 
     fun prevQuestionViaIconDoubleClick(): Boolean {
         if (!env.fullAnswerModeActive()) return false
-        PracticeFullAnswerIconNavDebugLog.tapEntry(
-            forward = false,
-            source = "VM.prevQuestionViaIconDoubleClick",
-            detail = "forceCrossSource=true"
-        )
         return skipSource.skipToUnansweredSource(forward = false, forceCrossSource = true) ==
             SkipUnansweredSourceResult.Navigated
     }
@@ -144,7 +132,6 @@ class NavigationController(
                 env.reopenQuestionForPendingRetry(index)
             } else {
                 _sessionState.value = currentState.copy(currentIndex = index)
-                PracticeJumpDebugLog.navControllerGoTo(fromIndex = currentState.currentIndex, toIndex = index)
                 env.scheduleNavigationSave()
             }
         }

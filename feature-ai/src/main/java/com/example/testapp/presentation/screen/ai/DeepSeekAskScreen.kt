@@ -13,7 +13,6 @@ import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
-import com.example.testapp.data.network.deepseek.DeepSeekAskPersistDebugLog
 import com.example.testapp.data.network.deepseek.DeepSeekExamAnchor
 import com.example.testapp.feature.ai.R
 import com.example.testapp.uicommon.component.ActionModeTextToolbar
@@ -72,14 +71,6 @@ fun DeepSeekAskScreen(
 
     var loadedQuestionId by remember { mutableStateOf<Int?>(null) }
     LaunchedEffect(questionId, text, seedAnalysis) {
-        DeepSeekAskPersistDebugLog.d(
-            "UI.LaunchedEffect",
-            "qId=$questionId routeIdx=$index loadedQ=$loadedQuestionId " +
-                "seed.${DeepSeekAskPersistDebugLog.meta(seedAnalysis)} " +
-                "seedPreview=${DeepSeekAskPersistDebugLog.preview(seedAnalysis)} " +
-                "routeText=${DeepSeekAskPersistDebugLog.preview(text, 48)} " +
-                "turnsBefore=${chatTurns.size}",
-        )
         if (loadedQuestionId != questionId) {
             viewModel.reset()
             viewModel.setExamAnchor(examAnchor)
@@ -89,11 +80,6 @@ fun DeepSeekAskScreen(
             viewModel.setExamAnchor(examAnchor)
         }
         val saved = viewModel.loadSaved(questionId, text, seedDisplay = seedAnalysis)
-        DeepSeekAskPersistDebugLog.d(
-            "UI.afterLoad",
-            "qId=$questionId savedNull=${saved.isNullOrBlank()} " +
-                "turnsAfter will recompose; display=${DeepSeekAskPersistDebugLog.preview(saved)}",
-        )
         if (!saved.isNullOrBlank()) {
             inputText = ""
         } else if (loadedQuestionId == questionId && inputText.isBlank()) {
@@ -111,7 +97,6 @@ fun DeepSeekAskScreen(
                 parseFailedKeyword = parseFailedKeyword,
             ) -> showSaveDialog = true
             else -> {
-                AiAnalysisDebugLog.aiPopBack(index, saved = false)
                 onBack()
             }
         }
@@ -164,31 +149,16 @@ fun DeepSeekAskScreen(
         dismissLabel = dontSaveText,
         onSave = {
             saveScope.launch {
-                DeepSeekAskPersistDebugLog.d(
-                    "UI.saveClick",
-                    "qId=$questionId routeIdx=$index turns=${chatTurns.size} " +
-                        "display.${DeepSeekAskPersistDebugLog.meta(displayText)}",
-                )
                 val saved = viewModel.saveAndWait(questionId, displayText)
-                DeepSeekAskPersistDebugLog.d(
-                    "UI.saveResult",
-                    "qId=$questionId ok=${saved != null} writeback.${DeepSeekAskPersistDebugLog.meta(saved)}",
-                )
                 if (saved != null) {
-                    AiAnalysisDebugLog.analysisSave(index, null, questionId)
                     onSave(saved)
-                    DeepSeekAskPersistDebugLog.d("UI.writeback.dispatched", "qId=$questionId routeIdx=$index")
-                } else {
-                    DeepSeekAskPersistDebugLog.w("UI.writeback.skipped", "qId=$questionId saved=null")
                 }
                 showSaveDialog = false
-                AiAnalysisDebugLog.aiPopBack(index, saved = saved != null)
                 onBack()
             }
         },
         onDiscardAndLeave = {
             showSaveDialog = false
-            AiAnalysisDebugLog.aiPopBack(index, saved = false)
             onBack()
         },
         onCloseDialogOnly = { showSaveDialog = false },

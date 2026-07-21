@@ -1,8 +1,6 @@
 package com.example.testapp.presentation.screen.practice.navigation
 
 import com.example.testapp.core.util.FullAnswerIconNavigationStrategyPipeline
-import com.example.testapp.core.util.FullAnswerMultiRoundSessionPipeline
-import com.example.testapp.presentation.screen.practice.PracticeFullAnswerIconNavDebugLog
 import com.example.testapp.presentation.screen.practice.PracticeFullAnswerIconUnansweredPipeline
 import com.example.testapp.presentation.screen.practice.PracticeFullAnswerRoundIconNavPipeline
 import com.example.testapp.presentation.screen.practice.PracticeFullAnswerSameSourceRoundAdvancePipeline
@@ -31,27 +29,12 @@ internal class NavigationUnansweredIconNav(
             env.sessionState.value = clearedState
         }
         val strategy = env.iconTapStrategy()
-        PracticeFullAnswerIconNavDebugLog.strategy(
-            forward = forward,
-            fullAnswerActive = env.fullAnswerModeActive(),
-            multiRoundSession = FullAnswerMultiRoundSessionPipeline.isMultiRoundSession(clearedState.questions),
-            strategyName = strategy.name,
-            randomOrder = env.iconNavRandomOrder(),
-            requireCorrect = env.fullAnswerRequireCorrect()
-        )
         val sourceLabel = if (forward) "navigateUnansweredNext" else "navigateUnansweredPrev"
-        PracticeFullAnswerIconNavDebugLog.tapEntry(
-            forward = forward,
-            source = sourceLabel,
-            detail = "anchor=$anchorIndex cleared=${clearedState.currentIndex} " +
-                "textLen=${clearedState.questionsWithState.getOrNull(clearedState.currentIndex)?.textAnswer?.length ?: 0}"
-        )
 
         if (FullAnswerIconNavigationStrategyPipeline.singleTapUsesRoundPool(strategy)) {
             return multiRound.navigateMultiRoundViaIcon(forward = forward)
         }
 
-        PracticeFullAnswerIconNavDebugLog.branch(forward, "globalPath", "strategy=$strategy")
         val (result, targetIndex) = if (env.fullAnswerModeActive()) {
             if (forward) {
                 PracticeFullAnswerIconUnansweredPipeline.resolveNextIndex(
@@ -74,9 +57,7 @@ internal class NavigationUnansweredIconNav(
             }
         }
         if (result == UnansweredNavResult.Navigated && targetIndex != null) {
-            PracticeFullAnswerIconNavDebugLog.branch(forward, "globalPath", "resolved target=$targetIndex")
             targets.navigateToQuestion(targetIndex)
-            PracticeFullAnswerIconNavDebugLog.result(forward, result.name, "globalPath")
             return result
         }
         if (PracticeIconUnansweredNavigationPipeline.shouldFallbackToUnansweredSource(
@@ -85,14 +66,12 @@ internal class NavigationUnansweredIconNav(
                 forward = forward
             )
         ) {
-            PracticeFullAnswerIconNavDebugLog.branch(forward, "globalPath", "fallback skipSource navResult=$result")
             when (skipSource.skipToUnansweredSource(forward = forward)) {
                 SkipUnansweredSourceResult.Navigated -> return UnansweredNavResult.Navigated
                 else -> Unit
             }
         }
         env.scheduleNavigationSave()
-        PracticeFullAnswerIconNavDebugLog.result(forward, result.name, "globalPath final")
         return result
     }
 }

@@ -23,6 +23,11 @@ class HomeRootCoordsRef {
     var value: LayoutCoordinates? = null
 }
 
+/** Non-snapshot holder for list root bounds — avoids recomposing on first layout. */
+class HomeListBoundsRef {
+    var value: Rect? = null
+}
+
 class HomeDragFinishRef {
     var handledByCard = false
 }

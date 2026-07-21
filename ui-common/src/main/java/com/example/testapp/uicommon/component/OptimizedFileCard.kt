@@ -91,6 +91,8 @@ fun OptimizedFileCard(
     cardBorderOverride: BorderStroke? = null,
     cardElevationOverride: CardElevation? = null,
     cardOuterPaddingOverride: PaddingValues? = null,
+    /** When false, still track LayoutCoordinates for drag start but skip boundsInRoot reporting. */
+    reportBounds: Boolean = true,
     onCardClick: () -> Unit,
     onLongClick: (() -> Unit)? = null,
     onDoubleClick: (() -> Unit)? = null,
@@ -107,6 +109,7 @@ fun OptimizedFileCard(
     val currentOnDragCancel by rememberUpdatedState(onDragCancel)
     val currentAllowDragStart by rememberUpdatedState(allowDragStart)
     val currentEnableDragDrop by rememberUpdatedState(enableDragDrop)
+    val currentOnReportCardBounds by rememberUpdatedState(onReportCardBounds)
     val itemCoordsRef = remember { object { var value: LayoutCoordinates? = null } }
 
     val appliedShape = cardShapeOverride ?: RoundedCornerShape(16.dp)
@@ -117,7 +120,9 @@ fun OptimizedFileCard(
         .padding(appliedPadding)
             .onGloballyPositioned { coords ->
                 itemCoordsRef.value = coords
-                onReportCardBounds?.invoke(fileName, coords.boundsInRoot())
+                if (reportBounds) {
+                    currentOnReportCardBounds?.invoke(fileName, coords.boundsInRoot())
+                }
             }
             .alpha(if (isDragging) 0f else 1f)
             // 始终挂着 pointerInput，避免 homeContentReady / enableDragDrop 翻转时重建手势链。

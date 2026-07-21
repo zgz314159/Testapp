@@ -1,6 +1,5 @@
 package com.example.testapp.presentation.screen.practice.navigation
 
-import com.example.testapp.core.session.strategy.navigation.SessionAnsweredHistoryDebugPipeline
 import com.example.testapp.core.session.strategy.navigation.SessionRandomNavigationHistoryPipeline
 import com.example.testapp.domain.model.PracticeSessionState
 import com.example.testapp.domain.model.QuestionWithState
@@ -77,14 +76,6 @@ class NavigationHistory {
     fun resumeFromAnsweredHistory(currentState: PracticeSessionState): PracticeSessionState {
         val mode = navigationState.mode as? AnsweredHistoryNavigationState.Active
             ?: return currentState
-        NavigationHistoryDebugLog.logSwipe(
-            action = "resumeFromHistory",
-            state = currentState,
-            mode = mode,
-            targetIndex = null,
-            result = null,
-            resolveAnswerTime = ::answerTimeAt,
-        )
         val originIndex = mode.originIndex.takeIf { it in currentState.questionsWithState.indices }
             ?: currentState.currentIndex
         val restoredState = restoreAnsweredHistoryOverlays(currentState)
@@ -128,15 +119,6 @@ class NavigationHistory {
             memoryModeActive = memoryModeActive,
             memoryPoolMode = memoryPoolMode,
         ).also { ordered ->
-            NavigationHistoryDebugLog.logBuildOrdered(
-                size = ordered.size,
-                orderedDebugLine =
-                    SessionAnsweredHistoryDebugPipeline.formatOrderedDebugLine(
-                        orderedIndices = ordered,
-                        questions = currentState.questions,
-                        resolveAnswerTime = { answerTimeAt(currentState, it) },
-                    ),
-            )
         }
     }
 

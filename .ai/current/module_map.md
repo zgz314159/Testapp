@@ -124,10 +124,3 @@
 | **Lines** | 1,148 (~4%) |
 | **Health** | ✅ ACTIVE — SessionEngine, ProgressManager, AnalysisLoader, MemoryMode, Navigator + util.* + FontSettingsRepository 接口 |
 
----
-
-## `:baseline-profile` — Performance
-
-| Metric | Value |
-|--------|-------|
-| **Health** | ✅ OK — performance baseline only |

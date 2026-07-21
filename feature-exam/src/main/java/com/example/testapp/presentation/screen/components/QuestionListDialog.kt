@@ -12,7 +12,6 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.example.testapp.domain.model.Question
 import com.example.testapp.feature.exam.R
-import com.example.testapp.presentation.screen.exam.ExamPipelineLog
 import com.example.testapp.uicommon.component.AnswerCardDialogContent
 import com.example.testapp.uicommon.component.AnswerCardDisplayInfo
 import com.example.testapp.uicommon.component.AnswerCardListDialogShell
@@ -44,7 +43,7 @@ fun QuestionListDialog(
             indices.sortedWith(
                 answeredFirstByTime(questions, answerTimes, selectedOptions, textAnswers, displayInfoByQuestionId)
             ).also { sorted ->
-                if (indices.isNotEmpty()) ExamPipelineLog.sort("answerCard", sorted, answerTimes)
+                if (indices.isNotEmpty()) Unit
             }
         }
     }

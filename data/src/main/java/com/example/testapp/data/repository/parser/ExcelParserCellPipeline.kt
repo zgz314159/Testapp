@@ -1,20 +1,15 @@
 package com.example.testapp.data.repository.parser
 
-import org.apache.poi.ss.usermodel.DataFormatter
-import org.apache.poi.ss.usermodel.Row
-import org.apache.poi.ss.usermodel.Sheet
-
-internal fun excelCellText(row: Row, index: Int, f: DataFormatter): String {
-    return row.getCell(index)?.let { f.formatCellValue(it) }?.trim().orEmpty()
+internal fun excelCellText(row: ExcelRowData, index: Int): String {
+    return row.cellText(index).trim()
 }
 
-internal fun excelContentCellText(row: Row, index: Int, f: DataFormatter): String {
-    return row.getCell(index)?.let { f.formatCellValue(it) }?.trimStart().orEmpty()
+internal fun excelContentCellText(row: ExcelRowData, index: Int): String {
+    return row.cellText(index).trimStart()
 }
 
-internal fun excelRowValues(row: Row, f: DataFormatter): List<String> {
-    val lastCell = row.lastCellNum.toInt().coerceAtLeast(0)
-    return (0 until lastCell).map { index -> excelCellText(row, index, f) }
+internal fun excelRowValues(row: ExcelRowData): List<String> {
+    return (0 until row.lastCellNum).map { index -> excelCellText(row, index) }
 }
 
 internal fun normalizeExcelHeader(text: String): String {
@@ -89,16 +84,16 @@ private fun matchesAnyHeader(value: String, vararg aliases: String): Boolean {
     return aliases.any { normalized == normalizeExcelHeader(it) }
 }
 
-internal fun detectWorkbookShortAnswerHint(sheet: Sheet, f: DataFormatter): Boolean {
-    val sampleText = sheet.take(6)
-        .flatMap { row -> excelRowValues(row, f) }
+internal fun detectWorkbookShortAnswerHint(rows: List<ExcelRowData>): Boolean {
+    val sampleText = rows.take(6)
+        .flatMap { row -> excelRowValues(row) }
         .joinToString(" ")
     return Regex("简答题|简答|问答题|综合题|综合|论述题|论述|计算题|计算分析题|计算|绘图题|绘图|画图题|画图|作图题|作图").containsMatchIn(sampleText)
 }
 
-internal fun detectHeaderSchema(sheet: Sheet, f: DataFormatter): ExcelHeaderSchema? {
-    for (row in sheet) {
-        val values = excelRowValues(row, f)
+internal fun detectHeaderSchema(rows: List<ExcelRowData>): ExcelHeaderSchema? {
+    for (row in rows) {
+        val values = excelRowValues(row)
         if (values.isEmpty()) continue
 
         var contentIndex: Int? = null

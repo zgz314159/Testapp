@@ -1,6 +1,5 @@
 package com.example.testapp.presentation.screen.practice
 
-import android.util.Log
 import com.example.testapp.core.common.LocalizedResult
 import com.example.testapp.domain.model.PracticeSessionState
 import com.example.testapp.domain.usecase.*
@@ -96,18 +95,15 @@ class PracticeArtifactCoordinator(
     // ---- Note CRUD ----
 
     suspend fun saveNoteAndWait(questionId: Int, index: Int, text: String): Boolean {
-        Log.d(noteTraceTag, "saveNoteAndWait start: questionId=$questionId, index=$index, textLength=${text.length}")
         val res = saveQuestionNoteUseCase(questionId, text)
         if (res.isFailure) {
             val ex = res.exceptionOrNull()
-            Log.e(noteTraceTag, "saveNoteAndWait failed: questionId=$questionId, index=$index, message=${ex?.message}", ex)
             _messageResult.value = if (ex is com.example.testapp.domain.LocalizedException)
                 LocalizedResult(com.example.testapp.domain.IOConstants.SAVE_FAILED_PREFIX, ex.args)
             else LocalizedResult(com.example.testapp.domain.IOConstants.SAVE_FAILED_PREFIX, listOf(ex?.message ?: ""))
             return false
         }
         val readBack = getQuestionNoteUseCase(questionId).getOrNull() ?: text
-        Log.d(noteTraceTag, "saveNoteAndWait persisted: questionId=$questionId, index=$index, readBackLength=${readBack.length}")
         val currentState = _sessionState.value
         val updated = currentState.questionsWithState.mapIndexed { idx, qws ->
             if (idx == index || qws.question.id == questionId) qws.copy(note = readBack) else qws

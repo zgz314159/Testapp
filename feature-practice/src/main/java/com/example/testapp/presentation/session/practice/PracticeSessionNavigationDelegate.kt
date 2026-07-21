@@ -4,9 +4,7 @@ import com.example.testapp.core.session.strategy.navigation.SessionNavigationHis
 import com.example.testapp.core.session.strategy.navigation.SessionNavigationOrchestrationGate
 import com.example.testapp.domain.model.PracticeSessionState
 import com.example.testapp.presentation.screen.practice.PracticeFillConfig
-import com.example.testapp.presentation.screen.practice.PracticeFullAnswerIconNavDebugLog
 import com.example.testapp.presentation.screen.practice.PracticeFullAnswerModeActivePipeline
-import com.example.testapp.presentation.screen.practice.PracticeJumpDebugLog
 import com.example.testapp.presentation.screen.practice.PracticeNavigationCoordinator
 import com.example.testapp.presentation.screen.practice.PracticeReviewSessionCoordinator
 import com.example.testapp.presentation.screen.practice.SkipUnansweredSourceResult
@@ -33,7 +31,6 @@ internal class PracticeSessionNavigationDelegate(
     fun nextQuestion() {
         if (tryReviewNavigate(1)) return
         if (!SessionNavigationOrchestrationGate.allowsPostAnswerAdvance(orchestration())) return
-        PracticeJumpDebugLog.vmNextQuestion(sessionState.value.currentIndex)
         navigationCoordinator.nextQuestion()
     }
 
@@ -104,10 +101,6 @@ internal class PracticeSessionNavigationDelegate(
         }
         reviewCoordinator.browseAnsweredHistoryOlder()?.let { return it }
         val result = navigationCoordinator.browseAnsweredHistoryOlder()
-        android.util.Log.d(
-            "PracticeHistorySwipe",
-            "VM.browseOlder | idx=${sessionState.value.currentIndex} | fullAnswer=$isFullAnswerMode | result=$result",
-        )
         return result
     }
 
@@ -117,10 +110,6 @@ internal class PracticeSessionNavigationDelegate(
         }
         reviewCoordinator.browseAnsweredHistoryNewer()?.let { return it }
         val result = navigationCoordinator.browseAnsweredHistoryNewer()
-        android.util.Log.d(
-            "PracticeHistorySwipe",
-            "VM.browseNewer | idx=${sessionState.value.currentIndex} | fullAnswer=$isFullAnswerMode | inHistory=${navigationCoordinator.isInAnsweredHistory} | result=$result",
-        )
         return result
     }
 
@@ -130,7 +119,6 @@ internal class PracticeSessionNavigationDelegate(
     ) {
         val from = sessionState.value.currentIndex
         if (from != index) {
-            PracticeJumpDebugLog.vmGoToQuestion(from, index, source)
         }
         navigationCoordinator.goToQuestion(index)
     }
@@ -153,12 +141,5 @@ internal class PracticeSessionNavigationDelegate(
     ) {
         val idx = sessionState.value.currentIndex
         val qws = sessionState.value.questionsWithState.getOrNull(idx)
-        PracticeFullAnswerIconNavDebugLog.tapEntry(
-            forward = forward,
-            source = source,
-            detail =
-                "idx=$idx fullAnswer=$isFullAnswerMode textLen=${qws?.textAnswer?.length ?: 0} " +
-                    "showResult=${qws?.showResult} id=${sessionState.value.questions.getOrNull(idx)?.id}",
-        )
     }
 }

@@ -61,16 +61,16 @@ private fun folderSilhouetteShape(tabHeightPx: Float, cornerPx: Float): Shape =
 
         moveTo(0f, h - r)
         lineTo(0f, r * 0.75f)
-        quadraticBezierTo(0f, 0f, r * 0.75f, 0f)
+        quadraticTo(0f, 0f, r * 0.75f, 0f)
         lineTo(tabWidth - slant, 0f)
         // 标签页平滑斜边过渡到主体顶边
         cubicTo(tabWidth - slant * 0.35f, 0f, tabWidth + slant * 0.35f, t, tabWidth + slant, t)
         lineTo(w - r, t)
-        quadraticBezierTo(w, t, w, t + r)
+        quadraticTo(w, t, w, t + r)
         lineTo(w, h - r)
-        quadraticBezierTo(w, h, w - r, h)
+        quadraticTo(w, h, w - r, h)
         lineTo(r, h)
-        quadraticBezierTo(0f, h, 0f, h - r)
+        quadraticTo(0f, h, 0f, h - r)
         close()
     }
 

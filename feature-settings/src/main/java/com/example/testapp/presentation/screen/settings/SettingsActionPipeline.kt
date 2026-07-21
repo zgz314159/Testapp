@@ -9,6 +9,7 @@ import kotlinx.coroutines.launch
 class SettingsActionPipeline(
     private val scope: CoroutineScope,
     private val isLoading: MutableStateFlow<Boolean>,
+    private val isExporting: MutableStateFlow<Boolean>,
     private val progress: MutableStateFlow<Float>,
     private val messageResult: MutableStateFlow<LocalizedResult?>
 ) {
@@ -20,6 +21,7 @@ class SettingsActionPipeline(
     ) {
         currentJob?.cancel()
         currentJob = scope.launch {
+            isExporting.value = false
             isLoading.value = true
             try {
                 block()
@@ -37,12 +39,15 @@ class SettingsActionPipeline(
     }
 
     fun launchLoading(block: suspend SettingsActionPipeline.() -> Unit) {
-        scope.launch {
+        currentJob?.cancel()
+        currentJob = scope.launch {
+            isExporting.value = true
             isLoading.value = true
             try {
                 block()
             } finally {
                 isLoading.value = false
+                isExporting.value = false
             }
         }
     }
@@ -50,6 +55,7 @@ class SettingsActionPipeline(
     fun cancel() {
         currentJob?.cancel()
         isLoading.value = false
+        isExporting.value = false
         progress.value = 0f
     }
 
