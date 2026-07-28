@@ -94,6 +94,15 @@ object PracticeSessionCommandHandler {
             }
             is SessionCommand.LoadWrongQuestions -> bindings.loadWrongQuestions(command.fileName)
             is SessionCommand.LoadFavoriteQuestions -> bindings.loadFavoriteQuestions(command.fileName)
+            is SessionCommand.MagneticAddToken,
+            is SessionCommand.MagneticReturnToken,
+            is SessionCommand.MagneticMoveToken,
+            SessionCommand.MagneticUndo,
+            SessionCommand.MagneticReset,
+            SessionCommand.MagneticCheck,
+            SessionCommand.MagneticHint,
+            SessionCommand.MagneticToggleOriginal,
+            SessionCommand.MagneticNext,
             SessionCommand.NavPrevIcon,
             SessionCommand.NavNextIcon,
             SessionCommand.NavPrevIconDoubleClick,
