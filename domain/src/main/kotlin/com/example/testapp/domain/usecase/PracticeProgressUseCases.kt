@@ -1,4 +1,4 @@
-﻿package com.example.testapp.domain.usecase
+package com.example.testapp.domain.usecase
 
 import com.example.testapp.domain.model.PracticeProgress
 import com.example.testapp.domain.repository.PracticeProgressRepository
@@ -33,9 +33,7 @@ class ClearPracticeProgressByFileNameUseCase @Inject constructor(
     private val repository: PracticeProgressRepository
 ) {
     suspend operator fun invoke(fileName: String) {
-        val pattern = "practice_${fileName}%"
-        
-        repository.clearProgressByFileNamePattern(pattern)
-        
+        repository.clearProgressByFileNamePattern("practice_${fileName}%")
+        repository.clearProgressByFileNamePattern("magnetic_${fileName}%")
     }
 }

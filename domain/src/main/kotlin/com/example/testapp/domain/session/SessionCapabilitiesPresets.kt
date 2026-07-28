@@ -15,8 +15,8 @@ object SessionCapabilitiesPresets {
     val magneticRebuild: SessionCapabilities =
         SessionCapabilities(
             canSubmit = false,
-            canPersistProgress = false,
-            canRestoreProgress = false,
+            canPersistProgress = true,
+            canRestoreProgress = true,
             canSwipeAnsweredHistory = false,
             canRevealOnSubmit = false,
             canUseAiAsk = false,
