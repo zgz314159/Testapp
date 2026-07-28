@@ -30,7 +30,7 @@
 | 模块化 P78 | `refactoring_plan.md` Phase 25 | **✅ 完成** |
 | CI / lint | `.github/workflows/build.yml` | **✅** — ktlint + detekt（P78 收紧规则） |
 | 自适应渐隐原子练习 | 根目录方案 + ADR-006 | **🟡 已实现，待联网环境编译门禁** |
-| 磁吸条文重建 | `MAGNETIC_REBUILD.md`, ADR-009 | **🟡 已实现，待 CI 编译与 APK 冒烟** |
+| 磁吸条文重建 | `MAGNETIC_REBUILD.md`, ADR-009 | **✅ CI 全绿，Debug APK 已生成** |
 | 共用答题页立体视觉 | `:ui-common` question-session chrome | **🟡 已实现，待本地 Android 编译与真机视觉冒烟** |
 | AI 联网纠题 / BYOK | ADR-008 | **🟡 已实现** — 用户自备 DeepSeek + 检索 Key（博查/Tavily 双通道，优先博查）；问答输入栏可显式开启联网；托管额度插口预留；待真机填 Key 验收 |
 | L6 Self-Evolving OS | `LEVEL6_OVERVIEW.md` | Deployed 2026-06-11 |
