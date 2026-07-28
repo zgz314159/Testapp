@@ -15,7 +15,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.shadow
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalDensity
@@ -27,12 +26,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.testapp.presentation.session.magnetic.MagneticSemanticRole
 import com.example.testapp.presentation.session.magnetic.MagneticToken
+import com.example.testapp.uicommon.design.AppThemeColors
 import kotlin.math.roundToInt
-
-private val TokenBlue = Color(0xFF4F7EDC)
-private val TokenBlueSoft = Color(0xFFEAF1FF)
-private val TokenHint = Color(0xFFFFF4D6)
-private val TokenText = Color(0xFF22304A)
 
 @Composable
 fun MagneticCandidateToken(
@@ -41,12 +36,13 @@ fun MagneticCandidateToken(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val colors = MaterialTheme.colorScheme
     Surface(
         onClick = onClick,
         modifier = modifier.shadow(2.dp, RoundedCornerShape(14.dp)),
         shape = RoundedCornerShape(14.dp),
-        color = if (hinted) TokenHint else Color.White,
-        border = BorderStroke(if (hinted) 1.5.dp else 1.dp, if (hinted) TokenBlue else Color(0xFFD6DCE8)),
+        color = if (hinted) AppThemeColors.warningSoft else colors.surface,
+        border = BorderStroke(if (hinted) 1.5.dp else 1.dp, if (hinted) colors.primary else colors.outline),
     ) {
         TokenTextContent(token)
     }
@@ -63,6 +59,7 @@ fun MagneticPlacedToken(
     onMove: (Int) -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val colors = MaterialTheme.colorScheme
     var dragX by remember(token.id, index) { mutableFloatStateOf(0f) }
     val thresholdPx = with(LocalDensity.current) { 68.dp.toPx() }
     val shape = RoundedCornerShape(14.dp)
@@ -105,14 +102,14 @@ fun MagneticPlacedToken(
         shape = shape,
         color =
             when {
-                hinted -> TokenHint
-                connected -> TokenBlueSoft
-                else -> Color.White
+                hinted -> AppThemeColors.warningSoft
+                connected -> colors.primaryContainer
+                else -> colors.surface
             },
         border =
             BorderStroke(
                 if (connected || hinted) 1.5.dp else 1.dp,
-                if (connected || hinted) TokenBlue else Color(0xFFD6DCE8),
+                if (connected || hinted) colors.primary else colors.outline,
             ),
     ) {
         TokenTextContent(token)
@@ -126,13 +123,13 @@ private fun TokenTextContent(token: MagneticToken) {
             text = token.text,
             style = MaterialTheme.typography.bodyLarge,
             fontWeight = FontWeight.SemiBold,
-            color = TokenText,
+            color = MaterialTheme.colorScheme.onSurface,
         )
         if (token.role != MagneticSemanticRole.OTHER) {
             Text(
                 text = roleLabel(token.role),
                 fontSize = 10.sp,
-                color = TokenBlue.copy(alpha = 0.82f),
+                color = MaterialTheme.colorScheme.primary.copy(alpha = 0.88f),
             )
         }
     }

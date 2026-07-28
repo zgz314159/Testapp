@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -13,6 +14,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
 import com.example.testapp.uicommon.design.AppElevatedActionSheetTokens
+import com.example.testapp.uicommon.design.AppThemeColors
 
 @Composable
 fun SettingsElevatedLeadingIcon(
@@ -21,10 +23,11 @@ fun SettingsElevatedLeadingIcon(
     tint: Color = AppElevatedActionSheetTokens.brandBlue,
     background: Color = AppElevatedActionSheetTokens.brandBlueSoft,
 ) {
+    val resolvedBackground = if (AppThemeColors.isDark) tint.copy(alpha = 0.18f) else background
     Surface(
         modifier = modifier.size(40.dp),
         shape = RoundedCornerShape(12.dp),
-        color = background,
+        color = resolvedBackground,
         tonalElevation = 1.dp,
         shadowElevation = 5.dp,
     ) {
@@ -45,10 +48,11 @@ fun SettingsElevatedChevron(
     contentDescription: String? = null,
 ) {
     val tokens = AppElevatedActionSheetTokens
+    val background = if (AppThemeColors.isDark) MaterialTheme.colorScheme.primaryContainer else tokens.brandBlueSoft
     Surface(
         modifier = Modifier.size(28.dp),
         shape = CircleShape,
-        color = tokens.brandBlueSoft,
+        color = background,
         tonalElevation = 1.dp,
         shadowElevation = 4.dp,
     ) {

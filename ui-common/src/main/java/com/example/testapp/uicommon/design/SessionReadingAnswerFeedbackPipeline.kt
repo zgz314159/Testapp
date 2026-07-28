@@ -1,6 +1,5 @@
 package com.example.testapp.uicommon.design
 
-import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.runtime.Composable
 
 fun resolveSessionReadingAnswerFeedbackColors(darkTheme: Boolean): AnswerFeedbackColors {
@@ -28,4 +27,4 @@ fun resolveSessionReadingAnswerFeedbackColors(darkTheme: Boolean): AnswerFeedbac
 
 @Composable
 fun sessionReadingAnswerFeedbackColors(): AnswerFeedbackColors =
-    resolveSessionReadingAnswerFeedbackColors(isSystemInDarkTheme())
+    resolveSessionReadingAnswerFeedbackColors(AppThemeColors.isDark)

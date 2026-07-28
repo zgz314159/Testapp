@@ -14,6 +14,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -35,10 +36,14 @@ import androidx.compose.ui.unit.sp
 
 /** Home-aligned elevated action sheet (white cards + soft depth). */
 object AppElevatedActionSheetTokens {
-    val sheetBg: Color = Color(0xFFF8FAFD)
-    val cardWhite: Color = Color.White
-    val textPrimary: Color = Color(0xFF1B2B4E)
-    val textSecondary: Color = Color(0xFF5F6B7A)
+    val sheetBg: Color
+        @Composable get() = MaterialTheme.colorScheme.background
+    val cardWhite: Color
+        @Composable get() = MaterialTheme.colorScheme.surface
+    val textPrimary: Color
+        @Composable get() = MaterialTheme.colorScheme.onSurface
+    val textSecondary: Color
+        @Composable get() = MaterialTheme.colorScheme.onSurfaceVariant
     val brandBlue: Color = Color(0xFF4F8CFF)
     val brandBlueSoft: Color = Color(0xFFEAF2FF)
     val accentPurple: Color = Color(0xFF7B6CFF)
@@ -73,6 +78,7 @@ fun AppElevatedActionSheet(
 
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     val tokens = AppElevatedActionSheetTokens
+    val titleShadow = if (AppThemeColors.isDark) Color.Black.copy(alpha = 0.45f) else Color(0x291B2B4E)
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         sheetState = sheetState,
@@ -96,7 +102,7 @@ fun AppElevatedActionSheet(
                     color = tokens.textPrimary,
                     textAlign = TextAlign.Center,
                     shadow = Shadow(
-                        color = Color(0x291B2B4E),
+                        color = titleShadow,
                         offset = Offset(0f, 1.5f),
                         blurRadius = 4f,
                     ),
@@ -127,6 +133,7 @@ fun AppElevatedActionCard(
     elevation: Dp = AppElevatedActionSheetTokens.cardElevation,
 ) {
     val tokens = AppElevatedActionSheetTokens
+    val iconBackground = if (AppThemeColors.isDark) item.iconTint.copy(alpha = 0.18f) else item.iconBg
     Surface(
         modifier = Modifier
             .fillMaxWidth()
@@ -146,7 +153,7 @@ fun AppElevatedActionCard(
             Surface(
                 modifier = Modifier.size(44.dp),
                 shape = CircleShape,
-                color = item.iconBg,
+                color = iconBackground,
                 tonalElevation = 1.dp,
                 shadowElevation = tokens.iconElevation,
             ) {
