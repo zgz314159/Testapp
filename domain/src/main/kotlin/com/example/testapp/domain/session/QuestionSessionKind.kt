@@ -12,6 +12,10 @@ sealed class QuestionSessionKind {
         val quizId: String,
     ) : QuestionSessionKind()
 
+    data class MagneticRebuild(
+        val quizId: String,
+    ) : QuestionSessionKind()
+
     data class Browse(
         val quizId: String,
         val targetQuestionId: Int

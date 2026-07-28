@@ -5,6 +5,7 @@ import com.example.testapp.domain.session.QuestionSessionKind
 import com.example.testapp.presentation.session.adaptive.AdaptiveFadingSessionCreator
 import com.example.testapp.presentation.session.browse.BrowseSessionCreator
 import com.example.testapp.presentation.session.exam.ExamSessionCreator
+import com.example.testapp.presentation.session.magnetic.MagneticRebuildSessionCreator
 import com.example.testapp.presentation.session.practice.PracticeSessionCreator
 import com.example.testapp.presentation.session.practice.QuestionEditSessionCreator
 import com.example.testapp.presentation.session.practice.ReviewPracticeSessionCreator
@@ -22,6 +23,7 @@ object SessionRegistryModule {
     fun provideSessionRegistry(
         browseSessionCreator: BrowseSessionCreator,
         adaptiveFadingSessionCreator: AdaptiveFadingSessionCreator,
+        magneticRebuildSessionCreator: MagneticRebuildSessionCreator,
         practiceSessionCreator: PracticeSessionCreator,
         reviewPracticeSessionCreator: ReviewPracticeSessionCreator,
         questionEditSessionCreator: QuestionEditSessionCreator,
@@ -30,6 +32,7 @@ object SessionRegistryModule {
         SessionRegistry.builder()
             .register(QuestionSessionKind.Browse::class, browseSessionCreator)
             .register(QuestionSessionKind.AdaptiveFading::class, adaptiveFadingSessionCreator)
+            .register(QuestionSessionKind.MagneticRebuild::class, magneticRebuildSessionCreator)
             .register(QuestionSessionKind.Practice::class, practiceSessionCreator)
             .register(QuestionSessionKind.Review::class, reviewPracticeSessionCreator)
             .register(QuestionSessionKind.QuestionEdit::class, questionEditSessionCreator)

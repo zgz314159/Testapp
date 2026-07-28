@@ -16,6 +16,7 @@ object NavigationPolicyFactory {
             -> browse
             is QuestionSessionKind.Review -> review
             is QuestionSessionKind.AdaptiveFading -> practice
+            is QuestionSessionKind.MagneticRebuild -> browse
             is QuestionSessionKind.Practice -> practice
             is QuestionSessionKind.Exam ->
                 if (kind.reviewProgressId != null) review else exam

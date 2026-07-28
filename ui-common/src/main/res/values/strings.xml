@@ -43,6 +43,7 @@
     <string name="uicommon_fill_mode_score_range_random">分值范围随机</string>
     <string name="uicommon_fill_mode_full_answer">全答</string>
     <string name="uicommon_mode_adaptive_fading">自适应渐隐</string>
+    <string name="uicommon_mode_magnetic_rebuild">磁吸重建</string>
     <string name="uicommon_ai_sources_count">%1$d 个网页</string>
     <string name="uicommon_ai_sources_sheet_title">搜索结果</string>
 </resources>

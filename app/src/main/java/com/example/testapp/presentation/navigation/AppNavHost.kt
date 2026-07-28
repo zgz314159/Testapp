@@ -32,6 +32,10 @@ fun AppNavHost(
                     val encoded = java.net.URLEncoder.encode(quizId, "UTF-8")
                     navController.navigate("adaptive/$encoded")
                 },
+                onStartMagnetic = { quizId ->
+                    val encoded = java.net.URLEncoder.encode(quizId, "UTF-8")
+                    navController.navigate("magnetic/$encoded")
+                },
                 onBrowseQuestion = { fileName, questionId ->
                     val encoded = java.net.URLEncoder.encode(fileName, "UTF-8")
                     navController.navigate(

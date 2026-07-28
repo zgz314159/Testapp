@@ -5,6 +5,15 @@ import com.example.testapp.domain.model.Question
 /** UI / BackHandler → Session（ADR Command 侧） */
 sealed interface SessionCommand {
     data object Back : SessionCommand
+    data class MagneticAddToken(val tokenId: Int) : SessionCommand
+    data class MagneticReturnToken(val tokenId: Int) : SessionCommand
+    data class MagneticMoveToken(val tokenId: Int, val targetIndex: Int) : SessionCommand
+    data object MagneticUndo : SessionCommand
+    data object MagneticReset : SessionCommand
+    data object MagneticCheck : SessionCommand
+    data object MagneticHint : SessionCommand
+    data object MagneticToggleOriginal : SessionCommand
+    data object MagneticNext : SessionCommand
     data class GoToQuestion(val index: Int, val source: String = "goToQuestion") : SessionCommand
     data class GoToQuestionById(val questionId: Int, val source: String = "questionId") : SessionCommand
     data class SelectOption(val option: Int) : SessionCommand

@@ -12,6 +12,18 @@ object SessionCapabilitiesPresets {
             canEditQuestion = false,
         )
 
+    val magneticRebuild: SessionCapabilities =
+        SessionCapabilities(
+            canSubmit = false,
+            canPersistProgress = false,
+            canRestoreProgress = false,
+            canSwipeAnsweredHistory = false,
+            canRevealOnSubmit = false,
+            canUseAiAsk = false,
+            canEditQuestion = false,
+            canShowAnswerCard = false,
+        )
+
     val browse: SessionCapabilities = SessionCapabilities(
         canSubmit = false,
         canPersistProgress = false,
@@ -47,6 +59,7 @@ object SessionCapabilitiesPresets {
     fun forKind(kind: QuestionSessionKind): SessionCapabilities = when (kind) {
         is QuestionSessionKind.Practice -> practice
         is QuestionSessionKind.AdaptiveFading -> adaptiveFading
+        is QuestionSessionKind.MagneticRebuild -> magneticRebuild
         is QuestionSessionKind.Browse -> browse
         is QuestionSessionKind.Review -> review
         is QuestionSessionKind.Exam -> if (kind.reviewProgressId != null) review else exam

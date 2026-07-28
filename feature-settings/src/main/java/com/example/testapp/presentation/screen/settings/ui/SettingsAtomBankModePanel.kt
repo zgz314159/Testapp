@@ -11,6 +11,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.EditNote
+import androidx.compose.material.icons.filled.Extension
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -30,9 +31,10 @@ import com.example.testapp.feature.settings.R
 import com.example.testapp.uicommon.design.AppElevatedActionSheetTokens
 import com.example.testapp.uicommon.design.SessionModeBadge
 import com.example.testapp.uicommon.design.adaptiveFadingModeLabel
+import com.example.testapp.uicommon.design.magneticRebuildModeLabel
 
 /**
- * 原子题库出题模式面板：三大类（填空题 / 自适应渐隐 / 记忆模式）。
+ * 原子题库出题模式面板：填空题、自适应渐隐、磁吸重建和记忆模式。
  * 填空题下含原出题模式、规则、标签；自适应为独立会话，预留筛选扩展位。
  */
 @OptIn(ExperimentalMaterial3Api::class)
@@ -69,6 +71,7 @@ fun SettingsFillPanelContent(
 ) {
     var fillExpanded by remember { mutableStateOf(true) }
     var adaptiveExpanded by remember { mutableStateOf(false) }
+    var magneticExpanded by remember { mutableStateOf(false) }
 
     SettingsSectionHeader(stringResource(R.string.fill_section_mode))
     SettingsCardGroup {
@@ -115,6 +118,18 @@ fun SettingsFillPanelContent(
             SettingsAdaptiveFadingCategoryContent(showDetailedHelp = showDetailedHelp)
         }
         SettingsCardDivider()
+        SettingsExpandableCardSection(
+            title = stringResource(R.string.fill_category_magnetic),
+            fontSize = fontSize,
+            expanded = magneticExpanded,
+            onExpandedChange = { magneticExpanded = it },
+            expandDescription = stringResource(R.string.expand_magnetic_rebuild),
+            collapseDescription = stringResource(R.string.collapse_magnetic_rebuild),
+            leadingIcon = Icons.Filled.Extension,
+        ) {
+            SettingsMagneticRebuildCategoryContent(showDetailedHelp = showDetailedHelp)
+        }
+        SettingsCardDivider()
         SettingsMemoryCardSection(
             fontSize = fontSize,
             expanded = memoryExpanded,
@@ -156,6 +171,42 @@ private fun SettingsAdaptiveFadingCategoryContent(showDetailedHelp: Boolean) {
                     if (showDetailedHelp) {
                         Text(
                             text = stringResource(R.string.fill_adaptive_future_hint),
+                            fontSize = 12.sp,
+                            lineHeight = 17.sp,
+                            color = tokens.brandBlue,
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun SettingsMagneticRebuildCategoryContent(showDetailedHelp: Boolean) {
+    val tokens = AppElevatedActionSheetTokens
+    SettingsInsetPanel(modifier = Modifier.padding(top = 4.dp)) {
+        Surface(
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(14.dp),
+            color = tokens.cardWhite,
+        ) {
+            Row(
+                modifier = Modifier.padding(horizontal = 12.dp, vertical = 12.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                SessionModeBadge(label = magneticRebuildModeLabel())
+                Spacer(modifier = Modifier.width(10.dp))
+                Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    Text(
+                        text = stringResource(R.string.fill_mode_magnetic_rebuild_note),
+                        fontSize = 12.sp,
+                        lineHeight = 17.sp,
+                        color = tokens.textSecondary,
+                    )
+                    if (showDetailedHelp) {
+                        Text(
+                            text = stringResource(R.string.fill_magnetic_help),
                             fontSize = 12.sp,
                             lineHeight = 17.sp,
                             color = tokens.brandBlue,

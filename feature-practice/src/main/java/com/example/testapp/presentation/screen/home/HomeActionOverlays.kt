@@ -31,6 +31,7 @@ fun HomeActionOverlays(
     onDismissSheet: () -> Unit,
     onStartQuiz: (String) -> Unit,
     onStartAdaptive: (String) -> Unit,
+    onStartMagnetic: (String) -> Unit,
     onStartExam: (String) -> Unit,
     onRestartQuiz: (String) -> Unit,
     showDeleteDialog: Boolean,
@@ -79,6 +80,10 @@ fun HomeActionOverlays(
             onStartAdaptive = { name ->
                 persistHomeSelection(context, name, bottomNavIndex)
                 onStartAdaptive(name)
+            },
+            onStartMagnetic = { name ->
+                persistHomeSelection(context, name, bottomNavIndex)
+                onStartMagnetic(name)
             },
             onStartExam = { name ->
                 persistHomeSelection(context, name, bottomNavIndex)

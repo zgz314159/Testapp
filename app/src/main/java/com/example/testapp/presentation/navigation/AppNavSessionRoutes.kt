@@ -17,6 +17,18 @@ fun NavGraphBuilder.registerPracticeSessionRoutes(
     sessionNavCallbacks: QuestionSessionNavCallbacks,
 ) {
     composable(
+        route = "magnetic/{quizId}",
+        arguments = listOf(navArgument("quizId") { type = NavType.StringType }),
+    ) { backStackEntry ->
+        val encoded = backStackEntry.arguments?.getString("quizId") ?: "default"
+        val quizId = com.example.testapp.util.safeDecode(encoded)
+        MagneticRebuildRoute(
+            quizId = quizId,
+            onBack = { navController.popBackStack() },
+        )
+    }
+
+    composable(
         route = "adaptive/{quizId}",
         arguments = listOf(navArgument("quizId") { type = NavType.StringType }),
     ) { backStackEntry ->

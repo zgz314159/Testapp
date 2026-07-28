@@ -1,0 +1,441 @@
+package com.example.testapp.presentation.screen.magnetic
+
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Lightbulb
+import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material.icons.filled.Undo
+import androidx.compose.material.icons.filled.Visibility
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.CenterAlignedTopAppBar
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.LinearProgressIndicator
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.dp
+import com.example.testapp.domain.session.SessionCommand
+import com.example.testapp.presentation.session.magnetic.MagneticRebuildSession
+import com.example.testapp.presentation.session.magnetic.MagneticRebuildUiState
+import com.example.testapp.uicommon.design.SessionModeBadge
+import com.example.testapp.uicommon.design.magneticRebuildModeLabel
+
+private val EyeCareBackground = Color(0xFFF1F3ED)
+private val PanelWhite = Color(0xFFFCFDFB)
+private val BrandBlue = Color(0xFF4F7EDC)
+private val TextPrimary = Color(0xFF22304A)
+private val TextSecondary = Color(0xFF647087)
+private val SuccessGreen = Color(0xFF3B9C70)
+
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
+@Composable
+fun MagneticRebuildScreen(
+    session: MagneticRebuildSession,
+    onBack: () -> Unit,
+) {
+    val state by session.uiState.collectAsState()
+    val haptic = LocalHapticFeedback.current
+    var lastAdjacency by remember { mutableIntStateOf(0) }
+
+    LaunchedEffect(state.correctAdjacencyCount) {
+        if (state.correctAdjacencyCount > lastAdjacency) {
+            haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+        }
+        lastAdjacency = state.correctAdjacencyCount
+    }
+    LaunchedEffect(state.currentCompleted) {
+        if (state.currentCompleted) {
+            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+        }
+    }
+
+    Scaffold(
+        containerColor = EyeCareBackground,
+        topBar = {
+            CenterAlignedTopAppBar(
+                title = {
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Text("磁吸重建", fontWeight = FontWeight.SemiBold)
+                        if (!state.isLoading && state.totalClauseCount > 0) {
+                            Text(
+                                text = "${state.currentClauseIndex + 1}/${state.totalClauseCount}",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = TextSecondary,
+                            )
+                        }
+                    }
+                },
+                navigationIcon = {
+                    IconButton(onClick = onBack) {
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "返回")
+                    }
+                },
+            )
+        },
+    ) { paddingValues ->
+        when {
+            state.isLoading -> LoadingContent(Modifier.padding(paddingValues))
+            state.errorMessage != null ->
+                ErrorContent(
+                    message = state.errorMessage.orEmpty(),
+                    onBack = onBack,
+                    modifier = Modifier.padding(paddingValues),
+                )
+            state.sessionCompleted ->
+                SessionCompletedContent(
+                    state = state,
+                    onBack = onBack,
+                    modifier = Modifier.padding(paddingValues),
+                )
+            else ->
+                RebuildContent(
+                    state = state,
+                    dispatch = session::handle,
+                    modifier = Modifier.padding(paddingValues),
+                )
+        }
+    }
+
+    if (state.showOriginal) {
+        AlertDialog(
+            onDismissRequest = { session.handle(SessionCommand.MagneticToggleOriginal) },
+            title = { Text("完整原文") },
+            text = { Text(state.currentClause?.originalText.orEmpty()) },
+            confirmButton = {
+                Button(onClick = { session.handle(SessionCommand.MagneticToggleOriginal) }) {
+                    Text("记住了")
+                }
+            },
+        )
+    }
+}
+
+@Composable
+private fun LoadingContent(modifier: Modifier = Modifier) {
+    Box(modifier = modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+        CircularProgressIndicator(color = BrandBlue)
+    }
+}
+
+@Composable
+private fun ErrorContent(
+    message: String,
+    onBack: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Box(modifier = modifier.fillMaxSize().padding(20.dp), contentAlignment = Alignment.Center) {
+        Surface(shape = RoundedCornerShape(22.dp), color = PanelWhite, shadowElevation = 6.dp) {
+            Column(
+                modifier = Modifier.padding(20.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(14.dp),
+            ) {
+                Text(message, color = TextPrimary, textAlign = TextAlign.Center)
+                Button(onClick = onBack) { Text("返回题库") }
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun RebuildContent(
+    state: MagneticRebuildUiState,
+    dispatch: (SessionCommand) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val clause = state.currentClause ?: return
+    Column(
+        modifier =
+            modifier
+                .fillMaxSize()
+                .verticalScroll(rememberScrollState())
+                .padding(horizontal = 16.dp, vertical = 12.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            SessionModeBadge(label = magneticRebuildModeLabel())
+            Text(
+                text = "已完成 ${state.completedClauseCount}/${state.totalClauseCount}",
+                style = MaterialTheme.typography.labelMedium,
+                color = TextSecondary,
+            )
+        }
+
+        Surface(
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(20.dp),
+            color = PanelWhite,
+            shadowElevation = 5.dp,
+        ) {
+            Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                Text("条文重建任务", fontWeight = FontWeight.Bold, color = TextPrimary)
+                Text(
+                    "点击词块加入上方组装区；长按拖动已放置词块可调整顺序，点击已放置词块可撤回。",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = TextSecondary,
+                )
+                CircuitProgress(
+                    correct = state.correctAdjacencyCount,
+                    total = state.totalAdjacencyCount,
+                    completed = state.currentCompleted,
+                )
+            }
+        }
+
+        Surface(
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(20.dp),
+            color = PanelWhite,
+            border = BorderStroke(1.dp, Color(0xFFD8DFE8)),
+            shadowElevation = 4.dp,
+        ) {
+            Column(modifier = Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                Text("已组装条文", fontWeight = FontWeight.SemiBold, color = TextPrimary)
+                if (state.placed.isEmpty()) {
+                    Text(
+                        "词块将在这里逐步连接",
+                        modifier = Modifier.fillMaxWidth().padding(vertical = 22.dp),
+                        textAlign = TextAlign.Center,
+                        color = TextSecondary,
+                    )
+                } else {
+                    FlowRow(
+                        horizontalArrangement = Arrangement.spacedBy(7.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp),
+                    ) {
+                        state.placed.forEachIndexed { index, token ->
+                            val leftConnected =
+                                index > 0 && token.order == state.placed[index - 1].order + 1
+                            val rightConnected =
+                                index < state.placed.lastIndex &&
+                                    state.placed[index + 1].order == token.order + 1
+                            MagneticPlacedToken(
+                                token = token,
+                                index = index,
+                                total = state.placed.size,
+                                connected = leftConnected || rightConnected,
+                                hinted = state.hintedTokenId == token.id,
+                                onReturn = { dispatch(SessionCommand.MagneticReturnToken(token.id)) },
+                                onMove = { target ->
+                                    dispatch(SessionCommand.MagneticMoveToken(token.id, target))
+                                },
+                            )
+                        }
+                    }
+                }
+            }
+        }
+
+        Surface(
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(20.dp),
+            color = Color(0xFFE7EBE2),
+        ) {
+            Column(modifier = Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                Text("待拼词块", fontWeight = FontWeight.SemiBold, color = TextPrimary)
+                FlowRow(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    state.candidates.forEach { token ->
+                        MagneticCandidateToken(
+                            token = token,
+                            hinted = state.hintedTokenId == token.id,
+                            onClick = { dispatch(SessionCommand.MagneticAddToken(token.id)) },
+                        )
+                    }
+                }
+                if (state.candidates.isEmpty()) {
+                    Text("全部词块已放入，请检查顺序。", color = TextSecondary)
+                }
+            }
+        }
+
+        Surface(
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(16.dp),
+            color = if (state.currentCompleted) Color(0xFFE4F5EC) else PanelWhite,
+            border = BorderStroke(1.dp, if (state.currentCompleted) SuccessGreen else Color(0xFFD8DFE8)),
+        ) {
+            Text(
+                text = state.feedback,
+                modifier = Modifier.padding(14.dp),
+                color = if (state.currentCompleted) SuccessGreen else TextPrimary,
+                fontWeight = if (state.currentCompleted) FontWeight.SemiBold else FontWeight.Normal,
+            )
+        }
+
+        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            SmallActionButton(
+                text = "撤销",
+                icon = Icons.Filled.Undo,
+                enabled = state.canUndo,
+                onClick = { dispatch(SessionCommand.MagneticUndo) },
+                modifier = Modifier.weight(1f),
+            )
+            SmallActionButton(
+                text = "提示",
+                icon = Icons.Filled.Lightbulb,
+                enabled = !state.currentCompleted,
+                onClick = { dispatch(SessionCommand.MagneticHint) },
+                modifier = Modifier.weight(1f),
+            )
+            SmallActionButton(
+                text = "原文",
+                icon = Icons.Filled.Visibility,
+                enabled = true,
+                onClick = { dispatch(SessionCommand.MagneticToggleOriginal) },
+                modifier = Modifier.weight(1f),
+            )
+            SmallActionButton(
+                text = "重置",
+                icon = Icons.Filled.Refresh,
+                enabled = !state.currentCompleted,
+                onClick = { dispatch(SessionCommand.MagneticReset) },
+                modifier = Modifier.weight(1f),
+            )
+        }
+
+        Button(
+            onClick = {
+                dispatch(if (state.currentCompleted) SessionCommand.MagneticNext else SessionCommand.MagneticCheck)
+            },
+            modifier = Modifier.fillMaxWidth().height(52.dp),
+            colors = ButtonDefaults.buttonColors(containerColor = BrandBlue),
+            shape = RoundedCornerShape(17.dp),
+        ) {
+            Text(
+                if (state.currentCompleted) {
+                    if (state.currentClauseIndex == state.clauses.lastIndex) "完成本轮" else "下一条"
+                } else {
+                    "检查条文"
+                },
+                fontWeight = FontWeight.SemiBold,
+            )
+        }
+        Text(
+            text = "本条共 ${clause.tokens.size} 个语义块；本轮移动 ${state.moveCount} 次，检查错误 ${state.wrongCheckCount} 次。",
+            modifier = Modifier.fillMaxWidth(),
+            textAlign = TextAlign.Center,
+            style = MaterialTheme.typography.labelSmall,
+            color = TextSecondary,
+        )
+        Spacer(modifier = Modifier.height(18.dp))
+    }
+}
+
+@Composable
+private fun CircuitProgress(
+    correct: Int,
+    total: Int,
+    completed: Boolean,
+) {
+    val progress = if (total <= 0) 0f else correct.toFloat() / total.toFloat()
+    Column(verticalArrangement = Arrangement.spacedBy(7.dp)) {
+        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+            Text("磁吸回路", style = MaterialTheme.typography.labelMedium, color = TextSecondary)
+            Text(
+                if (completed) "已接通" else "$correct/$total",
+                style = MaterialTheme.typography.labelMedium,
+                color = if (completed) SuccessGreen else BrandBlue,
+            )
+        }
+        LinearProgressIndicator(
+            progress = { progress },
+            modifier = Modifier.fillMaxWidth().height(8.dp),
+            color = if (completed) SuccessGreen else BrandBlue,
+            trackColor = Color(0xFFDDE3EA),
+        )
+    }
+}
+
+@Composable
+private fun SmallActionButton(
+    text: String,
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    enabled: Boolean,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    OutlinedButton(
+        onClick = onClick,
+        enabled = enabled,
+        modifier = modifier,
+        contentPadding = ButtonDefaults.ContentPadding,
+        shape = RoundedCornerShape(14.dp),
+    ) {
+        Icon(icon, contentDescription = null, modifier = Modifier.size(17.dp))
+        Spacer(modifier = Modifier.size(4.dp))
+        Text(text, maxLines = 1)
+    }
+}
+
+@Composable
+private fun SessionCompletedContent(
+    state: MagneticRebuildUiState,
+    onBack: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Box(modifier = modifier.fillMaxSize().padding(20.dp), contentAlignment = Alignment.Center) {
+        Surface(shape = RoundedCornerShape(24.dp), color = PanelWhite, shadowElevation = 8.dp) {
+            Column(
+                modifier = Modifier.padding(24.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(14.dp),
+            ) {
+                SessionModeBadge(label = magneticRebuildModeLabel())
+                Text("本轮重建完成", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
+                Text(
+                    "已恢复 ${state.completedClauseCount} 条条文。磁吸重建用于建立整条结构，之后可回到正式练习检验主动回忆。",
+                    textAlign = TextAlign.Center,
+                    color = TextSecondary,
+                )
+                Button(onClick = onBack, modifier = Modifier.fillMaxWidth()) {
+                    Text("返回题库")
+                }
+            }
+        }
+    }
+}

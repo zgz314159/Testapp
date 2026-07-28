@@ -10,6 +10,7 @@ import com.example.testapp.presentation.screen.settings.SettingsViewModel
 fun HomeRoute(
     onStartQuiz: (quizId: String) -> Unit = {},
     onStartAdaptive: (quizId: String) -> Unit = {},
+    onStartMagnetic: (quizId: String) -> Unit = {},
     onBrowseQuestion: (fileName: String, questionId: Int) -> Unit = { fileName, _ -> onStartQuiz(fileName) },
     onEditQuestion: (fileName: String, questionId: Int) -> Unit = { _, _ -> },
     onStartExam: (quizId: String) -> Unit = {},
@@ -28,6 +29,7 @@ fun HomeRoute(
         settingsViewModel = settingsViewModel,
         onStartQuiz = onStartQuiz,
         onStartAdaptive = onStartAdaptive,
+        onStartMagnetic = onStartMagnetic,
         onBrowseQuestion = onBrowseQuestion,
         onEditQuestion = onEditQuestion,
         onStartExam = onStartExam,

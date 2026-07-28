@@ -49,6 +49,7 @@ fun HomeScreen(
     settingsViewModel: SettingsViewModel,
     onStartQuiz: (quizId: String) -> Unit = {},
     onStartAdaptive: (quizId: String) -> Unit = {},
+    onStartMagnetic: (quizId: String) -> Unit = {},
     onBrowseQuestion: (fileName: String, questionId: Int) -> Unit = { fileName, _ -> onStartQuiz(fileName) },
     onEditQuestion: (fileName: String, questionId: Int) -> Unit = { _, _ -> },
     onStartExam: (quizId: String) -> Unit = {},
@@ -367,6 +368,7 @@ fun HomeScreen(
                     onDismissSheet = { showSheet = false },
                     onStartQuiz = onStartQuiz,
                     onStartAdaptive = onStartAdaptive,
+                    onStartMagnetic = onStartMagnetic,
                     onStartExam = onStartExam,
                     onRestartQuiz = { fileName ->
                         viewModel.clearProgressForFile(fileName)
