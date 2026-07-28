@@ -1,6 +1,5 @@
 package com.example.testapp.uicommon.design
 
-import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -22,21 +21,23 @@ fun AppCard(
     contentPadding: Modifier = Modifier.padding(AppSpacing.md),
     content: @Composable ColumnScope.() -> Unit,
 ) {
-    val containerColor = if (isSystemInDarkTheme()) {
-        MaterialTheme.colorScheme.surface
-    } else {
-        QuestionSessionCardContainerLight
-    }
+    val containerColor =
+        if (AppThemeColors.isDark) {
+            MaterialTheme.colorScheme.surface
+        } else {
+            QuestionSessionCardContainerLight
+        }
     ElevatedCard(
         modifier = modifier.fillMaxWidth(),
         shape = RoundedCornerShape(20.dp),
         colors = CardDefaults.elevatedCardColors(containerColor = containerColor),
-        elevation = CardDefaults.elevatedCardElevation(
-            defaultElevation = 8.dp,
-            pressedElevation = 4.dp,
-            focusedElevation = 10.dp,
-            hoveredElevation = 10.dp,
-        ),
+        elevation =
+            CardDefaults.elevatedCardElevation(
+                defaultElevation = 8.dp,
+                pressedElevation = 4.dp,
+                focusedElevation = 10.dp,
+                hoveredElevation = 10.dp,
+            ),
     ) {
         Column(modifier = contentPadding, content = content)
     }

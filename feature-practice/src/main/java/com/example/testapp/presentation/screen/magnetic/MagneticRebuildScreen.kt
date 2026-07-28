@@ -36,6 +36,7 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -45,7 +46,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.text.font.FontWeight
@@ -54,15 +54,9 @@ import androidx.compose.ui.unit.dp
 import com.example.testapp.domain.session.SessionCommand
 import com.example.testapp.presentation.session.magnetic.MagneticRebuildSession
 import com.example.testapp.presentation.session.magnetic.MagneticRebuildUiState
+import com.example.testapp.uicommon.design.AppThemeColors
 import com.example.testapp.uicommon.design.SessionModeBadge
 import com.example.testapp.uicommon.design.magneticRebuildModeLabel
-
-private val EyeCareBackground = Color(0xFFF1F3ED)
-private val PanelWhite = Color(0xFFFCFDFB)
-private val BrandBlue = Color(0xFF4F7EDC)
-private val TextPrimary = Color(0xFF22304A)
-private val TextSecondary = Color(0xFF647087)
-private val SuccessGreen = Color(0xFF3B9C70)
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
@@ -86,8 +80,9 @@ fun MagneticRebuildScreen(
         }
     }
 
+    val colors = MaterialTheme.colorScheme
     Scaffold(
-        containerColor = EyeCareBackground,
+        containerColor = colors.background,
         topBar = {
             CenterAlignedTopAppBar(
                 title = {
@@ -97,7 +92,7 @@ fun MagneticRebuildScreen(
                             Text(
                                 text = "${state.currentClauseIndex + 1}/${state.totalClauseCount}",
                                 style = MaterialTheme.typography.labelSmall,
-                                color = TextSecondary,
+                                color = colors.onSurfaceVariant,
                             )
                         }
                     }
@@ -107,6 +102,12 @@ fun MagneticRebuildScreen(
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "返回")
                     }
                 },
+                colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
+                    containerColor = colors.background,
+                    titleContentColor = colors.onBackground,
+                    navigationIconContentColor = colors.onBackground,
+                    actionIconContentColor = colors.onBackground,
+                ),
             )
         },
     ) { paddingValues ->
@@ -150,7 +151,7 @@ fun MagneticRebuildScreen(
 @Composable
 private fun LoadingContent(modifier: Modifier = Modifier) {
     Box(modifier = modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-        CircularProgressIndicator(color = BrandBlue)
+        CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
     }
 }
 
@@ -161,13 +162,13 @@ private fun ErrorContent(
     modifier: Modifier = Modifier,
 ) {
     Box(modifier = modifier.fillMaxSize().padding(20.dp), contentAlignment = Alignment.Center) {
-        Surface(shape = RoundedCornerShape(22.dp), color = PanelWhite, shadowElevation = 6.dp) {
+        Surface(shape = RoundedCornerShape(22.dp), color = MaterialTheme.colorScheme.surface, shadowElevation = 6.dp) {
             Column(
                 modifier = Modifier.padding(20.dp),
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.spacedBy(14.dp),
             ) {
-                Text(message, color = TextPrimary, textAlign = TextAlign.Center)
+                Text(message, color = MaterialTheme.colorScheme.onSurface, textAlign = TextAlign.Center)
                 Button(onClick = onBack) { Text("返回题库") }
             }
         }
@@ -182,6 +183,8 @@ private fun RebuildContent(
     modifier: Modifier = Modifier,
 ) {
     val clause = state.currentClause ?: return
+    val colors = MaterialTheme.colorScheme
+    val success = AppThemeColors.success
     Column(
         modifier =
             modifier
@@ -199,22 +202,22 @@ private fun RebuildContent(
             Text(
                 text = "已完成 ${state.completedClauseCount}/${state.totalClauseCount}",
                 style = MaterialTheme.typography.labelMedium,
-                color = TextSecondary,
+                color = colors.onSurfaceVariant,
             )
         }
 
         Surface(
             modifier = Modifier.fillMaxWidth(),
             shape = RoundedCornerShape(20.dp),
-            color = PanelWhite,
+            color = colors.surface,
             shadowElevation = 5.dp,
         ) {
             Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                Text("条文重建任务", fontWeight = FontWeight.Bold, color = TextPrimary)
+                Text("条文重建任务", fontWeight = FontWeight.Bold, color = colors.onSurface)
                 Text(
                     "点击词块加入上方组装区；长按拖动已放置词块可调整顺序，点击已放置词块可撤回。",
                     style = MaterialTheme.typography.bodySmall,
-                    color = TextSecondary,
+                    color = colors.onSurfaceVariant,
                 )
                 CircuitProgress(
                     correct = state.correctAdjacencyCount,
@@ -227,18 +230,18 @@ private fun RebuildContent(
         Surface(
             modifier = Modifier.fillMaxWidth(),
             shape = RoundedCornerShape(20.dp),
-            color = PanelWhite,
-            border = BorderStroke(1.dp, Color(0xFFD8DFE8)),
+            color = colors.surface,
+            border = BorderStroke(1.dp, colors.outlineVariant),
             shadowElevation = 4.dp,
         ) {
             Column(modifier = Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                Text("已组装条文", fontWeight = FontWeight.SemiBold, color = TextPrimary)
+                Text("已组装条文", fontWeight = FontWeight.SemiBold, color = colors.onSurface)
                 if (state.placed.isEmpty()) {
                     Text(
                         "词块将在这里逐步连接",
                         modifier = Modifier.fillMaxWidth().padding(vertical = 22.dp),
                         textAlign = TextAlign.Center,
-                        color = TextSecondary,
+                        color = colors.onSurfaceVariant,
                     )
                 } else {
                     FlowRow(
@@ -271,10 +274,10 @@ private fun RebuildContent(
         Surface(
             modifier = Modifier.fillMaxWidth(),
             shape = RoundedCornerShape(20.dp),
-            color = Color(0xFFE7EBE2),
+            color = colors.surfaceVariant,
         ) {
             Column(modifier = Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                Text("待拼词块", fontWeight = FontWeight.SemiBold, color = TextPrimary)
+                Text("待拼词块", fontWeight = FontWeight.SemiBold, color = colors.onSurface)
                 FlowRow(
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                     verticalArrangement = Arrangement.spacedBy(8.dp),
@@ -288,7 +291,7 @@ private fun RebuildContent(
                     }
                 }
                 if (state.candidates.isEmpty()) {
-                    Text("全部词块已放入，请检查顺序。", color = TextSecondary)
+                    Text("全部词块已放入，请检查顺序。", color = colors.onSurfaceVariant)
                 }
             }
         }
@@ -296,13 +299,13 @@ private fun RebuildContent(
         Surface(
             modifier = Modifier.fillMaxWidth(),
             shape = RoundedCornerShape(16.dp),
-            color = if (state.currentCompleted) Color(0xFFE4F5EC) else PanelWhite,
-            border = BorderStroke(1.dp, if (state.currentCompleted) SuccessGreen else Color(0xFFD8DFE8)),
+            color = if (state.currentCompleted) AppThemeColors.successSoft else colors.surface,
+            border = BorderStroke(1.dp, if (state.currentCompleted) success else colors.outlineVariant),
         ) {
             Text(
                 text = state.feedback,
                 modifier = Modifier.padding(14.dp),
-                color = if (state.currentCompleted) SuccessGreen else TextPrimary,
+                color = if (state.currentCompleted) success else colors.onSurface,
                 fontWeight = if (state.currentCompleted) FontWeight.SemiBold else FontWeight.Normal,
             )
         }
@@ -343,7 +346,7 @@ private fun RebuildContent(
                 dispatch(if (state.currentCompleted) SessionCommand.MagneticNext else SessionCommand.MagneticCheck)
             },
             modifier = Modifier.fillMaxWidth().height(52.dp),
-            colors = ButtonDefaults.buttonColors(containerColor = BrandBlue),
+            colors = ButtonDefaults.buttonColors(containerColor = colors.primary, contentColor = colors.onPrimary),
             shape = RoundedCornerShape(17.dp),
         ) {
             Text(
@@ -360,7 +363,7 @@ private fun RebuildContent(
             modifier = Modifier.fillMaxWidth(),
             textAlign = TextAlign.Center,
             style = MaterialTheme.typography.labelSmall,
-            color = TextSecondary,
+            color = colors.onSurfaceVariant,
         )
         Spacer(modifier = Modifier.height(18.dp))
     }
@@ -373,20 +376,22 @@ private fun CircuitProgress(
     completed: Boolean,
 ) {
     val progress = if (total <= 0) 0f else correct.toFloat() / total.toFloat()
+    val colors = MaterialTheme.colorScheme
+    val success = AppThemeColors.success
     Column(verticalArrangement = Arrangement.spacedBy(7.dp)) {
         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-            Text("磁吸回路", style = MaterialTheme.typography.labelMedium, color = TextSecondary)
+            Text("磁吸回路", style = MaterialTheme.typography.labelMedium, color = colors.onSurfaceVariant)
             Text(
                 if (completed) "已接通" else "$correct/$total",
                 style = MaterialTheme.typography.labelMedium,
-                color = if (completed) SuccessGreen else BrandBlue,
+                color = if (completed) success else colors.primary,
             )
         }
         LinearProgressIndicator(
             progress = { progress },
             modifier = Modifier.fillMaxWidth().height(8.dp),
-            color = if (completed) SuccessGreen else BrandBlue,
-            trackColor = Color(0xFFDDE3EA),
+            color = if (completed) success else colors.primary,
+            trackColor = colors.outlineVariant,
         )
     }
 }
@@ -419,7 +424,11 @@ private fun SessionCompletedContent(
     modifier: Modifier = Modifier,
 ) {
     Box(modifier = modifier.fillMaxSize().padding(20.dp), contentAlignment = Alignment.Center) {
-        Surface(shape = RoundedCornerShape(24.dp), color = PanelWhite, shadowElevation = 8.dp) {
+        Surface(
+            shape = RoundedCornerShape(24.dp),
+            color = MaterialTheme.colorScheme.surface,
+            shadowElevation = 8.dp,
+        ) {
             Column(
                 modifier = Modifier.padding(24.dp),
                 horizontalAlignment = Alignment.CenterHorizontally,
@@ -430,7 +439,7 @@ private fun SessionCompletedContent(
                 Text(
                     "已恢复 ${state.completedClauseCount} 条条文。磁吸重建用于建立整条结构，之后可回到正式练习检验主动回忆。",
                     textAlign = TextAlign.Center,
-                    color = TextSecondary,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
                 Button(onClick = onBack, modifier = Modifier.fillMaxWidth()) {
                     Text("返回题库")

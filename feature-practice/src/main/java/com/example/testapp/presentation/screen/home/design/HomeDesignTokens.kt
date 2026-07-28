@@ -1,5 +1,7 @@
 package com.example.testapp.presentation.screen.home.design
 
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -16,10 +18,14 @@ import androidx.compose.ui.unit.sp
 object HomeDesignTokens {
 
     // ─── Background / Surface ───
-    val backgroundLight: Color = Color(0xFFF8FAFD)
-    val surfaceLight: Color = Color(0xFFFFFFFF)
-    val surfaceVariantLight: Color = Color(0xFFF3F6FB)
-    val outlineLight: Color = Color(0xFFD9E2EC)
+    val backgroundLight: Color
+        @Composable get() = MaterialTheme.colorScheme.background
+    val surfaceLight: Color
+        @Composable get() = MaterialTheme.colorScheme.surface
+    val surfaceVariantLight: Color
+        @Composable get() = MaterialTheme.colorScheme.surfaceVariant
+    val outlineLight: Color
+        @Composable get() = MaterialTheme.colorScheme.outline
 
     val backgroundDark: Color = Color(0xFF111318)
     val surfaceDark: Color = Color(0xFF1A1D23)
@@ -28,14 +34,19 @@ object HomeDesignTokens {
 
     // ─── Primary / Accent ───
     val primary: Color = Color(0xFF4F8CFF)
-    val primaryContainer: Color = Color(0xFFDDEBFF)
+    val primaryContainer: Color
+        @Composable get() = MaterialTheme.colorScheme.primaryContainer
     val secondary: Color = Color(0xFF79C9FF)
 
     // ─── Text ───
-    val textPrimaryLight: Color = Color(0xFF1B1F24)
-    val textSecondaryLight: Color = Color(0xFF5F6B7A)
-    val textTertiaryLight: Color = Color(0xFF687484)
-    val subtitleLight: Color = Color(0xFF687484)
+    val textPrimaryLight: Color
+        @Composable get() = MaterialTheme.colorScheme.onSurface
+    val textSecondaryLight: Color
+        @Composable get() = MaterialTheme.colorScheme.onSurfaceVariant
+    val textTertiaryLight: Color
+        @Composable get() = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.82f)
+    val subtitleLight: Color
+        @Composable get() = MaterialTheme.colorScheme.onSurfaceVariant
 
     val textPrimaryDark: Color = Color(0xFFFFFFFF)
     val textSecondaryDark: Color = Color(0xFFB7C1CF)

@@ -1,16 +1,23 @@
 package com.example.testapp.uicommon.design
 
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 
-/** AI 全屏 prompt / 气泡 — 对齐主页白卡立体风格。 */
+/** AI full-screen prompt and bubbles aligned with the active app theme. */
 object AiChatPromptDesignTokens {
-    val pageBackground: Color = Color(0xFFF8FAFD)
-    val cardWhite: Color = Color.White
-    val userBubble: Color = Color(0xFFEAF2FF)
-    val userBubbleContent: Color = Color(0xFF1B2B4E)
+    val pageBackground: Color
+        @Composable get() = MaterialTheme.colorScheme.background
+    val cardWhite: Color
+        @Composable get() = MaterialTheme.colorScheme.surface
+    val userBubble: Color
+        @Composable get() = MaterialTheme.colorScheme.primaryContainer
+    val userBubbleContent: Color
+        @Composable get() = MaterialTheme.colorScheme.onPrimaryContainer
     val brandBlue: Color = Color(0xFF4F8CFF)
-    val textSecondary: Color = Color(0xFF5F6B7A)
+    val textSecondary: Color
+        @Composable get() = MaterialTheme.colorScheme.onSurfaceVariant
 
     val sheetTopElevation = 4.dp
     val sheetShadowElevation = 14.dp

@@ -1,6 +1,5 @@
 package com.example.testapp.uicommon.design
 
-import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.runtime.Composable
 
 fun resolveSessionReadingSectionColors(
@@ -59,4 +58,4 @@ fun resolveSessionReadingSectionColors(
 
 @Composable
 fun sessionReadingSectionColors(tone: AnalysisSectionTone): AnalysisSectionColors =
-    resolveSessionReadingSectionColors(tone, isSystemInDarkTheme())
+    resolveSessionReadingSectionColors(tone, AppThemeColors.isDark)

@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -20,6 +21,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.testapp.uicommon.design.AppElevatedActionSheetTokens
+import com.example.testapp.uicommon.design.AppThemeColors
 
 /** 白底浮起分段选择条，选中项蓝底胶囊；用于 2–3 个互斥选项。 */
 @Composable
@@ -31,12 +33,13 @@ fun SettingsSegmentedControl(
 ) {
     val tokens = AppElevatedActionSheetTokens
     val shape = RoundedCornerShape(14.dp)
+    val selectedContainer = if (AppThemeColors.isDark) MaterialTheme.colorScheme.primaryContainer else tokens.brandBlueSoft
     Surface(
         modifier = modifier
             .fillMaxWidth()
             .height(40.dp),
         shape = shape,
-        color = Color.White,
+        color = tokens.cardWhite,
         tonalElevation = 1.dp,
         shadowElevation = 3.dp,
     ) {
@@ -53,7 +56,7 @@ fun SettingsSegmentedControl(
                         .weight(1f)
                         .fillMaxHeight()
                         .clip(RoundedCornerShape(11.dp))
-                        .background(if (selected) tokens.brandBlueSoft else Color.Transparent)
+                        .background(if (selected) selectedContainer else Color.Transparent)
                         .clickable { onSelected(index) },
                     contentAlignment = Alignment.Center,
                 ) {

@@ -20,6 +20,7 @@ import androidx.compose.material.icons.outlined.ErrorOutline
 import androidx.compose.material.icons.outlined.History
 import androidx.compose.material.icons.outlined.Person
 import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.NavigationBarItemDefaults
@@ -41,11 +42,6 @@ import com.example.testapp.feature.practice.R
 import com.example.testapp.presentation.screen.home.design.HomeDesignTokens
 import kotlinx.coroutines.launch
 
-private val BRAND_BLUE = Color(0xFF4F8CFF)
-private val INACTIVE_GRAY = Color(0xFF7A8A9E)
-private val SELECTED_ICON_BG = Color(0xFF4F8CFF)
-private val IDLE_ICON_BG = Color(0xFFF3F6FB)
-
 @Composable
 fun HomeBottomBar(
     bottomNavIndex: Int,
@@ -56,6 +52,7 @@ fun HomeBottomBar(
     onSettings: () -> Unit,
 ) {
     val context = LocalContext.current
+    val colors = MaterialTheme.colorScheme
     val scope = rememberCoroutineScope()
     fun selectTab(index: Int) {
         onNavChange(index)
@@ -81,7 +78,7 @@ fun HomeBottomBar(
             .padding(horizontal = 12.dp, vertical = 6.dp)
             .navigationBarsPadding(),
         shape = RoundedCornerShape(28.dp),
-        color = Color.White,
+        color = colors.surface,
         tonalElevation = HomeDesignTokens.elevationBottomBarTonal,
         shadowElevation = HomeDesignTokens.elevationBottomBar,
     ) {
@@ -111,7 +108,7 @@ fun HomeBottomBar(
                             text = label,
                             fontSize = 10.sp,
                             fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal,
-                            color = if (selected) BRAND_BLUE else INACTIVE_GRAY,
+                            color = if (selected) colors.primary else colors.onSurfaceVariant,
                         )
                     },
                     colors = NavigationBarItemDefaults.colors(
@@ -133,7 +130,7 @@ private fun HomeBottomNavIcon(
     Surface(
         modifier = Modifier.size(38.dp),
         shape = CircleShape,
-        color = if (selected) SELECTED_ICON_BG else IDLE_ICON_BG,
+        color = if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceVariant,
         tonalElevation = if (selected) 3.dp else 1.dp,
         shadowElevation = if (selected) {
             HomeDesignTokens.elevationNavIconSelected
@@ -146,7 +143,7 @@ private fun HomeBottomNavIcon(
                 imageVector = if (selected) filled else outlined,
                 contentDescription = label,
                 modifier = Modifier.size(if (selected) 20.dp else 18.dp),
-                tint = if (selected) Color.White else INACTIVE_GRAY,
+                tint = if (selected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
     }
