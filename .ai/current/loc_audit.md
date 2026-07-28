@@ -7,6 +7,8 @@
 
 当前工作区没有超过 500 行的 Kotlin 文件。
 
+磁吸重建新增文件均低于 500 行：`MagneticRebuildScreen.kt` 441、`MagneticRebuildSession.kt` 319、`MagneticRebuildToken.kt` 151、`MagneticRebuildQuestionPipeline.kt` 147；未新增 >500 行文件（2026-07-29）。
+
 | 文件 | 行数 | 状态 |
 |------|------|------|
 | `feature-exam/.../ExamViewModel.kt` | 500 | 已抽取 `ExamQuestionStatePipeline` |

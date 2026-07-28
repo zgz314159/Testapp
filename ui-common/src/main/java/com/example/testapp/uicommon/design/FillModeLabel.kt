@@ -30,6 +30,10 @@ fun fillModeShortLabel(mode: FillQuestionGenerationMode): String = stringResourc
 @Composable
 fun adaptiveFadingModeLabel(): String = stringResource(R.string.uicommon_mode_adaptive_fading)
 
+/** 「磁吸重建」会话短名。 */
+@Composable
+fun magneticRebuildModeLabel(): String = stringResource(R.string.uicommon_mode_magnetic_rebuild)
+
 /**
  * 出题模式胶囊徽标：浅蓝底 + 细蓝描边，答题头部与设置页共用，
  * 保证两处样式一致。

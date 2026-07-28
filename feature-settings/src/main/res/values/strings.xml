@@ -83,6 +83,7 @@
     <string name="fill_section_mode">原子题库出题模式</string>
     <string name="fill_category_blank">填空题</string>
     <string name="fill_category_adaptive">自适应渐隐</string>
+    <string name="fill_category_magnetic">磁吸重建</string>
     <string name="expand_fill_blank">展开填空题出题设置</string>
     <string name="collapse_fill_blank">收起填空题出题设置</string>
     <string name="expand_fill_rules">展开出题规则</string>
@@ -92,6 +93,8 @@
     <string name="fill_tag_inactive_short">当前模式不使用，切换到「标签随机模式」生效</string>
     <string name="expand_adaptive_fading">展开自适应渐隐设置</string>
     <string name="collapse_adaptive_fading">收起自适应渐隐设置</string>
+    <string name="expand_magnetic_rebuild">展开磁吸重建说明</string>
+    <string name="collapse_magnetic_rebuild">收起磁吸重建说明</string>
     <string name="fill_section_rules">出题规则</string>
     <string name="fill_section_tags">答案标签侧重练习</string>
     <string name="fill_tag_none_selected">点选标签可多选，未选则全部参与</string>
@@ -130,6 +133,8 @@
     <string name="fill_tag_filter_inactive_hint">当前出题模式不使用标签筛选，切换到「标签随机模式」后生效</string>
     <string name="fill_mode_adaptive_fading_note">从主页题库卡片进入的独立练习方式：按记忆阶段自动在选择、提示、回忆间渐进，与「填空题」出题模式、标签与分值筛选互不影响。</string>
     <string name="fill_adaptive_future_hint">后续将在此增加标签、阶段等筛选设置。</string>
+    <string name="fill_mode_magnetic_rebuild_note">从主页题库卡片进入的独立条文重建方式：把原子词块打乱，通过点击和拖动恢复完整原文；正确相邻词块会产生磁吸反馈。</string>
+    <string name="fill_magnetic_help">仅对 SQLite/DB 原子题库显示入口；不改变填空题、自适应渐隐、练习或考试的出题和进度。</string>
     <string name="fill_answer_tag_filter_clear">清除标签</string>
     <string name="fill_question_filter_summary">当前动态填空题共 %1$d 题，可出题 %2$d 题，已过滤 %3$d 题。</string>
     <string name="fill_full_answer_exam_completion_note">考试模式下全答完成条件固定为「全答」；「全答对」仅练习模式生效。</string>

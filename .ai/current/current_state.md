@@ -30,6 +30,7 @@
 | 模块化 P78 | `refactoring_plan.md` Phase 25 | **✅ 完成** |
 | CI / lint | `.github/workflows/build.yml` | **✅** — ktlint + detekt（P78 收紧规则） |
 | 自适应渐隐原子练习 | 根目录方案 + ADR-006 | **🟡 已实现，待联网环境编译门禁** |
+| 磁吸条文重建 | `MAGNETIC_REBUILD.md`, ADR-009 | **✅ CI 全绿，Debug APK 已生成** |
 | 共用答题页立体视觉 | `:ui-common` question-session chrome | **🟡 已实现，待本地 Android 编译与真机视觉冒烟** |
 | AI 联网纠题 / BYOK | ADR-008 | **🟡 已实现** — 用户自备 DeepSeek + 检索 Key（博查/Tavily 双通道，优先博查）；问答输入栏可显式开启联网；托管额度插口预留；待真机填 Key 验收 |
 | L6 Self-Evolving OS | `LEVEL6_OVERVIEW.md` | Deployed 2026-06-11 |
@@ -51,6 +52,7 @@
 
 - **Session:** Practice / Review / Exam / Browse / QuestionEdit 经 `SessionRegistry` + `SessionHost`
 - **AdaptiveFading:** 独立 Session + 双池抽题 + 四阶段渐隐 + Room 独立调度状态；原题库只读
+- **MagneticRebuild:** 独立 Session + 专用 Compose 页面；确定性语义块重建；原题只读，不写普通进度/错题
 - **Question session UI:** Practice / Exam / Adaptive 共用悬浮顶栏、题型卡、选项卡与立体底栏；业务回调和 Session 边界不变
 - **Command CQRS:** 选题/填空/导航/交卷/Init/Overlay/Lifecycle restore 经 `SessionCommand`（Handler 内 bindings 委托）
 - **AI 同步:** `SessionAiAnalysisExtension` + `SessionExtensionEventWiring`（Host / 裸引擎 / QuestionEdit）

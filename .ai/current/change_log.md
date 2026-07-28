@@ -1,5 +1,13 @@
 # Change Log
 
+## 2026-07-29 | 原子题库新增磁吸条文重建 MVP
+
+- 新增独立 `QuestionSessionKind.MagneticRebuild`、Creator、SessionRegistry 注册和专用 Compose 页面；不修改 Practice/Exam/Adaptive 业务与 UI。
+- 原子填空题通过确定性 Pipeline 恢复完整原文并生成 3–12 个语义块；支持点击加入、长按拖动排序、正确相邻磁吸、撤销、提示、查看原文、重置和逐条完成。
+- 主页原子题库学习方式新增“磁吸重建”；设置 → 出题模式新增对应说明。
+- 原题只读，本 MVP 不写正式错题、历史、收藏或普通练习进度。
+- ADR：`.ai/ADR/009-magnetic-rebuild-session.md`；根目录说明：`MAGNETIC_REBUILD.md`。
+
 > 记录各 Phase 的主要变更。
 > 格式：`YYYY-MM-DD | Phase-N | 描述`
 

@@ -24,11 +24,13 @@ fun LibraryStartQuizSheet(
             onStartPractice(name)
         },
         onStartAdaptive = { onDismiss() },
+        onStartMagnetic = { onDismiss() },
         onStartExam = { name ->
             onDismiss()
             onStartExam(name)
         },
         onRestart = onRestart,
         showAdaptiveOption = false,
+        showMagneticOption = false,
     )
 }

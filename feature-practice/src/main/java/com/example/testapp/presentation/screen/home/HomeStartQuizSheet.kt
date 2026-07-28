@@ -14,6 +14,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AutoAwesome
+import androidx.compose.material.icons.filled.Extension
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Quiz
 import androidx.compose.material.icons.filled.Refresh
@@ -53,6 +54,8 @@ private val AccentRedo = Color(0xFFE8A838)
 private val AccentRedoSoft = Color(0xFFFFF4E0)
 private val AccentAdaptive = Color(0xFF7B6CFF)
 private val AccentAdaptiveSoft = Color(0xFFF0EDFF)
+private val AccentMagnetic = Color(0xFFDB7A2B)
+private val AccentMagneticSoft = Color(0xFFFFF0E2)
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -63,9 +66,11 @@ fun HomeStartQuizSheet(
     onDismiss: () -> Unit,
     onStartQuiz: (String) -> Unit,
     onStartAdaptive: (String) -> Unit,
+    onStartMagnetic: (String) -> Unit,
     onStartExam: (String) -> Unit,
     onRestart: (String) -> Unit,
     showAdaptiveOption: Boolean = true,
+    showMagneticOption: Boolean = true,
 ) {
     if (!visible) return
 
@@ -143,6 +148,22 @@ fun HomeStartQuizSheet(
                     onClick = {
                         onDismiss()
                         onStartAdaptive(pendingFileName)
+                    },
+                )
+                Spacer(modifier = Modifier.height(12.dp))
+            }
+
+            if (showMagneticOption && HomeAdaptiveModeEligibilityPipeline.isEligible(pendingFileName)) {
+                HomeStartQuizActionCard(
+                    title = stringResource(R.string.home_start_magnetic_rebuild),
+                    subtitle = stringResource(R.string.home_start_quiz_magnetic_hint),
+                    icon = Icons.Filled.Extension,
+                    iconTint = AccentMagnetic,
+                    iconBg = AccentMagneticSoft,
+                    elevation = 8.dp,
+                    onClick = {
+                        onDismiss()
+                        onStartMagnetic(pendingFileName)
                     },
                 )
                 Spacer(modifier = Modifier.height(12.dp))

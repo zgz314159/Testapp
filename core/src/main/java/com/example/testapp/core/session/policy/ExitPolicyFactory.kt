@@ -35,6 +35,7 @@ object ExitPolicyFactory {
             -> SessionExitConfig(SessionExitMode.BROWSE)
             is QuestionSessionKind.Review -> SessionExitConfig(SessionExitMode.REVIEW)
             is QuestionSessionKind.AdaptiveFading -> SessionExitConfig(SessionExitMode.PRACTICE)
+            is QuestionSessionKind.MagneticRebuild -> SessionExitConfig(SessionExitMode.BROWSE)
             is QuestionSessionKind.Practice -> SessionExitConfig(SessionExitMode.PRACTICE)
             is QuestionSessionKind.Exam ->
                 if (context.isReviewMode || kind.reviewProgressId != null) {
