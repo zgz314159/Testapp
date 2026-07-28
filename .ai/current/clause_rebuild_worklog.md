@@ -7,4 +7,6 @@
 - 数据：原题只读，MVP 不写正式错题、历史和普通进度。
 - 持久化：GitHub 功能分支 + 沙盒工作副本 + 本地 Git 提交 + 补丁/源码压缩包 + 最终 APK。
 - GitHub同步：沙盒补丁已通过双 SHA-256 校验应用为真实源码提交，临时补丁文件已删除。
-- 当前状态：实现完成，等待 CI `ktlintCheck`、`detekt`、LOC 和 `assembleDebug` 验证。
+- 验证：GitHub Actions Run `30382552415` 的 `ktlintCheck`、`detekt`、LOC、`assembleDebug` 与 APK 上传全部通过。
+- APK：`Testapp-magnetic-rebuild-debug.apk`，SHA-256 `c4d47bf0047f7141eaf099c8b13ec21e034815bd50f28fe1b0b2622bfc3be010`。
+- 当前状态：磁吸重建 MVP 已实现并完成 CI 构建；仍需用户真机体验拖动手感和题库适配效果。
