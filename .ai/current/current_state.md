@@ -52,7 +52,7 @@
 
 - **Session:** Practice / Review / Exam / Browse / QuestionEdit 经 `SessionRegistry` + `SessionHost`
 - **AdaptiveFading:** 独立 Session + 双池抽题 + 四阶段渐隐 + Room 独立调度状态；原题库只读
-- **MagneticRebuild:** 独立 Session + 专用 Compose 页面；确定性语义块重建；原题只读，不写普通进度/错题
+- **MagneticRebuild:** 独立 Session + 专用 Compose 页面；确定性语义块重建；原题只读；使用独立 `magnetic_` 作用域保存并恢复当前题号与词块布局，不写普通错题
 - **Question session UI:** Practice / Exam / Adaptive 共用悬浮顶栏、题型卡、选项卡与立体底栏；业务回调和 Session 边界不变
 - **Command CQRS:** 选题/填空/导航/交卷/Init/Overlay/Lifecycle restore 经 `SessionCommand`（Handler 内 bindings 委托）
 - **AI 同步:** `SessionAiAnalysisExtension` + `SessionExtensionEventWiring`（Host / 裸引擎 / QuestionEdit）
