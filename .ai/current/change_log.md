@@ -1,5 +1,12 @@
 # Change Log
 
+## 2026-07-29 | 磁吸重建补齐进度持久化
+
+- 退出磁吸重建时保存固定题目顺序、当前条文、已完成条文、候选词块和已组装词块。
+- 再次进入同一题库时恢复到上次题号和当前拼图布局，不再从第1题重建会话。
+- 完成本轮后清除该轮进度；主页“重答”同时清除对应磁吸进度。
+- 复用现有进度仓储的独立 `magnetic_` 作用域，不新增Room表，不影响普通练习进度。
+
 ## 2026-07-29 | 原子题库新增磁吸条文重建 MVP
 
 - 新增独立 `QuestionSessionKind.MagneticRebuild`、Creator、SessionRegistry 注册和专用 Compose 页面；不修改 Practice/Exam/Adaptive 业务与 UI。

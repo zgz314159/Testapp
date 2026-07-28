@@ -20,11 +20,16 @@ object MagneticRebuildQuestionPipeline {
         requestedCount: Int,
         randomOrder: Boolean,
         seed: Long,
+        fixedQuestionOrder: List<Int> = emptyList(),
     ): List<MagneticClause> {
+        val clauses = sourceQuestions.mapNotNull(::buildClause)
+        if (fixedQuestionOrder.isNotEmpty()) {
+            val clausesById = clauses.associateBy(MagneticClause::sourceQuestionId)
+            return fixedQuestionOrder.mapNotNull(clausesById::get)
+        }
         val limit =
             (if (requestedCount <= 0) DEFAULT_SESSION_SIZE else requestedCount)
                 .coerceAtMost(MAX_SESSION_SIZE)
-        val clauses = sourceQuestions.mapNotNull(::buildClause)
         val ordered = if (randomOrder) clauses.shuffled(Random(seed)) else clauses
         return ordered.take(limit)
     }

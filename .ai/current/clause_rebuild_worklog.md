@@ -10,3 +10,4 @@
 - 验证：GitHub Actions Run `30382552415` 的 `ktlintCheck`、`detekt`、LOC、`assembleDebug` 与 APK 上传全部通过。
 - APK：`Testapp-magnetic-rebuild-debug.apk`，SHA-256 `c4d47bf0047f7141eaf099c8b13ec21e034815bd50f28fe1b0b2622bfc3be010`。
 - 当前状态：磁吸重建 MVP 已实现并完成 CI 构建；仍需用户真机体验拖动手感和题库适配效果。
+- 2026-07-29：补齐独立进度持久化；退出保存题目顺序、当前题号与词块布局，再进入恢复上次位置；完成本轮或主页重答时清除。

@@ -13,6 +13,8 @@ import com.example.testapp.domain.session.SessionUiContract
 import com.example.testapp.domain.session.StatisticsSnapshot
 import com.example.testapp.presentation.session.practice.PracticeSessionDeps
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharedFlow
@@ -40,18 +42,33 @@ class MagneticRebuildSession(
     private val _uiState = MutableStateFlow(MagneticRebuildUiState(bankId = magneticKind.quizId))
     val uiState: StateFlow<MagneticRebuildUiState> = _uiState.asStateFlow()
 
+    private val progressStore = MagneticRebuildProgressStore(deps.facade.progress)
     private var shuffleSequence = 0L
+    private var saveJob: Job? = null
 
     override suspend fun start() {
+        val savedProgress = runCatching { progressStore.load(magneticKind.quizId) }.getOrNull()
         val sourceQuestions = deps.facade.questions.get(magneticKind.quizId).first()
         val settings = deps.fontSettings.readSettingsSnapshot()
-        val clauses =
+        val restoredClauses =
             MagneticRebuildQuestionPipeline.prepare(
                 sourceQuestions = sourceQuestions,
                 requestedCount = settings.practiceQuestionCount,
                 randomOrder = settings.randomPractice,
                 seed = magneticKind.quizId.hashCode().toLong(),
+                fixedQuestionOrder = savedProgress?.fixedQuestionOrder.orEmpty(),
             )
+        val clauses =
+            if (restoredClauses.isEmpty() && savedProgress != null) {
+                MagneticRebuildQuestionPipeline.prepare(
+                    sourceQuestions = sourceQuestions,
+                    requestedCount = settings.practiceQuestionCount,
+                    randomOrder = settings.randomPractice,
+                    seed = magneticKind.quizId.hashCode().toLong(),
+                )
+            } else {
+                restoredClauses
+            }
         if (clauses.isEmpty()) {
             _uiState.value =
                 _uiState.value.copy(
@@ -66,11 +83,19 @@ class MagneticRebuildSession(
                 isLoading = false,
                 clauses = clauses,
             )
-        loadClause(0)
+        if (!restoreProgress(savedProgress)) {
+            loadClause(index = 0, persist = false)
+        }
         _events.emit(SessionEvent.SessionStarted(kind))
     }
 
     override suspend fun destroy() {
+        saveJob?.cancel()
+        if (_uiState.value.sessionCompleted) {
+            runCatching { progressStore.clear(magneticKind.quizId) }
+        } else {
+            saveProgressNow()
+        }
         _events.emit(SessionEvent.SessionDestroyed)
     }
 
@@ -89,7 +114,70 @@ class MagneticRebuildSession(
         }
     }
 
-    private fun loadClause(index: Int) {
+    private fun restoreProgress(saved: MagneticRebuildSavedProgress?): Boolean {
+        if (saved == null) return false
+        val state = _uiState.value
+        val completedIds = saved.completedQuestionIds.toSet()
+        val completedCount = state.clauses.takeWhile { it.sourceQuestionId in completedIds }.size
+        val indexByQuestion =
+            saved.currentQuestionId
+                ?.let { questionId -> state.clauses.indexOfFirst { it.sourceQuestionId == questionId } }
+                ?.takeIf { it >= 0 }
+        val currentIndex =
+            (indexByQuestion ?: saved.currentClauseIndex)
+                .coerceIn(0, state.clauses.lastIndex)
+        val clause = state.clauses[currentIndex]
+        val tokensById = clause.tokens.associateBy(MagneticToken::id)
+        val placed = saved.placedTokenIds.mapNotNull(tokensById::get)
+        val candidates = saved.candidateTokenIds.mapNotNull(tokensById::get)
+        val boardIsValid =
+            (placed + candidates).map(MagneticToken::id).toSet() == clause.tokens.map(MagneticToken::id).toSet() &&
+                placed.size + candidates.size == clause.tokens.size
+        val completedBoard = saved.currentCompleted && placed.map(MagneticToken::id) == clause.tokens.map(MagneticToken::id)
+        if (!boardIsValid) {
+            _uiState.value = state.copy(completedClauseCount = completedCount)
+            loadClause(currentIndex, persist = false)
+            _uiState.value =
+                _uiState.value.copy(
+                    completedClauseCount = completedCount,
+                    feedback = "已恢复到上次答题位置。",
+                )
+            publishSnapshot()
+            return true
+        }
+        _uiState.value =
+            state.copy(
+                currentClauseIndex = currentIndex,
+                candidates = candidates,
+                placed = placed,
+                moveCount = saved.moveCount,
+                wrongCheckCount = saved.wrongCheckCount,
+                hintCount = saved.hintCount,
+                originalViewCount = saved.originalViewCount,
+                hintedTokenId = saved.hintedTokenId?.takeIf(tokensById::containsKey),
+                showOriginal = false,
+                currentCompleted = completedBoard,
+                completedClauseCount = completedCount,
+                sessionCompleted = false,
+                feedback =
+                    if (completedBoard) {
+                        "已恢复上次完成状态，可继续下一条。"
+                    } else {
+                        "已恢复上次答题进度。"
+                    },
+                undoStack = emptyList(),
+            )
+        publishSnapshot()
+        scope.launch {
+            _events.emit(SessionEvent.QuestionChanged(currentIndex, clause.sourceQuestionId))
+        }
+        return true
+    }
+
+    private fun loadClause(
+        index: Int,
+        persist: Boolean = true,
+    ) {
         val state = _uiState.value
         val clause = state.clauses.getOrNull(index) ?: return
         shuffleSequence += 1
@@ -114,6 +202,7 @@ class MagneticRebuildSession(
                 undoStack = emptyList(),
             )
         publishSnapshot()
+        if (persist) scheduleProgressSave()
         scope.launch {
             _events.emit(SessionEvent.QuestionChanged(index, clause.sourceQuestionId))
         }
@@ -131,6 +220,7 @@ class MagneticRebuildSession(
         val lastPair = state.placed.takeLast(2)
         if (lastPair.size == 2 && lastPair[1].order == lastPair[0].order + 1) {
             _uiState.value = state.copy(feedback = "磁吸成功：发现一组正确相邻关系。")
+            scheduleProgressSave()
         }
     }
 
@@ -179,6 +269,7 @@ class MagneticRebuildSession(
                 undoStack = undo,
             )
         publishSnapshot()
+        scheduleProgressSave()
     }
 
     private fun undo() {
@@ -194,6 +285,7 @@ class MagneticRebuildSession(
                 undoStack = state.undoStack.dropLast(1),
             )
         publishSnapshot()
+        scheduleProgressSave()
     }
 
     private fun resetCurrent() {
@@ -201,6 +293,7 @@ class MagneticRebuildSession(
         if (state.currentCompleted) return
         loadClause(state.currentClauseIndex)
         _uiState.value = _uiState.value.copy(feedback = "条文已重新打乱。")
+        scheduleProgressSave()
     }
 
     private fun checkCurrent() {
@@ -210,6 +303,7 @@ class MagneticRebuildSession(
         if (state.placed.size != clause.tokens.size) {
             val missing = clause.tokens.size - state.placed.size
             _uiState.value = state.copy(feedback = "仍有 $missing 个词块未放入。")
+            scheduleProgressSave()
             return
         }
         val correct = state.placed.map { it.id } == clause.tokens.map { it.id }
@@ -217,11 +311,12 @@ class MagneticRebuildSession(
             _uiState.value =
                 state.copy(
                     currentCompleted = true,
-                    completedClauseCount = state.completedClauseCount + 1,
+                    completedClauseCount = (state.currentClauseIndex + 1).coerceAtLeast(state.completedClauseCount),
                     hintedTokenId = null,
                     feedback = "回路完全接通：条文恢复正确。",
                 )
             publishSnapshot()
+            scheduleProgressSave()
             scope.launch {
                 _events.emit(SessionEvent.AnswerSubmitted(state.currentClauseIndex, clause.sourceQuestionId))
             }
@@ -235,6 +330,7 @@ class MagneticRebuildSession(
                     wrongCheckCount = state.wrongCheckCount + 1,
                     feedback = "第 ${mismatch + 1} 个位置尚未接对，先判断该词块在句中的作用。",
                 )
+            scheduleProgressSave()
         }
     }
 
@@ -253,6 +349,7 @@ class MagneticRebuildSession(
                 hintedTokenId = target.id,
                 feedback = "提示：下一处应寻找“${roleLabel(target.role)}”词块。",
             )
+        scheduleProgressSave()
     }
 
     private fun toggleOriginal() {
@@ -262,17 +359,57 @@ class MagneticRebuildSession(
                 showOriginal = !state.showOriginal,
                 originalViewCount = state.originalViewCount + if (state.showOriginal) 0 else 1,
             )
+        scheduleProgressSave()
     }
 
     private fun nextClause() {
         val state = _uiState.value
         if (!state.currentCompleted) return
         if (state.currentClauseIndex >= state.clauses.lastIndex) {
+            saveJob?.cancel()
             _uiState.value = state.copy(sessionCompleted = true, showOriginal = false)
             publishSnapshot()
+            scope.launch { runCatching { progressStore.clear(magneticKind.quizId) } }
         } else {
             loadClause(state.currentClauseIndex + 1)
         }
+    }
+
+    private fun scheduleProgressSave() {
+        val state = _uiState.value
+        if (state.isLoading || state.errorMessage != null || state.clauses.isEmpty() || state.sessionCompleted) return
+        saveJob?.cancel()
+        saveJob =
+            scope.launch {
+                delay(SAVE_DEBOUNCE_MS)
+                saveProgressNow()
+            }
+    }
+
+    private suspend fun saveProgressNow() {
+        val state = _uiState.value
+        val currentClause = state.currentClause ?: return
+        if (state.isLoading || state.errorMessage != null || state.sessionCompleted) return
+        val completedQuestionIds =
+            state.clauses
+                .take(state.completedClauseCount.coerceIn(0, state.clauses.size))
+                .map(MagneticClause::sourceQuestionId)
+        val saved =
+            MagneticRebuildSavedProgress(
+                fixedQuestionOrder = state.clauses.map(MagneticClause::sourceQuestionId),
+                currentClauseIndex = state.currentClauseIndex,
+                completedQuestionIds = completedQuestionIds,
+                currentQuestionId = currentClause.sourceQuestionId,
+                candidateTokenIds = state.candidates.map(MagneticToken::id),
+                placedTokenIds = state.placed.map(MagneticToken::id),
+                moveCount = state.moveCount,
+                wrongCheckCount = state.wrongCheckCount,
+                hintCount = state.hintCount,
+                originalViewCount = state.originalViewCount,
+                hintedTokenId = state.hintedTokenId,
+                currentCompleted = state.currentCompleted,
+            )
+        runCatching { progressStore.save(magneticKind.quizId, saved) }
     }
 
     private fun publishSnapshot() {
@@ -315,5 +452,6 @@ class MagneticRebuildSession(
 
     private companion object {
         const val MAX_UNDO = 20
+        const val SAVE_DEBOUNCE_MS = 180L
     }
 }
