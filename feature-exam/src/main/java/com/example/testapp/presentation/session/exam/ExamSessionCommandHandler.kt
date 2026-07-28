@@ -52,6 +52,15 @@ object ExamSessionCommandHandler {
             is SessionCommand.UpdateBaiduAnalysis -> bindings.updateBaiduAnalysis(command.index, command.text)
             is SessionCommand.SaveNote -> bindings.saveNote(command.questionId, command.index, command.text)
             is SessionCommand.AppendNote -> bindings.appendNote(command.questionId, command.index, command.text)
+            is SessionCommand.MagneticAddToken,
+            is SessionCommand.MagneticReturnToken,
+            is SessionCommand.MagneticMoveToken,
+            SessionCommand.MagneticUndo,
+            SessionCommand.MagneticReset,
+            SessionCommand.MagneticCheck,
+            SessionCommand.MagneticHint,
+            SessionCommand.MagneticToggleOriginal,
+            SessionCommand.MagneticNext,
             is SessionCommand.GoToQuestionById,
             is SessionCommand.ClearExplanation,
             SessionCommand.BrowseAnsweredHistoryOlder,
