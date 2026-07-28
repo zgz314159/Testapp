@@ -1,4 +1,5 @@
 // app/build.gradle.kts
+import java.util.Base64
 import java.util.Properties
 import java.util.zip.ZipEntry
 import java.util.zip.ZipInputStream
@@ -100,6 +101,22 @@ val releaseSigningConfigured =
         releaseKeyPassword.isNotBlank() &&
         rootProject.file(releaseStoreFilePath).isFile
 
+// Public, debug-only signing key. It keeps CI/local debug APK signatures stable.
+// Never reuse this key for release builds.
+val ciDebugStorePassword = "testapp-debug"
+val ciDebugKeyAlias = "testapp-debug"
+val ciDebugKeyPassword = "testapp-debug"
+val ciDebugKeystoreBase64File = rootProject.file(".ci/testapp-ci-debug.keystore.b64")
+val ciDebugKeystoreFile = rootProject.file("build/ci-signing/testapp-ci-debug.keystore")
+if (ciDebugKeystoreBase64File.isFile) {
+    ciDebugKeystoreFile.parentFile.mkdirs()
+    val encoded = ciDebugKeystoreBase64File.readText().filterNot(Char::isWhitespace)
+    val decoded = Base64.getDecoder().decode(encoded)
+    if (!ciDebugKeystoreFile.isFile || !ciDebugKeystoreFile.readBytes().contentEquals(decoded)) {
+        ciDebugKeystoreFile.writeBytes(decoded)
+    }
+}
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
@@ -114,11 +131,11 @@ android {
     compileSdk = 35
 
     defaultConfig {
-        applicationId     = "com.example.testapp"
+        applicationId     = "com.zgz314159.testapp"
         minSdk            = 26
         targetSdk         = 35
-        versionCode       = 1
-        versionName       = "1.0"
+        versionCode       = 2
+        versionName       = "1.1"
         buildConfigField("String", "BAIDU_API_KEY", buildConfigString(apiKey("BAIDU_API_KEY")))
         buildConfigField("String", "SPARK_API_KEY", buildConfigString(apiKey("SPARK_API_KEY")))
 
@@ -131,7 +148,6 @@ android {
         }
     }
 
-    
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_21
         targetCompatibility = JavaVersion.VERSION_21
@@ -164,6 +180,14 @@ android {
     // Release secrets come from ignored signing.properties or CI environment variables.
     // Without them, Gradle can still assemble an unsigned release artifact.
     signingConfigs {
+        if (ciDebugKeystoreFile.isFile) {
+            create("ciDebug") {
+                storeFile = ciDebugKeystoreFile
+                storePassword = ciDebugStorePassword
+                keyAlias = ciDebugKeyAlias
+                keyPassword = ciDebugKeyPassword
+            }
+        }
         if (releaseSigningConfigured) {
             create("release") {
                 storeFile = rootProject.file(releaseStoreFilePath)
@@ -175,6 +199,13 @@ android {
     }
 
     buildTypes {
+        debug {
+            applicationIdSuffix = ".debug"
+            versionNameSuffix = "-debug"
+            if (ciDebugKeystoreFile.isFile) {
+                signingConfig = signingConfigs.getByName("ciDebug")
+            }
+        }
         release {
             // Temporarily disable shrinking for debugging import issue
             isMinifyEnabled = true
@@ -211,7 +242,6 @@ dependencies {
     implementation("androidx.compose.foundation:foundation")
 
     implementation(libs.compose.material.icons.extended)
-
 
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
