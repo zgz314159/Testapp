@@ -20,6 +20,7 @@ import androidx.compose.material.icons.filled.Quiz
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -41,13 +42,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.testapp.feature.practice.R
 import com.example.testapp.presentation.screen.home.design.HomeDesignTokens
+import com.example.testapp.uicommon.design.AppThemeColors
 
-private val SheetBg = Color(0xFFF8FAFD)
-private val CardWhite = Color.White
-private val TextPrimary = Color(0xFF1B2B4E)
-private val TextSecondary = Color(0xFF5F6B7A)
-private val BrandBlue = Color(0xFF4F8CFF)
-private val BrandBlueSoft = Color(0xFFEAF2FF)
 private val AccentExam = Color(0xFF42B883)
 private val AccentExamSoft = Color(0xFFE6F7F0)
 private val AccentRedo = Color(0xFFE8A838)
@@ -75,6 +71,8 @@ fun HomeStartQuizSheet(
     if (!visible) return
 
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    val colors = MaterialTheme.colorScheme
+    val titleShadow = if (AppThemeColors.isDark) Color.Black.copy(alpha = 0.45f) else colors.onSurface.copy(alpha = 0.16f)
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         sheetState = sheetState,
@@ -82,7 +80,7 @@ fun HomeStartQuizSheet(
             topStart = HomeDesignTokens.bottomNavRadius,
             topEnd = HomeDesignTokens.bottomNavRadius,
         ),
-        containerColor = SheetBg,
+        containerColor = colors.background,
         tonalElevation = 4.dp,
     ) {
         Column(
@@ -98,10 +96,10 @@ fun HomeStartQuizSheet(
                     fontSize = 18.sp,
                     lineHeight = 24.sp,
                     fontWeight = FontWeight.SemiBold,
-                    color = TextPrimary,
+                    color = colors.onSurface,
                     textAlign = TextAlign.Center,
                     shadow = Shadow(
-                        color = Color(0x291B2B4E),
+                        color = titleShadow,
                         offset = Offset(0f, 1.5f),
                         blurRadius = 4f,
                     ),
@@ -115,7 +113,7 @@ fun HomeStartQuizSheet(
                 text = stringResource(R.string.home_start_quiz_sheet_subtitle),
                 fontSize = 12.sp,
                 fontWeight = FontWeight.Medium,
-                color = TextSecondary,
+                color = colors.onSurfaceVariant,
             )
             Spacer(modifier = Modifier.height(18.dp))
 
@@ -127,8 +125,8 @@ fun HomeStartQuizSheet(
                 },
                 subtitle = stringResource(R.string.home_start_quiz_practice_hint),
                 icon = Icons.Filled.PlayArrow,
-                iconTint = BrandBlue,
-                iconBg = BrandBlueSoft,
+                iconTint = colors.primary,
+                iconBg = colors.primaryContainer,
                 elevation = 10.dp,
                 onClick = {
                     onDismiss()
@@ -205,7 +203,7 @@ fun HomeStartQuizSheet(
                     .fillMaxWidth()
                     .clickable(onClick = onDismiss),
                 shape = RoundedCornerShape(18.dp),
-                color = CardWhite,
+                color = colors.surface,
                 tonalElevation = 1.dp,
                 shadowElevation = 4.dp,
             ) {
@@ -217,7 +215,7 @@ fun HomeStartQuizSheet(
                     textAlign = TextAlign.Center,
                     fontSize = 15.sp,
                     fontWeight = FontWeight.Medium,
-                    color = TextSecondary,
+                    color = colors.onSurfaceVariant,
                 )
             }
         }
@@ -234,12 +232,14 @@ private fun HomeStartQuizActionCard(
     elevation: Dp,
     onClick: () -> Unit,
 ) {
+    val colors = MaterialTheme.colorScheme
+    val resolvedIconBg = if (AppThemeColors.isDark) iconTint.copy(alpha = 0.18f) else iconBg
     Surface(
         modifier = Modifier
             .fillMaxWidth()
             .clickable(onClick = onClick),
         shape = RoundedCornerShape(20.dp),
-        color = CardWhite,
+        color = colors.surface,
         tonalElevation = 2.dp,
         shadowElevation = elevation,
     ) {
@@ -253,7 +253,7 @@ private fun HomeStartQuizActionCard(
             Surface(
                 modifier = Modifier.size(44.dp),
                 shape = CircleShape,
-                color = iconBg,
+                color = resolvedIconBg,
                 tonalElevation = 1.dp,
                 shadowElevation = 5.dp,
             ) {
@@ -271,7 +271,7 @@ private fun HomeStartQuizActionCard(
                     text = title,
                     fontSize = 16.sp,
                     fontWeight = FontWeight.SemiBold,
-                    color = TextPrimary,
+                    color = colors.onSurface,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                 )
@@ -280,7 +280,7 @@ private fun HomeStartQuizActionCard(
                     text = subtitle,
                     fontSize = 12.sp,
                     fontWeight = FontWeight.Medium,
-                    color = TextSecondary,
+                    color = colors.onSurfaceVariant,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                 )
