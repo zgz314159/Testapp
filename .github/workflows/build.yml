@@ -2,9 +2,9 @@ name: Android CI
 
 on:
   push:
-    branches: [ main ]
+    branches: [ master, main ]
   pull_request:
-    branches: [ main ]
+    branches: [ master, main ]
   workflow_dispatch:
 
 jobs:
@@ -24,6 +24,15 @@ jobs:
 
       - name: Grant execute permission
         run: chmod +x ./gradlew
+
+      - name: Archive source snapshot
+        run: git archive --format=zip --output=Testapp-source.zip HEAD
+
+      - name: Upload source snapshot
+        uses: actions/upload-artifact@v4
+        with:
+          name: testapp-source
+          path: Testapp-source.zip
 
       - name: ktlint
         run: ./gradlew ktlintCheck
