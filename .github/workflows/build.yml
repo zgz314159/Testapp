@@ -35,7 +35,23 @@ jobs:
           path: Testapp-source.zip
 
       - name: ktlint
-        run: ./gradlew ktlintCheck
+        id: ktlint
+        continue-on-error: true
+        shell: bash
+        run: |
+          set -o pipefail
+          ./gradlew ktlintCheck --stacktrace 2>&1 | tee ktlint.log
+
+      - name: Upload ktlint log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ktlint-log
+          path: ktlint.log
+
+      - name: Propagate ktlint failure
+        if: steps.ktlint.outcome == 'failure'
+        run: exit 1
 
       - name: detekt
         run: ./gradlew detekt
