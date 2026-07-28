@@ -53,6 +53,7 @@
 - **Session:** Practice / Review / Exam / Browse / QuestionEdit 经 `SessionRegistry` + `SessionHost`
 - **AdaptiveFading:** 独立 Session + 双池抽题 + 四阶段渐隐 + Room 独立调度状态；原题库只读
 - **MagneticRebuild:** 独立 Session + 专用 Compose 页面；确定性语义块重建；原题只读；使用独立 `magnetic_` 作用域保存并恢复当前题号与词块布局，不写普通错题
+- **Theme:** 深色模式使用近黑语义色；磁吸、主页、设置、AI弹层及通用答题组件跟随应用内主题开关，浅色护眼方案不变
 - **Question session UI:** Practice / Exam / Adaptive 共用悬浮顶栏、题型卡、选项卡与立体底栏；业务回调和 Session 边界不变
 - **Command CQRS:** 选题/填空/导航/交卷/Init/Overlay/Lifecycle restore 经 `SessionCommand`（Handler 内 bindings 委托）
 - **AI 同步:** `SessionAiAnalysisExtension` + `SessionExtensionEventWiring`（Host / 裸引擎 / QuestionEdit）
@@ -114,7 +115,7 @@ P68 AI overlay callbacks + SettingsImportFilePipeline + ImportResult 统一 ✅
 ## 2026-07-15 结果详情页
 
 - `:feature-practice` 结果详情页已按仪表盘设计完成 UI 重构，原有 ViewModel、历史记录、导航和数据库链路保持不变。
-- 本次/累计统计口径已统一，趋势图限定当前题库最近 9 次；详细说明见 [result_screen_redesign.md](result_screen_redesign.md)。
+- 本次/累计统计口径已统一，趋势图限定当��题库最近 9 次；详细说明见 [result_screen_redesign.md](result_screen_redesign.md)。
 - 统计边界与页面重构已完成；当前收尾验证只保留静态检查和生产构建。
 
 ## 2026-07-15 导入 / 绘图 / DeepSeek 题号
