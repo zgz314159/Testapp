@@ -1,5 +1,6 @@
 package com.example.testapp.presentation.session.magnetic
 
+import com.example.testapp.core.common.MagneticFragmentationLevel
 import com.example.testapp.core.session.policy.UiPolicyFactory
 import com.example.testapp.domain.session.QuestionSession
 import com.example.testapp.domain.session.QuestionSessionKind
@@ -44,12 +45,14 @@ class MagneticRebuildSession(
 
     private val progressStore = MagneticRebuildProgressStore(deps.facade.progress)
     private var shuffleSequence = 0L
+    private var activeFragmentationLevel = MagneticFragmentationLevel.STANDARD
     private var saveJob: Job? = null
 
     override suspend fun start() {
         val savedProgress = runCatching { progressStore.load(magneticKind.quizId) }.getOrNull()
         val sourceQuestions = deps.facade.questions.get(magneticKind.quizId).first()
         val settings = deps.fontSettings.readSettingsSnapshot()
+        activeFragmentationLevel = savedProgress?.fragmentationLevel ?: settings.magneticFragmentationLevel
         val restoredClauses =
             MagneticRebuildQuestionPipeline.prepare(
                 sourceQuestions = sourceQuestions,
@@ -57,6 +60,7 @@ class MagneticRebuildSession(
                 randomOrder = settings.randomPractice,
                 seed = magneticKind.quizId.hashCode().toLong(),
                 fixedQuestionOrder = savedProgress?.fixedQuestionOrder.orEmpty(),
+                fragmentationLevel = activeFragmentationLevel,
             )
         val clauses =
             if (restoredClauses.isEmpty() && savedProgress != null) {
@@ -65,6 +69,7 @@ class MagneticRebuildSession(
                     requestedCount = settings.practiceQuestionCount,
                     randomOrder = settings.randomPractice,
                     seed = magneticKind.quizId.hashCode().toLong(),
+                    fragmentationLevel = activeFragmentationLevel,
                 )
             } else {
                 restoredClauses
@@ -408,6 +413,7 @@ class MagneticRebuildSession(
                 originalViewCount = state.originalViewCount,
                 hintedTokenId = state.hintedTokenId,
                 currentCompleted = state.currentCompleted,
+                fragmentationLevel = activeFragmentationLevel,
             )
         runCatching { progressStore.save(magneticKind.quizId, saved) }
     }

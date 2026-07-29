@@ -6,6 +6,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.testapp.core.common.FontSettingsRepository
 import com.example.testapp.core.common.LocalizedResult
+import com.example.testapp.core.common.MagneticFragmentationLevel
 import com.example.testapp.core.util.FillQuestionFilterSummary
 import com.example.testapp.core.util.FillQuestionGenerationMode
 import com.example.testapp.domain.usecase.SettingsRepositoryFacade
@@ -56,6 +57,8 @@ class SettingsViewModel @Inject constructor(
     val wrongDelay: StateFlow<Int> get() = fontSettings.wrongDelay
     val examDelay: StateFlow<Int> get() = fontSettings.examDelay
     val fillBlankCount: StateFlow<Int> get() = fontSettings.fillBlankCount
+    val magneticFragmentationLevel: StateFlow<MagneticFragmentationLevel>
+        get() = fontSettings.magneticFragmentationLevel
     val randomFillBlanks: StateFlow<Boolean> get() = fontSettings.randomFillBlanks
     val fillQuestionGenerationMode: StateFlow<FillQuestionGenerationMode> get() = fontSettings.fillQuestionGenerationMode
     val fillFullAnswerRandomOrder: StateFlow<Boolean> get() = fontSettings.fillFullAnswerRandomOrder
@@ -142,6 +145,14 @@ class SettingsViewModel @Inject constructor(
     fun setFillBlankCount(context: Context, count: Int) {
         fontSettings.emitFillBlankCount(count)
         viewModelScope.launch { fontSettingsRepository.setFillBlankCount(count) }
+    }
+
+    fun setMagneticFragmentationLevel(
+        context: Context,
+        level: MagneticFragmentationLevel,
+    ) {
+        fontSettings.emitMagneticFragmentationLevel(level)
+        viewModelScope.launch { fontSettingsRepository.setMagneticFragmentationLevel(level) }
     }
 
     fun setRandomFillBlanks(context: Context, enabled: Boolean) {

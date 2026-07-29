@@ -1,5 +1,6 @@
 package com.example.testapp.presentation.session.magnetic
 
+import com.example.testapp.core.common.MagneticFragmentationLevel
 import com.example.testapp.domain.model.PracticeProgress
 import com.example.testapp.domain.usecase.ProgressUseCases
 import kotlinx.coroutines.flow.first
@@ -17,6 +18,7 @@ internal data class MagneticRebuildSavedProgress(
     val originalViewCount: Int,
     val hintedTokenId: Int?,
     val currentCompleted: Boolean,
+    val fragmentationLevel: MagneticFragmentationLevel,
 )
 
 internal class MagneticRebuildProgressStore(
@@ -69,6 +71,7 @@ internal object MagneticRebuildProgressCodec {
                         saved.wrongCheckCount,
                         saved.hintCount,
                         saved.originalViewCount,
+                        saved.fragmentationLevel.storageValue,
                     ).joinToString(COUNTER_SEPARATOR),
                 ),
             timestamp = System.currentTimeMillis(),
@@ -97,6 +100,7 @@ internal object MagneticRebuildProgressCodec {
             originalViewCount = counters.getOrElse(3) { 0 }.coerceAtLeast(0),
             hintedTokenId = progress.analysisList.getOrNull(1)?.toIntOrNull(),
             currentCompleted = progress.showResultList.firstOrNull() == true,
+            fragmentationLevel = MagneticFragmentationLevel.fromStorageValue(counters.getOrNull(4)),
         )
     }
 }

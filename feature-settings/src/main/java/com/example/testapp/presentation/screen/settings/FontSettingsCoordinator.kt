@@ -1,6 +1,7 @@
 package com.example.testapp.presentation.screen.settings
 
 import com.example.testapp.core.common.FontSettingsRepository
+import com.example.testapp.core.common.MagneticFragmentationLevel
 import com.example.testapp.core.util.FillQuestionFilterSummary
 import com.example.testapp.core.util.FillQuestionGenerationMode
 import com.example.testapp.domain.model.Question
@@ -42,6 +43,9 @@ class FontSettingsCoordinator @Inject constructor(
     val examDelay: StateFlow<Int> = _examDelay.asStateFlow()
     private val _fillBlankCount = MutableStateFlow(0)
     val fillBlankCount: StateFlow<Int> = _fillBlankCount.asStateFlow()
+    private val _magneticFragmentationLevel = MutableStateFlow(MagneticFragmentationLevel.STANDARD)
+    val magneticFragmentationLevel: StateFlow<MagneticFragmentationLevel> =
+        _magneticFragmentationLevel.asStateFlow()
     private val _randomFillBlanks = MutableStateFlow(false)
     val randomFillBlanks: StateFlow<Boolean> = _randomFillBlanks.asStateFlow()
     private val _fillQuestionGenerationMode = MutableStateFlow(FillQuestionGenerationMode.SCORE_RANGE_RANDOM)
@@ -103,6 +107,9 @@ class FontSettingsCoordinator @Inject constructor(
     fun emitWrongDelay(delay: Int) { _wrongDelay.value = delay }
     fun emitExamDelay(delay: Int) { _examDelay.value = delay }
     fun emitFillBlankCount(count: Int) { _fillBlankCount.value = count }
+    fun emitMagneticFragmentationLevel(level: MagneticFragmentationLevel) {
+        _magneticFragmentationLevel.value = level
+    }
     fun emitRandomFillBlanks(enabled: Boolean) { _randomFillBlanks.value = enabled }
     fun emitFillQuestionGenerationMode(mode: FillQuestionGenerationMode) {
         _fillQuestionGenerationMode.value = mode
@@ -144,6 +151,7 @@ class FontSettingsCoordinator @Inject constructor(
         _wrongDelay.value = snapshot.wrongDelay
         _examDelay.value = snapshot.examDelay
         _fillBlankCount.value = snapshot.fillBlankCount
+        _magneticFragmentationLevel.value = snapshot.magneticFragmentationLevel
         _randomFillBlanks.value = snapshot.randomFillBlanks
         _fillQuestionGenerationMode.value = snapshot.fillQuestionGenerationMode
         if (_fillQuestionGenerationMode.value == FillQuestionGenerationMode.FULL_ANSWER && _fillBlankCount.value <= 0) {
