@@ -28,7 +28,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import kotlin.math.roundToInt
 import com.example.testapp.core.common.MagneticFragmentationLevel
 import com.example.testapp.core.util.FillQuestionFilterSummary
 import com.example.testapp.core.util.FillQuestionGenerationMode
@@ -37,6 +36,7 @@ import com.example.testapp.uicommon.design.AppElevatedActionSheetTokens
 import com.example.testapp.uicommon.design.SessionModeBadge
 import com.example.testapp.uicommon.design.adaptiveFadingModeLabel
 import com.example.testapp.uicommon.design.magneticRebuildModeLabel
+import kotlin.math.roundToInt
 
 /**
  * 原子题库出题模式面板：填空题、自适应渐隐、磁吸重建和记忆模式。
