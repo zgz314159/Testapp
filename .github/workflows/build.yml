@@ -22,15 +22,18 @@ jobs:
           ref: ${{ github.head_ref || github.ref_name }}
 
       - name: Apply staged magnetic fragmentation patch
-        if: github.head_ref == 'feat/magnetic-fragmentation-control' && hashFiles('.ci/magnetic-fragmentation-patch/part*.b64') != ''
+        if: github.head_ref == 'feat/magnetic-fragmentation-control' && hashFiles('.ci/magnetic-fragmentation.patch.gz.b64') != ''
         shell: bash
         run: |
           set -euo pipefail
-          cat .ci/magnetic-fragmentation-patch/part*.b64 | tr -d '\n\r ' | base64 --decode > /tmp/magnetic-fragmentation.patch
+          tr -d '\n\r ' < .ci/magnetic-fragmentation.patch.gz.b64 | base64 --decode | gzip -dc > /tmp/magnetic-fragmentation.patch
           echo "c59f577cb280ba854c570a5605d496ea5f30c38c060f165152818f8610964439  /tmp/magnetic-fragmentation.patch" | sha256sum --check -
           git apply --check /tmp/magnetic-fragmentation.patch
           git apply /tmp/magnetic-fragmentation.patch
-          git rm -r .ci/magnetic-fragmentation-patch .github/workflows/apply-magnetic-fragmentation.yml
+          git rm -r \
+            .ci/magnetic-fragmentation-patch \
+            .ci/magnetic-fragmentation.patch.gz.b64 \
+            .github/workflows/apply-magnetic-fragmentation.yml
           git fetch origin master --depth=1
           git checkout origin/master -- .github/workflows/build.yml
           git config user.name "github-actions[bot]"
