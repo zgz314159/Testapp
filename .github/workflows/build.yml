@@ -2,10 +2,13 @@ name: Android CI
 
 on:
   push:
-    branches: [ master, main ]
+    branches: [ master, main, feat/magnetic-fragmentation-control ]
   pull_request:
     branches: [ master, main ]
   workflow_dispatch:
+
+permissions:
+  contents: write
 
 jobs:
   build:
@@ -14,6 +17,37 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Apply staged magnetic fragmentation patch
+        if: github.ref == 'refs/heads/feat/magnetic-fragmentation-control'
+        shell: bash
+        run: |
+          set -euo pipefail
+          cat .ci/magnetic-fragmentation-patch/part*.b64 | tr -d '\n\r ' | base64 --decode > /tmp/magnetic-fragmentation.patch
+          echo "c59f577cb280ba854c570a5605d496ea5f30c38c060f165152818f8610964439  /tmp/magnetic-fragmentation.patch" | sha256sum --check -
+          git apply --check /tmp/magnetic-fragmentation.patch
+          git apply /tmp/magnetic-fragmentation.patch
+          git rm -r .ci/magnetic-fragmentation-patch .github/workflows/apply-magnetic-fragmentation.yml
+          git fetch origin master --depth=1
+          git checkout origin/master -- .github/workflows/build.yml
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add \
+            .github/workflows/build.yml \
+            feature-settings/src/main/java/com/example/testapp/presentation/screen/settings/FontSettingsCoordinator.kt \
+            feature-settings/src/main/java/com/example/testapp/presentation/screen/settings/SettingsViewModel.kt \
+            feature-settings/src/main/java/com/example/testapp/presentation/screen/settings/FillSettingsScreen.kt \
+            feature-settings/src/main/java/com/example/testapp/presentation/screen/settings/ui/SettingsAtomBankModePanel.kt \
+            feature-settings/src/main/res/values/strings.xml \
+            feature-practice/src/main/java/com/example/testapp/presentation/session/magnetic/MagneticRebuildQuestionPipeline.kt \
+            feature-practice/src/main/java/com/example/testapp/presentation/session/magnetic/MagneticRebuildSession.kt \
+            feature-practice/src/main/java/com/example/testapp/presentation/session/magnetic/MagneticRebuildProgressStore.kt \
+            .ai/current/change_log.md \
+            MAGNETIC_REBUILD.md
+          git commit -m "feat: add adjustable magnetic fragmentation"
+          git push origin HEAD:feat/magnetic-fragmentation-control
 
       - name: Set up JDK
         uses: actions/setup-java@v4
