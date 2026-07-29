@@ -133,8 +133,15 @@ class MagneticRebuildSession(
                 .coerceIn(0, state.clauses.lastIndex)
         val clause = state.clauses[currentIndex]
         val tokensById = clause.tokens.associateBy(MagneticToken::id)
-        val placed = saved.placedTokenIds.mapNotNull(tokensById::get)
-        val candidates = saved.candidateTokenIds.mapNotNull(tokensById::get)
+        val restoredBoard =
+            clause.canonicalizeEquivalentTokens(
+                MagneticBoardSnapshot(
+                    placed = saved.placedTokenIds.mapNotNull(tokensById::get),
+                    candidates = saved.candidateTokenIds.mapNotNull(tokensById::get),
+                ),
+            )
+        val placed = restoredBoard.placed
+        val candidates = restoredBoard.candidates
         val boardIsValid =
             (placed + candidates).map(MagneticToken::id).toSet() == clause.tokens.map(MagneticToken::id).toSet() &&
                 placed.size + candidates.size == clause.tokens.size
@@ -262,7 +269,8 @@ class MagneticRebuildSession(
         val state = _uiState.value
         if (state.currentCompleted || state.sessionCompleted) return
         val before = MagneticBoardSnapshot(state.candidates, state.placed)
-        val after = transform(before) ?: return
+        val changed = transform(before) ?: return
+        val after = state.currentClause?.canonicalizeEquivalentTokens(changed) ?: changed
         val undo = (state.undoStack + before).takeLast(MAX_UNDO)
         _uiState.value =
             state.copy(
