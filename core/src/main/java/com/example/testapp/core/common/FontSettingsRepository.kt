@@ -26,6 +26,7 @@ interface FontSettingsRepository {
     val baiduFontSize: Flow<Float>
     val cumulativeExamCount: Flow<Int>
     val fillBlankCount: Flow<Int>
+    val magneticFragmentationLevel: Flow<MagneticFragmentationLevel>
     val fillQuestionGenerationMode: Flow<FillQuestionGenerationMode>
     val fillFullAnswerRandomOrder: Flow<Boolean>
     val fillFullAnswerRequireCorrect: Flow<Boolean>
@@ -65,6 +66,7 @@ interface FontSettingsRepository {
     suspend fun setBaiduFontSize(size: Float)
     suspend fun setCumulativeExamCount(count: Int)
     suspend fun setFillBlankCount(count: Int)
+    suspend fun setMagneticFragmentationLevel(level: MagneticFragmentationLevel)
     suspend fun setFillQuestionGenerationMode(mode: FillQuestionGenerationMode)
     suspend fun setFillFullAnswerRandomOrder(value: Boolean)
     suspend fun setFillFullAnswerRequireCorrect(value: Boolean)
@@ -98,6 +100,7 @@ data class FontSettingsSnapshot(
     val soundEnabled: Boolean,
     val darkTheme: Boolean,
     val fillBlankCount: Int,
+    val magneticFragmentationLevel: MagneticFragmentationLevel,
     val randomFillBlanks: Boolean,
     val fillQuestionGenerationMode: FillQuestionGenerationMode,
     val fillFullAnswerRandomOrder: Boolean,
