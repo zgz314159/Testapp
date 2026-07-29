@@ -1,12 +1,5 @@
 pluginManagement {
     repositories {
-
-        //添加阿里云镜像
-        maven(url = "https://maven.aliyun.com/repository/public/")
-        maven(url = "https://maven.aliyun.com/repository/central")
-        maven(url = "https://maven.aliyun.com/repository/google")
-        maven(url = "https://maven.aliyun.com/repository/gradle-plugin")
-
         google {
             content {
                 includeGroupByRegex("com\\.android.*")
@@ -17,25 +10,24 @@ pluginManagement {
         mavenCentral()
         gradlePluginPortal()
 
-
-
+        // 国内镜像仅作为官方仓库不可用时的后备源。
+        maven(url = "https://maven.aliyun.com/repository/google")
+        maven(url = "https://maven.aliyun.com/repository/central")
+        maven(url = "https://maven.aliyun.com/repository/gradle-plugin")
+        maven(url = "https://maven.aliyun.com/repository/public/")
     }
 }
+
 dependencyResolutionManagement {
     repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
     repositories {
-
-//添加阿里云镜像
-        maven(url = "https://maven.aliyun.com/repository/public/")
-        maven(url = "https://maven.aliyun.com/repository/central")
-        maven(url = "https://maven.aliyun.com/repository/google")
-        maven(url = "https://maven.aliyun.com/repository/gradle-plugin")
-
         google()
         mavenCentral()
 
-
-
+        // 国内镜像仅作为官方仓库不可用时的后备源。
+        maven(url = "https://maven.aliyun.com/repository/google")
+        maven(url = "https://maven.aliyun.com/repository/central")
+        maven(url = "https://maven.aliyun.com/repository/public/")
     }
 }
 
