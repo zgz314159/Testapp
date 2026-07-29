@@ -83,14 +83,8 @@ class MagneticRebuildSession(
             publishSnapshot()
             return
         }
-        _uiState.value =
-            _uiState.value.copy(
-                isLoading = false,
-                clauses = clauses,
-            )
-        if (!restoreProgress(savedProgress)) {
-            loadClause(index = 0, persist = false)
-        }
+        _uiState.value = _uiState.value.copy(isLoading = false, clauses = clauses)
+        if (!restoreProgress(savedProgress)) loadClause(index = 0, persist = false, stashCurrent = false)
         _events.emit(SessionEvent.SessionStarted(kind))
     }
 
@@ -109,6 +103,7 @@ class MagneticRebuildSession(
             is SessionCommand.MagneticAddToken -> addToken(command.tokenId)
             is SessionCommand.MagneticReturnToken -> returnToken(command.tokenId)
             is SessionCommand.MagneticMoveToken -> moveToken(command.tokenId, command.targetIndex)
+            is SessionCommand.GoToQuestion -> jumpToClause(command.index)
             SessionCommand.MagneticUndo -> undo()
             SessionCommand.MagneticReset -> resetCurrent()
             SessionCommand.MagneticCheck -> checkCurrent()
@@ -122,102 +117,65 @@ class MagneticRebuildSession(
     private fun restoreProgress(saved: MagneticRebuildSavedProgress?): Boolean {
         if (saved == null) return false
         val state = _uiState.value
-        val completedIds = saved.completedQuestionIds.toSet()
-        val completedCount = state.clauses.takeWhile { it.sourceQuestionId in completedIds }.size
+        val validIds = state.clauses.map(MagneticClause::sourceQuestionId).toSet()
+        val drafts = MagneticRebuildDraftPipeline.restoreDrafts(state.clauses, saved.drafts)
+        val completedIds =
+            (saved.completedQuestionIds.filter(validIds::contains) +
+                drafts.filterValues(MagneticClauseDraft::completed).keys).toSet()
         val indexByQuestion =
             saved.currentQuestionId
                 ?.let { questionId -> state.clauses.indexOfFirst { it.sourceQuestionId == questionId } }
                 ?.takeIf { it >= 0 }
-        val currentIndex =
-            (indexByQuestion ?: saved.currentClauseIndex)
-                .coerceIn(0, state.clauses.lastIndex)
-        val clause = state.clauses[currentIndex]
-        val tokensById = clause.tokens.associateBy(MagneticToken::id)
-        val restoredBoard =
-            clause.canonicalizeEquivalentTokens(
-                MagneticBoardSnapshot(
-                    placed = saved.placedTokenIds.mapNotNull(tokensById::get),
-                    candidates = saved.candidateTokenIds.mapNotNull(tokensById::get),
-                ),
-            )
-        val placed = restoredBoard.placed
-        val candidates = restoredBoard.candidates
-        val boardIsValid =
-            (placed + candidates).map(MagneticToken::id).toSet() == clause.tokens.map(MagneticToken::id).toSet() &&
-                placed.size + candidates.size == clause.tokens.size
-        val completedBoard = saved.currentCompleted && placed.map(MagneticToken::id) == clause.tokens.map(MagneticToken::id)
-        if (!boardIsValid) {
-            _uiState.value = state.copy(completedClauseCount = completedCount)
-            loadClause(currentIndex, persist = false)
-            _uiState.value =
-                _uiState.value.copy(
-                    completedClauseCount = completedCount,
-                    feedback = "已恢复到上次答题位置。",
-                )
-            publishSnapshot()
-            return true
-        }
+        val currentIndex = (indexByQuestion ?: saved.currentClauseIndex).coerceIn(0, state.clauses.lastIndex)
         _uiState.value =
             state.copy(
-                currentClauseIndex = currentIndex,
-                candidates = candidates,
-                placed = placed,
-                moveCount = saved.moveCount,
-                wrongCheckCount = saved.wrongCheckCount,
-                hintCount = saved.hintCount,
-                originalViewCount = saved.originalViewCount,
-                hintedTokenId = saved.hintedTokenId?.takeIf(tokensById::containsKey),
-                showOriginal = false,
-                currentCompleted = completedBoard,
-                completedClauseCount = completedCount,
+                clauseDrafts = drafts,
+                completedQuestionIds = completedIds,
                 sessionCompleted = false,
+            )
+        loadClause(currentIndex, persist = false, stashCurrent = false)
+        _uiState.value =
+            _uiState.value.copy(
                 feedback =
-                    if (completedBoard) {
-                        "已恢复上次完成状态，可继续下一条。"
-                    } else {
+                    if (_uiState.value.currentStarted) {
                         "已恢复上次答题进度。"
+                    } else {
+                        "已恢复到上次答题位置。"
                     },
-                undoStack = emptyList(),
             )
         publishSnapshot()
-        scope.launch {
-            _events.emit(SessionEvent.QuestionChanged(currentIndex, clause.sourceQuestionId))
-        }
         return true
     }
 
     private fun loadClause(
         index: Int,
         persist: Boolean = true,
+        stashCurrent: Boolean = true,
+        forceFresh: Boolean = false,
     ) {
-        val state = _uiState.value
+        if (stashCurrent) _uiState.value = MagneticRebuildDraftPipeline.storeCurrent(_uiState.value)
+        var state = _uiState.value
         val clause = state.clauses.getOrNull(index) ?: return
+        if (forceFresh) {
+            state = state.copy(clauseDrafts = state.clauseDrafts - clause.sourceQuestionId)
+            _uiState.value = state
+        }
         shuffleSequence += 1
-        val candidates =
+        val freshCandidates =
             MagneticRebuildQuestionPipeline.shuffledTokens(
                 clause = clause,
                 seed = clause.sourceQuestionId.toLong() * 31L + shuffleSequence,
             )
-        _uiState.value =
-            state.copy(
-                currentClauseIndex = index,
-                candidates = candidates,
-                placed = emptyList(),
-                moveCount = 0,
-                wrongCheckCount = 0,
-                hintCount = 0,
-                originalViewCount = 0,
-                hintedTokenId = null,
-                showOriginal = false,
-                currentCompleted = false,
-                feedback = "点击下方词块，恢复完整条文。",
-                undoStack = emptyList(),
-            )
+        _uiState.value = MagneticRebuildDraftPipeline.openClause(state, index, freshCandidates)
         publishSnapshot()
         if (persist) scheduleProgressSave()
-        scope.launch {
-            _events.emit(SessionEvent.QuestionChanged(index, clause.sourceQuestionId))
-        }
+        scope.launch { _events.emit(SessionEvent.QuestionChanged(index, clause.sourceQuestionId)) }
+    }
+
+    private fun jumpToClause(index: Int) {
+        val state = _uiState.value
+        if (index !in state.clauses.indices || index == state.currentClauseIndex) return
+        loadClause(index)
     }
 
     private fun addToken(tokenId: Int) {
@@ -271,7 +229,6 @@ class MagneticRebuildSession(
         val before = MagneticBoardSnapshot(state.candidates, state.placed)
         val changed = transform(before) ?: return
         val after = state.currentClause?.canonicalizeEquivalentTokens(changed) ?: changed
-        val undo = (state.undoStack + before).takeLast(MAX_UNDO)
         _uiState.value =
             state.copy(
                 candidates = after.candidates,
@@ -279,7 +236,7 @@ class MagneticRebuildSession(
                 moveCount = state.moveCount + 1,
                 hintedTokenId = null,
                 feedback = feedback,
-                undoStack = undo,
+                undoStack = (state.undoStack + before).takeLast(MAX_UNDO),
             )
         publishSnapshot()
         scheduleProgressSave()
@@ -304,7 +261,7 @@ class MagneticRebuildSession(
     private fun resetCurrent() {
         val state = _uiState.value
         if (state.currentCompleted) return
-        loadClause(state.currentClauseIndex)
+        loadClause(state.currentClauseIndex, forceFresh = true, stashCurrent = false)
         _uiState.value = _uiState.value.copy(feedback = "条文已重新打乱。")
         scheduleProgressSave()
     }
@@ -319,20 +276,17 @@ class MagneticRebuildSession(
             scheduleProgressSave()
             return
         }
-        val correct = state.placed.map { it.id } == clause.tokens.map { it.id }
-        if (correct) {
+        if (state.placed.map(MagneticToken::id) == clause.tokens.map(MagneticToken::id)) {
             _uiState.value =
                 state.copy(
                     currentCompleted = true,
-                    completedClauseCount = (state.currentClauseIndex + 1).coerceAtLeast(state.completedClauseCount),
+                    completedQuestionIds = state.completedQuestionIds + clause.sourceQuestionId,
                     hintedTokenId = null,
                     feedback = "回路完全接通：条文恢复正确。",
                 )
             publishSnapshot()
             scheduleProgressSave()
-            scope.launch {
-                _events.emit(SessionEvent.AnswerSubmitted(state.currentClauseIndex, clause.sourceQuestionId))
-            }
+            scope.launch { _events.emit(SessionEvent.AnswerSubmitted(state.currentClauseIndex, clause.sourceQuestionId)) }
         } else {
             val mismatch =
                 clause.tokens.indices.firstOrNull { index ->
@@ -378,13 +332,17 @@ class MagneticRebuildSession(
     private fun nextClause() {
         val state = _uiState.value
         if (!state.currentCompleted) return
-        if (state.currentClauseIndex >= state.clauses.lastIndex) {
+        _uiState.value = MagneticRebuildDraftPipeline.storeCurrent(state)
+        val stored = _uiState.value
+        if (stored.completedClauseCount >= stored.totalClauseCount) {
             saveJob?.cancel()
-            _uiState.value = state.copy(sessionCompleted = true, showOriginal = false)
+            _uiState.value = stored.copy(sessionCompleted = true, showOriginal = false)
             publishSnapshot()
             scope.launch { runCatching { progressStore.clear(magneticKind.quizId) } }
-        } else {
-            loadClause(state.currentClauseIndex + 1)
+            return
+        }
+        MagneticRebuildDraftPipeline.nextIncompleteIndex(stored)?.let { nextIndex ->
+            loadClause(nextIndex, stashCurrent = false)
         }
     }
 
@@ -392,35 +350,27 @@ class MagneticRebuildSession(
         val state = _uiState.value
         if (state.isLoading || state.errorMessage != null || state.clauses.isEmpty() || state.sessionCompleted) return
         saveJob?.cancel()
-        saveJob =
-            scope.launch {
-                delay(SAVE_DEBOUNCE_MS)
-                saveProgressNow()
-            }
+        saveJob = scope.launch {
+            delay(SAVE_DEBOUNCE_MS)
+            saveProgressNow()
+        }
     }
 
     private suspend fun saveProgressNow() {
         val state = _uiState.value
         val currentClause = state.currentClause ?: return
         if (state.isLoading || state.errorMessage != null || state.sessionCompleted) return
-        val completedQuestionIds =
+        val orderedCompletedIds =
             state.clauses
-                .take(state.completedClauseCount.coerceIn(0, state.clauses.size))
                 .map(MagneticClause::sourceQuestionId)
+                .filter(state.completedQuestionIds::contains)
         val saved =
             MagneticRebuildSavedProgress(
                 fixedQuestionOrder = state.clauses.map(MagneticClause::sourceQuestionId),
                 currentClauseIndex = state.currentClauseIndex,
-                completedQuestionIds = completedQuestionIds,
+                completedQuestionIds = orderedCompletedIds,
                 currentQuestionId = currentClause.sourceQuestionId,
-                candidateTokenIds = state.candidates.map(MagneticToken::id),
-                placedTokenIds = state.placed.map(MagneticToken::id),
-                moveCount = state.moveCount,
-                wrongCheckCount = state.wrongCheckCount,
-                hintCount = state.hintCount,
-                originalViewCount = state.originalViewCount,
-                hintedTokenId = state.hintedTokenId,
-                currentCompleted = state.currentCompleted,
+                drafts = MagneticRebuildDraftPipeline.toSavedDrafts(state),
                 fragmentationLevel = activeFragmentationLevel,
             )
         runCatching { progressStore.save(magneticKind.quizId, saved) }
@@ -429,13 +379,14 @@ class MagneticRebuildSession(
     private fun publishSnapshot() {
         val state = _uiState.value
         val questions =
-            state.clauses.mapIndexed { index, clause ->
+            state.clauses.map { clause ->
+                val completed = clause.sourceQuestionId in state.completedQuestionIds
                 QuestionSnapshot(
                     id = clause.sourceQuestionId,
                     content = clause.originalText,
                     type = "磁吸重建",
-                    showResult = index < state.completedClauseCount,
-                    isCorrect = if (index < state.completedClauseCount) true else null,
+                    showResult = completed,
+                    isCorrect = if (completed) true else null,
                 )
             }
         _snapshot.value =

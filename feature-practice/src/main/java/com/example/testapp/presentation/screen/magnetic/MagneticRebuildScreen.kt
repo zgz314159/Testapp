@@ -18,6 +18,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.GridView
 import androidx.compose.material.icons.filled.Lightbulb
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Undo
@@ -30,7 +31,6 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
@@ -42,7 +42,9 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -67,6 +69,7 @@ fun MagneticRebuildScreen(
     val state by session.uiState.collectAsState()
     val haptic = LocalHapticFeedback.current
     var lastAdjacency by remember { mutableIntStateOf(0) }
+    var showAnswerCard by rememberSaveable { mutableStateOf(false) }
 
     LaunchedEffect(state.correctAdjacencyCount) {
         if (state.correctAdjacencyCount > lastAdjacency) {
@@ -102,6 +105,13 @@ fun MagneticRebuildScreen(
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "返回")
                     }
                 },
+                actions = {
+                    if (!state.isLoading && !state.sessionCompleted && state.totalClauseCount > 0) {
+                        IconButton(onClick = { showAnswerCard = true }) {
+                            Icon(Icons.Filled.GridView, contentDescription = "答题卡")
+                        }
+                    }
+                },
                 colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
                     containerColor = colors.background,
                     titleContentColor = colors.onBackground,
@@ -133,6 +143,16 @@ fun MagneticRebuildScreen(
                 )
         }
     }
+
+    MagneticAnswerCardSheet(
+        show = showAnswerCard,
+        state = state,
+        onDismiss = { showAnswerCard = false },
+        onSelect = { index ->
+            session.handle(SessionCommand.GoToQuestion(index, source = "magneticAnswerCard"))
+            showAnswerCard = false
+        },
+    )
 
     if (state.showOriginal) {
         AlertDialog(
@@ -193,39 +213,7 @@ private fun RebuildContent(
                 .padding(horizontal = 16.dp, vertical = 12.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            SessionModeBadge(label = magneticRebuildModeLabel())
-            Text(
-                text = "已完成 ${state.completedClauseCount}/${state.totalClauseCount}",
-                style = MaterialTheme.typography.labelMedium,
-                color = colors.onSurfaceVariant,
-            )
-        }
-
-        Surface(
-            modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(20.dp),
-            color = colors.surface,
-            shadowElevation = 5.dp,
-        ) {
-            Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                Text("条文重建任务", fontWeight = FontWeight.Bold, color = colors.onSurface)
-                Text(
-                    "点击词块加入上方组装区；长按拖动已放置词块可调整顺序，点击已放置词块可撤回。",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = colors.onSurfaceVariant,
-                )
-                CircuitProgress(
-                    correct = state.correctAdjacencyCount,
-                    total = state.totalAdjacencyCount,
-                    completed = state.currentCompleted,
-                )
-            }
-        }
+        MagneticCompactTaskHeader(state = state)
 
         Surface(
             modifier = Modifier.fillMaxWidth(),
@@ -351,7 +339,7 @@ private fun RebuildContent(
         ) {
             Text(
                 if (state.currentCompleted) {
-                    if (state.currentClauseIndex == state.clauses.lastIndex) "完成本轮" else "下一条"
+                    if (state.completedClauseCount >= state.totalClauseCount) "完成本轮" else "下一未完成"
                 } else {
                     "检查条文"
                 },
@@ -366,33 +354,6 @@ private fun RebuildContent(
             color = colors.onSurfaceVariant,
         )
         Spacer(modifier = Modifier.height(18.dp))
-    }
-}
-
-@Composable
-private fun CircuitProgress(
-    correct: Int,
-    total: Int,
-    completed: Boolean,
-) {
-    val progress = if (total <= 0) 0f else correct.toFloat() / total.toFloat()
-    val colors = MaterialTheme.colorScheme
-    val success = AppThemeColors.success
-    Column(verticalArrangement = Arrangement.spacedBy(7.dp)) {
-        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-            Text("磁吸回路", style = MaterialTheme.typography.labelMedium, color = colors.onSurfaceVariant)
-            Text(
-                if (completed) "已接通" else "$correct/$total",
-                style = MaterialTheme.typography.labelMedium,
-                color = if (completed) success else colors.primary,
-            )
-        }
-        LinearProgressIndicator(
-            progress = { progress },
-            modifier = Modifier.fillMaxWidth().height(8.dp),
-            color = if (completed) success else colors.primary,
-            trackColor = colors.outlineVariant,
-        )
     }
 }
 
