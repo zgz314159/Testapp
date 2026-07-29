@@ -32,10 +32,7 @@ data class MagneticClause(
     val originalText: String,
     val tokens: List<MagneticToken>,
 ) {
-    /**
-     * Rebinds visually identical token instances to the expected occurrence IDs at their placed positions.
-     * The visible candidate/placed text order never changes; only duplicate internal identities are exchanged.
-     */
+    /** Keeps duplicate visible text interchangeable while preserving unique token instances. */
     fun canonicalizeEquivalentTokens(board: MagneticBoardSnapshot): MagneticBoardSnapshot {
         val availableByKey =
             tokens
@@ -80,6 +77,22 @@ data class MagneticBoardSnapshot(
     val placed: List<MagneticToken>,
 )
 
+data class MagneticClauseDraft(
+    val candidates: List<MagneticToken>,
+    val placed: List<MagneticToken>,
+    val moveCount: Int = 0,
+    val wrongCheckCount: Int = 0,
+    val hintCount: Int = 0,
+    val originalViewCount: Int = 0,
+    val hintedTokenId: Int? = null,
+    val completed: Boolean = false,
+) {
+    val started: Boolean
+        get() =
+            completed || placed.isNotEmpty() || moveCount > 0 || wrongCheckCount > 0 ||
+                hintCount > 0 || originalViewCount > 0
+}
+
 data class MagneticRebuildUiState(
     val bankId: String = "",
     val isLoading: Boolean = true,
@@ -95,7 +108,8 @@ data class MagneticRebuildUiState(
     val hintedTokenId: Int? = null,
     val showOriginal: Boolean = false,
     val currentCompleted: Boolean = false,
-    val completedClauseCount: Int = 0,
+    val completedQuestionIds: Set<Int> = emptySet(),
+    val clauseDrafts: Map<Int, MagneticClauseDraft> = emptyMap(),
     val sessionCompleted: Boolean = false,
     val feedback: String = "点击下方词块，恢复完整条文。",
     val undoStack: List<MagneticBoardSnapshot> = emptyList(),
@@ -106,11 +120,23 @@ data class MagneticRebuildUiState(
     val totalClauseCount: Int
         get() = clauses.size
 
-    val correctAdjacencyCount: Int
+    val completedClauseCount: Int
+        get() = completedQuestionIds.size
+
+    val currentStarted: Boolean
         get() =
-            placed
-                .zipWithNext()
-                .count { (left, right) -> right.order == left.order + 1 }
+            currentCompleted || placed.isNotEmpty() || moveCount > 0 || wrongCheckCount > 0 ||
+                hintCount > 0 || originalViewCount > 0
+
+    val startedQuestionIds: Set<Int>
+        get() {
+            val stored = clauseDrafts.filterValues(MagneticClauseDraft::started).keys + completedQuestionIds
+            val currentId = currentClause?.sourceQuestionId
+            return if (currentStarted && currentId != null) stored + currentId else stored
+        }
+
+    val correctAdjacencyCount: Int
+        get() = placed.zipWithNext().count { (left, right) -> right.order == left.order + 1 }
 
     val totalAdjacencyCount: Int
         get() = (currentClause?.tokens?.size ?: 1).minus(1).coerceAtLeast(0)
