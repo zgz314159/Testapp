@@ -40,6 +40,9 @@ jobs:
       - name: detekt
         run: ./gradlew detekt
 
+      - name: Magnetic rebuild unit tests
+        run: ./gradlew :feature-practice:testDebugUnitTest
+
       - name: LOC gate
         run: bash scripts/check-loc-over-500.sh
 
