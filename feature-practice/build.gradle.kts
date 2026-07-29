@@ -59,5 +59,5 @@ dependencies {
     kapt(libs.hilt.android.compiler)
     implementation(libs.kotlinx.serialization.json)
     implementation("androidx.core:core-ktx:1.10.1")
-
+    testImplementation(kotlin("test"))
 }
