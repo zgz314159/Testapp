@@ -52,14 +52,19 @@ class MagneticRebuildSession(
         val savedProgress = runCatching { progressStore.load(magneticKind.quizId) }.getOrNull()
         val sourceQuestions = deps.facade.questions.get(magneticKind.quizId).first()
         val settings = deps.fontSettings.readSettingsSnapshot()
-        activeFragmentationLevel = savedProgress?.fragmentationLevel ?: settings.magneticFragmentationLevel
+        val refreshPlan =
+            MagneticFragmentationRefreshPolicy.resolve(
+                savedProgress = savedProgress,
+                configuredLevel = settings.magneticFragmentationLevel,
+            )
+        activeFragmentationLevel = refreshPlan.activeLevel
         val restoredClauses =
             MagneticRebuildQuestionPipeline.prepare(
                 sourceQuestions = sourceQuestions,
                 requestedCount = settings.practiceQuestionCount,
                 randomOrder = settings.randomPractice,
                 seed = magneticKind.quizId.hashCode().toLong(),
-                fixedQuestionOrder = savedProgress?.fixedQuestionOrder.orEmpty(),
+                fixedQuestionOrder = refreshPlan.progressToRestore?.fixedQuestionOrder.orEmpty(),
                 fragmentationLevel = activeFragmentationLevel,
             )
         val clauses =
@@ -84,7 +89,10 @@ class MagneticRebuildSession(
             return
         }
         _uiState.value = _uiState.value.copy(isLoading = false, clauses = clauses)
-        if (!restoreProgress(savedProgress)) loadClause(index = 0, persist = false, stashCurrent = false)
+        if (!restoreProgress(refreshPlan.progressToRestore, refreshPlan.draftsInvalidated)) {
+            loadClause(index = 0, persist = false, stashCurrent = false)
+        }
+        if (refreshPlan.draftsInvalidated) saveProgressNow()
         _events.emit(SessionEvent.SessionStarted(kind))
     }
 
@@ -114,7 +122,10 @@ class MagneticRebuildSession(
         }
     }
 
-    private fun restoreProgress(saved: MagneticRebuildSavedProgress?): Boolean {
+    private fun restoreProgress(
+        saved: MagneticRebuildSavedProgress?,
+        fragmentationChanged: Boolean = false,
+    ): Boolean {
         if (saved == null) return false
         val state = _uiState.value
         val validIds = state.clauses.map(MagneticClause::sourceQuestionId).toSet()
@@ -137,10 +148,10 @@ class MagneticRebuildSession(
         _uiState.value =
             _uiState.value.copy(
                 feedback =
-                    if (_uiState.value.currentStarted) {
-                        "已恢复上次答题进度。"
-                    } else {
-                        "已恢复到上次答题位置。"
+                    when {
+                        fragmentationChanged -> "碎化程度已更新，未完成词块已按新设置重新生成。"
+                        _uiState.value.currentStarted -> "已恢复上次答题进度。"
+                        else -> "已恢复到上次答题位置。"
                     },
             )
         publishSnapshot()
