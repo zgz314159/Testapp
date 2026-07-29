@@ -53,6 +53,7 @@ internal class MagneticRebuildProgressStore(
 internal object MagneticRebuildProgressCodec {
     private const val SESSION_FORMAT_V1 = "magnetic-rebuild-v1"
     private const val SESSION_FORMAT_V2 = "magnetic-rebuild-v2"
+    private const val SESSION_FORMAT_V3 = "magnetic-rebuild-v3"
     private const val SEPARATOR = ","
 
     fun encode(
@@ -73,7 +74,7 @@ internal object MagneticRebuildProgressCodec {
             analysisList = listOf(saved.currentQuestionId?.toString().orEmpty()),
             noteList = listOf(saved.fragmentationLevel.storageValue.toString()),
             timestamp = System.currentTimeMillis(),
-            sessionId = SESSION_FORMAT_V2,
+            sessionId = SESSION_FORMAT_V3,
             fixedQuestionOrder = saved.fixedQuestionOrder,
             questionStateMap = saved.drafts.mapValues { (questionId, draft) -> draft.toUnifiedState(questionId) },
         )
@@ -82,11 +83,15 @@ internal object MagneticRebuildProgressCodec {
     fun decode(progress: PracticeProgress): MagneticRebuildSavedProgress? {
         if (progress.fixedQuestionOrder.isEmpty()) return null
         return when (progress.sessionId) {
-            SESSION_FORMAT_V2 -> decodeV2(progress)
-            SESSION_FORMAT_V1 -> decodeV1(progress)
+            SESSION_FORMAT_V3 -> decodeV2(progress)
+            SESSION_FORMAT_V2 -> decodeV2(progress).withoutLegacyDrafts()
+            SESSION_FORMAT_V1 -> decodeV1(progress).withoutLegacyDrafts()
             else -> null
         }
     }
+
+    private fun MagneticRebuildSavedProgress.withoutLegacyDrafts(): MagneticRebuildSavedProgress =
+        copy(drafts = emptyMap())
 
     private fun decodeV2(progress: PracticeProgress): MagneticRebuildSavedProgress {
         val currentQuestionId = progress.analysisList.firstOrNull()?.toIntOrNull()
