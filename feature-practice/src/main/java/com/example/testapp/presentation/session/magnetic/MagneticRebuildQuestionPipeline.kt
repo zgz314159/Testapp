@@ -10,6 +10,15 @@ import kotlin.random.Random
 object MagneticRebuildQuestionPipeline {
     private val displayBlankRegex = Regex("_{2,}|（\\s*）|\\(\\s*\\)|【\\s*】|\\[\\s*]")
     private val punctuationOnlyRegex = Regex("^[\\s，。、；：！？,.!?;:（）()《》“”'\"—-]+$")
+    private val leadingOwnedPunctuationRegex =
+        Regex("^([）)\\]】》〉」』”’〕］，。、；：！？,.!?;:]+)\\s*(.*)$")
+    private val numberedItemPrefixRegex =
+        Regex("^(?:[（(][一二三四五六七八九十百0-9]+[）)]|[一二三四五六七八九十百0-9]+[、.．])")
+    private val numberedItemBoundaryRegex =
+        Regex(
+            "(?<=[，。、；：！？,.!?;:])\\s*(?=(?:[（(][一二三四五六七八九十百0-9]+[）)]|" +
+                "[一二三四五六七八九十百0-9]+[、.．]))",
+        )
     private val numberRegex = Regex(".*\\d.*")
     private const val MIN_CHUNKS = 3
     private const val DEFAULT_SESSION_SIZE = 20
@@ -103,21 +112,35 @@ object MagneticRebuildQuestionPipeline {
 
     private fun mergePunctuation(segments: List<String>): List<String> {
         val result = mutableListOf<String>()
-        var leadingPunctuation = ""
-        segments.forEach { segment ->
-            if (punctuationOnlyRegex.matches(segment)) {
-                if (result.isEmpty()) {
-                    leadingPunctuation += segment
-                } else {
-                    result[result.lastIndex] += segment
+        var pendingAtStart = ""
+        segments
+            .flatMap { segment -> segment.split(numberedItemBoundaryRegex).filter(String::isNotBlank) }
+            .forEach { rawSegment ->
+                var segment = rawSegment
+                val leadingMatch = leadingOwnedPunctuationRegex.matchEntire(segment)
+                if (leadingMatch != null) {
+                    val punctuation = leadingMatch.groupValues[1]
+                    segment = leadingMatch.groupValues[2].trimStart()
+                    if (result.isEmpty()) {
+                        pendingAtStart += punctuation
+                    } else {
+                        result[result.lastIndex] += punctuation
+                    }
                 }
-            } else {
-                result += leadingPunctuation + segment
-                leadingPunctuation = ""
+                if (segment.isBlank()) return@forEach
+                if (punctuationOnlyRegex.matches(segment)) {
+                    if (result.isEmpty()) {
+                        pendingAtStart += segment
+                    } else {
+                        result[result.lastIndex] += segment
+                    }
+                } else {
+                    result += pendingAtStart + segment
+                    pendingAtStart = ""
+                }
             }
-        }
-        if (leadingPunctuation.isNotEmpty() && result.isNotEmpty()) {
-            result[result.lastIndex] += leadingPunctuation
+        if (pendingAtStart.isNotEmpty() && result.isNotEmpty()) {
+            result[result.lastIndex] += pendingAtStart
         }
         return result.filter(String::isNotBlank)
     }
@@ -130,14 +153,22 @@ object MagneticRebuildQuestionPipeline {
         val chunks = initial.toMutableList()
         while (chunks.size > maxChunkCount) {
             val mergeIndex =
-                (0 until chunks.lastIndex).minByOrNull { index ->
-                    mergeCost(chunks[index], chunks[index + 1])
-                } ?: break
+                (0 until chunks.lastIndex)
+                    .filterNot { index -> isHardBoundary(chunks[index], chunks[index + 1]) }
+                    .minByOrNull { index -> mergeCost(chunks[index], chunks[index + 1]) }
+                    ?: break
             chunks[mergeIndex] = chunks[mergeIndex] + chunks[mergeIndex + 1]
             chunks.removeAt(mergeIndex + 1)
         }
         return chunks
     }
+
+    private fun isHardBoundary(
+        left: String,
+        right: String,
+    ): Boolean =
+        left.trimEnd().endsWithAny("。", "！", "？", ".", "!", "?") ||
+            numberedItemPrefixRegex.containsMatchIn(right.trimStart())
 
     private fun mergeCost(
         left: String,
