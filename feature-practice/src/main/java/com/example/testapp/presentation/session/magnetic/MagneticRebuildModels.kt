@@ -16,13 +16,63 @@ data class MagneticToken(
     val text: String,
     val order: Int,
     val role: MagneticSemanticRole,
-)
+) {
+    val equivalenceKey: String
+        get() = text.replace(WHITESPACE_REGEX, "").trim()
+
+    fun isEquivalentTo(other: MagneticToken): Boolean = equivalenceKey == other.equivalenceKey
+
+    private companion object {
+        val WHITESPACE_REGEX = Regex("""\s+""")
+    }
+}
 
 data class MagneticClause(
     val sourceQuestionId: Int,
     val originalText: String,
     val tokens: List<MagneticToken>,
-)
+) {
+    /**
+     * Rebinds visually identical token instances to the expected occurrence IDs at their placed positions.
+     * The visible candidate/placed text order never changes; only duplicate internal identities are exchanged.
+     */
+    fun canonicalizeEquivalentTokens(board: MagneticBoardSnapshot): MagneticBoardSnapshot {
+        val availableByKey =
+            tokens
+                .groupBy(MagneticToken::equivalenceKey)
+                .mapValues { (_, values) -> values.toMutableList() }
+                .toMutableMap()
+        val assignedPlaced = arrayOfNulls<MagneticToken>(board.placed.size)
+
+        board.placed.forEachIndexed { index, actual ->
+            val expected = tokens.getOrNull(index) ?: return@forEachIndexed
+            if (!actual.isEquivalentTo(expected)) return@forEachIndexed
+            val available = availableByKey[expected.equivalenceKey] ?: return@forEachIndexed
+            val expectedIndex = available.indexOfFirst { it.id == expected.id }
+            if (expectedIndex >= 0) assignedPlaced[index] = available.removeAt(expectedIndex)
+        }
+
+        board.placed.forEachIndexed { index, actual ->
+            if (assignedPlaced[index] != null) return@forEachIndexed
+            assignedPlaced[index] = takeEquivalentToken(availableByKey, actual)
+        }
+        val assignedCandidates = board.candidates.map { candidate -> takeEquivalentToken(availableByKey, candidate) }
+
+        return MagneticBoardSnapshot(
+            candidates = assignedCandidates,
+            placed = assignedPlaced.mapNotNull { it },
+        )
+    }
+
+    private fun takeEquivalentToken(
+        availableByKey: MutableMap<String, MutableList<MagneticToken>>,
+        preferred: MagneticToken,
+    ): MagneticToken {
+        val available = availableByKey.getValue(preferred.equivalenceKey)
+        val preferredIndex = available.indexOfFirst { it.id == preferred.id }
+        return if (preferredIndex >= 0) available.removeAt(preferredIndex) else available.removeAt(0)
+    }
+}
 
 data class MagneticBoardSnapshot(
     val candidates: List<MagneticToken>,
