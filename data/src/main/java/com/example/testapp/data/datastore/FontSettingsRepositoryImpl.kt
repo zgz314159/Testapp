@@ -8,6 +8,7 @@ import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import com.example.testapp.core.common.FontSettingsRepository
 import com.example.testapp.core.common.FontSettingsSnapshot
+import com.example.testapp.core.common.MagneticFragmentationLevel
 import com.example.testapp.core.util.FillQuestionGenerationMode
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.Flow
@@ -43,6 +44,7 @@ class FontSettingsRepositoryImpl @Inject constructor(
     private val BAIDU_FONT_SIZE_KEY = floatPreferencesKey("baidu_font_size")
     private val CUMULATIVE_EXAM_COUNT_KEY = intPreferencesKey("cumulative_exam_count")
     private val FILL_BLANK_COUNT_KEY = intPreferencesKey("fill_blank_count")
+    private val MAGNETIC_FRAGMENTATION_LEVEL_KEY = intPreferencesKey("magnetic_fragmentation_level")
     private val FILL_GENERATION_MODE_KEY = stringPreferencesKey("fill_generation_mode")
     private val FILL_FULL_ANSWER_RANDOM_ORDER_KEY = intPreferencesKey("fill_full_answer_random_order")
     private val FILL_FULL_ANSWER_REQUIRE_CORRECT_KEY = intPreferencesKey("fill_full_answer_require_correct")
@@ -82,6 +84,10 @@ class FontSettingsRepositoryImpl @Inject constructor(
     override val baiduFontSize: Flow<Float> = readFlow(BAIDU_FONT_SIZE_KEY, 18f)
     override val cumulativeExamCount: Flow<Int> = readFlow(CUMULATIVE_EXAM_COUNT_KEY, 0)
     override val fillBlankCount: Flow<Int> = readFlow(FILL_BLANK_COUNT_KEY, 4)
+    override val magneticFragmentationLevel: Flow<MagneticFragmentationLevel> =
+        context.dataStore.data.map { prefs ->
+            MagneticFragmentationLevel.fromStorageValue(prefs[MAGNETIC_FRAGMENTATION_LEVEL_KEY])
+        }
     override val fillQuestionGenerationMode: Flow<FillQuestionGenerationMode> =
         context.dataStore.data.map { prefs ->
             val str = prefs[FILL_GENERATION_MODE_KEY] ?: FillQuestionGenerationMode.SCORE_RANGE_RANDOM.storageValue
@@ -125,6 +131,8 @@ class FontSettingsRepositoryImpl @Inject constructor(
     override suspend fun setBaiduFontSize(size: Float) = write(BAIDU_FONT_SIZE_KEY, size)
     override suspend fun setCumulativeExamCount(count: Int) = write(CUMULATIVE_EXAM_COUNT_KEY, count)
     override suspend fun setFillBlankCount(count: Int) = write(FILL_BLANK_COUNT_KEY, count)
+    override suspend fun setMagneticFragmentationLevel(level: MagneticFragmentationLevel) =
+        write(MAGNETIC_FRAGMENTATION_LEVEL_KEY, level.storageValue)
     override suspend fun setFillQuestionGenerationMode(mode: FillQuestionGenerationMode) {
         context.dataStore.edit { it[FILL_GENERATION_MODE_KEY] = mode.storageValue }
     }
@@ -159,6 +167,8 @@ class FontSettingsRepositoryImpl @Inject constructor(
             soundEnabled = (it[SOUND_ENABLED_KEY] ?: 1) != 0,
             darkTheme = (it[DARK_THEME_KEY] ?: 0) != 0,
             fillBlankCount = it[FILL_BLANK_COUNT_KEY] ?: 4,
+            magneticFragmentationLevel =
+                MagneticFragmentationLevel.fromStorageValue(it[MAGNETIC_FRAGMENTATION_LEVEL_KEY]),
             randomFillBlanks = false,
             fillQuestionGenerationMode = FillQuestionGenerationMode.fromStorageValue(it[FILL_GENERATION_MODE_KEY] ?: ""),
             fillFullAnswerRandomOrder = (it[FILL_FULL_ANSWER_RANDOM_ORDER_KEY] ?: 1) != 0,

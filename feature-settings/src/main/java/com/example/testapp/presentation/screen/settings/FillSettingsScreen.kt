@@ -42,6 +42,7 @@ fun FillSettingsScreen(
     val fontSize by viewModel.fontSize.collectAsState()
     val fillQuestionGenerationMode by viewModel.fillQuestionGenerationMode.collectAsState()
     val fillBlankCount by viewModel.fillBlankCount.collectAsState()
+    val magneticFragmentationLevel by viewModel.magneticFragmentationLevel.collectAsState()
     val fillFullAnswerRandomOrder by viewModel.fillFullAnswerRandomOrder.collectAsState()
     val fillFullAnswerRequireCorrect by viewModel.fillFullAnswerRequireCorrect.collectAsState()
     val fillAnswerScoreMin by viewModel.fillAnswerScoreMin.collectAsState()
@@ -100,6 +101,7 @@ fun FillSettingsScreen(
                 fontSize = fontSize,
                 fillQuestionGenerationMode = fillQuestionGenerationMode,
                 fillBlankCount = fillBlankCount,
+                magneticFragmentationLevel = magneticFragmentationLevel,
                 fillFullAnswerRequireCorrect = fillFullAnswerRequireCorrect,
                 fillFullAnswerRandomOrder = fillFullAnswerRandomOrder,
                 fillAnswerScoreMin = fillAnswerScoreMin,
@@ -114,6 +116,9 @@ fun FillSettingsScreen(
                 memoryPoolMode = practiceMemoryPoolMode,
                 onModeChange = { viewModel.setFillQuestionGenerationMode(context, it) },
                 onBlankCountChange = { viewModel.setFillBlankCount(context, it) },
+                onMagneticFragmentationLevelChange = {
+                    viewModel.setMagneticFragmentationLevel(context, it)
+                },
                 onRequireCorrectChange = { viewModel.setFillFullAnswerRequireCorrect(context, it) },
                 onRandomOrderChange = { viewModel.setFillFullAnswerRandomOrder(context, it) },
                 onScoreRangeChange = { min, max -> viewModel.setFillAnswerScoreRange(context, min, max) },

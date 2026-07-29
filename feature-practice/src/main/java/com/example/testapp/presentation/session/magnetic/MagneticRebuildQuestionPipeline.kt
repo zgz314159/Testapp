@@ -1,5 +1,6 @@
 package com.example.testapp.presentation.session.magnetic
 
+import com.example.testapp.core.common.MagneticFragmentationLevel
 import com.example.testapp.core.util.FillAnswerPartDescriptor
 import com.example.testapp.core.util.splitFillAnswerDescriptors
 import com.example.testapp.domain.QuestionTypes
@@ -11,7 +12,6 @@ object MagneticRebuildQuestionPipeline {
     private val punctuationOnlyRegex = Regex("^[\\s，。、；：！？,.!?;:（）()《》“”'\"—-]+$")
     private val numberRegex = Regex(".*\\d.*")
     private const val MIN_CHUNKS = 3
-    private const val MAX_CHUNKS = 12
     private const val DEFAULT_SESSION_SIZE = 20
     private const val MAX_SESSION_SIZE = 50
 
@@ -21,8 +21,9 @@ object MagneticRebuildQuestionPipeline {
         randomOrder: Boolean,
         seed: Long,
         fixedQuestionOrder: List<Int> = emptyList(),
+        fragmentationLevel: MagneticFragmentationLevel = MagneticFragmentationLevel.STANDARD,
     ): List<MagneticClause> {
-        val clauses = sourceQuestions.mapNotNull(::buildClause)
+        val clauses = sourceQuestions.mapNotNull { buildClause(it, fragmentationLevel) }
         if (fixedQuestionOrder.isNotEmpty()) {
             val clausesById = clauses.associateBy(MagneticClause::sourceQuestionId)
             return fixedQuestionOrder.mapNotNull(clausesById::get)
@@ -34,7 +35,10 @@ object MagneticRebuildQuestionPipeline {
         return ordered.take(limit)
     }
 
-    fun buildClause(question: Question): MagneticClause? {
+    fun buildClause(
+        question: Question,
+        fragmentationLevel: MagneticFragmentationLevel = MagneticFragmentationLevel.STANDARD,
+    ): MagneticClause? {
         if (!QuestionTypes.isInlineBlank(question.type)) return null
         val matches = displayBlankRegex.findAll(question.content).toList()
         if (matches.isEmpty()) return null
@@ -43,8 +47,8 @@ object MagneticRebuildQuestionPipeline {
 
         val rawSegments = buildRawSegments(question.content, matches, descriptors)
         val merged = mergePunctuation(rawSegments)
-        val balanced = balanceChunkCount(merged)
-        if (balanced.size !in MIN_CHUNKS..MAX_CHUNKS) return null
+        val balanced = balanceChunkCount(merged, fragmentationLevel.maxChunkCount)
+        if (balanced.size < MIN_CHUNKS) return null
 
         val originalText = balanced.joinToString(separator = "")
         if (originalText.isBlank()) return null
@@ -118,19 +122,56 @@ object MagneticRebuildQuestionPipeline {
         return result.filter(String::isNotBlank)
     }
 
-    private fun balanceChunkCount(initial: List<String>): List<String> {
-        if (initial.size <= MAX_CHUNKS) return initial
+    private fun balanceChunkCount(
+        initial: List<String>,
+        maxChunkCount: Int,
+    ): List<String> {
+        if (initial.size <= maxChunkCount) return initial
         val chunks = initial.toMutableList()
-        while (chunks.size > MAX_CHUNKS) {
+        while (chunks.size > maxChunkCount) {
             val mergeIndex =
                 (0 until chunks.lastIndex).minByOrNull { index ->
-                    chunks[index].length + chunks[index + 1].length
+                    mergeCost(chunks[index], chunks[index + 1])
                 } ?: break
             chunks[mergeIndex] = chunks[mergeIndex] + chunks[mergeIndex + 1]
             chunks.removeAt(mergeIndex + 1)
         }
         return chunks
     }
+
+    private fun mergeCost(
+        left: String,
+        right: String,
+    ): Int {
+        var cost = left.length + right.length
+        cost +=
+            when {
+                left.endsWithAny("。", "！", "？", ".", "!", "?") -> SENTENCE_BOUNDARY_PENALTY
+                left.endsWithAny("；", ";", "，", ",", "、", "：", ":") -> CLAUSE_BOUNDARY_PENALTY
+                else -> 0
+            }
+        if (isConnectorChunk(left) || isConnectorChunk(right)) cost -= CONNECTOR_MERGE_BONUS
+        if (left.length <= 2 || right.length <= 2) cost -= SHORT_CHUNK_MERGE_BONUS
+        val leftRole = detectRole(left)
+        val rightRole = detectRole(right)
+        if (leftRole != MagneticSemanticRole.OTHER && rightRole != MagneticSemanticRole.OTHER) {
+            cost += SEMANTIC_PAIR_PENALTY
+        }
+        return cost
+    }
+
+    private fun String.endsWithAny(vararg suffixes: String): Boolean = suffixes.any(::endsWith)
+
+    private fun isConnectorChunk(text: String): Boolean =
+        text.trim().trim('，', ',', '、', '；', ';', '：', ':') in CONNECTOR_CHUNKS
+
+    private val CONNECTOR_CHUNKS =
+        setOf("的", "及", "以及", "及其", "与", "和", "或", "在", "自", "即", "中", "为", "等")
+    private const val SENTENCE_BOUNDARY_PENALTY = 1_000
+    private const val CLAUSE_BOUNDARY_PENALTY = 80
+    private const val SEMANTIC_PAIR_PENALTY = 24
+    private const val CONNECTOR_MERGE_BONUS = 28
+    private const val SHORT_CHUNK_MERGE_BONUS = 10
 
     private fun detectRole(text: String): MagneticSemanticRole {
         val trimmed = text.trim()

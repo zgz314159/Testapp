@@ -13,6 +13,9 @@ import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.EditNote
 import androidx.compose.material.icons.filled.Extension
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Slider
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -25,6 +28,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.testapp.core.common.MagneticFragmentationLevel
 import com.example.testapp.core.util.FillQuestionFilterSummary
 import com.example.testapp.core.util.FillQuestionGenerationMode
 import com.example.testapp.feature.settings.R
@@ -32,6 +36,7 @@ import com.example.testapp.uicommon.design.AppElevatedActionSheetTokens
 import com.example.testapp.uicommon.design.SessionModeBadge
 import com.example.testapp.uicommon.design.adaptiveFadingModeLabel
 import com.example.testapp.uicommon.design.magneticRebuildModeLabel
+import kotlin.math.roundToInt
 
 /**
  * 原子题库出题模式面板：填空题、自适应渐隐、磁吸重建和记忆模式。
@@ -43,6 +48,7 @@ fun SettingsFillPanelContent(
     fontSize: Float,
     fillQuestionGenerationMode: FillQuestionGenerationMode,
     fillBlankCount: Int,
+    magneticFragmentationLevel: MagneticFragmentationLevel,
     fillFullAnswerRequireCorrect: Boolean,
     fillFullAnswerRandomOrder: Boolean,
     fillAnswerScoreMin: Int,
@@ -57,6 +63,7 @@ fun SettingsFillPanelContent(
     memoryPoolMode: Int,
     onModeChange: (FillQuestionGenerationMode) -> Unit,
     onBlankCountChange: (Int) -> Unit,
+    onMagneticFragmentationLevelChange: (MagneticFragmentationLevel) -> Unit,
     onRequireCorrectChange: (Boolean) -> Unit,
     onRandomOrderChange: (Boolean) -> Unit,
     onScoreRangeChange: (Int, Int) -> Unit,
@@ -127,7 +134,12 @@ fun SettingsFillPanelContent(
             collapseDescription = stringResource(R.string.collapse_magnetic_rebuild),
             leadingIcon = Icons.Filled.Extension,
         ) {
-            SettingsMagneticRebuildCategoryContent(showDetailedHelp = showDetailedHelp)
+            SettingsMagneticRebuildCategoryContent(
+                fontSize = fontSize,
+                fragmentationLevel = magneticFragmentationLevel,
+                onFragmentationLevelChange = onMagneticFragmentationLevelChange,
+                showDetailedHelp = showDetailedHelp,
+            )
         }
         SettingsCardDivider()
         SettingsMemoryCardSection(
@@ -183,7 +195,12 @@ private fun SettingsAdaptiveFadingCategoryContent(showDetailedHelp: Boolean) {
 }
 
 @Composable
-private fun SettingsMagneticRebuildCategoryContent(showDetailedHelp: Boolean) {
+private fun SettingsMagneticRebuildCategoryContent(
+    fontSize: Float,
+    fragmentationLevel: MagneticFragmentationLevel,
+    onFragmentationLevelChange: (MagneticFragmentationLevel) -> Unit,
+    showDetailedHelp: Boolean,
+) {
     val tokens = AppElevatedActionSheetTokens
     SettingsInsetPanel(modifier = Modifier.padding(top = 4.dp)) {
         Surface(
@@ -191,29 +208,103 @@ private fun SettingsMagneticRebuildCategoryContent(showDetailedHelp: Boolean) {
             shape = RoundedCornerShape(14.dp),
             color = tokens.cardWhite,
         ) {
-            Row(
+            Column(
                 modifier = Modifier.padding(horizontal = 12.dp, vertical = 12.dp),
-                verticalAlignment = Alignment.CenterVertically,
+                verticalArrangement = Arrangement.spacedBy(8.dp),
             ) {
-                SessionModeBadge(label = magneticRebuildModeLabel())
-                Spacer(modifier = Modifier.width(10.dp))
-                Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    SessionModeBadge(label = magneticRebuildModeLabel())
+                    Spacer(modifier = Modifier.width(10.dp))
                     Text(
                         text = stringResource(R.string.fill_mode_magnetic_rebuild_note),
+                        modifier = Modifier.weight(1f),
                         fontSize = 12.sp,
                         lineHeight = 17.sp,
                         color = tokens.textSecondary,
                     )
-                    if (showDetailedHelp) {
+                }
+                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                ) {
+                    Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
                         Text(
-                            text = stringResource(R.string.fill_magnetic_help),
+                            text = stringResource(R.string.fill_magnetic_fragmentation_title),
+                            fontSize = fontSize.coerceAtMost(16f).sp,
+                            color = tokens.textPrimary,
+                        )
+                        Text(
+                            text = stringResource(R.string.fill_magnetic_fragmentation_description),
                             fontSize = 12.sp,
                             lineHeight = 17.sp,
-                            color = tokens.brandBlue,
+                            color = tokens.textSecondary,
                         )
                     }
+                    Surface(
+                        shape = RoundedCornerShape(10.dp),
+                        color = MaterialTheme.colorScheme.primaryContainer,
+                    ) {
+                        Text(
+                            text = fragmentationLabel(fragmentationLevel),
+                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
+                            fontSize = 12.sp,
+                            color = MaterialTheme.colorScheme.onPrimaryContainer,
+                        )
+                    }
+                }
+                Slider(
+                    value = fragmentationLevel.storageValue.toFloat(),
+                    onValueChange = { rawValue ->
+                        onFragmentationLevelChange(
+                            MagneticFragmentationLevel.fromStorageValue(rawValue.roundToInt()),
+                        )
+                    },
+                    valueRange = 1f..5f,
+                    steps = 3,
+                    modifier = Modifier.fillMaxWidth(),
+                )
+                Row(modifier = Modifier.fillMaxWidth()) {
+                    Text(
+                        text = stringResource(R.string.fill_magnetic_fragmentation_coarse_end),
+                        fontSize = 11.sp,
+                        color = tokens.textSecondary,
+                    )
+                    Spacer(modifier = Modifier.weight(1f))
+                    Text(
+                        text = stringResource(R.string.fill_magnetic_fragmentation_fine_end),
+                        fontSize = 11.sp,
+                        color = tokens.textSecondary,
+                    )
+                }
+                if (showDetailedHelp) {
+                    Text(
+                        text = stringResource(R.string.fill_magnetic_fragmentation_progress_note),
+                        fontSize = 12.sp,
+                        lineHeight = 17.sp,
+                        color = tokens.brandBlue,
+                    )
+                    Text(
+                        text = stringResource(R.string.fill_magnetic_help),
+                        fontSize = 12.sp,
+                        lineHeight = 17.sp,
+                        color = tokens.textSecondary,
+                    )
                 }
             }
         }
     }
 }
+
+@Composable
+private fun fragmentationLabel(level: MagneticFragmentationLevel): String =
+    stringResource(
+        when (level) {
+            MagneticFragmentationLevel.COARSE -> R.string.fill_magnetic_fragmentation_coarse
+            MagneticFragmentationLevel.RELAXED -> R.string.fill_magnetic_fragmentation_relaxed
+            MagneticFragmentationLevel.STANDARD -> R.string.fill_magnetic_fragmentation_standard
+            MagneticFragmentationLevel.FINE -> R.string.fill_magnetic_fragmentation_fine
+            MagneticFragmentationLevel.ATOMIZED -> R.string.fill_magnetic_fragmentation_atomized
+        },
+    )
