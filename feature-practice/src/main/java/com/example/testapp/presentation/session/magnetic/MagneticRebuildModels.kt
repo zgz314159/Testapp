@@ -68,7 +68,8 @@ data class MagneticClause(
         availableByKey: MutableMap<String, MutableList<MagneticToken>>,
         preferred: MagneticToken,
     ): MagneticToken {
-        val available = availableByKey.getValue(preferred.equivalenceKey)
+        val available = availableByKey[preferred.equivalenceKey].orEmpty()
+        if (available.isEmpty()) return preferred
         val preferredIndex = available.indexOfFirst { it.id == preferred.id }
         return if (preferredIndex >= 0) available.removeAt(preferredIndex) else available.removeAt(0)
     }
