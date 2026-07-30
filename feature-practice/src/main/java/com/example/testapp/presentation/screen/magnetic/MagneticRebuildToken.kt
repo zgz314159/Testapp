@@ -128,11 +128,11 @@ internal fun MagneticFloatingToken(
                 .graphicsLayer {
                     scaleX = FLOATING_TOKEN_SCALE
                     scaleY = FLOATING_TOKEN_SCALE
-                }.shadow(12.dp, shape),
+                }.shadow(6.dp, shape),
         shape = shape,
         color = if (hinted) AppThemeColors.warningSoft else colors.primaryContainer,
-        border = BorderStroke(2.dp, colors.primary),
-        tonalElevation = 6.dp,
+        border = BorderStroke(1.5.dp, colors.primary),
+        tonalElevation = 3.dp,
     ) {
         TokenTextContent(token)
     }
@@ -170,4 +170,4 @@ private fun roleLabel(role: MagneticSemanticRole): String =
     }
 
 private const val DRAG_PLACEHOLDER_ALPHA = 0.18f
-private const val FLOATING_TOKEN_SCALE = 1.06f
+private const val FLOATING_TOKEN_SCALE = 1.01f
