@@ -261,8 +261,8 @@ private fun SettingsMagneticRebuildCategoryContent(
                             MagneticFragmentationLevel.fromStorageValue(rawValue.roundToInt()),
                         )
                     },
-                    valueRange = 1f..5f,
-                    steps = 3,
+                    valueRange = 1f..6f,
+                    steps = 4,
                     modifier = Modifier.fillMaxWidth(),
                 )
                 Row(modifier = Modifier.fillMaxWidth()) {
@@ -306,5 +306,6 @@ private fun fragmentationLabel(level: MagneticFragmentationLevel): String =
             MagneticFragmentationLevel.STANDARD -> R.string.fill_magnetic_fragmentation_standard
             MagneticFragmentationLevel.FINE -> R.string.fill_magnetic_fragmentation_fine
             MagneticFragmentationLevel.ATOMIZED -> R.string.fill_magnetic_fragmentation_atomized
+            MagneticFragmentationLevel.SOURCE_ATOMIC -> R.string.fill_magnetic_fragmentation_source_atomic
         },
     )

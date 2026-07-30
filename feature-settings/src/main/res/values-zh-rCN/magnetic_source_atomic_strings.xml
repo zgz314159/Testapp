@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="fill_magnetic_fragmentation_description">控制每条条文的磁吸词块粒度。原子级按题库有分值原子拆分，0分连接内容自动吸附到相邻词块。</string>
+    <string name="fill_magnetic_fragmentation_source_atomic">原子级</string>
+    <string name="fill_magnetic_fragmentation_fine_end">题库原子 · 0分内容自动吸附</string>
+    <string name="fill_magnetic_fragmentation_progress_note">更改后退出并重新进入磁吸重建即可生效；题序和已完成条文保留，未完成词块按新粒度重新生成。</string>
+</resources>
