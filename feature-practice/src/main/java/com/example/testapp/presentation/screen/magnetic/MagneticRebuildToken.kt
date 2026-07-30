@@ -9,15 +9,15 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableFloatStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
-import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.layout.boundsInWindow
+import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.semantics.CustomAccessibilityAction
 import androidx.compose.ui.semantics.customActions
 import androidx.compose.ui.semantics.semantics
@@ -27,7 +27,6 @@ import androidx.compose.ui.unit.sp
 import com.example.testapp.presentation.session.magnetic.MagneticSemanticRole
 import com.example.testapp.presentation.session.magnetic.MagneticToken
 import com.example.testapp.uicommon.design.AppThemeColors
-import kotlin.math.roundToInt
 
 @Composable
 fun MagneticCandidateToken(
@@ -58,19 +57,24 @@ fun MagneticPlacedToken(
     onReturn: () -> Unit,
     onMove: (Int) -> Unit,
     modifier: Modifier = Modifier,
+    dragging: Boolean = false,
+    onBoundsChanged: (Rect) -> Unit = {},
+    onDragStart: (Offset) -> Unit = {},
+    onDrag: (Offset) -> Unit = {},
+    onDragEnd: () -> Unit = {},
+    onDragCancel: () -> Unit = {},
 ) {
     val colors = MaterialTheme.colorScheme
-    var dragX by remember(token.id, index) { mutableFloatStateOf(0f) }
-    val thresholdPx = with(LocalDensity.current) { 68.dp.toPx() }
     val shape = RoundedCornerShape(14.dp)
     Surface(
-        onClick = onReturn,
+        onClick = { if (!dragging) onReturn() },
         modifier =
             modifier
+                .onGloballyPositioned { coordinates -> onBoundsChanged(coordinates.boundsInWindow()) }
+                .alpha(if (dragging) DRAG_PLACEHOLDER_ALPHA else 1f)
                 .graphicsLayer {
-                    translationX = dragX
-                    scaleX = if (dragX == 0f) 1f else 1.04f
-                    scaleY = if (dragX == 0f) 1f else 1.04f
+                    scaleX = if (dragging) 0.97f else 1f
+                    scaleY = if (dragging) 0.97f else 1f
                 }.shadow(if (connected) 5.dp else 2.dp, shape)
                 .semantics {
                     customActions =
@@ -85,18 +89,13 @@ fun MagneticPlacedToken(
                         }
                 }.pointerInput(token.id, index, total) {
                     detectDragGesturesAfterLongPress(
+                        onDragStart = onDragStart,
                         onDrag = { change, dragAmount ->
                             change.consume()
-                            dragX += dragAmount.x
+                            onDrag(dragAmount)
                         },
-                        onDragCancel = { dragX = 0f },
-                        onDragEnd = {
-                            val steps = (dragX / thresholdPx).roundToInt()
-                            if (steps != 0) {
-                                onMove((index + steps).coerceIn(0, total - 1))
-                            }
-                            dragX = 0f
-                        },
+                        onDragCancel = onDragCancel,
+                        onDragEnd = onDragEnd,
                     )
                 },
         shape = shape,
@@ -111,6 +110,29 @@ fun MagneticPlacedToken(
                 if (connected || hinted) 1.5.dp else 1.dp,
                 if (connected || hinted) colors.primary else colors.outline,
             ),
+    ) {
+        TokenTextContent(token)
+    }
+}
+
+@Composable
+internal fun MagneticFloatingToken(
+    token: MagneticToken,
+    hinted: Boolean,
+) {
+    val colors = MaterialTheme.colorScheme
+    val shape = RoundedCornerShape(14.dp)
+    Surface(
+        modifier =
+            Modifier
+                .graphicsLayer {
+                    scaleX = FLOATING_TOKEN_SCALE
+                    scaleY = FLOATING_TOKEN_SCALE
+                }.shadow(12.dp, shape),
+        shape = shape,
+        color = if (hinted) AppThemeColors.warningSoft else colors.primaryContainer,
+        border = BorderStroke(2.dp, colors.primary),
+        tonalElevation = 6.dp,
     ) {
         TokenTextContent(token)
     }
@@ -146,3 +168,6 @@ private fun roleLabel(role: MagneticSemanticRole): String =
         MagneticSemanticRole.PUNCTUATION -> "连接"
         MagneticSemanticRole.OTHER -> ""
     }
+
+private const val DRAG_PLACEHOLDER_ALPHA = 0.18f
+private const val FLOATING_TOKEN_SCALE = 1.06f
