@@ -7,7 +7,62 @@ internal data class MagneticDragBounds(
     val bottom: Float,
 ) {
     val centerX: Float get() = (left + right) / 2f
+    val centerY: Float get() = (top + bottom) / 2f
+    val width: Float get() = right - left
     val height: Float get() = bottom - top
+}
+
+internal data class MagneticDragPoint(
+    val x: Float,
+    val y: Float,
+)
+
+internal fun clampMagneticPointer(
+    pointerX: Float,
+    pointerY: Float,
+    containerBounds: MagneticDragBounds,
+): MagneticDragPoint =
+    MagneticDragPoint(
+        x = pointerX.coerceIn(containerBounds.left, containerBounds.right),
+        y = pointerY.coerceIn(containerBounds.top, containerBounds.bottom),
+    )
+
+internal fun calculateMagneticFloatingTopLeft(
+    containerBounds: MagneticDragBounds,
+    draggedWidth: Float,
+    draggedHeight: Float,
+    rawLeft: Float,
+    rawTop: Float,
+): MagneticDragPoint {
+    val maximumLeft = (containerBounds.right - draggedWidth).coerceAtLeast(containerBounds.left)
+    val maximumTop = (containerBounds.bottom - draggedHeight).coerceAtLeast(containerBounds.top)
+    return MagneticDragPoint(
+        x = rawLeft.coerceIn(containerBounds.left, maximumLeft),
+        y = rawTop.coerceIn(containerBounds.top, maximumTop),
+    )
+}
+
+internal fun calculateMagneticIndicatorTopLeft(
+    anchorBounds: MagneticDragBounds,
+    insertBeforeAnchor: Boolean,
+    containerBounds: MagneticDragBounds,
+    indicatorWidth: Float,
+    indicatorHeight: Float,
+    gap: Float,
+): MagneticDragPoint {
+    val rawLeft =
+        if (insertBeforeAnchor) {
+            anchorBounds.left - gap - indicatorWidth
+        } else {
+            anchorBounds.right + gap
+        }
+    val rawTop = anchorBounds.centerY - indicatorHeight / 2f
+    val maximumLeft = (containerBounds.right - indicatorWidth).coerceAtLeast(containerBounds.left)
+    val maximumTop = (containerBounds.bottom - indicatorHeight).coerceAtLeast(containerBounds.top)
+    return MagneticDragPoint(
+        x = rawLeft.coerceIn(containerBounds.left, maximumLeft),
+        y = rawTop.coerceIn(containerBounds.top, maximumTop),
+    )
 }
 
 internal fun calculateMagneticInsertionIndex(
