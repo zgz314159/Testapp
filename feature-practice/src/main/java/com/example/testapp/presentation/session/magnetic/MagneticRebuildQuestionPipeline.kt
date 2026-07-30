@@ -55,8 +55,13 @@ object MagneticRebuildQuestionPipeline {
         if (descriptors.size != matches.size || descriptors.any { it.answerText.isBlank() }) return null
 
         val rawSegments = buildRawSegments(question.content, matches, descriptors)
-        val merged = mergePunctuation(rawSegments)
-        val balanced = balanceChunkCount(merged, fragmentationLevel.maxChunkCount)
+        val balanced =
+            if (fragmentationLevel == MagneticFragmentationLevel.SOURCE_ATOMIC) {
+                MagneticSourceAtomicChunker.build(question.content, matches, descriptors)
+            } else {
+                val merged = mergePunctuation(rawSegments)
+                balanceChunkCount(merged, fragmentationLevel.maxChunkCount)
+            }
         if (balanced.size < MIN_CHUNKS) return null
 
         val originalText = balanced.joinToString(separator = "")
