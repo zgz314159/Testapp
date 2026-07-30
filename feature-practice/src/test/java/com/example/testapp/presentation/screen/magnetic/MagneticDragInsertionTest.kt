@@ -58,4 +58,45 @@ class MagneticDragInsertionTest {
 
         assertEquals(2, result)
     }
+
+    @Test
+    fun floatingTokenIsClampedInsideAssemblyBounds() {
+        val result =
+            calculateMagneticFloatingTopLeft(
+                containerBounds = MagneticDragBounds(20f, 100f, 320f, 300f),
+                draggedWidth = 80f,
+                draggedHeight = 50f,
+                rawLeft = 500f,
+                rawTop = 420f,
+            )
+
+        assertEquals(MagneticDragPoint(240f, 250f), result)
+    }
+
+    @Test
+    fun pointerOutsideAssemblyIsClampedToItsEdge() {
+        val result =
+            clampMagneticPointer(
+                pointerX = 500f,
+                pointerY = 420f,
+                containerBounds = MagneticDragBounds(20f, 100f, 320f, 300f),
+            )
+
+        assertEquals(MagneticDragPoint(320f, 300f), result)
+    }
+
+    @Test
+    fun shortIndicatorIsCenteredAndKeptInsideAssemblyBounds() {
+        val result =
+            calculateMagneticIndicatorTopLeft(
+                anchorBounds = MagneticDragBounds(270f, 180f, 318f, 240f),
+                insertBeforeAnchor = false,
+                containerBounds = MagneticDragBounds(20f, 100f, 320f, 300f),
+                indicatorWidth = 2f,
+                indicatorHeight = 26f,
+                gap = 3f,
+            )
+
+        assertEquals(MagneticDragPoint(318f, 197f), result)
+    }
 }
