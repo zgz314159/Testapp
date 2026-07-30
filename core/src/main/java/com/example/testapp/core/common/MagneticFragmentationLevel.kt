@@ -10,6 +10,7 @@ enum class MagneticFragmentationLevel(
     STANDARD(storageValue = 3, maxChunkCount = 12),
     FINE(storageValue = 4, maxChunkCount = 16),
     ATOMIZED(storageValue = 5, maxChunkCount = 24),
+    SOURCE_ATOMIC(storageValue = 6, maxChunkCount = Int.MAX_VALUE),
     ;
 
     companion object {
