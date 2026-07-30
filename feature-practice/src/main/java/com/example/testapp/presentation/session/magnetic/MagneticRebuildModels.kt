@@ -93,6 +93,27 @@ data class MagneticClauseDraft(
                 hintCount > 0 || originalViewCount > 0
 }
 
+internal data class MagneticAdjacencyEvaluation(
+    val correctPairCount: Int,
+    val connectedTokenIds: Set<Int>,
+)
+
+internal fun evaluateMagneticAdjacency(tokens: List<MagneticToken>): MagneticAdjacencyEvaluation {
+    val connectedIds = linkedSetOf<Int>()
+    var pairCount = 0
+    tokens.zipWithNext().forEach { (left, right) ->
+        if (right.order == left.order + 1) {
+            pairCount += 1
+            connectedIds += left.id
+            connectedIds += right.id
+        }
+    }
+    return MagneticAdjacencyEvaluation(
+        correctPairCount = pairCount,
+        connectedTokenIds = connectedIds,
+    )
+}
+
 data class MagneticRebuildUiState(
     val bankId: String = "",
     val isLoading: Boolean = true,
@@ -136,7 +157,7 @@ data class MagneticRebuildUiState(
         }
 
     val correctAdjacencyCount: Int
-        get() = placed.zipWithNext().count { (left, right) -> right.order == left.order + 1 }
+        get() = evaluateMagneticAdjacency(placed).correctPairCount
 
     val totalAdjacencyCount: Int
         get() = (currentClause?.tokens?.size ?: 1).minus(1).coerceAtLeast(0)
