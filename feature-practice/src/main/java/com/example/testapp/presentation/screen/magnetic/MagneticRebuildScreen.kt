@@ -205,11 +205,12 @@ private fun RebuildContent(
     val clause = state.currentClause ?: return
     val colors = MaterialTheme.colorScheme
     val success = AppThemeColors.success
+    val scrollState = rememberScrollState()
     Column(
         modifier =
             modifier
                 .fillMaxSize()
-                .verticalScroll(rememberScrollState())
+                .verticalScroll(scrollState)
                 .padding(horizontal = 16.dp, vertical = 12.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
@@ -232,29 +233,17 @@ private fun RebuildContent(
                         color = colors.onSurfaceVariant,
                     )
                 } else {
-                    FlowRow(
-                        horizontalArrangement = Arrangement.spacedBy(7.dp),
-                        verticalArrangement = Arrangement.spacedBy(8.dp),
-                    ) {
-                        state.placed.forEachIndexed { index, token ->
-                            val leftConnected =
-                                index > 0 && token.order == state.placed[index - 1].order + 1
-                            val rightConnected =
-                                index < state.placed.lastIndex &&
-                                    state.placed[index + 1].order == token.order + 1
-                            MagneticPlacedToken(
-                                token = token,
-                                index = index,
-                                total = state.placed.size,
-                                connected = leftConnected || rightConnected,
-                                hinted = state.hintedTokenId == token.id,
-                                onReturn = { dispatch(SessionCommand.MagneticReturnToken(token.id)) },
-                                onMove = { target ->
-                                    dispatch(SessionCommand.MagneticMoveToken(token.id, target))
-                                },
-                            )
-                        }
-                    }
+                    MagneticReorderableTokenFlow(
+                        tokens = state.placed,
+                        hintedTokenId = state.hintedTokenId,
+                        scrollState = scrollState,
+                        onReturn = { tokenId ->
+                            dispatch(SessionCommand.MagneticReturnToken(tokenId))
+                        },
+                        onMove = { tokenId, targetIndex ->
+                            dispatch(SessionCommand.MagneticMoveToken(tokenId, targetIndex))
+                        },
+                    )
                 }
             }
         }
