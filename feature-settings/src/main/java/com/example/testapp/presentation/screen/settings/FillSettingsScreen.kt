@@ -117,7 +117,10 @@ fun FillSettingsScreen(
                 onModeChange = { viewModel.setFillQuestionGenerationMode(context, it) },
                 onBlankCountChange = { viewModel.setFillBlankCount(context, it) },
                 onMagneticFragmentationLevelChange = {
-                    viewModel.setMagneticFragmentationLevel(context, it)
+                    viewModel.previewMagneticFragmentationLevel(it)
+                },
+                onMagneticFragmentationLevelChangeFinished = {
+                    viewModel.commitMagneticFragmentationLevel(it)
                 },
                 onRequireCorrectChange = { viewModel.setFillFullAnswerRequireCorrect(context, it) },
                 onRandomOrderChange = { viewModel.setFillFullAnswerRandomOrder(context, it) },

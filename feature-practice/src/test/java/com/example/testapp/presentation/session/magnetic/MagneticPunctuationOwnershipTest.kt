@@ -16,7 +16,7 @@ class MagneticPunctuationOwnershipTest {
             assertNotNull(
                 MagneticRebuildQuestionPipeline.buildClause(
                     question = sampleQuestion(),
-                    fragmentationLevel = MagneticFragmentationLevel.ATOMIZED,
+                    fragmentationLevel = MagneticFragmentationLevel.FINE,
                 ),
             )
         val texts = clause.tokens.map(MagneticToken::text)

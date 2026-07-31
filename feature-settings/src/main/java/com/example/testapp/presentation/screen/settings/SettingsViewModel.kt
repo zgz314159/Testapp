@@ -11,10 +11,13 @@ import com.example.testapp.core.util.FillQuestionFilterSummary
 import com.example.testapp.core.util.FillQuestionGenerationMode
 import com.example.testapp.domain.usecase.SettingsRepositoryFacade
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import javax.inject.Inject
 
 @HiltViewModel
@@ -147,12 +150,42 @@ class SettingsViewModel @Inject constructor(
         viewModelScope.launch { fontSettingsRepository.setFillBlankCount(count) }
     }
 
+    /** UI preview while dragging; does not touch DataStore. */
+    fun previewMagneticFragmentationLevel(level: MagneticFragmentationLevel) {
+        android.util.Log.d(
+            "MagneticFrag",
+            "SETTINGS preview level=${level.name} storage=${level.storageValue} label=${level.displayLabel}",
+        )
+        fontSettings.emitMagneticFragmentationLevel(level)
+    }
+
+    /**
+     * Persist the settled slider value. Uses NonCancellable so leaving the settings
+     * screen cannot cancel the write mid-flight (which previously left DataStore on an
+     * intermediate tick such as「大块」while the badge still showed「原子级」).
+     */
+    fun commitMagneticFragmentationLevel(level: MagneticFragmentationLevel) {
+        android.util.Log.d(
+            "MagneticFrag",
+            "SETTINGS commit START level=${level.name} storage=${level.storageValue} label=${level.displayLabel}",
+        )
+        fontSettings.emitMagneticFragmentationLevel(level)
+        viewModelScope.launch {
+            withContext(NonCancellable + Dispatchers.IO) {
+                fontSettingsRepository.setMagneticFragmentationLevel(level)
+                android.util.Log.d(
+                    "MagneticFrag",
+                    "SETTINGS commit DONE level=${level.name} storage=${level.storageValue}",
+                )
+            }
+        }
+    }
+
     fun setMagneticFragmentationLevel(
         context: Context,
         level: MagneticFragmentationLevel,
     ) {
-        fontSettings.emitMagneticFragmentationLevel(level)
-        viewModelScope.launch { fontSettingsRepository.setMagneticFragmentationLevel(level) }
+        commitMagneticFragmentationLevel(level)
     }
 
     fun setRandomFillBlanks(context: Context, enabled: Boolean) {

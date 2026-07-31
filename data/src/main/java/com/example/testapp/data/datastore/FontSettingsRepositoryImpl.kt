@@ -131,8 +131,19 @@ class FontSettingsRepositoryImpl @Inject constructor(
     override suspend fun setBaiduFontSize(size: Float) = write(BAIDU_FONT_SIZE_KEY, size)
     override suspend fun setCumulativeExamCount(count: Int) = write(CUMULATIVE_EXAM_COUNT_KEY, count)
     override suspend fun setFillBlankCount(count: Int) = write(FILL_BLANK_COUNT_KEY, count)
-    override suspend fun setMagneticFragmentationLevel(level: MagneticFragmentationLevel) =
+    override suspend fun setMagneticFragmentationLevel(level: MagneticFragmentationLevel) {
+        android.util.Log.d(
+            "MagneticFrag",
+            "DATASTORE write magnetic_fragmentation_level=${level.storageValue} (${level.name})",
+        )
         write(MAGNETIC_FRAGMENTATION_LEVEL_KEY, level.storageValue)
+        val verify = context.dataStore.data.first()[MAGNETIC_FRAGMENTATION_LEVEL_KEY]
+        android.util.Log.d(
+            "MagneticFrag",
+            "DATASTORE verify magnetic_fragmentation_level=$verify " +
+                "parsed=${MagneticFragmentationLevel.fromStorageValue(verify).name}",
+        )
+    }
     override suspend fun setFillQuestionGenerationMode(mode: FillQuestionGenerationMode) {
         context.dataStore.edit { it[FILL_GENERATION_MODE_KEY] = mode.storageValue }
     }
@@ -168,7 +179,13 @@ class FontSettingsRepositoryImpl @Inject constructor(
             darkTheme = (it[DARK_THEME_KEY] ?: 0) != 0,
             fillBlankCount = it[FILL_BLANK_COUNT_KEY] ?: 4,
             magneticFragmentationLevel =
-                MagneticFragmentationLevel.fromStorageValue(it[MAGNETIC_FRAGMENTATION_LEVEL_KEY]),
+                MagneticFragmentationLevel.fromStorageValue(it[MAGNETIC_FRAGMENTATION_LEVEL_KEY]).also { level ->
+                    android.util.Log.d(
+                        "MagneticFrag",
+                        "DATASTORE snapshot read raw=${it[MAGNETIC_FRAGMENTATION_LEVEL_KEY]} " +
+                            "level=${level.name} storage=${level.storageValue} label=${level.displayLabel}",
+                    )
+                },
             randomFillBlanks = false,
             fillQuestionGenerationMode = FillQuestionGenerationMode.fromStorageValue(it[FILL_GENERATION_MODE_KEY] ?: ""),
             fillFullAnswerRandomOrder = (it[FILL_FULL_ANSWER_RANDOM_ORDER_KEY] ?: 1) != 0,

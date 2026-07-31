@@ -165,12 +165,27 @@ fun HomeScreen(
         }
     }
 
-    val drawerState: DrawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
+    val drawerState: DrawerState = rememberDrawerState(
+        initialValue = DrawerValue.Closed,
+        confirmStateChange = { newValue ->
+            // confirm 回调时 DrawerState 已是当前实例；用闭包外层的 state 需小心初始化顺序
+            true.also {
+                android.util.Log.d(
+                    HomeDrawerDebugLog.TAG,
+                    "CONFIRM -> $newValue",
+                    Throwable("HomeDrawer.confirm stack"),
+                )
+            }
+        },
+    )
     val drawerOpen by remember {
         derivedStateOf {
             drawerState.currentValue == DrawerValue.Open ||
                 drawerState.targetValue == DrawerValue.Open
         }
+    }
+    LaunchedEffect(drawerState) {
+        HomeDrawerDebugLog.snapshot("HomeScreen.rememberDrawerState ready", drawerState)
     }
     val homeRootCoordsRef = remember { HomeRootCoordsRef() }
     val dragFinishRef = remember { HomeDragFinishRef() }
@@ -212,7 +227,10 @@ fun HomeScreen(
             greeting = dashboardState.greeting,
             subtitle = dashboardState.subtitle,
             searchAction = {
-                HomeSearchAction(onClick = { scope.launch { drawerState.open() } })
+                HomeSearchAction(onClick = {
+                    HomeDrawerDebugLog.open("HomeSearchAction", drawerState)
+                    scope.launch { drawerState.open() }
+                })
             },
             notificationAction = { HomeNotificationAction() },
             modifier = Modifier.fillMaxWidth(),
@@ -246,7 +264,10 @@ fun HomeScreen(
         Spacer(modifier = Modifier.height(HomeDesignTokens.spacingXl))
         HomeSectionHeader(
             title = stringResource(R.string.home_book_title),
-            onShowAll = { scope.launch { drawerState.open() } },
+            onShowAll = {
+                HomeDrawerDebugLog.open("HomeSectionHeader.onShowAll", drawerState)
+                scope.launch { drawerState.open() }
+            },
             modifier = Modifier.padding(horizontal = HomeDesignTokens.pageHorizontalPadding),
         )
     }

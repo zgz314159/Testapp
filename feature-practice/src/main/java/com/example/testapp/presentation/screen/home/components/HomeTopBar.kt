@@ -27,7 +27,13 @@ fun HomeTopBar(
         title = stringResource(R.string.home_title),
         scrollBehavior = scrollBehavior,
         navigation = {
-            IconButton(onClick = { scope.launch { drawerState.open() } }) {
+            IconButton(onClick = {
+                com.example.testapp.presentation.screen.home.HomeDrawerDebugLog.open(
+                    "HomeTopBar.Menu",
+                    drawerState,
+                )
+                scope.launch { drawerState.open() }
+            }) {
                 Icon(Icons.Filled.Menu, contentDescription = "打开题库抽屉")
             }
         },

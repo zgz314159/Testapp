@@ -8,7 +8,7 @@ const val FILL_PART_DELIMITER: String = "\u001F"
 private val FILL_SPLIT_REGEX = Regex("[|｜/；;，,、\\n\\r]+")
 private val FILL_NUMBERED_SPLIT_REGEX = Regex("(?:^|\\s)\\d+[.、．:]\\s*")
 private val FILL_BLANK_REGEX = Regex("_{2,}|（\\s*）|\\(\\s*\\)|【\\s*】|\\[\\s*]")
-private val FILL_SCORE_SUFFIX_REGEX = Regex("^(.*)【\\s*(10|[1-9])\\s*分\\s*】\\s*$")
+private val FILL_SCORE_SUFFIX_REGEX = Regex("^(.*)【\\s*(10|[0-9])\\s*分\\s*】\\s*$")
 private val FILL_CATEGORY_SUFFIX_REGEX = Regex("^(.*)【\\s*([^【】]+?)\\s*】\\s*$")
 
 data class FillAnswerPartDescriptor(

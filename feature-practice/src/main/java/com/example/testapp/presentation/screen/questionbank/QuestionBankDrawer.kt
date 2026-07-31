@@ -1,6 +1,5 @@
 package com.example.testapp.presentation.screen.questionbank
 
-import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
@@ -23,14 +22,12 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.unit.dp
 import com.example.testapp.domain.usecase.FileStatistics
 import com.example.testapp.presentation.screen.home.design.HomeDesignTokens
 import com.example.testapp.uicommon.design.AppLoadingIndicator
 import com.example.testapp.uicommon.screen.questionbank.resolveQuestionBankDrawerWidth
-import kotlin.math.abs
 
 // ---- Tree model ----
 
@@ -155,26 +152,7 @@ fun QuestionBankDrawer(
     ModalDrawerSheet(
         modifier = modifier
             .fillMaxHeight()
-            .width(drawerWidth)
-            .pointerInput(searchQuery) {
-                var totalHorizontal = 0f
-                detectHorizontalDragGestures(
-                    onDragStart = { totalHorizontal = 0f },
-                    onHorizontalDrag = { change, dragAmount ->
-                        change.consume()
-                        totalHorizontal += dragAmount
-                    },
-                    onDragEnd = {
-                        if (abs(totalHorizontal) > 120f) {
-                            if (searchQuery.isNotBlank()) {
-                                viewModel.clearSearch()
-                            } else {
-                                onClose()
-                            }
-                        }
-                    }
-                )
-            },
+            .width(drawerWidth),
         drawerContainerColor = HomeDesignTokens.backgroundLight,
         drawerContentColor = HomeDesignTokens.textPrimaryLight,
         drawerTonalElevation = 4.dp,

@@ -32,16 +32,28 @@ object MagneticRebuildQuestionPipeline {
         fixedQuestionOrder: List<Int> = emptyList(),
         fragmentationLevel: MagneticFragmentationLevel = MagneticFragmentationLevel.STANDARD,
     ): List<MagneticClause> {
-        val clauses = sourceQuestions.mapNotNull { buildClause(it, fragmentationLevel) }
-        if (fixedQuestionOrder.isNotEmpty()) {
-            val clausesById = clauses.associateBy(MagneticClause::sourceQuestionId)
-            return fixedQuestionOrder.mapNotNull(clausesById::get)
-        }
         val limit =
             (if (requestedCount <= 0) DEFAULT_SESSION_SIZE else requestedCount)
                 .coerceAtMost(MAX_SESSION_SIZE)
-        val ordered = if (randomOrder) clauses.shuffled(Random(seed)) else clauses
-        return ordered.take(limit)
+        if (fixedQuestionOrder.isNotEmpty()) {
+            val byId = sourceQuestions.associateBy(Question::id)
+            return fixedQuestionOrder.mapNotNull { questionId ->
+                byId[questionId]?.let { buildClause(it, fragmentationLevel) }
+            }
+        }
+        val candidates =
+            if (randomOrder) {
+                sourceQuestions.shuffled(Random(seed))
+            } else {
+                sourceQuestions
+            }
+        val built = ArrayList<MagneticClause>(limit)
+        for (question in candidates) {
+            val clause = buildClause(question, fragmentationLevel) ?: continue
+            built += clause
+            if (built.size >= limit) break
+        }
+        return built
     }
 
     fun buildClause(
@@ -56,11 +68,17 @@ object MagneticRebuildQuestionPipeline {
 
         val rawSegments = buildRawSegments(question.content, matches, descriptors)
         val balanced =
-            if (fragmentationLevel == MagneticFragmentationLevel.SOURCE_ATOMIC) {
-                MagneticSourceAtomicChunker.build(question.content, matches, descriptors)
-            } else {
-                val merged = mergePunctuation(rawSegments)
-                balanceChunkCount(merged, fragmentationLevel.maxChunkCount)
+            when (fragmentationLevel) {
+                MagneticFragmentationLevel.SOURCE_ATOMIC ->
+                    // 原子级：题库空 + 夹缝均可拖；仅标点归属，不做语义合并。
+                    mergePunctuation(rawSegments)
+                MagneticFragmentationLevel.ATOMIZED ->
+                    // 细碎：有分值原子为核心，0 分/夹缝吸附。
+                    MagneticSourceAtomicChunker.build(question.content, matches, descriptors)
+                else -> {
+                    val merged = mergePunctuation(rawSegments)
+                    balanceChunkCount(merged, fragmentationLevel.maxChunkCount)
+                }
             }
         if (balanced.size < MIN_CHUNKS) return null
 

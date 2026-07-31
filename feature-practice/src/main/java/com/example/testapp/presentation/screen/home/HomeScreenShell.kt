@@ -3,8 +3,10 @@ package com.example.testapp.presentation.screen.home
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.material3.DrawerState
 import androidx.compose.material3.DrawerValue
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -14,18 +16,22 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshots.SnapshotStateMap
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.platform.LocalConfiguration
 import com.example.testapp.domain.usecase.FileStatistics
 import com.example.testapp.presentation.screen.home.components.HomeBottomBar
 import com.example.testapp.presentation.screen.questionbank.QuestionBankDrawerViewModel
+import com.example.testapp.uicommon.screen.questionbank.resolveQuestionBankDrawerWidth
 import kotlinx.coroutines.launch
 
 /**
@@ -120,9 +126,14 @@ fun HomeScreenDrawerHost(
     val scope = rememberCoroutineScope()
 
     LaunchedEffect(fileNames) {
-        val restore = HomeDrawerRestoreHolder.pending ?: return@LaunchedEffect
+        val restore = HomeDrawerRestoreHolder.pending
+        HomeDrawerDebugLog.d(
+            "restore LaunchedEffect fileNames=${fileNames.size} pending=$restore",
+        )
+        if (restore == null) return@LaunchedEffect
         HomeDrawerRestoreHolder.pending = null
         if (restore.openDrawer) {
+            HomeDrawerDebugLog.open("HomeDrawerRestoreHolder", drawerState)
             drawerState.open()
         }
         if (restore.searchQuery.isNotBlank()) {
@@ -133,15 +144,24 @@ fun HomeScreenDrawerHost(
     HomeNavigationDrawer(
         drawerState = drawerState,
         drawerContent = {
-            // Defer heavy drawer tree until open/opening so cold first-frame
-            // does not subscribe QuestionBankDrawer StateFlows or build search trees.
-            val composeDrawerContent by remember {
+            // 关闭后若卸载抽屉内容，ModalNavigationDrawer measure 会 updateAnchors/trySnapTo
+            // 把状态又 snap 回 Open（log：CONFIRM Open from NavigationDrawer.kt:424）。
+            // 策略：首次打开前放同宽占位稳住 anchors；打开过后保持内容挂载，关闭不再卸载。
+            val drawerWidth = resolveQuestionBankDrawerWidth(LocalConfiguration.current.screenWidthDp)
+            val drawerActive by remember {
                 derivedStateOf {
                     drawerState.currentValue != DrawerValue.Closed ||
                         drawerState.targetValue != DrawerValue.Closed
                 }
             }
-            if (composeDrawerContent) {
+            var contentMounted by remember { mutableStateOf(false) }
+            LaunchedEffect(drawerActive) {
+                if (drawerActive) {
+                    contentMounted = true
+                    HomeDrawerDebugLog.d("drawerContent mounted (active)")
+                }
+            }
+            if (contentMounted) {
                 HomeDrawerContent(
                     fileNames = fileNames,
                     folders = folders,
@@ -149,16 +169,29 @@ fun HomeScreenDrawerHost(
                     fileStatistics = fileStatistics,
                     drawerViewModel = drawerViewModel,
                     onQuestionSelected = { fileName, questionId, searchQuery ->
+                        HomeDrawerDebugLog.d("onQuestionSelected file=$fileName id=$questionId")
                         HomeDrawerBrowseNavigationPipeline.captureRestoreBeforeBrowse(searchQuery)
+                        HomeDrawerDebugLog.close("onQuestionSelected", drawerState)
                         scope.launch { drawerState.close() }
                         onBrowseQuestion(fileName, questionId)
                     },
                     onQuestionEdit = { fileName, questionId, searchQuery ->
+                        HomeDrawerDebugLog.d("onQuestionEdit file=$fileName id=$questionId")
                         HomeDrawerBrowseNavigationPipeline.captureRestoreBeforeBrowse(searchQuery)
+                        HomeDrawerDebugLog.close("onQuestionEdit", drawerState)
                         scope.launch { drawerState.close() }
                         onEditQuestion(fileName, questionId)
                     },
-                    onClose = { scope.launch { drawerState.close() } },
+                    onClose = {
+                        HomeDrawerDebugLog.close("QuestionBankDrawer.onClose", drawerState)
+                        scope.launch { drawerState.close() }
+                    },
+                )
+            } else {
+                Box(
+                    modifier = Modifier
+                        .fillMaxHeight()
+                        .width(drawerWidth),
                 )
             }
         },

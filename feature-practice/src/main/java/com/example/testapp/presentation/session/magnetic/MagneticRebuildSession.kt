@@ -14,6 +14,7 @@ import com.example.testapp.domain.session.SessionUiContract
 import com.example.testapp.domain.session.StatisticsSnapshot
 import com.example.testapp.presentation.session.practice.PracticeSessionDeps
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -24,6 +25,7 @@ import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 class MagneticRebuildSession(
     private val magneticKind: QuestionSessionKind.MagneticRebuild,
@@ -49,36 +51,45 @@ class MagneticRebuildSession(
     private var saveJob: Job? = null
 
     override suspend fun start() {
-        val savedProgress = runCatching { progressStore.load(magneticKind.quizId) }.getOrNull()
-        val sourceQuestions = deps.facade.questions.get(magneticKind.quizId).first()
-        val settings = deps.fontSettings.readSettingsSnapshot()
-        val refreshPlan =
-            MagneticFragmentationRefreshPolicy.resolve(
-                savedProgress = savedProgress,
-                configuredLevel = settings.magneticFragmentationLevel,
-            )
-        activeFragmentationLevel = refreshPlan.activeLevel
-        val restoredClauses =
-            MagneticRebuildQuestionPipeline.prepare(
-                sourceQuestions = sourceQuestions,
-                requestedCount = settings.practiceQuestionCount,
-                randomOrder = settings.randomPractice,
-                seed = magneticKind.quizId.hashCode().toLong(),
-                fixedQuestionOrder = refreshPlan.progressToRestore?.fixedQuestionOrder.orEmpty(),
-                fragmentationLevel = activeFragmentationLevel,
-            )
-        val clauses =
-            if (restoredClauses.isEmpty() && savedProgress != null) {
-                MagneticRebuildQuestionPipeline.prepare(
-                    sourceQuestions = sourceQuestions,
-                    requestedCount = settings.practiceQuestionCount,
-                    randomOrder = settings.randomPractice,
-                    seed = magneticKind.quizId.hashCode().toLong(),
-                    fragmentationLevel = activeFragmentationLevel,
+        val prepared =
+            withContext(Dispatchers.Default) {
+                val savedProgress = runCatching { progressStore.load(magneticKind.quizId) }.getOrNull()
+                val sourceQuestions = deps.facade.questions.get(magneticKind.quizId).first()
+                val settings = deps.fontSettings.readSettingsSnapshot()
+                val refreshPlan =
+                    MagneticFragmentationRefreshPolicy.resolve(
+                        savedProgress = savedProgress,
+                        configuredLevel = settings.magneticFragmentationLevel,
+                    )
+                activeFragmentationLevel = refreshPlan.activeLevel
+                val restoredClauses =
+                    MagneticRebuildQuestionPipeline.prepare(
+                        sourceQuestions = sourceQuestions,
+                        requestedCount = settings.practiceQuestionCount,
+                        randomOrder = settings.randomPractice,
+                        seed = magneticKind.quizId.hashCode().toLong(),
+                        fixedQuestionOrder = refreshPlan.progressToRestore?.fixedQuestionOrder.orEmpty(),
+                        fragmentationLevel = activeFragmentationLevel,
+                    )
+                val clauses =
+                    if (restoredClauses.isEmpty() && savedProgress != null) {
+                        MagneticRebuildQuestionPipeline.prepare(
+                            sourceQuestions = sourceQuestions,
+                            requestedCount = settings.practiceQuestionCount,
+                            randomOrder = settings.randomPractice,
+                            seed = magneticKind.quizId.hashCode().toLong(),
+                            fragmentationLevel = activeFragmentationLevel,
+                        )
+                    } else {
+                        restoredClauses
+                    }
+                PreparedStart(
+                    refreshPlan = refreshPlan,
+                    clauses = clauses,
                 )
-            } else {
-                restoredClauses
             }
+        val refreshPlan = prepared.refreshPlan
+        val clauses = prepared.clauses
         if (clauses.isEmpty()) {
             _uiState.value =
                 _uiState.value.copy(
@@ -95,6 +106,11 @@ class MagneticRebuildSession(
         if (refreshPlan.draftsInvalidated) saveProgressNow()
         _events.emit(SessionEvent.SessionStarted(kind))
     }
+
+    private data class PreparedStart(
+        val refreshPlan: MagneticFragmentationRefreshPlan,
+        val clauses: List<MagneticClause>,
+    )
 
     override suspend fun destroy() {
         saveJob?.cancel()
@@ -149,7 +165,8 @@ class MagneticRebuildSession(
             _uiState.value.copy(
                 feedback =
                     when {
-                        fragmentationChanged -> "碎化程度已更新，未完成词块已按新设置重新生成。"
+                        fragmentationChanged ->
+                            "碎化程度已更新为「${activeFragmentationLevel.displayLabel}」，未完成词块已按新设置重新生成。"
                         _uiState.value.currentStarted -> "已恢复上次答题进度。"
                         else -> "已恢复到上次答题位置。"
                     },

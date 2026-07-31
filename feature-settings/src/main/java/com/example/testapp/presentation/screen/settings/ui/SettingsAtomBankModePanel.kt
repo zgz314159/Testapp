@@ -19,6 +19,7 @@ import androidx.compose.material3.Slider
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -64,6 +65,8 @@ fun SettingsFillPanelContent(
     onModeChange: (FillQuestionGenerationMode) -> Unit,
     onBlankCountChange: (Int) -> Unit,
     onMagneticFragmentationLevelChange: (MagneticFragmentationLevel) -> Unit,
+    onMagneticFragmentationLevelChangeFinished: (MagneticFragmentationLevel) -> Unit =
+        onMagneticFragmentationLevelChange,
     onRequireCorrectChange: (Boolean) -> Unit,
     onRandomOrderChange: (Boolean) -> Unit,
     onScoreRangeChange: (Int, Int) -> Unit,
@@ -138,6 +141,7 @@ fun SettingsFillPanelContent(
                 fontSize = fontSize,
                 fragmentationLevel = magneticFragmentationLevel,
                 onFragmentationLevelChange = onMagneticFragmentationLevelChange,
+                onFragmentationLevelChangeFinished = onMagneticFragmentationLevelChangeFinished,
                 showDetailedHelp = showDetailedHelp,
             )
         }
@@ -199,9 +203,14 @@ private fun SettingsMagneticRebuildCategoryContent(
     fontSize: Float,
     fragmentationLevel: MagneticFragmentationLevel,
     onFragmentationLevelChange: (MagneticFragmentationLevel) -> Unit,
+    onFragmentationLevelChangeFinished: (MagneticFragmentationLevel) -> Unit = onFragmentationLevelChange,
     showDetailedHelp: Boolean,
 ) {
     val tokens = AppElevatedActionSheetTokens
+    var sliderLevel by remember { mutableStateOf(fragmentationLevel) }
+    LaunchedEffect(fragmentationLevel) {
+        sliderLevel = fragmentationLevel
+    }
     SettingsInsetPanel(modifier = Modifier.padding(top = 4.dp)) {
         Surface(
             modifier = Modifier.fillMaxWidth(),
@@ -247,7 +256,7 @@ private fun SettingsMagneticRebuildCategoryContent(
                         color = MaterialTheme.colorScheme.primaryContainer,
                     ) {
                         Text(
-                            text = fragmentationLabel(fragmentationLevel),
+                            text = fragmentationLabel(sliderLevel),
                             modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
                             fontSize = 12.sp,
                             color = MaterialTheme.colorScheme.onPrimaryContainer,
@@ -255,14 +264,26 @@ private fun SettingsMagneticRebuildCategoryContent(
                     }
                 }
                 Slider(
-                    value = fragmentationLevel.storageValue.toFloat(),
+                    value = sliderLevel.storageValue.toFloat(),
                     onValueChange = { rawValue ->
-                        onFragmentationLevelChange(
-                            MagneticFragmentationLevel.fromStorageValue(rawValue.roundToInt()),
+                        val level =
+                            MagneticFragmentationLevel.fromStorageValue(rawValue.roundToInt())
+                        android.util.Log.d(
+                            "MagneticFrag",
+                            "SLIDER drag raw=$rawValue -> ${level.name}/${level.storageValue}",
                         )
+                        sliderLevel = level
+                        onFragmentationLevelChange(level)
+                    },
+                    onValueChangeFinished = {
+                        android.util.Log.d(
+                            "MagneticFrag",
+                            "SLIDER finish -> ${sliderLevel.name}/${sliderLevel.storageValue}",
+                        )
+                        onFragmentationLevelChangeFinished(sliderLevel)
                     },
                     valueRange = 1f..6f,
-                    steps = 4,
+                    steps = MagneticFragmentationLevel.entries.size - 2,
                     modifier = Modifier.fillMaxWidth(),
                 )
                 Row(modifier = Modifier.fillMaxWidth()) {
