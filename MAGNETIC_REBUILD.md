@@ -30,7 +30,7 @@
 - `QuestionSessionKind.MagneticRebuild`：独立 Session 类型；
 - `MagneticRebuildQuestionPipeline`：原文恢复、语义块生成和稳定打乱；
 - `MagneticRebuildSession`：唯一行为状态边界，通过 `SessionCommand.Magnetic*` 接收 UI 操作；
-- `MagneticRebuildScreen`：独立 Compose UI，不复用或修改现有 PracticeScreen；
+- `MagneticRebuildScreen`：独立 Compose UI，不并入 PracticeScreen；`ScreenSafeScaffold` 对齐练习安全区；面板用无框 `MagneticBoardPanel`，顶栏 `PracticeExamTopBarShell`，词块 elev 对齐练习选项；
 - 原题库只读，不写正式练习历史和错题；磁吸进度使用独立 `magnetic_` 作用域保存。
 
 ## 限制

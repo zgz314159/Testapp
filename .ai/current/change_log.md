@@ -1,5 +1,16 @@
 # Change Log
 
+## 2026-08-01 | 磁吸重建安全区与无框底板
+
+- 答题页改用 `ScreenSafeScaffold`，顶栏高度对齐练习页，避开系统状态栏。
+- 「已组装条文」等面板改为 `MagneticBoardPanel`（无描边 soft shadow 底板），去掉 ElevatedCard 左侧白框感。
+- 组装区去掉 `clipToBounds`，词块阴影与「待拼词块」一致，不再被裁成左侧白线。
+
+## 2026-08-01 | 磁吸重建 UI 对齐练习立体 chrome
+
+- 顶栏改用 `PracticeExamTopBarShell`；内容区/任务头/`AppCard`；词块 elev 对齐 `QuestionOptionSurface`。
+- 主按钮品牌蓝立体 elevation；原文弹窗改 `AppElevatedConfirmDialog`。
+
 ## 2026-07-31 | 磁吸出题启动加速
 
 - `prepare` 仅构建本轮所需条文（默认 20），不再对全库逐题碎化。

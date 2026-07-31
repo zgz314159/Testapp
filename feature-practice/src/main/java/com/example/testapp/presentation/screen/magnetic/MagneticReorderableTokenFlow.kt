@@ -23,7 +23,6 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
@@ -37,6 +36,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
 import com.example.testapp.presentation.session.magnetic.MagneticToken
 import com.example.testapp.presentation.session.magnetic.evaluateMagneticAdjacency
+import com.example.testapp.uicommon.design.AppSpacing
 import kotlinx.coroutines.delay
 import kotlin.math.roundToInt
 
@@ -99,11 +99,11 @@ internal fun MagneticReorderableTokenFlow(
                 .fillMaxWidth()
                 .onGloballyPositioned { coordinates ->
                     containerBounds = coordinates.boundsInWindow().toDragBounds()
-                }.clipToBounds(),
+                },
     ) {
         FlowRow(
-            horizontalArrangement = Arrangement.spacedBy(7.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp),
+            horizontalArrangement = Arrangement.spacedBy(AppSpacing.sm),
+            verticalArrangement = Arrangement.spacedBy(AppSpacing.sm),
         ) {
             tokens.forEachIndexed { index, token ->
                 key(token.id) {

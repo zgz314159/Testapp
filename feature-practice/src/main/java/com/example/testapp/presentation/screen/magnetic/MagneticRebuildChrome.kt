@@ -31,6 +31,7 @@ import com.example.testapp.uicommon.component.AnswerCardItemState
 import com.example.testapp.uicommon.component.AnswerCardListDialogShell
 import com.example.testapp.uicommon.component.AnswerCardStatus
 import com.example.testapp.uicommon.component.answerCardStatusColors
+import com.example.testapp.uicommon.design.AppElevatedActionSheetTokens
 import com.example.testapp.uicommon.design.AppThemeColors
 import com.example.testapp.uicommon.design.SessionModeBadge
 import com.example.testapp.uicommon.design.magneticRebuildModeLabel
@@ -40,7 +41,7 @@ internal fun MagneticCompactTaskHeader(
     state: MagneticRebuildUiState,
     modifier: Modifier = Modifier,
 ) {
-    val colors = MaterialTheme.colorScheme
+    val tokens = AppElevatedActionSheetTokens
     val success = AppThemeColors.success
     val progress =
         if (state.totalAdjacencyCount <= 0) {
@@ -48,17 +49,11 @@ internal fun MagneticCompactTaskHeader(
         } else {
             state.correctAdjacencyCount.toFloat() / state.totalAdjacencyCount.toFloat()
         }
-    Surface(
-        modifier = modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(18.dp),
-        color = colors.surface,
-        border = BorderStroke(1.dp, colors.outlineVariant),
-        shadowElevation = 3.dp,
+    MagneticBoardPanel(
+        modifier = modifier,
+        contentPadding = Modifier.padding(horizontal = 14.dp, vertical = 11.dp),
     ) {
-        Column(
-            modifier = Modifier.padding(horizontal = 14.dp, vertical = 11.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp),
-        ) {
+        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -68,7 +63,7 @@ internal fun MagneticCompactTaskHeader(
                 Text(
                     text = "已完成 ${state.completedClauseCount}/${state.totalClauseCount}",
                     style = MaterialTheme.typography.labelMedium,
-                    color = colors.onSurfaceVariant,
+                    color = tokens.textSecondary,
                 )
             }
             Row(
@@ -80,19 +75,24 @@ internal fun MagneticCompactTaskHeader(
                     text = "磁吸回路",
                     style = MaterialTheme.typography.labelMedium,
                     fontWeight = FontWeight.SemiBold,
-                    color = colors.onSurface,
+                    color = tokens.textPrimary,
                 )
                 Text(
-                    text = if (state.currentCompleted) "已接通" else "${state.correctAdjacencyCount}/${state.totalAdjacencyCount}",
+                    text =
+                        if (state.currentCompleted) {
+                            "已接通"
+                        } else {
+                            "${state.correctAdjacencyCount}/${state.totalAdjacencyCount}"
+                        },
                     style = MaterialTheme.typography.labelMedium,
-                    color = if (state.currentCompleted) success else colors.primary,
+                    color = if (state.currentCompleted) success else tokens.brandBlue,
                 )
             }
             LinearProgressIndicator(
                 progress = { progress },
                 modifier = Modifier.fillMaxWidth().height(7.dp),
-                color = if (state.currentCompleted) success else colors.primary,
-                trackColor = colors.outlineVariant,
+                color = if (state.currentCompleted) success else tokens.brandBlue,
+                trackColor = MaterialTheme.colorScheme.outlineVariant,
             )
         }
     }
@@ -142,7 +142,8 @@ internal fun MagneticAnswerCardSheet(
                         fontWeight = FontWeight.Bold,
                     )
                     Text(
-                        text = "完成 ${state.completedClauseCount}/${state.totalClauseCount} · 已开始 ${state.startedQuestionIds.size}",
+                        text =
+                            "完成 ${state.completedClauseCount}/${state.totalClauseCount} · 已开始 ${state.startedQuestionIds.size}",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
