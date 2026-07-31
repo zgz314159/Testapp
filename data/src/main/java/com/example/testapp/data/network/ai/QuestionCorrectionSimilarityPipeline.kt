@@ -55,10 +55,10 @@ object QuestionCorrectionSimilarityPipeline {
         val maxPct = ((top.firstOrNull()?.similarity ?: 0.0) * 100).toInt()
         val detail = top.joinToString("；") { src ->
             val pct = (src.similarity * 100).toInt()
-            "「${src.title.take(40)}」匹配约 ${pct}%"
+            "「${src.title.take(40)}」匹配约 $pct%"
         }
         return if (maxPct < (SAME_QUESTION_THRESHOLD * 100).toInt()) {
-            "最高匹配仅 ${maxPct}%，可能未命中同题页。$detail"
+            "最高匹配仅 $maxPct%，可能未命中同题页。$detail"
         } else {
             detail
         }

@@ -65,7 +65,7 @@ object AiWebSearchPromptPipeline {
             sources.forEachIndexed { index, source ->
                 val pct = (source.similarity * 100).toInt()
                 append("\n\n${index + 1}. ${source.title}")
-                append("\n题干相似度: ${pct}%")
+                append("\n题干相似度: $pct%")
                 append("\nURL: ${source.url}")
                 append("\n摘要: ${source.snippet}")
             }
