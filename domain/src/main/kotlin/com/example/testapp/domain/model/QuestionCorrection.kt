@@ -9,6 +9,8 @@ data class QuestionCorrectionSource(
     val snippet: String = "",
     /** 发布日期（yyyy-MM-dd，来自检索 API，可能为空）。 */
     val publishedDate: String = "",
+    /** 与当前题干的文本相似度 0~1（客户端 bigram 比照，供排序与 UI）。 */
+    val similarity: Double = 0.0,
 )
 
 @Serializable

@@ -90,6 +90,15 @@ fun AiQuestionCorrectionPreviewDialog(
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
+                val maxMatch = suggestion.sources.maxOfOrNull { it.similarity } ?: 0.0
+                if (suggestion.sources.isNotEmpty() && maxMatch < 0.38) {
+                    Text(
+                        text = stringResource(R.string.ai_correct_weak_match_banner),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.error,
+                        modifier = Modifier.padding(top = 4.dp),
+                    )
+                }
                 Spacer(Modifier.height(12.dp))
                 Column(
                     modifier = Modifier
@@ -104,6 +113,13 @@ fun AiQuestionCorrectionPreviewDialog(
                         },
                         style = MaterialTheme.typography.bodyMedium,
                     )
+                    if (suggestion.sources.isNotEmpty()) {
+                        Text(
+                            text = stringResource(R.string.ai_correct_compare_hint),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
                     DiffBlock(
                         label = stringResource(R.string.ai_correct_field_content),
                         before = originalContent,
@@ -137,8 +153,13 @@ fun AiQuestionCorrectionPreviewDialog(
                             fontWeight = FontWeight.SemiBold,
                         )
                         suggestion.sources.forEach { source ->
+                            val title = source.title.ifBlank { source.url }
                             Text(
-                                text = source.title.ifBlank { source.url },
+                                text = stringResource(
+                                    R.string.ai_correct_source_match_format,
+                                    (source.similarity * 100).toInt(),
+                                    title,
+                                ),
                                 color = MaterialTheme.colorScheme.primary,
                                 maxLines = 2,
                                 overflow = TextOverflow.Ellipsis,
@@ -152,6 +173,15 @@ fun AiQuestionCorrectionPreviewDialog(
                                         }
                                     },
                             )
+                            if (source.snippet.isNotBlank()) {
+                                Text(
+                                    text = source.snippet,
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    maxLines = 3,
+                                    overflow = TextOverflow.Ellipsis,
+                                )
+                            }
                         }
                     }
                 }

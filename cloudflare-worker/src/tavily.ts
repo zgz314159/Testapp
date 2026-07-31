@@ -50,9 +50,10 @@ export async function searchTavily(
 export function formatSourcesForPrompt(sources: SearchSource[]): string {
   if (sources.length === 0) return "【检索结果】无可用来源。";
   return [
-    "【检索结果】",
-    ...sources.map(
-      (s, i) => `${i + 1}. ${s.title}\nURL: ${s.url}\n摘要: ${s.snippet}`,
-    ),
+    "【联网检索结果】（已按题干相似度降序；请优先比照前几条）",
+    ...sources.map((s, i) => {
+      const pct = Math.round((s.similarity || 0) * 100);
+      return `${i + 1}. ${s.title}\n题干相似度: ${pct}%\nURL: ${s.url}\n摘要: ${s.snippet}`;
+    }),
   ].join("\n\n");
 }

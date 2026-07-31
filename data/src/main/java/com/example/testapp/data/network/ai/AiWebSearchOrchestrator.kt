@@ -12,13 +12,39 @@ class AiWebSearchOrchestrator @Inject constructor(
     private val bochaDirectClient: BochaDirectClient,
     private val tavilyDirectClient: TavilyDirectClient,
 ) {
-    suspend fun search(query: String, maxResults: Int = 5): List<QuestionCorrectionSource> {
+    suspend fun search(
+        query: String,
+        maxResults: Int = 5,
+        bochaInclude: String = "",
+        tavilyIncludeDomains: List<String> = emptyList(),
+    ): List<QuestionCorrectionSource> {
         credentialsRepository.getBochaApiKey()?.takeIf { it.isNotBlank() }?.let { key ->
-            return bochaDirectClient.search(key, query, maxResults)
+            return bochaDirectClient.search(
+                apiKey = key,
+                query = query,
+                maxResults = maxResults,
+                include = bochaInclude,
+            )
         }
         credentialsRepository.getTavilyApiKey()?.takeIf { it.isNotBlank() }?.let { key ->
-            return tavilyDirectClient.search(key, query, maxResults)
+            return tavilyDirectClient.search(
+                apiKey = key,
+                query = query,
+                maxResults = maxResults,
+                includeDomains = tavilyIncludeDomains,
+            )
         }
         throw AiCredentialException.MissingSearchKey()
     }
+
+    suspend fun searchSpec(
+        spec: QuestionCorrectionSearchQueryPipeline.Spec,
+        maxResults: Int = 8,
+    ): List<QuestionCorrectionSource> =
+        search(
+            query = spec.query,
+            maxResults = maxResults,
+            bochaInclude = spec.bochaInclude,
+            tavilyIncludeDomains = spec.tavilyIncludeDomains,
+        )
 }

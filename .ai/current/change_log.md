@@ -25,6 +25,25 @@
 > 记录各 Phase 的主要变更。
 > 格式：`YYYY-MM-DD | Phase-N | 描述`
 
+## 2026-07-22 | AI 联网纠题：对准同题页（短语检索 + 弱证据熔断）
+
+- 现象：百度能搜到考试宝/知了爱学等同题（±10/±15/±5/±20 mm），博查与 Tavily 却命中规范 PDF/一建资料，匹配度 2%–12%，并幻觉出 ±1/±2 mm。
+- 根因：博查(Bing 系)/Tavily 对中文搜题站索引弱于百度；长题干通词「允许偏差」易偏文档；旧相似度对短摘要不敏感；弱证据仍允许模型改选项。
+- 修复：
+  1. 多路查询：核心短语引号检索、`答案/选择题` 后缀、博查 `include` / Tavily `include_domains` 定向题库站。
+  2. 相似度改为最长连续公共子串为主 + 题库页特征加分。
+  3. 最高匹配 &lt; 38% 时熔断：不套用弱相关数值选项，置信度 ≤35%，UI 红字提示。
+
+## 2026-07-22 | AI 联网纠题：多源题干匹配度比照
+
+- 现象：选项损坏（如全为「1」）时纠题易搜到错误数量级答案（±1/±2 mm），与真题（±10/±15/±5/±20 mm）不符；预览仅列来源标题，无同题匹配度。
+- 根因：检索 query 混入占位选项污染结果；只取 5 条；无客户端相似度排序；Prompt 未强制多源共识。
+- 修复：
+  1. `QuestionCorrectionSearchQueryPipeline`：题干主导检索，跳过垃圾占位选项；双查询（题干 +「选择题 答案 选项」）合并。
+  2. `QuestionCorrectionSimilarityPipeline`：题干↔来源 bigram Jaccard 打分，Top8 降序喂模型，并回填 `similarity`。
+  3. Prompt / 置信度校准要求多源比照；UI 展示「匹配度 xx% · 来源」与摘要。
+  4. Cloudflare worker 纠题路径同步策略。
+
 ## 2026-07-21 | Release 构建消除 POI SVGUserAgent R8 告警
 
 - 现象：`:app:lintVitalRelease` / `assembleRelease` 输出 `SVGUserAgent.getViewbox() does not type check`（R8 警告）。

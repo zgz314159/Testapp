@@ -61,9 +61,11 @@ object AiWebSearchPromptPipeline {
     fun formatSources(sources: List<QuestionCorrectionSource>): String {
         if (sources.isEmpty()) return "【联网检索结果】未检索到可用来源。"
         return buildString {
-            append("【联网检索结果】")
+            append("【联网检索结果】（已按题干相似度降序；请优先比照前几条）")
             sources.forEachIndexed { index, source ->
+                val pct = (source.similarity * 100).toInt()
                 append("\n\n${index + 1}. ${source.title}")
+                append("\n题干相似度: ${pct}%")
                 append("\nURL: ${source.url}")
                 append("\n摘要: ${source.snippet}")
             }

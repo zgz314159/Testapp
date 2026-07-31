@@ -22,7 +22,10 @@
     <string name="ai_correct_field_content">题干</string>
     <string name="ai_correct_field_options">选项</string>
     <string name="ai_correct_field_answer">答案</string>
-    <string name="ai_correct_sources">参考来源</string>
+    <string name="ai_correct_sources">参考来源（按题干匹配度）</string>
+    <string name="ai_correct_source_match_format">匹配度 %1$d%% · %2$s</string>
+    <string name="ai_correct_compare_hint">已比照多条联网结果；请优先核对匹配度较高的来源。若最高匹配度偏低，多半是检索源未收录该题库站（弱于百度），请勿直接套用弱相关建议。</string>
+    <string name="ai_correct_weak_match_banner">最高匹配度偏低：可能未命中同题，选项不会自动套用弱相关数值。</string>
     <string name="ai_correct_before_format">原：%1$s</string>
     <string name="ai_correct_after_format">建议：%1$s</string>
     <string name="ai_correct_apply">应用到编辑框</string>

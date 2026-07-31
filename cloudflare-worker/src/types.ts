@@ -34,6 +34,8 @@ export interface SearchSource {
   title: string;
   url: string;
   snippet: string;
+  /** 0~1 stem similarity when ranked client/worker side */
+  similarity?: number;
 }
 
 export interface QuestionCorrectionSuggestion {

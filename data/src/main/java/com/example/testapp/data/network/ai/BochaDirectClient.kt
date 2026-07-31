@@ -17,7 +17,7 @@ import kotlinx.serialization.json.put
 import javax.inject.Inject
 import javax.inject.Singleton
 
-/** 博查 Web Search：大陆直连、中文检索质量优；响应为 Bing 兼容结构。 */
+/** 博查 Web Search：大陆直连；支持 include 限定站点以抬高中文题库命中率。 */
 @Singleton
 class BochaDirectClient @Inject constructor(
     private val client: HttpClient,
@@ -28,12 +28,14 @@ class BochaDirectClient @Inject constructor(
         apiKey: String,
         query: String,
         maxResults: Int = 5,
+        include: String = "",
     ): List<QuestionCorrectionSource> {
         val payload = buildJsonObject {
             put("query", query.take(400))
             put("freshness", "noLimit")
             put("summary", true)
-            put("count", maxResults)
+            put("count", maxResults.coerceIn(1, 50))
+            if (include.isNotBlank()) put("include", include)
         }
         val httpResponse = client.post {
             url(BOCHA_URL)
@@ -53,13 +55,12 @@ class BochaDirectClient @Inject constructor(
                 QuestionCorrectionSource(
                     title = it.name.take(200),
                     url = it.url,
-                    snippet = it.summary.ifBlank { it.snippet }.take(500),
+                    snippet = it.summary.ifBlank { it.snippet }.take(800),
                     publishedDate = normalizeDate(it.datePublished.ifBlank { it.dateLastCrawled }),
                 )
             }
     }
 
-    /** ISO 时间戳只保留日期部分。 */
     private fun normalizeDate(raw: String): String =
         raw.trim().take(10).takeIf { it.matches(Regex("""\d{4}-\d{2}-\d{2}""")) }.orEmpty()
 
